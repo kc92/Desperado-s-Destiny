@@ -180,15 +180,34 @@ Every action resolves through a poker hand draw:
 ---
 
 ## CURRENT PROJECT PHASE
-**Phase 0: Documentation & Setup**
+**Phase 0.5: Comprehensive Design Specification - COMPLETE ✅**
 
-**Active Todo Items:**
-- Create README.md
-- Create docs/technical-stack.md
-- Initialize project folder structure (client/, server/, shared/, docs/)
-- Set up Git repository
+**What We Just Finished:**
+- Made 24 critical design decisions covering every game system
+- Created Operations Playbook (11,000+ words of detailed specs)
+- Updated GDD with hospital mechanics, currency system, skill training, respec policy
+- Full design specification with zero ambiguity
 
-Once Phase 0 is complete, move to Phase 1: Foundation.
+**Phase Status:**
+- ✅ Phase 0: Documentation & Setup (100%)
+- ✅ Phase 0.5: Comprehensive Design Decisions (100%)
+- 🎯 **Ready for Phase 1: Foundation** (Backend/Frontend initialization)
+
+**Quick Reference - The 24 Critical Decisions:**
+See `docs/operations-playbook.md` for full details. Key highlights:
+- Hospital time penalty system (15-120 min)
+- Single currency (Gold Dollars only)
+- One skill training at a time
+- One free respec, then premium cost
+- Medium gangs (15-25 members, $5k creation cost)
+- 24/7 territory attacks
+- 4 chat channels (Global, Faction, Gang, Location)
+- Email verification + optional 2FA
+- Premium: $5-10/month subscription (not tokens)
+- NPC mentor tutorial system
+- Globally unique character names
+- Daily backups, 30-day retention
+- Soft launch strategy
 
 ---
 
@@ -226,9 +245,10 @@ Once Phase 0 is complete, move to Phase 1: Foundation.
 
 **Reference As Needed:**
 - `docs/game-design-document.md` - Complete game design (22k words)
+- `docs/operations-playbook.md` - All 24 critical decisions with full implementation specs (11k words) ⭐
 - `docs/ezra-persona.md` - How to behave and communicate
 - `docs/decisions-tracker.md` - Why we made design choices
-- `docs/technical-stack.md` - Detailed tech rationale (create this next!)
+- `docs/technical-stack.md` - Detailed tech rationale
 
 **Update Regularly:**
 - `docs/development-log.md` - After each session

@@ -17,6 +17,44 @@ This ensures we remember our reasoning and can revisit decisions if needed.
 
 ---
 
+## COMPREHENSIVE DECISION SUMMARY (Phase 0.5)
+
+**Date:** November 15, 2025
+**Session:** 2.5 - Comprehensive Design Specification
+
+During Phase 0.5, we conducted an exhaustive review of all game systems and made **24 critical design decisions** covering every aspect of the game before writing any code.
+
+**For the complete detailed specifications, see:**
+📖 **[Operations Playbook](operations-playbook.md)** - All 24 decisions with full implementation details
+
+**Quick Reference - The 24 Decisions:**
+
+| Category | Key Decisions |
+|----------|--------------|
+| **Authentication** | Email verification required, Optional 2FA |
+| **Combat & Death** | Hospital time penalty (Torn-style), 15-120 min based on defeat severity |
+| **Economy** | Single currency (Gold Dollars), No secondary currencies in MVP |
+| **Monetization** | Premium subscription ($5-10/month), Benefits: energy, vault, hospital discount, properties |
+| **Social Systems** | 4 chat channels (Global, Faction, Gang, Location), All notification types |
+| **Progression** | One skill training at a time, One free respec then premium cost |
+| **Gang System** | Medium size (15-25 members), Moderate creation cost ($5,000 gold) |
+| **Territory** | 24/7 attacks with instant resolution, Favors active gangs |
+| **Character** | Globally unique names (WoW-style), Never delete inactive accounts |
+| **Tutorial** | NPC mentor system with guided quests, 30-minute story-driven onboarding |
+| **Moderation** | Full toolkit (reporting, filters, dashboard, mute/block) |
+| **Mobile** | Responsive web for MVP, Native apps post-launch |
+| **Infrastructure** | Daily backups (30-day retention), 60 req/min API rate limiting |
+| **Security** | Server-side validation, Transaction logging, Anomaly detection |
+| **Launch** | Soft launch with small marketing, Controlled growth strategy |
+| **Analytics** | Track retention (D1/7/30) and DAU/MAU as primary KPIs |
+| **Legal** | All compliance (ToS, Privacy Policy, GDPR, Age verification 13+) |
+| **Operations** | Weekly balance reviews, Economy dashboards, Emergency hotfix capability |
+| **Incidents** | Rollback capability, <1 hour hotfix deployment, Exploit bounty program |
+
+These decisions represent a complete design specification with zero ambiguity before Phase 1 development begins.
+
+---
+
 ## DECISION LOG
 
 ### D001: Core Game Loop

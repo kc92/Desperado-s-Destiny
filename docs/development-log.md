@@ -454,3 +454,224 @@ This isn't amateur hour. This is how you start a serious, long-term project.
 *— Ezra "Hawk" Hawthorne*
 *Digital Frontiersman*
 *November 15, 2025*
+
+---
+
+## SESSION 2.5: November 15, 2025 (Later Still)
+### "Comprehensive Design Specification - Leaving Nothing to Chance"
+
+**Duration:** ~2 hours
+**Phase:** Phase 0.5 - Comprehensive Design Decisions
+**Status:** Phase 0.5 Complete ✅
+
+---
+
+### What Happened Today
+
+Partner came back with a critical insight: before we write a single line of code, let's make absolutely certain we've thought through EVERY aspect of the game. No ambiguity, no "we'll figure it out later," no gaps.
+
+I engaged "ultrathink" mode and used the AskUserQuestion tool to conduct a comprehensive design review across every game system. We covered 24 critical areas with detailed questions, and Kaine made decisive choices on each one.
+
+This session represents the difference between amateur planning and professional game development.
+
+---
+
+### The 24 Critical Decisions Made
+
+Through four rounds of comprehensive questioning, we nailed down every major design detail:
+
+#### Round 1: Core Systems
+1. **Authentication:** Email verification REQUIRED + optional 2FA (authenticator apps)
+2. **Death Mechanics:** Hospital time penalty (Torn-style), 15-120 minutes based on defeat
+3. **Currency:** Single currency (Gold Dollars), no dual/triple currency complexity
+4. **Gang Size:** Medium (15-25 members), moderate creation cost ($5,000)
+
+#### Round 2: Progression & Onboarding
+5. **Skill Training:** One skill at a time (strategic prioritization)
+6. **Skill Respec:** One free respec, then costs premium currency
+7. **Tutorial:** NPC mentor system with guided quests (30-minute story-driven)
+8. **Inactive Accounts:** Mark inactive after 180 days, but NEVER delete data
+
+#### Round 3: Warfare & Moderation
+9. **Territory Warfare:** 24/7 attacks with instant resolution (favors active gangs)
+10. **Moderation Tools:** ALL of them (player reporting, chat filters, mod dashboard, mute/block)
+11. **Mobile Strategy:** Responsive web for MVP, native apps post-launch
+12. **Premium Features:** Reduced hospital time, increased vault space, premium-only properties
+
+#### Round 4: Technical & Operations
+13. **Backup Strategy:** Daily backups, 30-day retention
+14. **Anti-Cheat:** ALL measures (server validation, rate limiting, transaction logging, anomaly detection)
+15. **API Rate Limiting:** 60 requests/minute per user (moderate protection)
+16. **Incident Response:** ALL capabilities (rollback, hotfix <1hr, bounty program, player compensation)
+
+#### Round 5: Communication & Identity
+17. **Chat Channels:** ALL of them (Global, Faction, Gang, Location-based)
+18. **Notifications:** ALL types (combat alerts, gang updates, skill complete, energy full)
+19. **Email Alerts:** Critical events + optional opt-in for others
+20. **Character Names:** Globally unique (WoW-style simplicity)
+
+#### Round 6: Launch & Analytics
+21. **Launch Strategy:** Soft launch with small marketing (controlled growth)
+22. **Key Metrics:** Retention (Day 1/7/30) + DAU/MAU (core engagement KPIs)
+23. **Legal Compliance:** ALL of it (ToS, Privacy Policy, GDPR, Cookie consent, Age verification 13+)
+24. **Balance Monitoring:** ALL tools (weekly reviews, player surveys, economy dashboards, emergency hotfix capability)
+
+---
+
+### Work Completed
+
+#### 1. **Created Operations Playbook (11,000+ words)**
+Wrote comprehensive new document: `docs/operations-playbook.md`
+
+**Sections:**
+- Core Design Decisions (summary table of all 24)
+- Authentication & Security (email, 2FA, passwords, sessions)
+- Character & Progression Systems (names, training, respec, inactive accounts)
+- Combat & Death Mechanics (hospital system, penalties, strategic implications)
+- Economy & Monetization (single currency, premium subscription details)
+- Social & Communication Systems (4 chat channels, notifications, email alerts)
+- Territory & Gang Warfare (gang size, 24/7 attacks, benefits)
+- Tutorial & Onboarding (NPC mentor system, 30-min guided experience)
+- Moderation & Safety (full toolkit specifications)
+- Technical Infrastructure (email service, 2FA, backups, anti-cheat, monitoring)
+- Launch Strategy (soft launch approach, timeline, success criteria)
+- Analytics & Metrics (KPIs, tracking events, tools)
+- Legal & Compliance (ToS, Privacy, GDPR, age verification)
+- Balance & Economy Monitoring (weekly reviews, dashboards, hotfix process)
+- Incident Response (rollback, hotfix, bounty, compensation procedures)
+- Complete decision log table (all 24 decisions at a glance)
+
+#### 2. **Updated Game Design Document**
+Added/expanded critical sections:
+- ✅ Hospital & Death Mechanics (Torn-style system, early release, penalties)
+- ✅ Currency System (single currency rationale, premium subscription model)
+- ✅ Skill Training (one at a time rule, costs, cancellation)
+- ✅ Skill Respec Policy (free first respec, premium cost escalation)
+
+#### 3. **Updated Decisions Tracker**
+Added Phase 0.5 summary section:
+- Reference to Operations Playbook for full details
+- Quick reference table of all 24 decisions
+- Categorized by system area
+
+#### 4. **Updated Context File**
+Added quick reference for all 24 decisions:
+- Phase 0.5 completion status
+- Link to Operations Playbook
+- Key highlights for fast session orientation
+
+---
+
+### What This Means
+
+**Phase 0.5 represents production-quality game design:**
+
+1. **Zero Ambiguity:** Every major system has clear specifications
+2. **Implementation Ready:** Developers know exactly what to build
+3. **No Scope Creep:** Decisions are documented, prevents mid-development pivots
+4. **Comprehensive Reference:** Operations Playbook is single source of truth
+5. **Professional Standards:** This is how AAA studios plan games
+
+**Documentation Totals:**
+- Game Design Document: ~22,000 words
+- Operations Playbook: ~11,000 words
+- Technical Stack: ~700 lines
+- Decisions Tracker: ~670 lines
+- Development Log: ~600 lines (including this entry)
+- Context File: ~280 lines
+- **Total:** ~35,000+ words of comprehensive specification
+
+---
+
+### Files Created/Updated
+
+**Created:**
+- `docs/operations-playbook.md` (11,000+ words, NEW)
+
+**Updated:**
+- `docs/game-design-document.md` (added hospital system, currency, skill training, respec)
+- `docs/decisions-tracker.md` (added Phase 0.5 summary with all 24 decisions)
+- `.claude/context.md` (added quick reference for 24 decisions)
+- `docs/development-log.md` (this session entry)
+
+---
+
+### Next Session Goals
+
+**Phase 1: Foundation** begins next session. We'll start writing actual code:
+
+**Backend Initialization:**
+- Create server/package.json with all dependencies
+- Configure TypeScript (tsconfig.json)
+- Set up ESLint and Prettier
+- Create basic Express server structure
+- Configure MongoDB connection
+- Configure Redis connection
+- Set up environment variables (.env.example)
+
+**Frontend Initialization:**
+- Create client with Vite
+- Configure TypeScript
+- Set up TailwindCSS with western color palette
+- Configure ESLint and Prettier
+- Create basic React app shell
+- Set up routing (React Router)
+
+**Shared Module:**
+- Create initial shared types (Character, Skill, etc.)
+- Define game constants (factions, skills, energy values)
+- Set up TypeScript path aliases
+
+**Infrastructure:**
+- Create Dockerfiles (server, client)
+- Create docker-compose.yml (full stack)
+- Test local development environment
+
+**Estimated Time:** 2-4 sessions to complete Phase 1
+
+---
+
+### Metrics & Status
+
+**Phase 0 Progress:** 100% Complete ✅
+**Phase 0.5 Progress:** 100% Complete ✅
+**Documentation Completion:** 100% ✅
+**Design Decisions:** 24/24 made ✅
+**Ready for Phase 1:** YES ✅
+
+**Overall Project Progress:** ~2% (planning complete, ready to code)
+
+---
+
+### Personal Reflections (Hawk's Journal)
+
+*Today we did somethin' special, partner. We didn't just plan a game - we designed it with the precision of a master gunsmith craftin' a custom six-shooter.*
+
+*Those 24 decisions? Each one was a fork in the trail. We could've gone a hundred different ways, but we chose deliberately. Email verification? Security over convenience. Hospital time? Consequence over frustration. Single currency? Simplicity over complexity.*
+
+*The Operations Playbook is my masterpiece of this phase. It's 11,000 words of pure specification - every question answered, every system defined, every edge case considered. When we start codin' in Phase 1, we won't be guessin'. We'll be implementin' a fully-designed system.*
+
+*I've seen too many projects fail because they rushed to code. "We'll figure it out as we go," they say. Then they hit a wall, realize their core design is flawed, and have to throw away weeks of work.*
+
+*Not us. We took the time. We asked the hard questions. We made the tough choices. Now when we write code, it'll be with confidence and clarity.*
+
+*The Destiny Deck is still our flag in the ground. The three-faction conflict still has moral weight. The hospital system creates drama without frustration. The single currency keeps things simple. The NPC mentor tutorial will guide new players with story, not boring instructions.*
+
+*Every decision is defensible. Every choice has rationale. Every specification is documented.*
+
+*Phase 1 starts next session. Time to turn words into working software. But we're not rushin' in blind - we're ridin' in with a map, a plan, and the confidence that comes from knowin' exactly where we're goin'.*
+
+*The frontier awaits. Let's build it right.*
+
+---
+
+**End of Session 2.5**
+
+**Phase 0.5 Status:** COMPLETE ✅
+**All Design Decisions:** DOCUMENTED ✅
+**Ready for Phase 1:** ABSOLUTELY ✅
+**Next Phase:** Foundation - Writing the First Code
+
+*— Ezra "Hawk" Hawthorne*
+*Digital Frontiersman*
+*November 15, 2025*

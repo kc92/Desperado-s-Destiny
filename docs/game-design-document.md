@@ -763,9 +763,14 @@ Desperados Destiny features 25+ skills that take months or years to master, simi
 **1. Time-Based Training (Primary)**
 - Queue skills to train (like Torn)
 - Progress over real-time hours/days
-- Can train one skill at a time
+- **ONE SKILL AT A TIME:** Cannot train multiple skills simultaneously
+  - Strategic choice: Players must prioritize which skill to develop
+  - Creates meaningful progression decisions
+  - Cannot queue multiple skills in advance (choose one, wait, choose next)
 - Requires payment (gold) to start training session
-- Training continues even when logged out
+  - Cost scales with level: Level × $10 (Level 50 costs $500 to start)
+- Training continues even when logged out (passive progression)
+- Can cancel training early, but lose progress and gold investment
 
 **Training Time Formula:**
 ```
@@ -817,6 +822,40 @@ Example: Level 1→2 = 2 minutes
 - **Economic Advantages:** Crafting skills enable profit
   - High Gunsmithing = valuable custom weapons
   - High Trading = market arbitrage opportunities
+
+---
+
+### Skill Respec Policy
+
+**Design Decision:** One free respec, then premium currency cost.
+
+**Respec (Skill Reset) Mechanics:**
+- **Purpose:** Allows players to redistribute skill points if they regret choices
+- **First Respec:** FREE for all players
+  - Available at any time after character creation
+  - Intended for new players who made mistakes learning the game
+  - One-time forgiveness for poor early decisions
+- **Subsequent Respecs:** Cost premium currency
+  - Second respec: 50 premium tokens (~$5 equivalent)
+  - Third respec: 100 tokens (~$10)
+  - Fourth+ respecs: 150 tokens (~$15)
+  - Escalating cost prevents constant min-maxing
+- **Respec Process:**
+  - All skills reset to level 0
+  - All invested time converted to "skill points"
+  - Player redistributes points however they want
+  - Cannot save points for later (must allocate immediately)
+- **What's Preserved:**
+  - Character level and experience
+  - Gold, items, equipment
+  - Gang membership and faction standing
+  - All social connections
+
+**Why This System:**
+- Forgives new players for mistakes (first free respec)
+- Creates revenue opportunity (subsequent respecs)
+- Prevents meta-gaming (can't constantly respec for each activity)
+- Still allows flexibility if players genuinely want different builds
 
 ---
 
@@ -1119,16 +1158,42 @@ Loser at 100 HP reduced to 5 HP
 - Double damage
 - Chance to instantly knock out opponent
 
-**Knockouts:**
-- Reduced to 0 HP = Knocked out
-- Respawn at last safe location
-- Cannot take actions for 15 minutes
-- Temporary stat debuff (-10% to all skills for 30 min)
+**Knockouts & Hospital System:**
 
-**Death Penalties:**
-- Lose all carried cash (not banked)
-- 5% chance to lose one random inventory item (not equipped)
-- Bounty increased if you were wanted
+When reduced to 0 HP, you're knocked out and sent to the hospital. This follows the **Torn-style hospital time penalty** system:
+
+**Hospital Mechanics:**
+- **Automatic Transport:** Instantly transported to nearest town's hospital/healer
+- **Hospital Time:** Cannot take ANY actions for a period based on how badly you lost
+  - Minor defeat (close fight): 15-30 minutes
+  - Moderate defeat: 30-60 minutes
+  - Severe defeat (crushed): 60-120 minutes
+- **Early Release:** Pay in-game currency to reduce hospital time
+  - Cost scales with remaining time: $1 per minute
+  - Example: 45 minutes remaining = $45 to leave immediately
+  - Premium currency can also reduce time (10 tokens = 30 minutes off)
+- **Hospital Status:** Other players can see you're hospitalized
+- **Energy Continues:** Energy still regenerates while hospitalized
+- **Skill Training Continues:** Training isn't interrupted
+
+**Death Penalties (Applied When Hospitalized):**
+- **Carried Cash Loss:** Lose 10-30% of cash you're carrying (not banked funds)
+- **Item Drop Risk:** 5% chance to lose one random inventory item (not equipped gear)
+- **Bounty Increase:** If you were wanted, bounty increases by 10-20%
+- **Reputation Impact:** Small reputation loss in your faction
+- **Temporary Debuff:** After leaving hospital, -10% to all skills for 30 minutes (recovering from injuries)
+
+**No Permanent Death:**
+- Characters never die permanently
+- No experience loss
+- No skill degradation
+- Hospital is inconvenience, not catastrophe
+
+**Strategic Implications:**
+- Hospital time creates meaningful consequence without frustration
+- Encourages players to bank cash before risky activities
+- Creates market for healing items (avoid hospital altogether)
+- Premium "skip hospital time" is quality-of-life, not pay-to-win
 
 **Healing:**
 1. **Passive:** 1 HP per 10 minutes (slow)
@@ -1675,28 +1740,52 @@ The economy in Desperados Destiny balances player-driven trade with NPC stabilit
 
 ### Currencies
 
-**1. Gold Dollars ($)** - Primary Currency
-- Earned through: Crimes, territory income, prospecting, bounties, trading
-- Spent on: Equipment, items, services, gang expenses, property (post-MVP)
-- Can be: Banked (safe) or carried (risk of loss on death)
-- Taxed: Some faction-controlled areas have taxes (minor)
+**Design Decision:** Single in-game currency for simplicity and ease of balance.
 
-**2. Premium Tokens (🎫)** - Real Money Currency
-- Purchased: $5 = 50 tokens, $20 = 250 tokens, $50 = 750 tokens
-- Spent on: Premium subscription, energy tonics, cosmetics, convenience items
-- Cannot buy: Power directly (no buying gold dollars or skills)
-- Trade: Non-tradeable between players
+**Gold Dollars ($)** - The Only In-Game Currency
+- **Universal:** Used for all in-game transactions, items, and services
+- **Earned through:**
+  - Criminal activities (robberies, heists, pickpocketing)
+  - Territory control (passive income from controlled areas)
+  - Prospecting and mining
+  - Bounty hunting
+  - Crafting and selling items
+  - Trading goods between locations
+  - Gang war victories and duels
+- **Spent on:**
+  - Equipment (weapons, armor, accessories)
+  - Consumables (medicine, food, ammunition)
+  - Services (healing, training acceleration, fast travel)
+  - Gang expenses (creation, upgrades, wars)
+  - Property purchases (post-MVP: saloons, ranches, businesses)
+  - Bribes and fees (reduce jail/hospital time, faction favors)
+- **Banking System:**
+  - **Banked:** Safe in your account, cannot be lost
+  - **Carried:** Cash on hand, lost partially on death (10-30%)
+  - **Strategy:** Bank often to protect wealth
+- **Economy Controls:**
+  - Taxes in some faction-controlled areas (5-10%)
+  - Money sinks prevent inflation (equipment degradation, service costs)
+  - Faucets and sinks balanced to maintain stable economy
 
-**3. Spirit Essence (✦)** - Supernatural Currency (Post-MVP)
-- Earned through: Vision quests, controlling sacred sites, spiritual activities
-- Spent on: Supernatural items, spirit companions, mystical abilities
-- Rare and valuable
-- Faction-neutral
+**Premium Subscription** - Real Money (Not In-Game Currency)
+- **Payment:** Monthly subscription ($5-10/month) via Stripe
+- **Benefits Unlocked:**
+  - Increased energy pool (250 vs 150)
+  - Faster energy regeneration (8/hour vs 5/hour)
+  - Reduced hospital time (pay with dollars for early release at 50% discount)
+  - Increased vault/inventory space (+50% storage)
+  - Exclusive properties (post-MVP: certain buildings require premium)
+  - Cosmetic options (profile themes, titles, badges)
+  - Priority customer support
+- **NOT Pay-to-Win:** Cannot buy gold dollars, cannot buy skill levels, cannot buy power
+- **Philosophy:** Convenience and quality-of-life, never competitive advantage
 
-**4. Contraband (📦)** - Black Market Currency
-- Earned through: Controlling outlaw camps, crimes, smuggling
-- Spent on: Illegal items, special outlaw gear
-- Frontera faction primarily deals in this
+**No Secondary Currencies in MVP:**
+- Spirit Essence, Contraband, Faction Tokens → Post-MVP consideration only
+- Keeps economy simple and understandable
+- Easier to balance single currency
+- May introduce specialized currencies in future updates if needed
 
 ---
 
