@@ -1,0 +1,153 @@
+# Desperados Destiny - Git Ignore File
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+dist/
+build/
+client/build/
+server/dist/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+.DS_Store
+
+# OS files
+Thumbs.db
+.DS_Store
+*.bak
+*~
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Production secrets
+config/production.json
+secrets/
+*.pem
+*.key
+*.cert
+
+# Database dumps
+*.sql
+*.dump
+*.sqlite
+
+# Cache directories
+.cache/
+.parcel-cache/
+.eslintcache
+
+# Misc
+.sass-cache/
+connect.lock
+typings/
+.npm
+.yarn-integrity
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# dotenv environment variable files
+.env*
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Next.js build output (if we use it later)
+.next/
+out/
+
+# Serverless directories
+.serverless/
+
+# PM2 logs
+.pm2/
+
+# Redis dump
+dump.rdb
+
+# MongoDB data (if running locally)
+data/db/
+
+# Backup files
+*.backup
+*.bak
+
+# Documentation builds (generated)
+docs/build/
+
+# Keep these files
+!.gitignore
+!.gitkeep
+!README.md
