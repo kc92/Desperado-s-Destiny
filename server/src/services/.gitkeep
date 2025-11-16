@@ -1,0 +1,9 @@
+# Services Directory
+
+This directory will contain business logic services.
+
+Example structure:
+- auth.service.ts
+- user.service.ts
+- game.service.ts
+- destinyDeck.service.ts

@@ -1,0 +1,8 @@
+# Workers Directory
+
+This directory will contain background workers for async tasks.
+
+Example structure:
+- gameStateWorker.ts
+- notificationWorker.ts
+- cleanupWorker.ts

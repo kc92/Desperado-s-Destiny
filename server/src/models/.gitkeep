@@ -1,0 +1,9 @@
+# Models Directory
+
+This directory will contain Mongoose models for database schemas.
+
+Example structure:
+- User.model.ts
+- Character.model.ts
+- DestinyDeck.model.ts
+- GameSession.model.ts

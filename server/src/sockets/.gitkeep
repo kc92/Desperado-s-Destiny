@@ -1,0 +1,8 @@
+# Sockets Directory
+
+This directory will contain Socket.io event handlers and real-time game logic.
+
+Example structure:
+- game.socket.ts
+- chat.socket.ts
+- lobby.socket.ts
