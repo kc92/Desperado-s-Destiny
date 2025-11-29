@@ -1,0 +1,106 @@
+src/examples/newspaperIntegration.example.ts(388,11): error TS2339: Property 'article' does not exist on type '{}'.
+src/models/ChineseDiasporaRep.model.ts(460,26): error TS2339: Property 'getOrCreateReputation' does not exist on type 'Model<IChineseDiasporaRep, any, any, any, Document<unknown, any, IChineseDiasporaRep, any, {}> & IChineseDiasporaRep & Required<...> & { ...; }, any>'.
+src/models/CraftingProfile.model.ts(411,18): error TS2352: Conversion of type '{ professionId: ProfessionId; level: number; xp: number; xpToNextLevel: number; tier: SkillTier.NOVICE; totalItemsCrafted: number; criticalCrafts: number; firstCraftedDate: Date; lastCraftedDate: Date; }' to type 'IProfessionProgress' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ professionId: ProfessionId; level: number; xp: number; xpToNextLevel: number; tier: SkillTier.NOVICE; totalItemsCrafted: number; criticalCrafts: number; firstCraftedDate: Date; lastCraftedDate: Date; }' is missing the following properties from type 'IProfessionProgress': _id, $assertPopulated, $clearModifiedPaths, $clone, and 51 more.
+src/models/GangHeist.model.ts(275,7): error TS2367: This comparison appears to be unintentional because the types 'HeistStatus.PLANNING' and 'HeistStatus.READY' have no overlap.
+src/models/Gossip.model.ts(261,16): error TS2339: Property 'addNPCToKnownBy' does not exist on type 'Model<IGossip, any, any, any, Document<unknown, any, IGossip, any, {}> & IGossip & Required<{ _id: unknown; }> & { __v: number; }, any>'.
+src/models/NPCRelationship.model.ts(220,35): error TS2339: Property 'findRelationship' does not exist on type 'Model<INPCRelationship, any, any, any, Document<unknown, any, INPCRelationship, any, {}> & INPCRelationship & Required<...> & { ...; }, any>'.
+src/models/NPCRelationship.model.ts(231,35): error TS2339: Property 'findRelationship' does not exist on type 'Model<INPCRelationship, any, any, any, Document<unknown, any, INPCRelationship, any, {}> & INPCRelationship & Required<...> & { ...; }, any>'.
+src/models/NPCRelationship.model.ts(245,41): error TS2339: Property 'findRelationship' does not exist on type 'Model<INPCRelationship, any, any, any, Document<unknown, any, INPCRelationship, any, {}> & INPCRelationship & Required<...> & { ...; }, any>'.
+src/models/SanityTracker.model.ts(482,31): error TS2339: Property 'findByCharacterId' does not exist on type 'Model<ISanityTracker, any, any, any, Document<unknown, any, ISanityTracker, any, {}> & ISanityTracker & Required<{ _id: unknown; }> & { ...; }, any>'.
+src/services/bossEncounter.service.ts(361,9): error TS2322: Type '{ [k: string]: IPlayerState; }' is not assignable to type '{ [characterId: string]: { health: number; maxHealth: number; statusEffects: StatusEffectInstance[]; damageDealt: number; isAlive: boolean; }; }'.
+  'string' index signatures are incompatible.
+    Type 'IPlayerState' is not assignable to type '{ health: number; maxHealth: number; statusEffects: StatusEffectInstance[]; damageDealt: number; isAlive: boolean; }'.
+      Types of property 'statusEffects' are incompatible.
+        Type '{ type: StatusEffect; duration: number; power: number; appliedAt: Date; }[]' is not assignable to type 'StatusEffectInstance[]'.
+          Property 'stackable' is missing in type '{ type: StatusEffect; duration: number; power: number; appliedAt: Date; }' but required in type 'StatusEffectInstance'.
+src/services/bountyHunter.service.ts(207,14): error TS2352: Conversion of type '{ createdAt: NativeDate; status: "active" | "escaped" | "captured" | "hunter_defeated" | "paid_off"; location: string; targetId: ObjectId; targetName: string; ... 9 more ...; hiredBy?: ObjectId; } & { ...; } & { ...; }' to type 'HunterEncounter' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'id' is missing in type '{ createdAt: NativeDate; status: "active" | "escaped" | "captured" | "hunter_defeated" | "paid_off"; location: string; targetId: ObjectId; targetName: string; ... 9 more ...; hiredBy?: ObjectId; } & { ...; } & { ...; }' but required in type 'HunterEncounter'.
+src/services/bountyHunter.service.ts(502,36): error TS2352: Conversion of type '{ createdAt: NativeDate; status: "active" | "escaped" | "captured" | "hunter_defeated" | "paid_off"; location: string; targetId: ObjectId; targetName: string; ... 9 more ...; hiredBy?: ObjectId; } & { ...; } & { ...; }' to type 'HunterEncounter' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'id' is missing in type '{ createdAt: NativeDate; status: "active" | "escaped" | "captured" | "hunter_defeated" | "paid_off"; location: string; targetId: ObjectId; targetName: string; ... 9 more ...; hiredBy?: ObjectId; } & { ...; } & { ...; }' but required in type 'HunterEncounter'.
+src/services/calendar.service.ts(40,7): error TS2322: Type 'IGameCalendar' is not assignable to type 'Document<unknown, {}, IGameCalendar, {}, {}> & IGameCalendar & Required<{ _id: unknown; }> & { __v: number; }'.
+  Type 'IGameCalendar' is not assignable to type 'Document<unknown, {}, IGameCalendar, {}, {}>'.
+    The types returned by 'toJSON(...)' are incompatible between these types.
+      Type 'Omit<{ [x: string]: any; }, "__v">' is missing the following properties from type 'Omit<{ currentYear: number; currentMonth: Month; currentWeek: number; currentDay: number; currentSeason: Season; currentMoonPhase: MoonPhase; holidays: { id: string; ... 6 more ...; isSupernatural: boolean; }[]; ... 71 more ...; validateSync: { ...; }; }, "__v">': save, get, set, validate, and 71 more.
+src/services/calendar.service.ts(268,41): error TS2339: Property 'getSeasonForMonth' does not exist on type 'IGameCalendar'.
+src/services/calendar.service.ts(270,44): error TS2339: Property 'calculateMoonPhase' does not exist on type 'IGameCalendar'.
+src/services/cheating.service.ts(136,34): error TS2345: Argument of type 'boolean' is not assignable to parameter of type 'string'.
+src/services/factionWar.service.ts(370,78): error TS2339: Property 'MVP_TOP_PERCENTAGE' does not exist on type '{ readonly KILL_ENEMY_MEMBER: 10; readonly WIN_ZONE_BATTLE: 50; readonly COMPLETE_MISSION_MIN: 25; readonly COMPLETE_MISSION_MAX: 100; readonly CAPTURE_TERRITORY: 100; readonly DEFEND_TERRITORY: 75; ... 4 more ...; readonly LOSE_TERRITORY: -50; }'.
+src/services/fortification.service.ts(352,9): error TS2367: This comparison appears to be unintentional because the types 'TerritoryFactionId' and 'FactionId' have no overlap.
+src/services/gambling.service.ts(218,39): error TS2554: Expected 1 arguments, but got 2.
+src/services/gossip.service.ts(204,7): error TS2353: Object literal may only specify known properties, and 'npcId' does not exist in type 'NPCOpinion'.
+src/services/handEvaluator.service.ts(363,30): error TS2304: Cannot find name 'Suit'.
+src/services/harvesting.service.ts(185,43): error TS2345: Argument of type '"HUNTING"' is not assignable to parameter of type 'TransactionSource'.
+src/services/headlineGenerator.service.ts(52,27): error TS2304: Cannot find name 'FactionId'.
+src/services/highStakesEvents.service.ts(294,49): error TS2554: Expected 1 arguments, but got 2.
+src/services/horse.service.ts(592,9): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+src/services/horse.service.ts(600,11): error TS2349: This expression is not callable.
+  Type 'Number' has no call signatures.
+src/services/legendaryCombat.service.ts(75,25): error TS2339: Property 'currentHealth' does not exist on type 'CharacterStats'.
+src/services/legendaryCombat.service.ts(437,8): error TS2339: Property 'updateBestAttempt' does not exist on type 'Document<unknown, {}, ILegendaryHunt, {}, {}> & ILegendaryHunt & Required<{ _id: unknown; }> & { __v: number; }'.
+src/services/legendaryCombat.service.ts(448,10): error TS2339: Property 'recordDefeat' does not exist on type 'Document<unknown, {}, ILegendaryHunt, {}, {}> & ILegendaryHunt & Required<{ _id: unknown; }> & { __v: number; }'.
+src/services/legendaryHunt.service.ts(164,38): error TS2339: Property 'getOrCreate' does not exist on type 'Model<ILegendaryHunt, {}, {}, {}, Document<unknown, {}, ILegendaryHunt, {}, {}> & ILegendaryHunt & Required<{ _id: unknown; }> & { ...; }, any>'.
+src/services/legendaryHunt.service.ts(255,38): error TS2339: Property 'getOrCreate' does not exist on type 'Model<ILegendaryHunt, {}, {}, {}, Document<unknown, {}, ILegendaryHunt, {}, {}> & ILegendaryHunt & Required<{ _id: unknown; }> & { ...; }, any>'.
+src/services/legendaryHunt.service.ts(392,38): error TS2339: Property 'getOrCreate' does not exist on type 'Model<ILegendaryHunt, {}, {}, {}, Document<unknown, {}, ILegendaryHunt, {}, {}> & ILegendaryHunt & Required<{ _id: unknown; }> & { ...; }, any>'.
+src/services/legendaryHunt.service.ts(483,44): error TS2339: Property 'getLeaderboard' does not exist on type 'Model<ILegendaryHunt, {}, {}, {}, Document<unknown, {}, ILegendaryHunt, {}, {}> & ILegendaryHunt & Required<{ _id: unknown; }> & { ...; }, any>'.
+src/services/location.service.ts(311,11): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+src/services/mentor.service.ts(179,9): error TS2322: Type 'IMentorship & Required<{ _id: unknown; }> & { __v: number; }' is not assignable to type 'Mentorship'.
+  Types of property 'characterId' are incompatible.
+    Type 'ObjectId' is not assignable to type 'string'.
+src/services/mysteriousFigure.service.ts(461,20): error TS2339: Property 'discoveredNPCs' does not exist on type 'Document<unknown, {}, ICharacter, {}, {}> & ICharacter & Required<{ _id: unknown; }> & { __v: number; }'.
+src/services/mysteriousFigure.service.ts(462,17): error TS2339: Property 'discoveredNPCs' does not exist on type 'Document<unknown, {}, ICharacter, {}, {}> & ICharacter & Required<{ _id: unknown; }> & { __v: number; }'.
+src/services/mysteriousFigure.service.ts(466,19): error TS2339: Property 'discoveredNPCs' does not exist on type 'Document<unknown, {}, ICharacter, {}, {}> & ICharacter & Required<{ _id: unknown; }> & { __v: number; }'.
+src/services/mysteriousFigure.service.ts(474,15): error TS2339: Property 'discoveredNPCs' does not exist on type 'Document<unknown, {}, ICharacter, {}, {}> & ICharacter & Required<{ _id: unknown; }> & { __v: number; }'.
+src/services/mysteriousFigure.service.ts(479,60): error TS2339: Property 'description' does not exist on type 'MysteriousFigure'.
+src/services/mysteriousFigure.service.ts(492,22): error TS2339: Property 'discoveredNPCs' does not exist on type 'Document<unknown, {}, ICharacter, {}, {}> & ICharacter & Required<{ _id: unknown; }> & { __v: number; }'.
+src/services/npcGangConflict.service.ts(422,24): error TS2339: Property 'xp' does not exist on type 'Document<unknown, {}, ICharacter, {}, {}> & ICharacter & Required<{ _id: unknown; }> & { __v: number; }'.
+src/services/npcReaction.service.ts(556,42): error TS2339: Property 'findGossipAboutCharacter' does not exist on type 'Model<GossipItem, {}, {}, {}, Document<unknown, {}, GossipItem, {}, {}> & GossipItem & Required<{ _id: ObjectId; }> & { ...; }, any>'.
+src/services/propertyPurchase.service.ts(441,27): error TS2345: Argument of type 'import("C:/Users/kaine/Documents/Desperados Destiny Dev/shared/dist/types/production.types").PropertyWorker' is not assignable to parameter of type 'import("C:/Users/kaine/Documents/Desperados Destiny Dev/server/src/models/Property.model").PropertyWorker'.
+  Type 'PropertyWorker' is missing the following properties from type 'PropertyWorker': workerType, skill, dailyWage, hiredAt, isActive
+src/services/propertyTax.service.ts(159,72): error TS2339: Property 'session' does not exist on type 'Promise<IPropertyTax>'.
+src/services/propertyTax.service.ts(172,77): error TS2339: Property 'session' does not exist on type 'Promise<ITaxDelinquency>'.
+src/services/propertyTax.service.ts(441,69): error TS2304: Cannot find name 'BankruptcyStatus'.
+src/services/raceBetting.service.ts(241,11): error TS2339: Property 'settleAsWon' does not exist on type 'Document<unknown, {}, RaceBetDocument, {}, {}> & RaceBetDocument & Required<{ _id: ObjectId; }> & { __v: number; }'.
+src/services/raceBetting.service.ts(245,11): error TS2339: Property 'settleAsLost' does not exist on type 'Document<unknown, {}, RaceBetDocument, {}, {}> & RaceBetDocument & Required<{ _id: ObjectId; }> & { __v: number; }'.
+src/services/raceBetting.service.ts(489,7): error TS2339: Property 'refund' does not exist on type 'Document<unknown, {}, RaceBetDocument, {}, {}> & RaceBetDocument & Required<{ _id: ObjectId; }> & { __v: number; }'.
+src/services/raceBetting.service.ts(535,12): error TS2339: Property 'updateOdds' does not exist on type 'Document<unknown, {}, HorseRaceDocument, {}, {}> & HorseRaceDocument & Required<{ _id: ObjectId; }> & { __v: number; }'.
+src/services/raceSimulation.service.ts(119,3): error TS2322: Type '"COMPLETED"' is not assignable to type 'RaceStatus'.
+src/services/raceSimulation.service.ts(151,5): error TS2740: Type 'ObjectId' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/raceSimulation.service.ts(348,13): error TS2339: Property 'positionChanges' does not exist on type 'RaceHorseState'.
+src/services/raceSimulation.service.ts(414,30): error TS2339: Property 'speedRecord' does not exist on type 'HorseRaceDocument'.
+src/services/raceSimulation.service.ts(415,25): error TS2339: Property 'speedRecord' does not exist on type 'HorseRaceDocument'.
+src/services/raceSimulation.service.ts(432,30): error TS2339: Property 'positionChanges' does not exist on type 'RaceHorseState'.
+src/services/resistance.service.ts(251,14): error TS2367: This comparison appears to be unintentional because the types 'TerritoryFactionId' and 'FactionId' have no overlap.
+src/services/resistance.service.ts(254,35): error TS2367: This comparison appears to be unintentional because the types 'TerritoryFactionId' and 'FactionId' have no overlap.
+src/services/resistance.service.ts(294,7): error TS2322: Type 'FactionId' is not assignable to type 'TerritoryFactionId'.
+  Type '"nahi"' is not assignable to type 'TerritoryFactionId'.
+src/services/resistance.service.ts(339,9): error TS2367: This comparison appears to be unintentional because the types 'TerritoryFactionId' and 'FactionId' have no overlap.
+src/services/resistance.service.ts(372,7): error TS2322: Type 'FactionId' is not assignable to type 'TerritoryFactionId'.
+  Type '"nahi"' is not assignable to type 'TerritoryFactionId'.
+src/services/resistance.service.ts(443,7): error TS2322: Type 'TerritoryFactionId[]' is not assignable to type 'FactionId[]'.
+  Type 'TerritoryFactionId' is not assignable to type 'FactionId'.
+src/services/resistance.service.ts(466,9): error TS2367: This comparison appears to be unintentional because the types 'TerritoryFactionId' and 'FactionId' have no overlap.
+src/services/resistance.service.ts(533,9): error TS2367: This comparison appears to be unintentional because the types 'TerritoryFactionId' and 'FactionId' have no overlap.
+src/services/ritual.service.ts(144,51): error TS2345: Argument of type '"ritual"' is not assignable to parameter of type 'TransactionSource'.
+src/services/secrets.service.ts(249,9): error TS2322: Type '(Document<unknown, {}, ICharacterSecret, {}, {}> & ICharacterSecret & Required<{ _id: unknown; }> & { __v: number; })[]' is not assignable to type 'Document<unknown, {}, ICharacterSecret, {}, {}> & ICharacterSecret & Required<{ _id: unknown; }> & { __v: number; }'.
+  Type '(Document<unknown, {}, ICharacterSecret, {}, {}> & ICharacterSecret & Required<{ _id: unknown; }> & { __v: number; })[]' is missing the following properties from type 'Document<unknown, {}, ICharacterSecret, {}, {}>': _id, $assertPopulated, $clearModifiedPaths, $clone, and 51 more.
+src/services/secrets.service.ts(358,59): error TS2307: Cannot find module './achievement.service' or its corresponding type declarations.
+src/services/secrets.service.ts(412,25): error TS2345: Argument of type '{ discoveredAt: Date; rewardClaimed: boolean; secretId: string; name: string; description: string; type: SecretType; locationId?: string; npcId?: string; requirements: SecretRequirement[]; ... 18 more ...; __v: number; }' is not assignable to parameter of type 'ISecretDefinition & { discoveredAt: Date; rewardClaimed: boolean; }'.
+  Type '{ discoveredAt: Date; rewardClaimed: boolean; secretId: string; name: string; description: string; type: SecretType; locationId?: string; npcId?: string; requirements: SecretRequirement[]; ... 18 more ...; __v: number; }' is missing the following properties from type 'ISecretDefinition': $assertPopulated, $clearModifiedPaths, $clone, $createModifiedPathsSnapshot, and 43 more.
+src/services/secrets.service.ts(492,35): error TS2345: Argument of type '{ definition: mongoose.Document<unknown, {}, ISecretDefinition, {}, {}> & ISecretDefinition & Required<{ _id: unknown; }> & { __v: number; }; ... 19 more ...; __v: number; }' is not assignable to parameter of type 'DiscoveredSecret'.
+  Type '{ definition: Document<unknown, {}, ISecretDefinition, {}, {}> & ISecretDefinition & Required<{ _id: unknown; }> & { __v: number; }; ... 19 more ...; __v: number; }' is missing the following properties from type 'DiscoveredSecret': $assertPopulated, $clearModifiedPaths, $clone, $createModifiedPathsSnapshot, and 43 more.
+src/services/secrets.service.ts(531,25): error TS2345: Argument of type '{ definition: mongoose.Document<unknown, {}, ISecretDefinition, {}, {}> & ISecretDefinition & Required<{ _id: unknown; }> & { __v: number; }; ... 19 more ...; __v: number; }' is not assignable to parameter of type 'DiscoveredSecret'.
+  Type '{ definition: Document<unknown, {}, ISecretDefinition, {}, {}> & ISecretDefinition & Required<{ _id: unknown; }> & { __v: number; }; ... 19 more ...; __v: number; }' is missing the following properties from type 'DiscoveredSecret': $assertPopulated, $clearModifiedPaths, $clone, $createModifiedPathsSnapshot, and 43 more.
+src/services/secrets.service.ts(609,25): error TS2345: Argument of type '{ definition: mongoose.Document<unknown, {}, ISecretDefinition, {}, {}> & ISecretDefinition & Required<{ _id: unknown; }> & { __v: number; }; ... 19 more ...; __v: number; }' is not assignable to parameter of type 'DiscoveredSecret'.
+  Type '{ definition: Document<unknown, {}, ISecretDefinition, {}, {}> & ISecretDefinition & Required<{ _id: unknown; }> & { __v: number; }; ... 19 more ...; __v: number; }' is missing the following properties from type 'DiscoveredSecret': $assertPopulated, $clearModifiedPaths, $clone, $createModifiedPathsSnapshot, and 43 more.
+src/services/secrets.service.ts(616,26): error TS2345: Argument of type '{ progress: number; secretId: string; name: string; description: string; type: SecretType; locationId?: string; npcId?: string; requirements: SecretRequirement[]; ... 18 more ...; __v: number; }' is not assignable to parameter of type 'ISecretDefinition & { progress: number; }'.
+  Type '{ progress: number; secretId: string; name: string; description: string; type: SecretType; locationId?: string; npcId?: string; requirements: SecretRequirement[]; ... 18 more ...; __v: number; }' is missing the following properties from type 'ISecretDefinition': $assertPopulated, $clearModifiedPaths, $clone, $createModifiedPathsSnapshot, and 43 more.
+src/services/secrets.service.ts(662,27): error TS2345: Argument of type '{ definition: mongoose.Document<unknown, {}, ISecretDefinition, {}, {}> & ISecretDefinition & Required<{ _id: unknown; }> & { __v: number; }; ... 19 more ...; __v: number; }' is not assignable to parameter of type 'DiscoveredSecret'.
+  Type '{ definition: Document<unknown, {}, ISecretDefinition, {}, {}> & ISecretDefinition & Required<{ _id: unknown; }> & { __v: number; }; ... 19 more ...; __v: number; }' is missing the following properties from type 'DiscoveredSecret': $assertPopulated, $clearModifiedPaths, $clone, $createModifiedPathsSnapshot, and 43 more.
+src/services/stagecoach.service.ts(340,9): error TS2322: Type 'FlattenMaps<IStagecoachTicket & Required<{ _id: unknown; }> & { __v: number; }>' is not assignable to type 'StagecoachTicket'.
+  Property 'id' is optional in type 'FlattenMaps<IStagecoachTicket & Required<{ _id: unknown; }> & { __v: number; }>' but required in type 'StagecoachTicket'.
+src/services/stagecoach.service.ts(557,19): error TS2339: Property 'isRefundable' does not exist on type 'Document<unknown, {}, IStagecoachTicket, {}, {}> & IStagecoachTicket & Required<{ _id: unknown; }> & { __v: number; }'.
+src/services/train.service.ts(194,7): error TS2322: Type 'FlattenMaps<ITrainTicket & Required<{ _id: ObjectId; }> & { __v: number; }>' is not assignable to type 'TrainTicket'.
+  Types of property '_id' are incompatible.
+    Type 'ObjectId' is not assignable to type 'string | ObjectId'.

@@ -1,326 +1,383 @@
-# SHARED - Common Code
+# @desperados/shared
 
-**Shared TypeScript Types, Constants, and Utilities**
+**Shared TypeScript Package for Desperados Destiny MMORPG**
 
-This directory contains code shared between the frontend (client) and backend (server) to ensure consistency and avoid duplication.
-
----
-
-## Directory Structure
-
-```
-shared/
-├── types/               # TypeScript type definitions
-├── constants/           # Shared constants and enums
-├── utils/               # Shared utility functions
-└── README.md            # This file
-```
+This package contains shared types, constants, utilities, and mocks used by both the frontend (client) and backend (server) to ensure consistency and avoid duplication.
 
 ---
 
-## Purpose
+## Installation
 
-The `shared/` directory eliminates duplication and ensures the client and server:
-- Use the **same type definitions** for API requests/responses
-- Reference the **same game constants** (skill names, faction IDs, etc.)
-- Share **validation logic** and utility functions
-
----
-
-## Key Directories Explained
-
-### `/types`
-TypeScript interfaces and types used by both client and server.
-
-**Example files:**
-
-**`character.types.ts`**
-```typescript
-export interface Character {
-  id: string;
-  userId: string;
-  name: string;
-  faction: Faction;
-  level: number;
-  experience: number;
-  energy: {
-    current: number;
-    max: number;
-    regenRate: number;
-  };
-  skills: Record<SkillId, number>;
-  inventory: InventoryItem[];
-  location: LocationId;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export type Faction = 'settler' | 'nahi' | 'frontera';
-```
-
-**`destinyDeck.types.ts`**
-```typescript
-export type Suit = 'spades' | 'hearts' | 'clubs' | 'diamonds';
-export type Rank = 'A' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K';
-
-export interface Card {
-  suit: Suit;
-  rank: Rank;
-}
-
-export type HandRank =
-  | 'High Card'
-  | 'Pair'
-  | 'Two Pair'
-  | 'Three of a Kind'
-  | 'Straight'
-  | 'Flush'
-  | 'Full House'
-  | 'Four of a Kind'
-  | 'Straight Flush'
-  | 'Royal Flush';
-
-export interface DestinyDeckResult {
-  hand: Card[];
-  handRank: HandRank;
-  suitBonuses: Record<Suit, number>;
-  totalScore: number;
-  success: boolean;
-  outcome: string;
-}
-```
-
-**`api.types.ts`**
-```typescript
-// API Request/Response types ensure client and server agree
-
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    username: string;
-    email: string;
-  };
-  character?: Character;
-}
-
-export interface ApiError {
-  error: string;
-  message: string;
-  statusCode: number;
-}
-```
-
----
-
-### `/constants`
-Game constants, configuration values, and enums.
-
-**Example files:**
-
-**`skills.constants.ts`**
-```typescript
-export enum SkillCategory {
-  Combat = 'combat',
-  Criminal = 'criminal',
-  Economic = 'economic',
-  Social = 'social',
-}
-
-export const SKILLS = {
-  // Combat
-  GUNSLINGING: { id: 'gunslinging', name: 'Gunslinging', category: SkillCategory.Combat, suit: 'clubs' },
-  BRAWLING: { id: 'brawling', name: 'Brawling', category: SkillCategory.Combat, suit: 'clubs' },
-  TRACKING: { id: 'tracking', name: 'Tracking', category: SkillCategory.Combat, suit: 'spades' },
-
-  // Criminal
-  LOCKPICKING: { id: 'lockpicking', name: 'Lockpicking', category: SkillCategory.Criminal, suit: 'spades' },
-  STEALTH: { id: 'stealth', name: 'Stealth', category: SkillCategory.Criminal, suit: 'spades' },
-  SAFECRACKING: { id: 'safecracking', name: 'Safecracking', category: SkillCategory.Criminal, suit: 'spades' },
-
-  // Economic
-  PROSPECTING: { id: 'prospecting', name: 'Prospecting', category: SkillCategory.Economic, suit: 'diamonds' },
-  CRAFTING: { id: 'crafting', name: 'Crafting', category: SkillCategory.Economic, suit: 'diamonds' },
-  TRADING: { id: 'trading', name: 'Trading', category: SkillCategory.Economic, suit: 'diamonds' },
-
-  // Social
-  PERSUASION: { id: 'persuasion', name: 'Persuasion', category: SkillCategory.Social, suit: 'hearts' },
-  MEDICINE: { id: 'medicine', name: 'Medicine', category: SkillCategory.Social, suit: 'hearts' },
-  SPIRITUALITY: { id: 'spirituality', name: 'Spirituality', category: SkillCategory.Social, suit: 'hearts' },
-} as const;
-
-export type SkillId = keyof typeof SKILLS;
-```
-
-**`game.constants.ts`**
-```typescript
-export const ENERGY = {
-  FREE_BASE: 150,
-  FREE_REGEN: 5,
-  PREMIUM_BASE: 250,
-  PREMIUM_REGEN: 8,
-  REGEN_INTERVAL_MS: 3600000, // 1 hour
-} as const;
-
-export const SKILL_TRAINING = {
-  BASE_TIME_HOURS: 1,
-  MAX_LEVEL: 100,
-  BONUS_PER_LEVEL: 0.5, // +0.5 suit bonus per level
-} as const;
-
-export const FACTIONS = {
-  SETTLER: { id: 'settler', name: 'Settler Alliance', color: '#4682B4' },
-  NAHI: { id: 'nahi', name: 'Nahi Coalition', color: '#40E0D0' },
-  FRONTERA: { id: 'frontera', name: 'Frontera', color: '#DC143C' },
-} as const;
-```
-
-**`locations.constants.ts`**
-```typescript
-export const LOCATIONS = {
-  RED_GULCH: { id: 'red-gulch', name: 'Red Gulch', faction: 'settler' },
-  FRONTERA_HAVEN: { id: 'frontera-haven', name: 'The Frontera', faction: 'frontera' },
-  KAIOWA_MESA: { id: 'kaiowa-mesa', name: 'Kaiowa Mesa', faction: 'nahi' },
-  SANGRE_CANYON: { id: 'sangre-canyon', name: 'Sangre Canyon', faction: null },
-} as const;
-
-export type LocationId = keyof typeof LOCATIONS;
-```
-
----
-
-### `/utils`
-Shared utility functions used by both client and server.
-
-**Example files:**
-
-**`validation.utils.ts`**
-```typescript
-// Shared validation ensures client and server agree on valid data
-
-export const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/;
-export const PASSWORD_MIN_LENGTH = 8;
-
-export function isValidUsername(username: string): boolean {
-  return USERNAME_REGEX.test(username);
-}
-
-export function isValidPassword(password: string): boolean {
-  return password.length >= PASSWORD_MIN_LENGTH;
-}
-
-export function isValidFaction(faction: string): faction is Faction {
-  return ['settler', 'nahi', 'frontera'].includes(faction);
-}
-```
-
-**`calculations.utils.ts`**
-```typescript
-// Shared game calculations ensure consistency
-
-export function calculateSuitBonus(skillLevel: number): number {
-  return skillLevel * 0.5; // +0.5 per level
-}
-
-export function calculateEnergyRegen(isPremium: boolean): number {
-  return isPremium ? 8 : 5;
-}
-
-export function calculateSkillTrainingTime(currentLevel: number): number {
-  // Exponential growth: Level 1 = 1 hour, Level 50 = 50 hours, etc.
-  return currentLevel * 3600000; // milliseconds
-}
-```
-
----
-
-## How to Use Shared Code
-
-### In Server (Backend)
-```typescript
-// server/src/controllers/character.controller.ts
-import { Character, Faction } from '../../../shared/types/character.types';
-import { SKILLS } from '../../../shared/constants/skills.constants';
-import { isValidFaction } from '../../../shared/utils/validation.utils';
-
-export async function createCharacter(req: Request, res: Response) {
-  const { name, faction } = req.body;
-
-  if (!isValidFaction(faction)) {
-    return res.status(400).json({ error: 'Invalid faction' });
-  }
-
-  const character: Character = {
-    // ... use shared types
-  };
-}
-```
-
-### In Client (Frontend)
-```typescript
-// client/src/services/characterService.ts
-import { Character, Faction } from '../../../shared/types/character.types';
-import { FACTIONS } from '../../../shared/constants/game.constants';
-import { isValidFaction } from '../../../shared/utils/validation.utils';
-
-export async function createCharacter(name: string, faction: Faction): Promise<Character> {
-  if (!isValidFaction(faction)) {
-    throw new Error('Invalid faction');
-  }
-
-  const response = await fetch('/api/character/create', {
-    method: 'POST',
-    body: JSON.stringify({ name, faction }),
-  });
-
-  return response.json();
-}
-```
-
----
-
-## Benefits of Shared Code
-
-✅ **Type Safety:** Client and server use identical type definitions
-✅ **Single Source of Truth:** Game constants defined once, used everywhere
-✅ **Consistency:** Validation and calculations produce same results on both sides
-✅ **Refactoring Safety:** Change a type once, TypeScript catches all usages
-✅ **Reduced Bugs:** Mismatched API contracts caught at compile time
-
----
-
-## Build Configuration
-
-Both client and server need to reference the shared directory in their `tsconfig.json`:
+The shared package is linked locally to both frontend and backend:
 
 ```json
 {
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@shared/*": ["../shared/*"]
-    }
+  "dependencies": {
+    "@desperados/shared": "file:../shared"
   }
 }
 ```
 
-This allows clean imports:
-```typescript
-import { Character } from '@shared/types/character.types';
-import { SKILLS } from '@shared/constants/skills.constants';
+To install in a new workspace:
+```bash
+cd server  # or client
+npm install
 ```
 
 ---
 
-**Status:** Phase 0 - Structure created, types/constants to be defined in Phase 1
-**Next Steps:** Create initial type definitions and constants during Phase 1 development
+## Package Structure
+
+```
+shared/
+├── src/
+│   ├── types/              # TypeScript type definitions
+│   │   ├── user.types.ts
+│   │   ├── character.types.ts
+│   │   ├── destinyDeck.types.ts
+│   │   ├── api.types.ts
+│   │   └── error.types.ts
+│   ├── constants/          # Shared constants
+│   │   ├── game.constants.ts
+│   │   └── validation.constants.ts
+│   ├── utils/              # Utility functions
+│   │   ├── destinyDeck.utils.ts
+│   │   └── validation.utils.ts
+│   ├── mocks/              # Mock data generators
+│   │   ├── user.mocks.ts
+│   │   ├── character.mocks.ts
+│   │   └── card.mocks.ts
+│   └── index.ts
+├── dist/                   # Compiled JavaScript (generated)
+├── package.json
+├── tsconfig.json
+└── README.md
+```
 
 ---
 
-*Built by Kaine & Hawk*
-*Last Updated: November 15, 2025*
+## Building the Package
+
+```bash
+cd shared
+npm install
+npm run build
+```
+
+The package will be compiled to `dist/` directory.
+
+---
+
+## Usage
+
+### Importing Types
+
+```typescript
+import {
+  User,
+  Character,
+  Faction,
+  Card,
+  Suit,
+  Rank,
+  HandRank,
+  ApiResponse,
+  ErrorCode
+} from '@desperados/shared';
+
+// Or import from specific modules
+import { User, SafeUser } from '@desperados/shared/types';
+import { ENERGY, FACTIONS } from '@desperados/shared/constants';
+import { evaluateHand, validateEmail } from '@desperados/shared/utils';
+import { mockUser, mockCharacter } from '@desperados/shared/mocks';
+```
+
+### Example: Backend Usage
+
+```typescript
+// server/src/controllers/auth.controller.ts
+import {
+  UserRegistration,
+  ApiResponse,
+  validateEmail,
+  validatePassword,
+  createSuccessResponse,
+  createErrorResponse
+} from '@desperados/shared';
+
+export async function register(req: Request, res: Response) {
+  const { email, password }: UserRegistration = req.body;
+
+  // Validate using shared validation
+  const emailValidation = validateEmail(email);
+  if (!emailValidation.valid) {
+    return res.status(400).json(
+      createErrorResponse('VALIDATION_ERROR', emailValidation.errors[0])
+    );
+  }
+
+  const passwordValidation = validatePassword(password);
+  if (!passwordValidation.valid) {
+    return res.status(400).json(
+      createErrorResponse('VALIDATION_ERROR', passwordValidation.errors[0])
+    );
+  }
+
+  // Create user...
+  const user = await createUser(email, password);
+
+  res.json(createSuccessResponse(user));
+}
+```
+
+### Example: Frontend Usage
+
+```typescript
+// client/src/services/characterService.ts
+import {
+  Character,
+  CharacterCreation,
+  Faction,
+  FACTIONS,
+  validateCharacterName,
+  createSuccessResponse
+} from '@desperados/shared';
+
+export async function createCharacter(
+  name: string,
+  faction: Faction
+): Promise<Character> {
+  // Validate using shared validation
+  const nameValidation = validateCharacterName(name);
+  if (!nameValidation.valid) {
+    throw new Error(nameValidation.errors[0]);
+  }
+
+  const response = await fetch('/api/characters', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, faction })
+  });
+
+  const data = await response.json();
+  return data.data as Character;
+}
+```
+
+### Example: Testing with Mocks
+
+```typescript
+// Backend test
+import { mockUser, mockCharacter } from '@desperados/shared';
+
+describe('User Service', () => {
+  it('should create a user', async () => {
+    const userData = mockUser({ email: 'test@example.com' });
+    const user = await userService.create(userData);
+    expect(user.email).toBe('test@example.com');
+  });
+});
+
+// Frontend test
+import { mockCharacter, Faction } from '@desperados/shared';
+
+describe('Character Component', () => {
+  it('should display character info', () => {
+    const character = mockCharacter({
+      name: 'Test Character',
+      faction: Faction.SETTLER_ALLIANCE
+    });
+
+    render(<CharacterCard character={character} />);
+    expect(screen.getByText('Test Character')).toBeInTheDocument();
+  });
+});
+```
+
+---
+
+## Core Features
+
+### 1. Type Definitions
+
+Complete TypeScript types for all entities:
+
+- **User Types**: `User`, `UserRegistration`, `UserLogin`, `SafeUser`, `TokenPayload`
+- **Character Types**: `Character`, `CharacterCreation`, `SafeCharacter`, `Faction`
+- **Destiny Deck Types**: `Card`, `Suit`, `Rank`, `HandRank`, `HandEvaluation`, `Challenge`
+- **API Types**: `ApiResponse<T>`, `PaginatedResponse<T>`, `PaginationParams`
+- **Error Types**: `ErrorCode`, `ApiError`, `ValidationError`
+
+### 2. Game Constants
+
+Centralized game configuration:
+
+- **Energy System**: Regen rates, max values, costs
+- **Progression**: Level caps, experience formulas
+- **Factions**: Names, descriptions, starting locations
+- **Validation Rules**: Min/max lengths, patterns, forbidden names
+
+### 3. Utilities
+
+#### Destiny Deck Utilities
+
+Complete poker hand evaluation system:
+
+```typescript
+import { evaluateHand, compareHands, shuffleDeck } from '@desperados/shared';
+
+const deck = shuffleDeck();
+const hand = deck.slice(0, 5);
+const evaluation = evaluateHand(hand);
+
+console.log(evaluation.rank);        // HandRank.FULL_HOUSE
+console.log(evaluation.score);       // 7001312 (numeric score)
+console.log(evaluation.description); // "Full House, Kings over Queens"
+```
+
+Supported hand ranks:
+- Royal Flush (10)
+- Straight Flush (9)
+- Four of a Kind (8)
+- Full House (7)
+- Flush (6)
+- Straight (5)
+- Three of a Kind (4)
+- Two Pair (3)
+- Pair (2)
+- High Card (1)
+
+#### Validation Utilities
+
+Input validation with detailed error messages:
+
+```typescript
+import { validateEmail, validatePassword, validateCharacterName } from '@desperados/shared';
+
+const emailResult = validateEmail('user@example.com');
+// { valid: true, errors: [] }
+
+const passwordResult = validatePassword('weak');
+// { valid: false, errors: ['Password must be at least 8 characters', ...] }
+
+const nameResult = validateCharacterName('My Hero');
+// { valid: true, errors: [] }
+```
+
+### 4. Mock Data Generators
+
+Realistic test data generation:
+
+```typescript
+import {
+  mockUser,
+  mockCharacter,
+  mockCard,
+  mockRoyalFlush,
+  mockFullHouse,
+  generateMockEmail
+} from '@desperados/shared';
+
+// Generate single entities
+const user = mockUser();
+const character = mockCharacter({ level: 10, faction: Faction.FRONTERA });
+
+// Generate specific poker hands
+const royalFlush = mockRoyalFlush(Suit.SPADES);
+const fullHouse = mockFullHouse(Rank.KING, Rank.SEVEN);
+
+// Generate multiple entities
+const users = mockUsers(10); // Array of 10 users
+const characters = mockCharacters(5, { faction: Faction.NAHI_COALITION });
+```
+
+---
+
+## Testing
+
+The shared package includes comprehensive unit tests:
+
+```bash
+cd shared
+npm test              # Run tests
+npm run test:watch    # Watch mode
+```
+
+Tests cover:
+- All poker hand rankings
+- Hand comparison logic
+- Straight detection (including Ace-low straights)
+- Validation functions
+- Mock data generators
+
+---
+
+## Development
+
+### Adding New Types
+
+1. Create type file in `src/types/`
+2. Export from `src/types/index.ts`
+3. Rebuild package: `npm run build`
+
+### Adding New Constants
+
+1. Create constant file in `src/constants/`
+2. Export from `src/constants/index.ts`
+3. Rebuild package: `npm run build`
+
+### Adding New Utilities
+
+1. Create utility file in `src/utils/`
+2. Add corresponding test file (`*.test.ts`)
+3. Export from `src/utils/index.ts`
+4. Rebuild package: `npm run build`
+
+---
+
+## Benefits
+
+✅ **Type Safety**: Compile-time checking across frontend and backend
+✅ **Single Source of Truth**: Game rules defined once, used everywhere
+✅ **Consistency**: Validation and calculations produce identical results
+✅ **Testability**: Comprehensive mocks make testing trivial
+✅ **Refactoring Safety**: Change types once, TypeScript catches all usages
+✅ **Reduced Bugs**: Mismatched API contracts caught at compile time
+
+---
+
+## API
+
+### Type Exports
+
+- `types` - All type definitions
+- `constants` - All game constants
+- `utils` - All utility functions
+- `mocks` - All mock generators
+
+### Individual Module Exports
+
+```typescript
+// Specific imports for tree-shaking
+import { User } from '@desperados/shared/types';
+import { ENERGY } from '@desperados/shared/constants';
+import { evaluateHand } from '@desperados/shared/utils';
+import { mockUser } from '@desperados/shared/mocks';
+```
+
+---
+
+## Version
+
+**1.0.0** - Sprint 1 Complete
+
+---
+
+## License
+
+UNLICENSED - Private project
+
+---
+
+**Built by Agent 4 - Sprint 1**
+**Last Updated: November 16, 2025**

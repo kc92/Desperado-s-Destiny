@@ -1,0 +1,190 @@
+{
+  "agent": "Agent-1-Scout",
+  "timestamp": "2025-11-19T00:10:59.576Z",
+  "duration": "24s",
+  "errors": 14,
+  "bugs": 2,
+  "screenshots": 4,
+  "bugsByPriority": {
+    "P0": 1,
+    "P1": 1,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 5,
+    "Console Error": 9
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-19T00:10:37.116Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:37.116Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:37.116Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:39.100Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:39.100Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:39.100Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:41.366Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:41.367Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:41.367Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:44.782Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:44.782Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:44.782Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:59.075Z",
+        "type": "HTTP Error",
+        "message": "400 - http://localhost:3000/api/skills",
+        "details": null,
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:10:59.075Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "details": {
+          "url": "http://localhost:3000/api/skills"
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-1-Scout"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763511059107-dk8kfjon6",
+        "timestamp": "2025-11-19T00:10:59.107Z",
+        "agent": "Agent-1-Scout",
+        "severity": "P1",
+        "title": "Skills API Broken",
+        "description": "Endpoint returned 400",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-1-Scout-bug-0-2025-11-19T00-10-59-107Z.png"
+      },
+      {
+        "id": "BUG-1763511059421-gh6oebtf7",
+        "timestamp": "2025-11-19T00:10:59.421Z",
+        "agent": "Agent-1-Scout",
+        "severity": "P0",
+        "title": "Critical Systems Offline",
+        "description": "The following systems are not operational: Database",
+        "reproduction": "Restart services and check logs",
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-1-Scout-bug-1-2025-11-19T00-10-59-421Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-1-Scout-landing-page-baseline-2025-11-19T00-10-40-708Z.png",
+      "Agent-1-Scout-post-login-state-2025-11-19T00-10-58-844Z.png",
+      "Agent-1-Scout-bug-0-2025-11-19T00-10-59-107Z.png",
+      "Agent-1-Scout-bug-1-2025-11-19T00-10-59-421Z.png"
+    ]
+  }
+}

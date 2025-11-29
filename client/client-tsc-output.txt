@@ -1,0 +1,189 @@
+src/App.tsx(30,3): error TS6133: 'MailDebug' is declared but its value is never read.
+src/App.tsx(31,3): error TS6133: 'FriendsDebug' is declared but its value is never read.
+src/components/chat/ChatWindow.tsx(8,25): error TS6133: 'ChatMessage' is declared but its value is never read.
+src/components/chat/ChatWindow.tsx(38,5): error TS6133: 'leaveRoom' is declared but its value is never read.
+src/components/chat/ChatWindow.tsx(40,5): error TS6133: 'markAsRead' is declared but its value is never read.
+src/components/chat/ChatWindow.tsx(334,25): error TS2322: Type '(userId: string, username: string, faction: string) => void' is not assignable to type '(userId: string, username: string) => void'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/components/chat/MessageInput.tsx(210,13): error TS2322: Type 'boolean | null' is not assignable to type 'boolean | undefined'.
+  Type 'null' is not assignable to type 'boolean | undefined'.
+src/components/chat/WhisperModal.tsx(8,10): error TS6133: 'RoomType' is declared but its value is never read.
+src/components/chat/WhisperModal.tsx(8,43): error TS6133: 'OnlineUser' is declared but its value is never read.
+src/components/game/CombatResultModal.tsx(51,49): error TS2322: Type '{ children: Element; isOpen: boolean; onClose: () => void; className: string; }' is not assignable to type 'IntrinsicAttributes & ModalProps'.
+  Property 'className' does not exist on type 'IntrinsicAttributes & ModalProps'.
+src/components/game/CombatResultModal.tsx(112,16): error TS18048: 'result.itemsLooted' is possibly 'undefined'.
+src/components/game/deckgames/BlackjackGame.tsx(36,25): error TS2345: Argument of type 'import("C:/Users/kaine/Documents/Desperados Destiny Dev/shared/dist/types/destinyDeck.types").Rank' is not assignable to parameter of type 'string'.
+  Type 'import("C:/Users/kaine/Documents/Desperados Destiny Dev/shared/dist/types/destinyDeck.types").Rank' is not assignable to type 'string'.
+src/components/game/deckgames/BlackjackGame.tsx(63,3): error TS6133: 'selectedCards' is declared but its value is never read.
+src/components/game/deckgames/BlackjackGame.tsx(64,3): error TS6133: 'onToggleCard' is declared but its value is never read.
+src/components/game/deckgames/BlackjackGame.tsx(67,3): error TS6133: 'turnNumber' is declared but its value is never read.
+src/components/game/deckgames/BlackjackGame.tsx(68,3): error TS6133: 'maxTurns' is declared but its value is never read.
+src/components/game/deckgames/BlackjackGame.tsx(71,3): error TS6133: 'availableActions' is declared but its value is never read.
+src/components/game/deckgames/BlackjackGame.tsx(81,9): error TS6133: 'suitCount' is declared but its value is never read.
+src/components/game/deckgames/BlackjackGame.tsx(189,15): error TS2322: Type 'boolean | "" | undefined' is not assignable to type 'boolean | undefined'.
+  Type '""' is not assignable to type 'boolean | undefined'.
+src/components/game/deckgames/DeckbuilderGame.tsx(8,22): error TS6133: 'Suit' is declared but its value is never read.
+src/components/game/deckgames/DeckbuilderGame.tsx(43,40): error TS6133: 'rank' is declared but its value is never read.
+src/components/game/deckgames/DeckbuilderGame.tsx(50,40): error TS6133: 'suit' is declared but its value is never read.
+src/components/game/deckgames/DeckbuilderGame.tsx(62,21): error TS2345: Argument of type 'import("C:/Users/kaine/Documents/Desperados Destiny Dev/shared/dist/types/destinyDeck.types").Rank' is not assignable to parameter of type 'string'.
+  Type 'import("C:/Users/kaine/Documents/Desperados Destiny Dev/shared/dist/types/destinyDeck.types").Rank' is not assignable to type 'string'.
+src/components/game/deckgames/DeckbuilderGame.tsx(85,3): error TS6133: 'selectedCards' is declared but its value is never read.
+src/components/game/deckgames/DeckbuilderGame.tsx(86,3): error TS6133: 'onToggleCard' is declared but its value is never read.
+src/components/game/deckgames/DeckbuilderGame.tsx(89,3): error TS6133: 'turnNumber' is declared but its value is never read.
+src/components/game/deckgames/DeckbuilderGame.tsx(92,3): error TS6133: 'difficulty' is declared but its value is never read.
+src/components/game/deckgames/DeckbuilderGame.tsx(93,3): error TS6133: 'availableActions' is declared but its value is never read.
+src/components/game/deckgames/DeckbuilderGame.tsx(101,9): error TS6133: 'suitCount' is declared but its value is never read.
+src/components/game/deckgames/DeckbuilderGame.tsx(187,15): error TS2322: Type 'boolean | "" | undefined' is not assignable to type 'boolean | undefined'.
+  Type '""' is not assignable to type 'boolean | undefined'.
+src/components/game/deckgames/DeckGame.tsx(7,27): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/game/deckgames/GameResult.tsx(152,22): error TS2339: Property 'crimeResolution' does not exist on type 'ActionResult'.
+src/components/game/deckgames/GameResult.tsx(156,27): error TS2339: Property 'crimeResolution' does not exist on type 'ActionResult'.
+src/components/game/deckgames/PokerHoldDraw.tsx(33,3): error TS6133: 'difficulty' is declared but its value is never read.
+src/components/game/deckgames/PokerHoldDraw.tsx(34,3): error TS6133: 'availableActions' is declared but its value is never read.
+src/components/game/deckgames/PokerHoldDraw.tsx(36,10): error TS6133: 'isRevealing' is declared but its value is never read.
+src/components/game/deckgames/PokerHoldDraw.tsx(112,15): error TS2322: Type 'boolean | "" | undefined' is not assignable to type 'boolean | undefined'.
+  Type '""' is not assignable to type 'boolean | undefined'.
+src/components/game/deckgames/PressYourLuck.tsx(32,3): error TS6133: 'selectedCards' is declared but its value is never read.
+src/components/game/deckgames/PressYourLuck.tsx(33,3): error TS6133: 'onToggleCard' is declared but its value is never read.
+src/components/game/deckgames/PressYourLuck.tsx(36,3): error TS6133: 'turnNumber' is declared but its value is never read.
+src/components/game/deckgames/PressYourLuck.tsx(39,3): error TS6133: 'difficulty' is declared but its value is never read.
+src/components/game/deckgames/PressYourLuck.tsx(40,3): error TS6133: 'availableActions' is declared but its value is never read.
+src/components/game/deckgames/PressYourLuck.tsx(51,58): error TS2345: Argument of type 'import("C:/Users/kaine/Documents/Desperados Destiny Dev/shared/dist/types/destinyDeck.types").Rank' is not assignable to parameter of type 'string'.
+  Type 'import("C:/Users/kaine/Documents/Desperados Destiny Dev/shared/dist/types/destinyDeck.types").Rank' is not assignable to type 'string'.
+src/components/game/deckgames/PressYourLuck.tsx(158,15): error TS2322: Type 'boolean | "" | undefined' is not assignable to type 'boolean | undefined'.
+  Type '""' is not assignable to type 'boolean | undefined'.
+src/components/game/EnergyDisplay.tsx(9,1): error TS6133: 'ENERGY' is declared but its value is never read.
+src/components/game/EnergyDisplay.tsx(23,10): error TS6133: 'getTimeUntilNextPoint' is declared but its value is never read.
+src/components/game/EnergyDisplay.tsx(71,3): error TS6133: 'lastUpdate' is declared but its value is never read.
+src/components/game/NPCCard.tsx(70,9): error TS18048: 'rarities' is possibly 'undefined'.
+src/components/game/NPCCard.tsx(70,18): error TS2339: Property 'legendary' does not exist on type 'string[]'.
+src/components/game/NPCCard.tsx(71,9): error TS18048: 'rarities' is possibly 'undefined'.
+src/components/game/NPCCard.tsx(71,18): error TS2339: Property 'epic' does not exist on type 'string[]'.
+src/components/game/NPCCard.tsx(72,9): error TS18048: 'rarities' is possibly 'undefined'.
+src/components/game/NPCCard.tsx(72,18): error TS2339: Property 'rare' does not exist on type 'string[]'.
+src/components/game/NPCCard.tsx(73,9): error TS18048: 'rarities' is possibly 'undefined'.
+src/components/game/NPCCard.tsx(73,18): error TS2339: Property 'uncommon' does not exist on type 'string[]'.
+src/components/game/NPCCard.tsx(169,46): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ common: string; uncommon: string; rare: string; epic: string; legendary: string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ common: string; uncommon: string; rare: string; epic: string; legendary: string; }'.
+src/components/game/NPCCard.tsx(185,38): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/notifications/NotificationBell.tsx(49,36): error TS6133: 'id' is declared but its value is never read.
+src/components/territory/TerritoryMap.tsx(7,21): error TS6133: 'GangWar' is declared but its value is never read.
+src/components/territory/TerritoryMap.tsx(85,25): error TS18048: 'territory.position' is possibly 'undefined'.
+src/components/territory/TerritoryMap.tsx(86,25): error TS18048: 'territory.position' is possibly 'undefined'.
+src/components/territory/TerritoryMap.tsx(102,24): error TS18048: 'territory.position' is possibly 'undefined'.
+src/components/territory/TerritoryMap.tsx(103,24): error TS18048: 'territory.position' is possibly 'undefined'.
+src/components/territory/TerritoryMap.tsx(113,26): error TS18048: 'territory.position' is possibly 'undefined'.
+src/components/territory/TerritoryMap.tsx(114,26): error TS18048: 'territory.position' is possibly 'undefined'.
+src/components/territory/TerritoryMap.tsx(126,29): error TS18048: 'territory.position' is possibly 'undefined'.
+src/components/territory/TerritoryMap.tsx(127,29): error TS18048: 'territory.position' is possibly 'undefined'.
+src/components/territory/TerritoryMap.tsx(133,28): error TS18048: 'territory.position' is possibly 'undefined'.
+src/components/territory/TerritoryMap.tsx(134,28): error TS18048: 'territory.position' is possibly 'undefined'.
+src/components/territory/TerritoryMap.tsx(224,37): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number | Date'.
+      Type 'undefined' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | number'.
+      Type 'undefined' is not assignable to type 'string | number'.
+src/hooks/useShop.ts(6,20): error TS6133: 'useEffect' is declared but its value is never read.
+src/main.tsx(6,1): error TS6133: 'React' is declared but its value is never read.
+src/pages/Actions.tsx(9,40): error TS6133: 'Modal' is declared but its value is never read.
+src/pages/Actions.tsx(10,1): error TS6133: 'formatDistanceToNow' is declared but its value is never read.
+src/pages/Actions.tsx(38,5): error TS6133: 'attemptAction' is declared but its value is never read.
+src/pages/Actions.tsx(41,5): error TS6133: 'isChallengingAction' is declared but its value is never read.
+src/pages/Actions.tsx(126,54): error TS18048: 'action.energyRequired' is possibly 'undefined'.
+src/pages/Actions.tsx(346,138): error TS18048: 'action.energyRequired' is possibly 'undefined'.
+src/pages/Actions.tsx(379,32): error TS18048: 'action.cooldown' is possibly 'undefined'.
+src/pages/Actions.tsx(380,53): error TS18048: 'action.cooldown' is possibly 'undefined'.
+src/pages/Actions.tsx(391,29): error TS2322: Type 'boolean | null' is not assignable to type 'boolean | undefined'.
+  Type 'null' is not assignable to type 'boolean | undefined'.
+src/pages/Actions.tsx(395,77): error TS18048: 'action.energyRequired' is possibly 'undefined'.
+src/pages/Actions.tsx(509,41): error TS2322: Type 'ActionRequirement' is not assignable to type 'ReactNode'.
+  Type 'ActionRequirement' is missing the following properties from type 'ReactPortal': children, props, key
+src/pages/Actions.tsx(519,21): error TS2322: Type 'boolean | null' is not assignable to type 'boolean | undefined'.
+  Type 'null' is not assignable to type 'boolean | undefined'.
+src/pages/Actions.tsx(523,69): error TS18048: 'selectedAction.energyRequired' is possibly 'undefined'.
+src/pages/Combat.tsx(59,12): error TS18048: 'activeCombat.npc' is possibly 'undefined'.
+src/pages/Combat.tsx(61,22): error TS18048: 'activeCombat.npc' is possibly 'undefined'.
+src/pages/Combat.tsx(61,76): error TS18048: 'activeCombat.npc' is possibly 'undefined'.
+src/pages/Combat.tsx(61,113): error TS18048: 'activeCombat.npc' is possibly 'undefined'.
+src/pages/Combat.tsx(63,89): error TS18048: 'activeCombat.npc' is possibly 'undefined'.
+src/pages/Combat.tsx(64,9): error TS2353: Object literal may only specify known properties, and 'finalPlayerHP' does not exist in type 'CombatResult'.
+src/pages/Combat.tsx(179,20): error TS18048: 'combatStats.winRate' is possibly 'undefined'.
+src/pages/Crimes.tsx(15,1): error TS6133: 'LoadingSpinner' is declared but its value is never read.
+src/pages/Crimes.tsx(16,1): error TS6133: 'ActionType' is declared but its value is never read.
+src/pages/Crimes.tsx(41,10): error TS6133: 'isLoadingBounties' is declared but its value is never read.
+src/pages/Crimes.tsx(213,13): error TS2322: Type 'undefined' is not assignable to type 'Record<string, CrimeMetadata>'.
+src/pages/DeckGuide.tsx(7,16): error TS6133: 'Button' is declared but its value is never read.
+src/pages/Game.tsx(119,9): error TS6133: 'user' is declared but its value is never read.
+src/pages/Gang.tsx(9,31): error TS6133: 'LoadingSpinner' is declared but its value is never read.
+src/pages/Gang.tsx(12,22): error TS2305: Module '"@/utils/format"' has no exported member 'formatDistanceToNow'.
+src/pages/Gang.tsx(12,22): error TS6133: 'formatDistanceToNow' is declared but its value is never read.
+src/pages/Gang.tsx(51,29): error TS6133: 'isLoading' is declared but its value is never read.
+src/pages/Gang.tsx(236,9): error TS6133: 'getRoleColor' is declared but its value is never read.
+src/pages/gang/GangCreation.tsx(17,42): error TS6133: 'clearError' is declared but its value is never read.
+src/pages/gang/GangProfile.tsx(160,71): error TS2322: Type '"destructive"' is not assignable to type 'ButtonVariant | undefined'.
+src/pages/gang/GangProfile.tsx(266,3): error TS6133: 'isLoading' is declared but its value is never read.
+src/pages/gang/GangProfile.tsx(325,78): error TS2322: Type '"destructive"' is not assignable to type 'ButtonVariant | undefined'.
+src/pages/gang/GangProfile.tsx(695,13): error TS2322: Type '"default" | "destructive"' is not assignable to type 'ButtonVariant | undefined'.
+  Type '"default"' is not assignable to type 'ButtonVariant | undefined'.
+src/pages/Inventory.tsx(247,37): error TS6133: 'acquiredAt' is declared but its value is never read.
+src/pages/Leaderboard.tsx(10,1): error TS6133: 'formatGold' is declared but its value is never read.
+src/pages/Login.tsx(21,9): error TS6133: 'navigate' is declared but its value is never read.
+src/pages/Settings.tsx(14,17): error TS6133: 'logout' is declared but its value is never read.
+src/pages/Skills.tsx(171,9): error TS2353: Object literal may only specify known properties, and 'updatedAt' does not exist in type 'Notification'.
+src/pages/Territory.tsx(9,24): error TS6133: 'LoadingSpinner' is declared but its value is never read.
+src/pages/Territory.tsx(10,1): error TS6133: 'formatDistanceToNow' is declared but its value is never read.
+src/pages/Territory.tsx(36,5): error TS6133: 'isLoading' is declared but its value is never read.
+src/services/socket.service.ts(21,11): error TS6133: 'reconnectAttempts' is declared but its value is never read.
+src/store/useChatStore.ts(442,9): error TS2322: Type 'RoomType | "whisper"' is not assignable to type 'RoomType'.
+  Type '"whisper"' is not assignable to type 'RoomType'.
+src/store/useGameStore.ts(7,118): error TS6196: 'ENERGY' is declared but never used.
+src/store/useGameStore.ts(194,46): error TS2339: Property 'actions' does not exist on type '{ characters: SafeCharacter[]; }'.
+src/store/useGameStore.ts(234,46): error TS2339: Property 'actions' does not exist on type '{ character: SafeCharacter; }'.
+src/store/useGameStore.ts(278,46): error TS2339: Property 'actions' does not exist on type '{ character: SafeCharacter; }'.
+src/store/useGameStore.ts(302,21): error TS2339: Property 'energyRegenRate' does not exist on type 'SafeCharacter'.
+src/store/useGameStore.ts(303,21): error TS2339: Property 'isPremium' does not exist on type 'SafeCharacter'.
+src/store/useGameStore.ts(372,46): error TS2339: Property 'actions' does not exist on type '{ character: SafeCharacter; }'.
+src/store/useGameStore.ts(395,21): error TS2339: Property 'energyRegenRate' does not exist on type 'SafeCharacter'.
+src/store/useGameStore.ts(396,21): error TS2339: Property 'isPremium' does not exist on type 'SafeCharacter'.
+src/store/useGameStore.ts(550,46): error TS2339: Property 'actions' does not exist on type 'AttemptChallengeResponse'.
+src/store/useGameStore.ts(574,47): error TS18048: 'result.rewards.gold' is possibly 'undefined'.
+src/store/useGameStore.ts(611,46): error TS2339: Property 'actions' does not exist on type 'SkillsResponse'.
+src/store/useGameStore.ts(654,46): error TS2339: Property 'actions' does not exist on type 'StartTrainingResponse'.
+src/store/useGameStore.ts(724,46): error TS2339: Property 'actions' does not exist on type 'CompleteTrainingResponse'.
+src/store/useGameStore.ts(912,46): error TS2339: Property 'actions' does not exist on type '{ character: SafeCharacter; }'.
+src/store/useGameStore.ts(958,46): error TS2339: Property 'actions' does not exist on type '{ npcs: NPC[]; }'.
+src/store/useGameStore.ts(1005,46): error TS2339: Property 'actions' does not exist on type '{ encounter: CombatEncounter; }'.
+src/store/useGameStore.ts(1049,53): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/store/useGameStore.ts(1053,46): error TS2339: Property 'actions' does not exist on type '{ result: CombatTurnResult; }'.
+src/store/useGameStore.ts(1105,55): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/store/useGameStore.ts(1109,46): error TS2339: Property 'actions' does not exist on type '{ result: FleeResult; }'.
+src/store/useGameStore.ts(1160,61): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/store/useGameStore.ts(1164,46): error TS2339: Property 'actions' does not exist on type '{ history: CombatResult[]; }'.
+src/store/useGameStore.ts(1193,59): error TS2554: Expected 0 arguments, but got 1.
+src/store/useGameStore.ts(1197,46): error TS2339: Property 'actions' does not exist on type '{ stats: CombatStats; }'.
+src/store/useGameStore.ts(1226,60): error TS2554: Expected 0 arguments, but got 1.
+src/store/useGangStore.ts(62,53): error TS6133: 'get' is declared but its value is never read.
+src/store/useGangStore.ts(724,22): error TS2345: Argument of type '"gang:member_joined"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(725,22): error TS2345: Argument of type '"gang:member_left"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(726,22): error TS2345: Argument of type '"gang:member_promoted"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(727,22): error TS2345: Argument of type '"gang:bank_updated"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(728,22): error TS2345: Argument of type '"gang:upgrade_purchased"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(729,22): error TS2345: Argument of type '"territory:war_declared"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(730,22): error TS2345: Argument of type '"territory:war_contributed"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(731,22): error TS2345: Argument of type '"territory:war_resolved"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(732,22): error TS2345: Argument of type '"territory:conquered"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(735,25): error TS2345: Argument of type '"gang:member_joined"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(736,25): error TS2345: Argument of type '"gang:member_left"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(737,25): error TS2345: Argument of type '"gang:member_promoted"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(738,25): error TS2345: Argument of type '"gang:bank_updated"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(739,25): error TS2345: Argument of type '"gang:upgrade_purchased"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(740,25): error TS2345: Argument of type '"territory:war_declared"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(741,25): error TS2345: Argument of type '"territory:war_contributed"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(742,25): error TS2345: Argument of type '"territory:war_resolved"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/store/useGangStore.ts(743,25): error TS2345: Argument of type '"territory:conquered"' is not assignable to parameter of type 'keyof ServerToClientEvents'.
+src/utils/chat.utils.tsx(122,3): error TS6133: 'id' is declared but its value is never read.

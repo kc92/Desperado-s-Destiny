@@ -15,7 +15,7 @@ import { SafeUser } from '@desperados/shared';
  * Extended Request interface with authenticated user
  */
 export interface AuthenticatedRequest extends Request {
-  user?: SafeUser & { _id: string };
+  user?: SafeUser & { _id: string; characterId?: string };
 }
 
 /**
@@ -142,10 +142,8 @@ export async function requireAdmin(
       );
     }
 
-    // Find full user to check role
-    const user = await User.findById(req.user._id);
-
-    if (!user || user.role !== 'admin') {
+    // Check role from SafeUser (no DB query needed)
+    if (req.user.role !== 'admin') {
       throw new AppError(
         'Admin access required',
         HttpStatus.FORBIDDEN
@@ -204,9 +202,85 @@ export async function requireEmailVerified(
   }
 }
 
+/**
+ * Alias for requireAuth for backwards compatibility
+ */
+export const authenticate = requireAuth;
+
+/**
+ * Extended Request interface with character
+ */
+export interface CharacterRequest extends AuthenticatedRequest {
+  character?: any;
+}
+
+/**
+ * Middleware to require character context
+ * Gets the user's active character and attaches it to request
+ * Must be used AFTER requireAuth/authenticate
+ */
+export async function requireCharacter(
+  req: CharacterRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new AppError(
+        'Authentication required',
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    // Import Character model and Types here to avoid circular dependency
+    const { Character } = await import('../models/Character.model');
+    const mongoose = await import('mongoose');
+
+    // Find user's active character
+    const characters = await Character.find({
+      userId: new mongoose.Types.ObjectId(req.user._id),
+      isActive: true
+    }).sort({ lastActive: -1 }).limit(1);
+
+    if (!characters || characters.length === 0) {
+      // More lenient: if no character found, just get the most recent character for this user
+      const anyCharacter = await Character.find({
+        userId: new mongoose.Types.ObjectId(req.user._id)
+      }).sort({ lastActive: -1 }).limit(1);
+
+      if (!anyCharacter || anyCharacter.length === 0) {
+        throw new AppError(
+          'No character found. Please create a character first.',
+          HttpStatus.NOT_FOUND
+        );
+      }
+
+      req.character = anyCharacter[0];
+      (req as any).characterId = anyCharacter[0]._id.toString();
+    } else {
+      req.character = characters[0];
+      (req as any).characterId = characters[0]._id.toString();
+    }
+
+    next();
+  } catch (error) {
+    if (error instanceof AppError) {
+      next(error);
+    } else {
+      logger.error('Require character middleware error:', error);
+      next(new AppError(
+        'Failed to load character',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      ));
+    }
+  }
+}
+
 export default {
   requireAuth,
   optionalAuth,
   requireAdmin,
-  requireEmailVerified
+  requireEmailVerified,
+  authenticate,
+  requireCharacter
 };

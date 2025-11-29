@@ -1,0 +1,13 @@
+{
+  "botName": "CombatBot-Gunslinger",
+  "sessionDuration": "0 minutes",
+  "totalActions": 1,
+  "actionsPerMinute": "3.49",
+  "topActions": [
+    {
+      "action": "login",
+      "count": 1
+    }
+  ],
+  "errors": 0
+}

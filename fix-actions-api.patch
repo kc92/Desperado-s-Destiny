@@ -1,0 +1,25 @@
+--- a/client/src/store/useGameStore.ts
++++ b/client/src/store/useGameStore.ts
+@@ -424,9 +424,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
+       const response = await actionService.getActions(filters);
+
+       if (response.success && response.data) {
++        // Backend returns actions grouped by type, flatten them to an array
++        const groupedActions = response.data.actions as any;
++        const flatActions: Action[] = [];
++
++        // Flatten the grouped actions into a single array
++        if (groupedActions && typeof groupedActions === 'object') {
++          Object.values(groupedActions).forEach((actionArray: any) => {
++            if (Array.isArray(actionArray)) {
++              flatActions.push(...actionArray);
++            }
++          });
++        }
++
+         set({
+-          actions: response.data.actions,
++          actions: flatActions,
+           isLoading: false,
+           error: null,
+         });

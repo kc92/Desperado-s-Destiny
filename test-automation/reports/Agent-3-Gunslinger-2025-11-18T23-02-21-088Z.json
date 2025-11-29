@@ -1,0 +1,161 @@
+{
+  "agent": "Agent-3-Gunslinger",
+  "timestamp": "2025-11-18T23:02:21.088Z",
+  "duration": "17s",
+  "errors": 12,
+  "bugs": 1,
+  "screenshots": 1,
+  "bugsByPriority": {
+    "P0": 1,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 3,
+    "Console Error": 8,
+    "Login Failed": 1
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T23:02:05.317Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:02:05.319Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:02:05.319Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:02:06.218Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:02:06.218Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:02:06.234Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:02:17.850Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3000/api/auth/login",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:02:17.850Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/login"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:02:17.850Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:02:17.850Z",
+        "type": "Console Error",
+        "message": "[AUTH STORE DEBUG] Login error: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/store/useAuthStore.ts?t=1763427285554",
+          "lineNumber": 30,
+          "columnNumber": 18
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:02:17.850Z",
+        "type": "Console Error",
+        "message": "[LOGIN DEBUG] Login failed with error: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/pages/Login.tsx?t=1763505953755",
+          "lineNumber": 86,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:02:20.900Z",
+        "type": "Login Failed",
+        "message": "Failed to login as pioneer@test.com",
+        "details": "Ended up at http://localhost:3000/login",
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763506940901-l6f0swv5j",
+        "timestamp": "2025-11-18T23:02:20.901Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P0",
+        "title": "Gunslinger Mission Failure",
+        "description": "Failed to login",
+        "reproduction": "Error: Failed to login\n    at GunslingerAgent.loginAndNavigateToGame (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\test-automation\\journeys\\agent-3-gunslinger.js:52:13)\n    at async GunslingerAgent.runMission (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\test-automation\\journeys\\agent-3-gunslinger.js:23:7)",
+        "url": "http://localhost:3000/login",
+        "screenshot": "Agent-3-Gunslinger-bug-0-2025-11-18T23-02-20-901Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-3-Gunslinger-bug-0-2025-11-18T23-02-20-901Z.png"
+    ]
+  }
+}

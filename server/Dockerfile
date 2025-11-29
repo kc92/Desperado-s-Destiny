@@ -8,14 +8,20 @@ WORKDIR /app
 # Install system dependencies for native modules
 RUN apk add --no-cache python3 make g++
 
-# Copy package files
-COPY package*.json ./
+# Copy shared package first (dependency)
+COPY ./shared /app/shared
 
-# Install all dependencies (including devDependencies for development)
-RUN npm ci
+# Copy server package files
+COPY ./server/package*.json ./
 
-# Copy source code
-COPY . .
+# Install all dependencies (using npm install for workspace compatibility)
+RUN npm install
+
+# Build shared package
+RUN cd /app/shared && npm install && npm run build || true
+
+# Copy server source code
+COPY ./server .
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

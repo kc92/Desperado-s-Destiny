@@ -10,6 +10,36 @@ import crypto from 'crypto';
 import { SafeUser } from '@desperados/shared';
 
 /**
+ * User notification preferences
+ */
+export interface NotificationPreferences {
+  email: boolean;
+  mailReceived: boolean;
+  friendRequest: boolean;
+  gangInvite: boolean;
+  combatChallenge: boolean;
+  warUpdates: boolean;
+}
+
+/**
+ * User privacy preferences
+ */
+export interface PrivacyPreferences {
+  showOnlineStatus: boolean;
+  allowFriendRequests: boolean;
+  allowGangInvites: boolean;
+  allowChallenges: boolean;
+}
+
+/**
+ * User preferences
+ */
+export interface UserPreferences {
+  notifications: NotificationPreferences;
+  privacy: PrivacyPreferences;
+}
+
+/**
  * User document interface extending Mongoose Document
  */
 export interface IUserDocument extends Document {
@@ -24,6 +54,12 @@ export interface IUserDocument extends Document {
   lastLogin?: Date;
   isActive: boolean;
   role: 'user' | 'admin';
+  preferences: UserPreferences;
+
+  // Subscription fields
+  subscriptionPlan?: string;
+  subscriptionExpiresAt?: Date;
+  subscriptionCancelled?: boolean;
 
   // Methods
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -47,10 +83,9 @@ const UserSchema = new Schema<IUserDocument, IUserModel>(
     email: {
       type: String,
       required: [true, 'Email is required'],
-      unique: true,
+      // Note: unique index defined below
       lowercase: true,
       trim: true,
-      index: true,
       validate: {
         validator: function(email: string) {
           // Basic email validation
@@ -70,7 +105,7 @@ const UserSchema = new Schema<IUserDocument, IUserModel>(
     },
     verificationToken: {
       type: String,
-      unique: true,
+      // Note: unique sparse index defined below
       sparse: true // Allows multiple null values
     },
     verificationTokenExpiry: {
@@ -78,7 +113,7 @@ const UserSchema = new Schema<IUserDocument, IUserModel>(
     },
     resetPasswordToken: {
       type: String,
-      unique: true,
+      // Note: unique sparse index defined below
       sparse: true // Allows multiple null values
     },
     resetPasswordExpiry: {
@@ -95,6 +130,33 @@ const UserSchema = new Schema<IUserDocument, IUserModel>(
       type: String,
       enum: ['user', 'admin'],
       default: 'user'
+    },
+    preferences: {
+      notifications: {
+        email: { type: Boolean, default: true },
+        mailReceived: { type: Boolean, default: true },
+        friendRequest: { type: Boolean, default: true },
+        gangInvite: { type: Boolean, default: true },
+        combatChallenge: { type: Boolean, default: true },
+        warUpdates: { type: Boolean, default: true }
+      },
+      privacy: {
+        showOnlineStatus: { type: Boolean, default: true },
+        allowFriendRequests: { type: Boolean, default: true },
+        allowGangInvites: { type: Boolean, default: true },
+        allowChallenges: { type: Boolean, default: true }
+      }
+    },
+    subscriptionPlan: {
+      type: String,
+      default: 'free'
+    },
+    subscriptionExpiresAt: {
+      type: Date
+    },
+    subscriptionCancelled: {
+      type: Boolean,
+      default: false
     }
   },
   {
@@ -159,6 +221,7 @@ UserSchema.methods.toSafeObject = function(): SafeUser {
     _id: this._id.toString(),
     email: this.email,
     emailVerified: this.emailVerified,
+    role: this.role,
     createdAt: this.createdAt,
     lastLogin: this.lastLogin || this.createdAt
   };

@@ -1,0 +1,869 @@
+{
+  "agent": "Agent-5-Banker",
+  "timestamp": "2025-11-18T23:36:43.315Z",
+  "duration": "30s",
+  "errors": 86,
+  "bugs": 0,
+  "screenshots": 2,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 6,
+    "Console Error": 58,
+    "Page Error": 5,
+    "Request Failed": 17
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T23:36:14.867Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:14.868Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:14.868Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:17.909Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:17.909Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:17.909Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.021Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx?t=1763507278755:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.071Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3001/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.075Z",
+        "type": "HTTP Error",
+        "message": "400 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.078Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.079Z",
+        "type": "Console Error",
+        "message": "[API Error 400] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.080Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.080Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.117Z",
+        "type": "HTTP Error",
+        "message": "400 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.118Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.118Z",
+        "type": "Console Error",
+        "message": "[API Error 400] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.118Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.118Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.118Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx?t=1763507278755:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.133Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3001/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.134Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx?t=1763507278755:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:34.149Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3001/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.279Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/characters' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.279Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/characters - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.280Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/characters"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.341Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/gold/balance' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.342Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/gold/balance - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.342Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/gold/balance"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.402Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/gold/balance' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.402Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/gold/balance - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.403Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/gold/balance"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.465Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/crimes/lay-low' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.465Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/crimes/lay-low - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.465Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/crimes/lay-low"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.525Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/gold/balance' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.526Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/gold/balance - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.526Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/gold/balance"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.586Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/combat/npcs' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.586Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/combat/npcs - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.586Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/combat/npcs"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.647Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/actions' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.647Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/actions - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.647Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/actions"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.710Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/characters' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.710Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/characters - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.710Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/characters"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.772Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/gold/balance' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.773Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/gold/balance - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.773Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/gold/balance"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.835Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/characters' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.835Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/characters - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.835Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/characters"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.896Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/gold/balance' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.896Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/gold/balance - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.896Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/gold/balance"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.956Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/gold/balance' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.957Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/gold/balance - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:37.957Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/gold/balance"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:38.018Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/mail/send' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:38.018Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/mail/send - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:38.018Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/mail/send"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.081Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/gold/balance' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.081Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/gold/balance - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.081Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/gold/balance"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.143Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/gold/balance' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/game"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.143Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/gold/balance - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.143Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/gold/balance"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.471Z",
+        "type": "HTTP Error",
+        "message": "400 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.471Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.476Z",
+        "type": "Console Error",
+        "message": "[API Error 400] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.479Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.479Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.493Z",
+        "type": "HTTP Error",
+        "message": "400 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.493Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.493Z",
+        "type": "Console Error",
+        "message": "[API Error 400] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.493Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.493Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.572Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx?t=1763507278755:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.601Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx?t=1763507278755:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:39.617Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3001/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:43.251Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/gold/balance' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/character-select"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:43.251Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/gold/balance - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:43.252Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/gold/balance"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:43.313Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:3000/api/gold/history?limit=100' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+        "details": {
+          "url": "http://localhost:3001/character-select"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:43.313Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/api/gold/history?limit=100 - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      },
+      {
+        "timestamp": "2025-11-18T23:36:43.313Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:3000/api/gold/history?limit=100"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-5-Banker"
+      }
+    ],
+    "bugs": [],
+    "screenshots": [
+      "Agent-5-Banker-banker-logged-in-2025-11-18T23-36-30-589Z.png",
+      "Agent-5-Banker-banker-character-selected-2025-11-18T23-36-36-971Z.png"
+    ]
+  }
+}

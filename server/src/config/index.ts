@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// Load environment variables from project root
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 /**
  * Required environment variables that must be present
@@ -76,6 +76,16 @@ export const config = {
   },
 
   /**
+   * Auth configuration (alias for jwt for compatibility)
+   */
+  auth: {
+    jwtSecret: process.env['JWT_SECRET'] || '',
+    jwtExpire: process.env['JWT_EXPIRE'] || '7d',
+    jwtRefreshSecret: process.env['JWT_REFRESH_SECRET'] || '',
+    jwtRefreshExpire: process.env['JWT_REFRESH_EXPIRE'] || '30d',
+  },
+
+  /**
    * Session configuration
    */
   session: {
@@ -105,6 +115,24 @@ export const config = {
     maxPlayersPerLobby: parseInt(process.env['MAX_PLAYERS_PER_LOBBY'] || '100', 10),
     gameTickRate: parseInt(process.env['GAME_TICK_RATE'] || '30', 10),
   },
+
+  /**
+   * Email configuration
+   */
+  email: {
+    smtp: {
+      host: process.env['SMTP_HOST'] || 'smtp.mailtrap.io',
+      port: parseInt(process.env['SMTP_PORT'] || '587', 10),
+      user: process.env['SMTP_USER'] || '',
+      pass: process.env['SMTP_PASS'] || ''
+    },
+    from: process.env['EMAIL_FROM'] || 'noreply@desperados-destiny.com'
+  },
+
+  /**
+   * Client URL for email links
+   */
+  clientUrl: process.env['FRONTEND_URL'] || 'http://localhost:5173',
 
   /**
    * Check if running in production

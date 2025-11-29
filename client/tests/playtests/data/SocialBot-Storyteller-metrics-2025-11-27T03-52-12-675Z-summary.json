@@ -1,0 +1,29 @@
+{
+  "botName": "SocialBot-Storyteller",
+  "sessionDuration": "507 minutes",
+  "totalActions": 5,
+  "actionsPerMinute": "0.01",
+  "topActions": [
+    {
+      "action": "login",
+      "count": 1
+    },
+    {
+      "action": "character_select",
+      "count": 1
+    },
+    {
+      "action": "lore_reading",
+      "count": 1
+    },
+    {
+      "action": "location_visit",
+      "count": 1
+    },
+    {
+      "action": "notifications_check",
+      "count": 1
+    }
+  ],
+  "errors": 40
+}

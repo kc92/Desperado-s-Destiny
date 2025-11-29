@@ -1,0 +1,239 @@
+{
+  "agent": "Agent-3-Gunslinger",
+  "timestamp": "2025-11-18T23:38:36.340Z",
+  "duration": "27s",
+  "errors": 15,
+  "bugs": 5,
+  "screenshots": 9,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 5,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 2,
+    "Console Error": 8,
+    "Page Error": 5
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T23:38:10.947Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:10.947Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:10.960Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:11.837Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:11.837Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:11.837Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:26.750Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3000/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3000/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:26.819Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3000/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:26.873Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3000/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3000/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:26.874Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3000/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:26.889Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3000/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3000/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:26.889Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3000/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:33.134Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3000/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3000/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:33.196Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3000/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3000/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:38:33.211Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3000/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763509111965-5ywqxbgek",
+        "timestamp": "2025-11-18T23:38:31.965Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Crimes",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/404",
+        "screenshot": "Agent-3-Gunslinger-bug-0-2025-11-18T23-38-31-965Z.png"
+      },
+      {
+        "id": "BUG-1763509112184-j53d3nbsk",
+        "timestamp": "2025-11-18T23:38:32.184Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Territory",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/404",
+        "screenshot": "Agent-3-Gunslinger-bug-1-2025-11-18T23-38-32-184Z.png"
+      },
+      {
+        "id": "BUG-1763509112405-n2z0glm7m",
+        "timestamp": "2025-11-18T23:38:32.405Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Gang",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/404",
+        "screenshot": "Agent-3-Gunslinger-bug-2-2025-11-18T23-38-32-405Z.png"
+      },
+      {
+        "id": "BUG-1763509112621-ii7cy3ic0",
+        "timestamp": "2025-11-18T23:38:32.621Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Leaderboard",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/404",
+        "screenshot": "Agent-3-Gunslinger-bug-3-2025-11-18T23-38-32-622Z.png"
+      },
+      {
+        "id": "BUG-1763509116167-y2zca4aa3",
+        "timestamp": "2025-11-18T23:38:36.167Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Stats not displayed",
+        "description": "Character stats not visible",
+        "reproduction": null,
+        "url": "http://localhost:3000/character-select",
+        "screenshot": "Agent-3-Gunslinger-bug-4-2025-11-18T23-38-36-167Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-3-Gunslinger-after-login-2025-11-18T23-38-26-378Z.png",
+      "Agent-3-Gunslinger-character-selected-2025-11-18T23-38-29-689Z.png",
+      "Agent-3-Gunslinger-section-actions-2025-11-18T23-38-31-151Z.png",
+      "Agent-3-Gunslinger-bug-0-2025-11-18T23-38-31-965Z.png",
+      "Agent-3-Gunslinger-bug-1-2025-11-18T23-38-32-184Z.png",
+      "Agent-3-Gunslinger-bug-2-2025-11-18T23-38-32-405Z.png",
+      "Agent-3-Gunslinger-bug-3-2025-11-18T23-38-32-622Z.png",
+      "Agent-3-Gunslinger-dashboard-complete-2025-11-18T23-38-35-917Z.png",
+      "Agent-3-Gunslinger-bug-4-2025-11-18T23-38-36-167Z.png"
+    ]
+  }
+}

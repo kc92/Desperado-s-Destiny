@@ -1,0 +1,920 @@
+{
+  "agent": "Agent-4-Completionist",
+  "timestamp": "2025-11-18T23:22:30.563Z",
+  "duration": "57s",
+  "errors": 78,
+  "bugs": 6,
+  "screenshots": 19,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 4,
+    "P2": 2,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 16,
+    "Console Error": 54,
+    "Page Error": 8
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T23:21:34.600Z",
+        "type": "HTTP Error",
+        "message": "500 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:34.601Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:34.601Z",
+        "type": "Console Error",
+        "message": "[API Error 500] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:34.601Z",
+        "type": "Console Error",
+        "message": "Internal server error",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 46,
+          "columnNumber": 18
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:37.928Z",
+        "type": "HTTP Error",
+        "message": "500 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:37.929Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:37.944Z",
+        "type": "Console Error",
+        "message": "[API Error 500] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:37.944Z",
+        "type": "Console Error",
+        "message": "Internal server error",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 46,
+          "columnNumber": 18
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:52.919Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx?t=1763507278755:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:52.981Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/actions",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:52.984Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/actions"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:52.984Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:52.984Z",
+        "type": "Console Error",
+        "message": "Failed to get actions: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/action.service.ts",
+          "lineNumber": 16,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:52.985Z",
+        "type": "Console Error",
+        "message": "Failed to fetch actions: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 312,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:52.993Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:52.993Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:52.993Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:52.993Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:52.993Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.006Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3001/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.022Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/actions",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.022Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/actions"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.023Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.023Z",
+        "type": "Console Error",
+        "message": "Failed to get actions: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/action.service.ts",
+          "lineNumber": 16,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.023Z",
+        "type": "Console Error",
+        "message": "Failed to fetch actions: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 312,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.023Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.023Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.023Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.023Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.023Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.038Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx?t=1763507278755:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.054Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx?t=1763507278755:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:53.055Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3001/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.364Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/actions",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.364Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/actions"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.367Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.367Z",
+        "type": "Console Error",
+        "message": "Failed to get actions: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/action.service.ts",
+          "lineNumber": 16,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.367Z",
+        "type": "Console Error",
+        "message": "Failed to fetch actions: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 312,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.376Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.376Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.376Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.376Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.376Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.386Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/actions",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.386Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/actions"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.386Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.386Z",
+        "type": "Console Error",
+        "message": "Failed to get actions: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/action.service.ts",
+          "lineNumber": 16,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.387Z",
+        "type": "Console Error",
+        "message": "Failed to fetch actions: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 312,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.391Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.391Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.391Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.393Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.393Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.448Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx?t=1763507278755:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.449Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx?t=1763507278755:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:21:56.449Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3001/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:07.371Z",
+        "type": "Page Error",
+        "message": "Cannot read properties of undefined (reading 'filter')",
+        "details": "TypeError: Cannot read properties of undefined (reading 'filter')\n    at Combat (http://localhost:3001/src/pages/Combat.tsx?t=1763507278755:73:29)\n    at renderWithHooks (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at updateFunctionComponent (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14582:28)\n    at beginWork (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15924:22)\n    at callCallback2 (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3674:22)\n    at invokeGuardedCallbackDev (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3699:24)\n    at invokeGuardedCallback (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3733:39)\n    at beginWork$1 (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19765:15)\n    at performUnitOfWork (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)",
+        "url": "http://localhost:3001/game/combat",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:07.371Z",
+        "type": "Page Error",
+        "message": "Cannot read properties of undefined (reading 'filter')",
+        "details": "TypeError: Cannot read properties of undefined (reading 'filter')\n    at Combat (http://localhost:3001/src/pages/Combat.tsx?t=1763507278755:73:29)\n    at renderWithHooks (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at updateFunctionComponent (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14582:28)\n    at beginWork (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15924:22)\n    at callCallback2 (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3674:22)\n    at invokeGuardedCallbackDev (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3699:24)\n    at invokeGuardedCallback (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3733:39)\n    at beginWork$1 (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19765:15)\n    at performUnitOfWork (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)",
+        "url": "http://localhost:3001/game/combat",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:07.371Z",
+        "type": "Console Error",
+        "message": "The above error occurred in the <Combat> component:\n\n    at Combat (http://localhost:3001/src/pages/Combat.tsx?t=1763507278755:44:7)\n    at RenderedRoute (http://localhost:3001/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4108:5)\n    at Outlet (http://localhost:3001/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4514:26)\n    at main\n    at div\n    at GameLayout\n    at ProtectedRoute (http://localhost:3001/src/components/ProtectedRoute.tsx:23:3)\n    at RenderedRoute (http://localhost:3001/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4108:5)\n    at Routes (http://localhost:3001/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4578:5)\n    at Router (http://localhost:3001/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4521:15)\n    at BrowserRouter (http://localhost:3001/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:5267:5)\n    at App (http://localhost:3001/src/App.tsx?t=1763508055113:51:67)\n\nConsider adding an error boundary to your tree to customize error handling behavior.\nVisit https://reactjs.org/link/error-boundaries to learn more about error boundaries.",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51",
+          "lineNumber": 14031,
+          "columnNumber": 30
+        },
+        "url": "http://localhost:3001/game/combat",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:07.371Z",
+        "type": "Page Error",
+        "message": "Cannot read properties of undefined (reading 'filter')",
+        "details": "TypeError: Cannot read properties of undefined (reading 'filter')\n    at Combat (http://localhost:3001/src/pages/Combat.tsx?t=1763507278755:73:29)\n    at renderWithHooks (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at updateFunctionComponent (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14582:28)\n    at beginWork (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15924:22)\n    at beginWork$1 (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19753:22)\n    at performUnitOfWork (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)\n    at renderRootSync (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19116:15)\n    at recoverFromConcurrentError (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18736:28)\n    at performSyncWorkOnRoot (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18879:28)",
+        "url": "http://localhost:3001/game/combat",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:10.493Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/game/skills",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:10.493Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/game/skills",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:10.508Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game/skills",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:10.508Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game/skills",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:10.508Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game/skills",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:10.508Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/game/skills",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:10.508Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/game/skills",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:10.508Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game/skills",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:10.509Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game/skills",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:10.509Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts?t=1763507278755",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game/skills",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:13.639Z",
+        "type": "HTTP Error",
+        "message": "404 - http://localhost:5000/api/territory",
+        "details": null,
+        "url": "http://localhost:3001/game/territory",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:13.640Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "details": {
+          "url": "http://localhost:5000/api/territory"
+        },
+        "url": "http://localhost:3001/game/territory",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:13.640Z",
+        "type": "HTTP Error",
+        "message": "404 - http://localhost:5000/api/territory",
+        "details": null,
+        "url": "http://localhost:3001/game/territory",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:13.640Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "details": {
+          "url": "http://localhost:5000/api/territory"
+        },
+        "url": "http://localhost:3001/game/territory",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:20.244Z",
+        "type": "HTTP Error",
+        "message": "404 - http://localhost:5000/api/leaderboard/level?range=all",
+        "details": null,
+        "url": "http://localhost:3001/game/leaderboard",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:20.244Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "details": {
+          "url": "http://localhost:5000/api/leaderboard/level?range=all"
+        },
+        "url": "http://localhost:3001/game/leaderboard",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:20.252Z",
+        "type": "HTTP Error",
+        "message": "404 - http://localhost:5000/api/leaderboard/level?range=all",
+        "details": null,
+        "url": "http://localhost:3001/game/leaderboard",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:22:20.252Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "details": {
+          "url": "http://localhost:5000/api/leaderboard/level?range=all"
+        },
+        "url": "http://localhost:3001/game/leaderboard",
+        "agent": "Agent-4-Completionist"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763508119445-47cmvzgv4",
+        "timestamp": "2025-11-18T23:21:59.445Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P1",
+        "title": "Dashboard missing critical stats",
+        "description": "Missing: gold",
+        "reproduction": null,
+        "url": "http://localhost:3001/character-select",
+        "screenshot": "Agent-4-Completionist-bug-0-2025-11-18T23-21-59-445Z.png"
+      },
+      {
+        "id": "BUG-1763508119614-lvd5ulhg5",
+        "timestamp": "2025-11-18T23:21:59.614Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P2",
+        "title": "Dashboard navigation incomplete",
+        "description": "Expected 10+ nav cards, found 0",
+        "reproduction": null,
+        "url": "http://localhost:3001/character-select",
+        "screenshot": "Agent-4-Completionist-bug-1-2025-11-18T23-21-59-614Z.png"
+      },
+      {
+        "id": "BUG-1763508123526-re3wh59mm",
+        "timestamp": "2025-11-18T23:22:03.526Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P1",
+        "title": "No actions found",
+        "description": "Actions page has no action cards",
+        "reproduction": null,
+        "url": "http://localhost:3001/game/actions",
+        "screenshot": "Agent-4-Completionist-bug-2-2025-11-18T23-22-03-526Z.png"
+      },
+      {
+        "id": "BUG-1763508143123-gvisghq20",
+        "timestamp": "2025-11-18T23:22:23.123Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P2",
+        "title": "Leaderboard categories incomplete",
+        "description": "Expected 6 categories, found 0",
+        "reproduction": null,
+        "url": "http://localhost:3001/game/leaderboard",
+        "screenshot": "Agent-4-Completionist-bug-3-2025-11-18T23-22-23-123Z.png"
+      },
+      {
+        "id": "BUG-1763508146743-81fg643wj",
+        "timestamp": "2025-11-18T23:22:26.743Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P1",
+        "title": "Mail interface not found",
+        "description": "Mail page missing core UI",
+        "reproduction": null,
+        "url": "http://localhost:3001/game/mail",
+        "screenshot": "Agent-4-Completionist-bug-4-2025-11-18T23-22-26-743Z.png"
+      },
+      {
+        "id": "BUG-1763508150404-jiy02my8z",
+        "timestamp": "2025-11-18T23:22:30.404Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P1",
+        "title": "Friends interface not found",
+        "description": "Friends page missing core UI",
+        "reproduction": null,
+        "url": "http://localhost:3001/game/friends",
+        "screenshot": "Agent-4-Completionist-bug-5-2025-11-18T23-22-30-404Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-4-Completionist-01-login-page-2025-11-18T23-21-36-195Z.png",
+      "Agent-4-Completionist-02-after-login-2025-11-18T23-21-52-575Z.png",
+      "Agent-4-Completionist-03-character-selected-2025-11-18T23-21-55-858Z.png",
+      "Agent-4-Completionist-04-dashboard-2025-11-18T23-21-59-229Z.png",
+      "Agent-4-Completionist-bug-0-2025-11-18T23-21-59-445Z.png",
+      "Agent-4-Completionist-bug-1-2025-11-18T23-21-59-614Z.png",
+      "Agent-4-Completionist-05-actions-page-2025-11-18T23-22-03-310Z.png",
+      "Agent-4-Completionist-bug-2-2025-11-18T23-22-03-526Z.png",
+      "Agent-4-Completionist-06-crimes-page-2025-11-18T23-22-06-919Z.png",
+      "Agent-4-Completionist-07-combat-page-2025-11-18T23-22-09-996Z.png",
+      "Agent-4-Completionist-08-skills-page-2025-11-18T23-22-13-068Z.png",
+      "Agent-4-Completionist-09-territory-page-2025-11-18T23-22-16-701Z.png",
+      "Agent-4-Completionist-10-gang-page-2025-11-18T23-22-19-793Z.png",
+      "Agent-4-Completionist-11-leaderboard-page-2025-11-18T23-22-22-874Z.png",
+      "Agent-4-Completionist-bug-3-2025-11-18T23-22-23-123Z.png",
+      "Agent-4-Completionist-12-mail-page-2025-11-18T23-22-26-542Z.png",
+      "Agent-4-Completionist-bug-4-2025-11-18T23-22-26-743Z.png",
+      "Agent-4-Completionist-13-friends-page-2025-11-18T23-22-30-172Z.png",
+      "Agent-4-Completionist-bug-5-2025-11-18T23-22-30-404Z.png"
+    ]
+  }
+}

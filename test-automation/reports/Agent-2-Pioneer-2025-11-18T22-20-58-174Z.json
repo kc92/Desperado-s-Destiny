@@ -1,0 +1,151 @@
+{
+  "agent": "Agent-2-Pioneer",
+  "timestamp": "2025-11-18T22:20:58.174Z",
+  "duration": "63s",
+  "errors": 10,
+  "bugs": 2,
+  "screenshots": 6,
+  "bugsByPriority": {
+    "P0": 1,
+    "P1": 1,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 2,
+    "Console Error": 5,
+    "Page Error": 3
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T22:19:56.417Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:19:56.418Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:19:56.418Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:20:25.052Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:20:25.053Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:20:25.053Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:20:51.067Z",
+        "type": "Page Error",
+        "message": "FACTIONS is not defined",
+        "details": "ReferenceError: FACTIONS is not defined\n    at ConfirmStep (http://localhost:3000/src/components/CharacterCreator/ConfirmStep.tsx:27:23)\n    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14926:21)\n    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15914:22)\n    at callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3674:22)\n    at invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3699:24)\n    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3733:39)\n    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19765:15)\n    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:20:51.067Z",
+        "type": "Page Error",
+        "message": "FACTIONS is not defined",
+        "details": "ReferenceError: FACTIONS is not defined\n    at ConfirmStep (http://localhost:3000/src/components/CharacterCreator/ConfirmStep.tsx:27:23)\n    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14926:21)\n    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15914:22)\n    at callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3674:22)\n    at invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3699:24)\n    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3733:39)\n    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19765:15)\n    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:20:51.067Z",
+        "type": "Console Error",
+        "message": "The above error occurred in the <ConfirmStep> component:\n\n    at ConfirmStep (http://localhost:3000/src/components/CharacterCreator/ConfirmStep.tsx:20:3)\n    at div\n    at div\n    at div\n    at Card (http://localhost:3000/src/components/ui/Card.tsx:29:3)\n    at div\n    at div\n    at Modal (http://localhost:3000/src/components/ui/Modal.tsx:27:3)\n    at CharacterCreatorModal (http://localhost:3000/src/components/CharacterCreator/CharacterCreatorModal.tsx?t=1763428944640:25:3)\n    at div\n    at CharacterSelect (http://localhost:3000/src/pages/CharacterSelect.tsx?t=1763428944640:30:20)\n    at ProtectedRoute (http://localhost:3000/src/components/ProtectedRoute.tsx?t=1763427285554:23:3)\n    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4108:5)\n    at Routes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4578:5)\n    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4521:15)\n    at BrowserRouter (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:5267:5)\n    at App (http://localhost:3000/src/App.tsx?t=1763428944640:50:67)\n\nConsider adding an error boundary to your tree to customize error handling behavior.\nVisit https://reactjs.org/link/error-boundaries to learn more about error boundaries.",
+        "details": {
+          "url": "http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51",
+          "lineNumber": 14031,
+          "columnNumber": 30
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:20:51.068Z",
+        "type": "Page Error",
+        "message": "FACTIONS is not defined",
+        "details": "ReferenceError: FACTIONS is not defined\n    at ConfirmStep (http://localhost:3000/src/components/CharacterCreator/ConfirmStep.tsx:27:23)\n    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14926:21)\n    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15914:22)\n    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19753:22)\n    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)\n    at renderRootSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19116:15)\n    at recoverFromConcurrentError (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18736:28)\n    at performSyncWorkOnRoot (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18879:28)",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763504456708-oguflru0v",
+        "timestamp": "2025-11-18T22:20:56.708Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Not Created",
+        "description": "Failed to create NAHI_COALITION character",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T22-20-56-708Z.png"
+      },
+      {
+        "id": "BUG-1763504457474-c9roobxcc",
+        "timestamp": "2025-11-18T22:20:57.474Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P0",
+        "title": "Create Button Missing",
+        "description": "Cannot find create character button",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T22-20-57-474Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-2-Pioneer-registration-form-filled-2025-11-18T22-20-19-981Z.png",
+      "Agent-2-Pioneer-existing-characters-2025-11-18T22-20-39-834Z.png",
+      "Agent-2-Pioneer-character-creation-NAHI_COALITION-step1-2025-11-18T22-20-48-831Z.png",
+      "Agent-2-Pioneer-character-creation-NAHI_COALITION-step2-2025-11-18T22-20-53-069Z.png",
+      "Agent-2-Pioneer-bug-0-2025-11-18T22-20-56-708Z.png",
+      "Agent-2-Pioneer-bug-1-2025-11-18T22-20-57-474Z.png"
+    ]
+  }
+}

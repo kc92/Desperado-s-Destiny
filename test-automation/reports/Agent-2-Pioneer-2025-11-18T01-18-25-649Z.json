@@ -1,0 +1,217 @@
+{
+  "agent": "Agent-2-Pioneer",
+  "timestamp": "2025-11-18T01:18:25.649Z",
+  "duration": "48s",
+  "errors": 16,
+  "bugs": 3,
+  "screenshots": 5,
+  "bugsByPriority": {
+    "P0": 1,
+    "P1": 2,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 2,
+    "Console Error": 7,
+    "Page Error": 7
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T01:17:38.578Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:17:38.578Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:17:38.579Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:06.600Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:06.601Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:06.601Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:23.198Z",
+        "type": "Page Error",
+        "message": "FACTIONS is not defined",
+        "details": "ReferenceError: FACTIONS is not defined\n    at FactionCard (http://localhost:3000/src/components/CharacterCreator/FactionCard.tsx:80:23)\n    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14926:21)\n    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15914:22)\n    at callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3674:22)\n    at invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3699:24)\n    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3733:39)\n    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19765:15)\n    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:23.198Z",
+        "type": "Page Error",
+        "message": "FACTIONS is not defined",
+        "details": "ReferenceError: FACTIONS is not defined\n    at FactionCard (http://localhost:3000/src/components/CharacterCreator/FactionCard.tsx:80:23)\n    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14926:21)\n    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15914:22)\n    at callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3674:22)\n    at invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3699:24)\n    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3733:39)\n    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19765:15)\n    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:23.198Z",
+        "type": "Page Error",
+        "message": "FACTIONS is not defined",
+        "details": "ReferenceError: FACTIONS is not defined\n    at FactionCard (http://localhost:3000/src/components/CharacterCreator/FactionCard.tsx:80:23)\n    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14926:21)\n    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15914:22)\n    at callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3674:22)\n    at invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3699:24)\n    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3733:39)\n    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19765:15)\n    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:23.199Z",
+        "type": "Page Error",
+        "message": "FACTIONS is not defined",
+        "details": "ReferenceError: FACTIONS is not defined\n    at FactionCard (http://localhost:3000/src/components/CharacterCreator/FactionCard.tsx:80:23)\n    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14926:21)\n    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15914:22)\n    at callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3674:22)\n    at invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3699:24)\n    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3733:39)\n    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19765:15)\n    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:23.199Z",
+        "type": "Page Error",
+        "message": "FACTIONS is not defined",
+        "details": "ReferenceError: FACTIONS is not defined\n    at FactionCard (http://localhost:3000/src/components/CharacterCreator/FactionCard.tsx:80:23)\n    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14926:21)\n    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15914:22)\n    at callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3674:22)\n    at invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3699:24)\n    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3733:39)\n    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19765:15)\n    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:23.199Z",
+        "type": "Page Error",
+        "message": "FACTIONS is not defined",
+        "details": "ReferenceError: FACTIONS is not defined\n    at FactionCard (http://localhost:3000/src/components/CharacterCreator/FactionCard.tsx:80:23)\n    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14926:21)\n    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15914:22)\n    at callCallback2 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3674:22)\n    at invokeGuardedCallbackDev (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3699:24)\n    at invokeGuardedCallback (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:3733:39)\n    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19765:15)\n    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:23.199Z",
+        "type": "Console Error",
+        "message": "The above error occurred in the <FactionCard> component:\n\n    at FactionCard (http://localhost:3000/src/components/CharacterCreator/FactionCard.tsx:76:3)\n    at div\n    at div\n    at div\n    at NameAndFactionStep (http://localhost:3000/src/components/CharacterCreator/NameAndFactionStep.tsx:24:3)\n    at div\n    at div\n    at div\n    at Card (http://localhost:3000/src/components/ui/Card.tsx:29:3)\n    at div\n    at div\n    at Modal (http://localhost:3000/src/components/ui/Modal.tsx:27:3)\n    at CharacterCreatorModal (http://localhost:3000/src/components/CharacterCreator/CharacterCreatorModal.tsx:25:3)\n    at div\n    at CharacterSelect (http://localhost:3000/src/pages/CharacterSelect.tsx?t=1763427285554:30:20)\n    at ProtectedRoute (http://localhost:3000/src/components/ProtectedRoute.tsx?t=1763427285554:23:3)\n    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4108:5)\n    at Routes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4578:5)\n    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4521:15)\n    at BrowserRouter (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:5267:5)\n    at App (http://localhost:3000/src/App.tsx?t=1763427620347:50:67)\n\nConsider adding an error boundary to your tree to customize error handling behavior.\nVisit https://reactjs.org/link/error-boundaries to learn more about error boundaries.",
+        "details": {
+          "url": "http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51",
+          "lineNumber": 14031,
+          "columnNumber": 30
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:23.199Z",
+        "type": "Console Error",
+        "message": "The above error occurred in the <FactionCard> component:\n\n    at FactionCard (http://localhost:3000/src/components/CharacterCreator/FactionCard.tsx:76:3)\n    at div\n    at div\n    at div\n    at NameAndFactionStep (http://localhost:3000/src/components/CharacterCreator/NameAndFactionStep.tsx:24:3)\n    at div\n    at div\n    at div\n    at Card (http://localhost:3000/src/components/ui/Card.tsx:29:3)\n    at div\n    at div\n    at Modal (http://localhost:3000/src/components/ui/Modal.tsx:27:3)\n    at CharacterCreatorModal (http://localhost:3000/src/components/CharacterCreator/CharacterCreatorModal.tsx:25:3)\n    at div\n    at CharacterSelect (http://localhost:3000/src/pages/CharacterSelect.tsx?t=1763427285554:30:20)\n    at ProtectedRoute (http://localhost:3000/src/components/ProtectedRoute.tsx?t=1763427285554:23:3)\n    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4108:5)\n    at Routes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4578:5)\n    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4521:15)\n    at BrowserRouter (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:5267:5)\n    at App (http://localhost:3000/src/App.tsx?t=1763427620347:50:67)\n\nConsider adding an error boundary to your tree to customize error handling behavior.\nVisit https://reactjs.org/link/error-boundaries to learn more about error boundaries.",
+        "details": {
+          "url": "http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51",
+          "lineNumber": 14031,
+          "columnNumber": 30
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:23.199Z",
+        "type": "Console Error",
+        "message": "The above error occurred in the <FactionCard> component:\n\n    at FactionCard (http://localhost:3000/src/components/CharacterCreator/FactionCard.tsx:76:3)\n    at div\n    at div\n    at div\n    at NameAndFactionStep (http://localhost:3000/src/components/CharacterCreator/NameAndFactionStep.tsx:24:3)\n    at div\n    at div\n    at div\n    at Card (http://localhost:3000/src/components/ui/Card.tsx:29:3)\n    at div\n    at div\n    at Modal (http://localhost:3000/src/components/ui/Modal.tsx:27:3)\n    at CharacterCreatorModal (http://localhost:3000/src/components/CharacterCreator/CharacterCreatorModal.tsx:25:3)\n    at div\n    at CharacterSelect (http://localhost:3000/src/pages/CharacterSelect.tsx?t=1763427285554:30:20)\n    at ProtectedRoute (http://localhost:3000/src/components/ProtectedRoute.tsx?t=1763427285554:23:3)\n    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4108:5)\n    at Routes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4578:5)\n    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:4521:15)\n    at BrowserRouter (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=4787ba51:5267:5)\n    at App (http://localhost:3000/src/App.tsx?t=1763427620347:50:67)\n\nConsider adding an error boundary to your tree to customize error handling behavior.\nVisit https://reactjs.org/link/error-boundaries to learn more about error boundaries.",
+        "details": {
+          "url": "http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51",
+          "lineNumber": 14031,
+          "columnNumber": 30
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:18:23.199Z",
+        "type": "Page Error",
+        "message": "FACTIONS is not defined",
+        "details": "ReferenceError: FACTIONS is not defined\n    at FactionCard (http://localhost:3000/src/components/CharacterCreator/FactionCard.tsx:80:23)\n    at renderWithHooks (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:11548:26)\n    at mountIndeterminateComponent (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:14926:21)\n    at beginWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:15914:22)\n    at beginWork$1 (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19753:22)\n    at performUnitOfWork (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19198:20)\n    at workLoopSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19137:13)\n    at renderRootSync (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19116:15)\n    at recoverFromConcurrentError (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18736:28)\n    at performSyncWorkOnRoot (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18879:28)",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763428686031-ynx5m7jzk",
+        "timestamp": "2025-11-18T01:18:06.031Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Registration Flow Issue",
+        "description": "Unexpected redirect to http://localhost:3000/register",
+        "reproduction": null,
+        "url": "http://localhost:3000/register",
+        "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T01-18-06-031Z.png"
+      },
+      {
+        "id": "BUG-1763428704259-nq7seiubs",
+        "timestamp": "2025-11-18T01:18:24.259Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Creator Modal Issue",
+        "description": "Modal did not open",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T01-18-24-259Z.png"
+      },
+      {
+        "id": "BUG-1763428704979-66xjcrncm",
+        "timestamp": "2025-11-18T01:18:24.979Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P0",
+        "title": "Create Button Missing",
+        "description": "Cannot find create character button",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T01-18-24-979Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-2-Pioneer-registration-form-filled-2025-11-18T01-18-01-563Z.png",
+      "Agent-2-Pioneer-bug-0-2025-11-18T01-18-06-031Z.png",
+      "Agent-2-Pioneer-existing-characters-2025-11-18T01-18-21-208Z.png",
+      "Agent-2-Pioneer-bug-1-2025-11-18T01-18-24-259Z.png",
+      "Agent-2-Pioneer-bug-2-2025-11-18T01-18-24-979Z.png"
+    ]
+  }
+}

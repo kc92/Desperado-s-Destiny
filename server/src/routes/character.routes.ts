@@ -6,14 +6,15 @@
 
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacterOwnership } from '../middleware/characterOwnership.middleware';
 import {
   createCharacter,
   getCharacters,
   getCharacter,
   deleteCharacter,
-  selectCharacter
+  selectCharacter,
+  checkCharacterName
 } from '../controllers/character.controller';
 
 const router = Router();
@@ -37,6 +38,9 @@ const characterCreationLimiter = rateLimit({
  * Character Routes
  * All routes require authentication
  */
+
+// Check if character name is available (must be before /:id routes)
+router.get('/check-name', requireAuth, checkCharacterName);
 
 // Create new character (with special rate limiting)
 router.post('/', requireAuth, characterCreationLimiter, createCharacter);

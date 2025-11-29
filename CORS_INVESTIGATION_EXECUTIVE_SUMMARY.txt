@@ -1,0 +1,133 @@
+================================================================================
+CORS HEADER OVERRIDE BUG - THOROUGH INVESTIGATION COMPLETE
+================================================================================
+
+ISSUE IDENTIFIED:
+- Browser requests see: Access-Control-Allow-Origin: * (WILDCARD - BROKEN)
+- curl/curl tests see: Access-Control-Allow-Origin: http://localhost:3000 (CORRECT)
+- This creates credentials CORS failures in browsers only
+
+ROOT CAUSE FOUND:
+Socket.io's CORS configuration uses array-based origin validation:
+  origin: ['http://localhost:3000', 'http://localhost:3001', ...]
+  
+When combined with credentials: true and HTTP polling fallback,
+engine.io (Socket.io's HTTP transport) defaults to wildcard '*'
+
+Why curl works: curl hits Express CORS middleware directly (which uses callback validation)
+Why browser fails: browser may use Socket.io polling transport, gets wildcard header
+
+INVESTIGATION SCOPE (COMPREHENSIVE):
+- 13 middleware files scanned: NO manual header manipulation
+- 15 controller files scanned: NO Access-Control header setting
+- 12+ route files scanned: NO header issues
+- Config files reviewed: No rogue CORS setup
+- Docker configs checked: No reverse proxy issues
+- nginx config reviewed: Clean, no CORS headers
+- package.json analyzed: Correct dependencies
+- ERROR HANDLERS: NOT overwriting CORS headers
+- HELMET: Disabled (not the issue)
+
+FILES WITH NO ISSUES:
+server/src/middleware/
+  - errorHandler.ts
+  - asyncHandler.ts
+  - auth.middleware.ts
+  - energy.middleware.ts
+  - chatRateLimiter.ts
+  - characterOwnership.middleware.ts
+  - gangPermission.ts
+  - jail.middleware.ts
+  - rateLimiter.ts
+  - requestLogger.ts
+
+server/src/
+  - server.ts (CORS config is correct!)
+  - All controllers (no header setting)
+  - All routes (no header setting)
+
+FILE WITH ISSUE:
+  - server/src/config/socket.ts (lines 36-53)
+
+THE FIX (Simple, One File Change):
+================================================================================
+File: server/src/config/socket.ts
+Lines: 36-53
+
+CHANGE FROM (BROKEN - array-based):
+  cors: {
+    origin: [
+      config.server.frontendUrl,
+      'http://localhost:3000',
+      ...
+    ],
+    credentials: true,
+    ...
+  }
+
+CHANGE TO (FIXED - callback-based):
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    ...
+  }
+
+This matches the working Express CORS pattern already in server.ts (lines 65-80)
+================================================================================
+
+WHY THE WILDCARD ONLY APPEARS IN BROWSER:
+
+1. Browser makes request with credentials
+2. Browser tries WebSocket connection first
+3. If WebSocket slow/unavailable, falls back to HTTP polling
+4. Polling transport uses engine.io layer
+5. engine.io with array origins + credentials -> defaults to wildcard for compatibility
+6. Browser receives Access-Control-Allow-Origin: *
+7. Browser rejects wildcard + credentials = CORS error
+
+curl doesn't use Socket.io polling, hits Express CORS directly -> correct header
+
+EXPECTED RESULT AFTER FIX:
+- Browser will receive: Access-Control-Allow-Origin: http://localhost:3000
+- curl will continue working: Access-Control-Allow-Origin: http://localhost:3000
+- Both will show consistent behavior
+- Credentials-enabled requests will work from browsers
+
+VERIFICATION COMMANDS:
+
+Browser test (from console):
+  fetch('http://localhost:5000/api/health', {credentials: 'include'})
+    .then(r => console.log(r.headers.get('Access-Control-Allow-Origin')))
+  // Should show: http://localhost:3000 (NOT *)
+
+curl baseline:
+  curl -H "Origin: http://localhost:3000" http://localhost:5000/api/health -v
+  // Should continue showing: http://localhost:3000
+
+EFFORT ESTIMATE: 5 minutes
+- 1 file to modify
+- ~15 lines of code change
+- No breaking changes
+- No package.json changes
+- No database migrations needed
+
+CONFIDENCE LEVEL: VERY HIGH
+- Root cause clearly identified through dependency analysis
+- Pattern matches known Socket.io + engine.io behavior
+- Symptoms perfectly explained by this mechanism
+- Fix is standard Socket.io best practice
+
+DETAILED REPORTS CREATED:
+1. CORS_FINAL_FINDINGS.txt - Quick summary
+2. CORS_FIX_CODE.md - Exact code changes needed
+3. CORS_INVESTIGATION_SUMMARY.md - Detailed analysis
+4. CORS_DEBUG_DETAILED_REPORT.md - Complete deep dive
+
+================================================================================

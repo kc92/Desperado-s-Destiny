@@ -1,0 +1,396 @@
+{
+  "agent": "Agent-3-Gunslinger",
+  "timestamp": "2025-11-27T18:33:55.375Z",
+  "duration": "42s",
+  "errors": 34,
+  "bugs": 2,
+  "screenshots": 9,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 2,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 9,
+    "Console Error": 22,
+    "Request Failed": 3
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-27T18:33:14.680Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:14.682Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:15.434Z",
+        "type": "Request Failed",
+        "message": "https://o4510426659487744.ingest.us.sentry.io/api/4510426660339712/envelope/?sentry_version=7&sentry_key=1498055fec0fa596067919bd41efe564&sentry_client=sentry.javascript.react%2F10.27.0 - net::ERR_ABORTED",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:15.435Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Encountered error running transport request: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:15.435Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Error while sending envelope: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:15.760Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:15.761Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:27.455Z",
+        "type": "Request Failed",
+        "message": "https://o4510426659487744.ingest.us.sentry.io/api/4510426660339712/envelope/?sentry_version=7&sentry_key=1498055fec0fa596067919bd41efe564&sentry_client=sentry.javascript.react%2F10.27.0 - net::ERR_ABORTED",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:27.455Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Encountered error running transport request: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:27.455Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Error while sending envelope: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:40.089Z",
+        "type": "Console Error",
+        "message": "Access to fetch at 'http://localhost:5000/api/territory' from origin 'http://localhost:3001' has been blocked by CORS policy: Request header field baggage is not allowed by Access-Control-Allow-Headers in preflight response.",
+        "details": {
+          "url": "http://localhost:3001/game/territory"
+        },
+        "url": "http://localhost:3001/game/territory",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:40.090Z",
+        "type": "Request Failed",
+        "message": "http://localhost:5000/api/territory - net::ERR_FAILED",
+        "details": null,
+        "url": "http://localhost:3001/game/territory",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:40.090Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: net::ERR_FAILED",
+        "details": {
+          "url": "http://localhost:5000/api/territory"
+        },
+        "url": "http://localhost:3001/game/territory",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:40.091Z",
+        "type": "Console Error",
+        "message": "Failed to load territories: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/game/territory",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:43.712Z",
+        "type": "HTTP Error",
+        "message": "404 - http://localhost:3001/api/territory",
+        "details": null,
+        "url": "http://localhost:3001/game/gang",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:43.712Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "details": {
+          "url": "http://localhost:3001/api/territory"
+        },
+        "url": "http://localhost:3001/game/gang",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:43.717Z",
+        "type": "Console Error",
+        "message": "[useGangWars] Fetch territories error: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/game/gang",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:47.814Z",
+        "type": "HTTP Error",
+        "message": "404 - http://localhost:3001/api/api/crimes/jail-status",
+        "details": null,
+        "url": "http://localhost:3001/game/crimes",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:47.815Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "details": {
+          "url": "http://localhost:3001/api/api/crimes/jail-status"
+        },
+        "url": "http://localhost:3001/game/crimes",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:47.825Z",
+        "type": "Console Error",
+        "message": "Failed to check jail status: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/game/crimes",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:47.831Z",
+        "type": "HTTP Error",
+        "message": "404 - http://localhost:3001/api/api/crimes/wanted",
+        "details": null,
+        "url": "http://localhost:3001/game/crimes",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:47.831Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "details": {
+          "url": "http://localhost:3001/api/api/crimes/wanted"
+        },
+        "url": "http://localhost:3001/game/crimes",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:47.841Z",
+        "type": "Console Error",
+        "message": "Failed to check wanted status: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/game/crimes",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:47.856Z",
+        "type": "HTTP Error",
+        "message": "404 - http://localhost:3001/api/api/crimes/bounties",
+        "details": null,
+        "url": "http://localhost:3001/game/crimes",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:47.856Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "details": {
+          "url": "http://localhost:3001/api/api/crimes/bounties"
+        },
+        "url": "http://localhost:3001/game/crimes",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:47.856Z",
+        "type": "Console Error",
+        "message": "Failed to load bounties: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/game/crimes",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:52.115Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/world/state",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:52.115Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/world/state"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:52.196Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/actions?locationId=6501a0000000000000000001",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:52.196Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/actions?locationId=6501a0000000000000000001"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:52.196Z",
+        "type": "Console Error",
+        "message": "Failed to fetch crimes: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:52.207Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/locations/6501a0000000000000000001/buildings",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:52.207Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/locations/6501a0000000000000000001/buildings"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:33:52.207Z",
+        "type": "Console Error",
+        "message": "Failed to fetch buildings: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-3-Gunslinger"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1764268426713-chtniiaz7",
+        "timestamp": "2025-11-27T18:33:46.713Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Gang Page Error",
+        "description": "Error displayed on page",
+        "reproduction": null,
+        "url": "http://localhost:3001/game/gang",
+        "screenshot": "Agent-3-Gunslinger-bug-0-2025-11-27T18-33-46-713Z.png"
+      },
+      {
+        "id": "BUG-1764268431130-9n8za9ao3",
+        "timestamp": "2025-11-27T18:33:51.130Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Crimes Page Error",
+        "description": "Error displayed on page",
+        "reproduction": null,
+        "url": "http://localhost:3001/game/crimes",
+        "screenshot": "Agent-3-Gunslinger-bug-1-2025-11-27T18-33-51-130Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-3-Gunslinger-after-login-2025-11-27T18-33-30-256Z.png",
+      "Agent-3-Gunslinger-game-dashboard-2025-11-27T18-33-35-585Z.png",
+      "Agent-3-Gunslinger-actions-page-2025-11-27T18-33-39-052Z.png",
+      "Agent-3-Gunslinger-section-territory-2025-11-27T18-33-42-830Z.png",
+      "Agent-3-Gunslinger-bug-0-2025-11-27T18-33-46-713Z.png",
+      "Agent-3-Gunslinger-section-gang-2025-11-27T18-33-46-993Z.png",
+      "Agent-3-Gunslinger-bug-1-2025-11-27T18-33-51-130Z.png",
+      "Agent-3-Gunslinger-section-crimes-2025-11-27T18-33-51-456Z.png",
+      "Agent-3-Gunslinger-final-stats-2025-11-27T18-33-54-942Z.png"
+    ]
+  }
+}

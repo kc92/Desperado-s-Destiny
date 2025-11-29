@@ -1,0 +1,109 @@
+{
+  "agent": "Agent-2-Pioneer",
+  "timestamp": "2025-11-27T18:08:52.527Z",
+  "duration": "117s",
+  "errors": 7,
+  "bugs": 1,
+  "screenshots": 3,
+  "bugsByPriority": {
+    "P0": 1,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 2,
+    "Console Error": 4,
+    "Request Failed": 1
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-27T18:07:23.655Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:07:23.785Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:08:29.194Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:08:29.195Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:08:47.906Z",
+        "type": "Request Failed",
+        "message": "https://o4510426659487744.ingest.us.sentry.io/api/4510426660339712/envelope/?sentry_version=7&sentry_key=1498055fec0fa596067919bd41efe564&sentry_client=sentry.javascript.react%2F10.27.0 - net::ERR_ABORTED",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:08:47.932Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Encountered error running transport request: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:08:47.940Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Error while sending envelope: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1764266931489-ircaplu4k",
+        "timestamp": "2025-11-27T18:08:51.489Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P0",
+        "title": "Create Button Missing",
+        "description": "Cannot find create character button",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-0-2025-11-27T18-08-51-489Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-2-Pioneer-registration-form-filled-2025-11-27T18-08-17-760Z.png",
+      "Agent-2-Pioneer-existing-characters-2025-11-27T18-08-49-689Z.png",
+      "Agent-2-Pioneer-bug-0-2025-11-27T18-08-51-489Z.png"
+    ]
+  }
+}

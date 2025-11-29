@@ -21,7 +21,7 @@ export interface ValidationResult {
 export interface CharacterCreationData {
   name: string;
   faction: Faction;
-  appearance: CharacterAppearance;
+  appearance?: CharacterAppearance;
 }
 
 /**
@@ -90,8 +90,13 @@ export function validateFaction(faction: any): ValidationResult {
 export function validateAppearance(appearance: any): ValidationResult {
   const errors: string[] = [];
 
-  if (!appearance || typeof appearance !== 'object') {
-    errors.push('Appearance is required');
+  // Appearance is optional - if not provided, defaults will be used
+  if (!appearance) {
+    return { valid: true, errors: [] };
+  }
+
+  if (typeof appearance !== 'object') {
+    errors.push('Appearance must be an object');
     return { valid: false, errors };
   }
 

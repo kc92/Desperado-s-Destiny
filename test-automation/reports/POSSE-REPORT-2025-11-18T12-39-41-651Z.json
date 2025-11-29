@@ -1,0 +1,133 @@
+{
+  "timestamp": "2025-11-18T12:39:41.651Z",
+  "duration": "134s",
+  "summary": {
+    "agentsRun": 2,
+    "successful": 2,
+    "failed": 0,
+    "totalBugs": 4,
+    "totalErrors": 30,
+    "totalScreenshots": 7
+  },
+  "bugsBySeverity": {
+    "P0": 3,
+    "P1": 1,
+    "P2": 0,
+    "P3": 0
+  },
+  "agentResults": [
+    {
+      "agent": "Scout",
+      "success": true,
+      "bugs": 1,
+      "errors": 18,
+      "critical": true
+    },
+    {
+      "agent": "Pioneer",
+      "success": true,
+      "bugs": 3,
+      "errors": 12,
+      "critical": false
+    }
+  ],
+  "criticalBugs": [
+    {
+      "id": "BUG-1763469471053-by9c8v5qv",
+      "timestamp": "2025-11-18T12:37:51.053Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Critical Systems Offline",
+      "description": "The following systems are not operational: Database",
+      "reproduction": "Restart services and check logs",
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-1-Scout-bug-0-2025-11-18T12-37-51-053Z.png"
+    },
+    {
+      "id": "BUG-1763469546294-i4lqgzwef",
+      "timestamp": "2025-11-18T12:39:06.294Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P0",
+      "title": "Login Failed",
+      "description": "Cannot login with existing test user",
+      "reproduction": null,
+      "url": "http://localhost:3000/login",
+      "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T12-39-06-294Z.png"
+    },
+    {
+      "id": "BUG-1763469549109-6uy45dawa",
+      "timestamp": "2025-11-18T12:39:09.109Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Creator Modal Issue",
+      "description": "Modal did not open",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T12-39-09-109Z.png"
+    },
+    {
+      "id": "BUG-1763469550352-5kl5itxa6",
+      "timestamp": "2025-11-18T12:39:10.352Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P0",
+      "title": "Create Button Missing",
+      "description": "Cannot find create character button",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T12-39-10-352Z.png"
+    }
+  ],
+  "allBugs": [
+    {
+      "id": "BUG-1763469471053-by9c8v5qv",
+      "timestamp": "2025-11-18T12:37:51.053Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Critical Systems Offline",
+      "description": "The following systems are not operational: Database",
+      "reproduction": "Restart services and check logs",
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-1-Scout-bug-0-2025-11-18T12-37-51-053Z.png"
+    },
+    {
+      "id": "BUG-1763469546294-i4lqgzwef",
+      "timestamp": "2025-11-18T12:39:06.294Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P0",
+      "title": "Login Failed",
+      "description": "Cannot login with existing test user",
+      "reproduction": null,
+      "url": "http://localhost:3000/login",
+      "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T12-39-06-294Z.png"
+    },
+    {
+      "id": "BUG-1763469549109-6uy45dawa",
+      "timestamp": "2025-11-18T12:39:09.109Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Creator Modal Issue",
+      "description": "Modal did not open",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T12-39-09-109Z.png"
+    },
+    {
+      "id": "BUG-1763469550352-5kl5itxa6",
+      "timestamp": "2025-11-18T12:39:10.352Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P0",
+      "title": "Create Button Missing",
+      "description": "Cannot find create character button",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T12-39-10-352Z.png"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "IMMEDIATE",
+      "action": "Fix all P0 blockers before any other work",
+      "details": "Found 3 game-breaking bugs that prevent basic functionality"
+    }
+  ]
+}

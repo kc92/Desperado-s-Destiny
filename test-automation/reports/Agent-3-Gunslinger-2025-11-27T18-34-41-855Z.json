@@ -1,0 +1,146 @@
+{
+  "agent": "Agent-3-Gunslinger",
+  "timestamp": "2025-11-27T18:34:41.854Z",
+  "duration": "18s",
+  "errors": 10,
+  "bugs": 2,
+  "screenshots": 2,
+  "bugsByPriority": {
+    "P0": 2,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 3,
+    "Console Error": 5,
+    "Request Failed": 1,
+    "Login Failed": 1
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-27T18:34:25.710Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:34:25.712Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:34:26.498Z",
+        "type": "Request Failed",
+        "message": "https://o4510426659487744.ingest.us.sentry.io/api/4510426660339712/envelope/?sentry_version=7&sentry_key=1498055fec0fa596067919bd41efe564&sentry_client=sentry.javascript.react%2F10.27.0 - net::ERR_ABORTED",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:34:26.499Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Encountered error running transport request: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:34:26.500Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Error while sending envelope: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:34:26.841Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:34:26.841Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:34:38.295Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/login",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:34:38.296Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/login"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-27T18:34:41.356Z",
+        "type": "Login Failed",
+        "message": "Failed to login as pioneer@test.com",
+        "details": "Ended up at http://localhost:3001/login",
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-3-Gunslinger"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1764268481356-nclw7dc0e",
+        "timestamp": "2025-11-27T18:34:41.356Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P0",
+        "title": "Login Failed",
+        "description": "Could not login to game",
+        "reproduction": null,
+        "url": "http://localhost:3001/login",
+        "screenshot": "Agent-3-Gunslinger-bug-0-2025-11-27T18-34-41-357Z.png"
+      },
+      {
+        "id": "BUG-1764268481639-beqjy5iec",
+        "timestamp": "2025-11-27T18:34:41.639Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P0",
+        "title": "Gunslinger Mission Failure",
+        "description": "Could not login and select character",
+        "reproduction": "Error: Could not login and select character\n    at GunslingerAgent.runMission (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\test-automation\\journeys\\agent-3-gunslinger.js:29:15)",
+        "url": "http://localhost:3001/login",
+        "screenshot": "Agent-3-Gunslinger-bug-1-2025-11-27T18-34-41-639Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-3-Gunslinger-bug-0-2025-11-27T18-34-41-357Z.png",
+      "Agent-3-Gunslinger-bug-1-2025-11-27T18-34-41-639Z.png"
+    ]
+  }
+}

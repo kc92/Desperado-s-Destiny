@@ -1,0 +1,283 @@
+{
+  "botName": "SocialBot-Storyteller",
+  "reportTime": "2025-11-27T15:09:34.301Z",
+  "summary": {
+    "totalUptime": 2253335,
+    "totalActions": 0,
+    "totalErrors": 0,
+    "restartCount": 100,
+    "healthChecks": 6
+  },
+  "healthHistory": [
+    {
+      "botName": "SocialBot-Storyteller",
+      "isHealthy": true,
+      "status": "DEGRADED",
+      "checks": {
+        "activity": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Activity normal",
+          "details": {
+            "timeSinceActivity": 30013
+          }
+        },
+        "memory": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Memory usage normal: 0MB",
+          "details": {
+            "usage": 0
+          }
+        },
+        "browser": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Browser healthy",
+          "details": {
+            "pageCount": 1
+          }
+        },
+        "responsiveness": {
+          "passed": false,
+          "severity": "ERROR",
+          "message": "Responsiveness check failed: Error: Execution context was destroyed"
+        }
+      },
+      "metrics": {
+        "uptime": 1536339,
+        "lastActivity": 30013,
+        "memoryUsage": 0,
+        "actionsPerMinute": 0,
+        "errorRate": 0
+      },
+      "timestamp": 1764255457305,
+      "restartCount": 73
+    },
+    {
+      "botName": "SocialBot-Storyteller",
+      "isHealthy": true,
+      "status": "DEGRADED",
+      "checks": {
+        "activity": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Activity normal",
+          "details": {
+            "timeSinceActivity": 60022
+          }
+        },
+        "memory": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Memory usage normal: 0MB",
+          "details": {
+            "usage": 0
+          }
+        },
+        "browser": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Browser healthy",
+          "details": {
+            "pageCount": 1
+          }
+        },
+        "responsiveness": {
+          "passed": false,
+          "severity": "ERROR",
+          "message": "Responsiveness check failed: Error: Execution context was destroyed"
+        }
+      },
+      "metrics": {
+        "uptime": 1566348,
+        "lastActivity": 60022,
+        "memoryUsage": 0,
+        "actionsPerMinute": 0,
+        "errorRate": 0
+      },
+      "timestamp": 1764255487314,
+      "restartCount": 73
+    },
+    {
+      "botName": "SocialBot-Storyteller",
+      "isHealthy": true,
+      "status": "DEGRADED",
+      "checks": {
+        "activity": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Activity normal",
+          "details": {
+            "timeSinceActivity": 90031
+          }
+        },
+        "memory": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Memory usage normal: 0MB",
+          "details": {
+            "usage": 0
+          }
+        },
+        "browser": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Browser healthy",
+          "details": {
+            "pageCount": 1
+          }
+        },
+        "responsiveness": {
+          "passed": false,
+          "severity": "ERROR",
+          "message": "Responsiveness check failed: Error: Execution context was destroyed"
+        }
+      },
+      "metrics": {
+        "uptime": 1596357,
+        "lastActivity": 90031,
+        "memoryUsage": 0,
+        "actionsPerMinute": 0,
+        "errorRate": 0
+      },
+      "timestamp": 1764255517323,
+      "restartCount": 73
+    },
+    {
+      "botName": "SocialBot-Storyteller",
+      "isHealthy": true,
+      "status": "DEGRADED",
+      "checks": {
+        "activity": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Activity normal",
+          "details": {
+            "timeSinceActivity": 120034
+          }
+        },
+        "memory": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Memory usage normal: 0MB",
+          "details": {
+            "usage": 0
+          }
+        },
+        "browser": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Browser healthy",
+          "details": {
+            "pageCount": 1
+          }
+        },
+        "responsiveness": {
+          "passed": false,
+          "severity": "ERROR",
+          "message": "Responsiveness check failed: Error: Execution context was destroyed"
+        }
+      },
+      "metrics": {
+        "uptime": 1626360,
+        "lastActivity": 120034,
+        "memoryUsage": 0,
+        "actionsPerMinute": 0,
+        "errorRate": 0
+      },
+      "timestamp": 1764255547326,
+      "restartCount": 73
+    },
+    {
+      "botName": "SocialBot-Storyteller",
+      "isHealthy": true,
+      "status": "DEGRADED",
+      "checks": {
+        "activity": {
+          "passed": true,
+          "severity": "WARNING",
+          "message": "Reduced activity detected",
+          "details": {
+            "timeSinceActivity": 150038
+          }
+        },
+        "memory": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Memory usage normal: 0MB",
+          "details": {
+            "usage": 0
+          }
+        },
+        "browser": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Browser healthy",
+          "details": {
+            "pageCount": 1
+          }
+        },
+        "responsiveness": {
+          "passed": false,
+          "severity": "ERROR",
+          "message": "Responsiveness check failed: Error: Execution context was destroyed"
+        }
+      },
+      "metrics": {
+        "uptime": 1656364,
+        "lastActivity": 150038,
+        "memoryUsage": 0,
+        "actionsPerMinute": 0,
+        "errorRate": 0
+      },
+      "timestamp": 1764255577330,
+      "restartCount": 73
+    },
+    {
+      "botName": "SocialBot-Storyteller",
+      "isHealthy": true,
+      "status": "DEGRADED",
+      "checks": {
+        "activity": {
+          "passed": true,
+          "severity": "WARNING",
+          "message": "Reduced activity detected",
+          "details": {
+            "timeSinceActivity": 180053
+          }
+        },
+        "memory": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Memory usage normal: 0MB",
+          "details": {
+            "usage": 0
+          }
+        },
+        "browser": {
+          "passed": true,
+          "severity": "OK",
+          "message": "Browser healthy",
+          "details": {
+            "pageCount": 1
+          }
+        },
+        "responsiveness": {
+          "passed": false,
+          "severity": "ERROR",
+          "message": "Responsiveness check failed: Error: Execution context was destroyed"
+        }
+      },
+      "metrics": {
+        "uptime": 1686379,
+        "lastActivity": 180053,
+        "memoryUsage": 0,
+        "actionsPerMinute": 0,
+        "errorRate": 0
+      },
+      "timestamp": 1764255607345,
+      "restartCount": 73
+    }
+  ]
+}

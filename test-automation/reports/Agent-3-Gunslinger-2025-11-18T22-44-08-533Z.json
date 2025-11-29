@@ -1,0 +1,184 @@
+{
+  "agent": "Agent-3-Gunslinger",
+  "timestamp": "2025-11-18T22:44:08.533Z",
+  "duration": "20s",
+  "errors": 6,
+  "bugs": 8,
+  "screenshots": 10,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 1,
+    "P2": 7,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 2,
+    "Console Error": 4
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T22:43:49.560Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:43:49.562Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:43:49.562Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:43:50.493Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:43:50.493Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:43:50.493Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763505845314-wyv433ofz",
+        "timestamp": "2025-11-18T22:44:05.314Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P1",
+        "title": "No characters found",
+        "description": "Cannot proceed with game testing",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-0-2025-11-18T22-44-05-314Z.png"
+      },
+      {
+        "id": "BUG-1763505845549-mho3eiyry",
+        "timestamp": "2025-11-18T22:44:05.549Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Missing navigation links",
+        "description": "Only found 0 nav links",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-1-2025-11-18T22-44-05-549Z.png"
+      },
+      {
+        "id": "BUG-1763505845796-0vy1l3xt7",
+        "timestamp": "2025-11-18T22:44:05.796Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Actions",
+        "description": "Link not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-2-2025-11-18T22-44-05-796Z.png"
+      },
+      {
+        "id": "BUG-1763505846047-fg57q1xtf",
+        "timestamp": "2025-11-18T22:44:06.047Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Crimes",
+        "description": "Link not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-3-2025-11-18T22-44-06-047Z.png"
+      },
+      {
+        "id": "BUG-1763505846309-0dbbcdy5k",
+        "timestamp": "2025-11-18T22:44:06.309Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Territory",
+        "description": "Link not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-4-2025-11-18T22-44-06-309Z.png"
+      },
+      {
+        "id": "BUG-1763505846587-5jjsqsek1",
+        "timestamp": "2025-11-18T22:44:06.587Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Gang",
+        "description": "Link not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-5-2025-11-18T22-44-06-587Z.png"
+      },
+      {
+        "id": "BUG-1763505846835-ly7l0o2by",
+        "timestamp": "2025-11-18T22:44:06.835Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Leaderboard",
+        "description": "Link not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-6-2025-11-18T22-44-06-835Z.png"
+      },
+      {
+        "id": "BUG-1763505848373-lxojq4ofb",
+        "timestamp": "2025-11-18T22:44:08.373Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Stats not displayed",
+        "description": "Character stats not visible",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-7-2025-11-18T22-44-08-373Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-3-Gunslinger-after-login-2025-11-18T22-44-05-067Z.png",
+      "Agent-3-Gunslinger-bug-0-2025-11-18T22-44-05-314Z.png",
+      "Agent-3-Gunslinger-bug-1-2025-11-18T22-44-05-549Z.png",
+      "Agent-3-Gunslinger-bug-2-2025-11-18T22-44-05-796Z.png",
+      "Agent-3-Gunslinger-bug-3-2025-11-18T22-44-06-047Z.png",
+      "Agent-3-Gunslinger-bug-4-2025-11-18T22-44-06-309Z.png",
+      "Agent-3-Gunslinger-bug-5-2025-11-18T22-44-06-587Z.png",
+      "Agent-3-Gunslinger-bug-6-2025-11-18T22-44-06-835Z.png",
+      "Agent-3-Gunslinger-dashboard-complete-2025-11-18T22-44-08-141Z.png",
+      "Agent-3-Gunslinger-bug-7-2025-11-18T22-44-08-373Z.png"
+    ]
+  }
+}

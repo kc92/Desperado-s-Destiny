@@ -1,0 +1,158 @@
+{
+  "agent": "Agent-2-Pioneer",
+  "timestamp": "2025-11-27T18:16:07.725Z",
+  "duration": "135s",
+  "errors": 7,
+  "bugs": 5,
+  "screenshots": 9,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 5,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 1,
+    "Console Error": 3,
+    "Request Failed": 1,
+    "Element Not Found": 2
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-27T18:13:54.656Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:13:54.657Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:14:33.484Z",
+        "type": "Request Failed",
+        "message": "https://o4510426659487744.ingest.us.sentry.io/api/4510426660339712/envelope/?sentry_version=7&sentry_key=1498055fec0fa596067919bd41efe564&sentry_client=sentry.javascript.react%2F10.27.0 - net::ERR_ABORTED",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:14:33.485Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Encountered error running transport request: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:14:33.485Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Error while sending envelope: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:15:29.699Z",
+        "type": "Element Not Found",
+        "message": "Selector not found: input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]",
+        "details": "Waiting for selector `input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]` failed",
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:16:03.598Z",
+        "type": "Element Not Found",
+        "message": "Selector not found: input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]",
+        "details": "Waiting for selector `input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]` failed",
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1764267261268-40d0ts7s1",
+        "timestamp": "2025-11-27T18:14:21.268Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Registration Flow Issue",
+        "description": "Unexpected redirect to http://localhost:3001/characters",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-0-2025-11-27T18-14-21-268Z.png"
+      },
+      {
+        "id": "BUG-1764267295833-auboe0t8j",
+        "timestamp": "2025-11-27T18:14:55.833Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Not Created",
+        "description": "Failed to create NAHI_COALITION character",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-1-2025-11-27T18-14-55-833Z.png"
+      },
+      {
+        "id": "BUG-1764267329699-k0uyocxgu",
+        "timestamp": "2025-11-27T18:15:29.699Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Name Input Missing",
+        "description": "Cannot find character name input",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-2-2025-11-27T18-15-29-699Z.png"
+      },
+      {
+        "id": "BUG-1764267363598-1nzvut3a1",
+        "timestamp": "2025-11-27T18:16:03.598Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Name Input Missing",
+        "description": "Cannot find character name input",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-3-2025-11-27T18-16-03-598Z.png"
+      },
+      {
+        "id": "BUG-1764267366856-bvc9mbkxe",
+        "timestamp": "2025-11-27T18:16:06.856Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Selection Failed",
+        "description": "Did not navigate to game after selecting character 1",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-4-2025-11-27T18-16-06-856Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-2-Pioneer-registration-form-filled-2025-11-27T18-14-16-847Z.png",
+      "Agent-2-Pioneer-bug-0-2025-11-27T18-14-21-268Z.png",
+      "Agent-2-Pioneer-existing-characters-2025-11-27T18-14-36-350Z.png",
+      "Agent-2-Pioneer-character-creation-NAHI_COALITION-step1-2025-11-27T18-14-46-452Z.png",
+      "Agent-2-Pioneer-character-creation-NAHI_COALITION-step2-2025-11-27T18-14-50-971Z.png",
+      "Agent-2-Pioneer-bug-1-2025-11-27T18-14-55-833Z.png",
+      "Agent-2-Pioneer-bug-2-2025-11-27T18-15-29-699Z.png",
+      "Agent-2-Pioneer-bug-3-2025-11-27T18-16-03-598Z.png",
+      "Agent-2-Pioneer-bug-4-2025-11-27T18-16-06-856Z.png"
+    ]
+  }
+}

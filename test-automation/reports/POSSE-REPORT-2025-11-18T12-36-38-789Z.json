@@ -1,0 +1,133 @@
+{
+  "timestamp": "2025-11-18T12:36:38.789Z",
+  "duration": "183s",
+  "summary": {
+    "agentsRun": 2,
+    "successful": 2,
+    "failed": 0,
+    "totalBugs": 4,
+    "totalErrors": 24,
+    "totalScreenshots": 14
+  },
+  "bugsBySeverity": {
+    "P0": 1,
+    "P1": 3,
+    "P2": 0,
+    "P3": 0
+  },
+  "agentResults": [
+    {
+      "agent": "Scout",
+      "success": true,
+      "bugs": 1,
+      "errors": 18,
+      "critical": true
+    },
+    {
+      "agent": "Pioneer",
+      "success": true,
+      "bugs": 3,
+      "errors": 6,
+      "critical": false
+    }
+  ],
+  "criticalBugs": [
+    {
+      "id": "BUG-1763469238190-c9nd1cqz7",
+      "timestamp": "2025-11-18T12:33:58.190Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Critical Systems Offline",
+      "description": "The following systems are not operational: Database",
+      "reproduction": "Restart services and check logs",
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-1-Scout-bug-0-2025-11-18T12-33-58-190Z.png"
+    },
+    {
+      "id": "BUG-1763469331634-vtittftbu",
+      "timestamp": "2025-11-18T12:35:31.634Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create NAHI_COALITION character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T12-35-31-634Z.png"
+    },
+    {
+      "id": "BUG-1763469349729-o7ngqkfih",
+      "timestamp": "2025-11-18T12:35:49.729Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create SETTLER_ALLIANCE character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T12-35-49-729Z.png"
+    },
+    {
+      "id": "BUG-1763469367822-bkbbczcfh",
+      "timestamp": "2025-11-18T12:36:07.822Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create FRONTERA character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T12-36-07-822Z.png"
+    }
+  ],
+  "allBugs": [
+    {
+      "id": "BUG-1763469238190-c9nd1cqz7",
+      "timestamp": "2025-11-18T12:33:58.190Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Critical Systems Offline",
+      "description": "The following systems are not operational: Database",
+      "reproduction": "Restart services and check logs",
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-1-Scout-bug-0-2025-11-18T12-33-58-190Z.png"
+    },
+    {
+      "id": "BUG-1763469331634-vtittftbu",
+      "timestamp": "2025-11-18T12:35:31.634Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create NAHI_COALITION character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T12-35-31-634Z.png"
+    },
+    {
+      "id": "BUG-1763469349729-o7ngqkfih",
+      "timestamp": "2025-11-18T12:35:49.729Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create SETTLER_ALLIANCE character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T12-35-49-729Z.png"
+    },
+    {
+      "id": "BUG-1763469367822-bkbbczcfh",
+      "timestamp": "2025-11-18T12:36:07.822Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create FRONTERA character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T12-36-07-822Z.png"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "IMMEDIATE",
+      "action": "Fix all P0 blockers before any other work",
+      "details": "Found 1 game-breaking bugs that prevent basic functionality"
+    }
+  ]
+}

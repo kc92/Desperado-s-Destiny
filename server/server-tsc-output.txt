@@ -1,0 +1,139 @@
+src/controllers/achievement.controller.ts(10,23): error TS2459: Module '"../services/gold.service"' declares 'TransactionSource' locally, but it is not exported.
+src/controllers/auth.controller.ts(353,22): error TS2551: Property 'userId' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'. Did you mean 'user'?
+src/controllers/auth.controller.ts(369,22): error TS2551: Property 'userId' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'. Did you mean 'user'?
+src/controllers/gang.controller.ts(524,71): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ObjectId'.
+  Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/controllers/gangWar.controller.ts(70,37): error TS2339: Property 'characterId' does not exist on type 'SafeUser & { _id: string; }'.
+src/controllers/leaderboard.controller.ts(255,21): error TS2339: Property 'memberCount' does not exist on type 'FlattenMaps<IGang> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; }'.
+src/controllers/leaderboard.controller.ts(256,25): error TS2551: Property 'territoryCount' does not exist on type 'FlattenMaps<IGang> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; }'. Did you mean 'territoriesCount'?
+src/controllers/leaderboard.controller.ts(257,20): error TS2339: Property 'bankBalance' does not exist on type 'FlattenMaps<IGang> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; }'.
+src/controllers/profile.controller.ts(8,8): error TS2613: Module '"C:/Users/kaine/Documents/Desperados Destiny Dev/server/src/models/Character.model"' has no default export. Did you mean to use 'import { Character } from "C:/Users/kaine/Documents/Desperados Destiny Dev/server/src/models/Character.model"' instead?
+src/controllers/profile.controller.ts(9,8): error TS2613: Module '"C:/Users/kaine/Documents/Desperados Destiny Dev/server/src/models/Gang.model"' has no default export. Did you mean to use 'import { Gang } from "C:/Users/kaine/Documents/Desperados Destiny Dev/server/src/models/Gang.model"' instead?
+src/controllers/profile.controller.ts(16,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/profile.controller.ts(88,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/quest.controller.ts(16,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<void>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/quest.controller.ts(32,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<void>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/quest.controller.ts(59,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<void>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/quest.controller.ts(75,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/quest.controller.ts(105,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/quest.controller.ts(132,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<void>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/shop.controller.ts(16,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<void>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/shop.controller.ts(32,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/shop.controller.ts(55,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/shop.controller.ts(87,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/shop.controller.ts(119,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/shop.controller.ts(148,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<void>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/shop.controller.ts(164,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/shop.controller.ts(195,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>>>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/shop.controller.ts(227,3): error TS2345: Argument of type '(req: Request, res: Response, next: NextFunction) => Promise<void>' is not assignable to parameter of type 'AsyncRequestHandler<Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/controllers/territory.controller.ts(71,37): error TS2339: Property 'characterId' does not exist on type 'SafeUser & { _id: string; }'.
+src/controllers/territory.controller.ts(115,9): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ObjectId'.
+  Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/jobs/warResolution.ts(12,14): error TS2503: Cannot find namespace 'cron'.
+src/jobs/warResolution.ts(39,5): error TS2353: Object literal may only specify known properties, and 'scheduled' does not exist in type 'TaskOptions'.
+src/middleware/requireAuth.ts(17,18): error TS2430: Interface 'AuthRequest' incorrectly extends interface 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+  Types of property 'user' are incompatible.
+    Type '{ _id: string; email: string; }' is not assignable to type 'SafeUser & { _id: string; }'.
+      Type '{ _id: string; email: string; }' is missing the following properties from type 'SafeUser': emailVerified, createdAt, lastLogin
+src/models/Gang.model.ts(626,15): error TS2339: Property 'findByCharacterId' does not exist on type 'Model<IGang, any, any, any, Document<unknown, any, IGang, any, {}> & IGang & Required<{ _id: unknown; }> & { __v: number; }, any>'.
+src/models/Message.model.ts(132,3): error TS2322: Type '(FlattenMaps<IMessage> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; })[]' is not assignable to type 'IMessage[]'.
+  Type 'FlattenMaps<IMessage> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; }' is not assignable to type 'IMessage'.
+    The types of 'collection.conn.db.client' are incompatible between these types.
+      Type 'FlattenMaps<MongoClient>' is missing the following properties from type 'MongoClient': driverInfoList, _close
+src/routes/auth.routes.ts(19,3): error TS2614: Module '"../controllers/auth.controller"' has no exported member 'getPreferences'. Did you mean to use 'import getPreferences from "../controllers/auth.controller"' instead?
+src/routes/auth.routes.ts(20,3): error TS2614: Module '"../controllers/auth.controller"' has no exported member 'updatePreferences'. Did you mean to use 'import updatePreferences from "../controllers/auth.controller"' instead?
+src/services/actionDeck.service.ts(214,35): error TS2339: Property 'rewards' does not exist on type 'GameResult'.
+src/services/actionDeck.service.ts(215,35): error TS2339: Property 'rewards' does not exist on type 'GameResult'.
+src/services/actionDeck.service.ts(252,39): error TS2339: Property 'rewards' does not exist on type 'GameResult'.
+src/services/deckGames.backup/blackjack.ts(152,7): error TS2322: Type '`Busted (${number})`' is not assignable to type 'PokerHand'.
+src/services/deckGames.backup/blackjack.ts(223,5): error TS2322: Type '`${number} Points`' is not assignable to type 'PokerHand'.
+src/services/deckGames.backup/deckbuilderDraw.ts(290,5): error TS2322: Type '`${number} Cards, ${number} Combos`' is not assignable to type 'PokerHand'.
+src/services/deckGames.backup/pressYourLuck.ts(154,7): error TS2322: Type '`BUSTED! ${number} Cards (${number} Danger)`' is not assignable to type 'PokerHand'.
+src/services/deckGames.backup/pressYourLuck.ts(182,5): error TS2322: Type 'PokerHand' is not assignable to type '"high_card"'.
+  Type '"royal_flush"' is not assignable to type '"high_card"'.
+src/services/deckGames.backup/pressYourLuck.ts(256,5): error TS2322: Type '`${number} Cards (${number} Danger)`' is not assignable to type 'PokerHand'.
+src/services/friend.service.ts(12,10): error TS2724: '"../config/redis"' has no exported member named 'redisClient'. Did you mean 'getRedisClient'?
+src/services/friend.service.ts(60,7): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ObjectId'.
+  Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/friend.service.ts(85,7): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | ObjectId'.
+src/services/friend.service.ts(258,7): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ObjectId'.
+  Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/friend.service.ts(294,5): error TS2322: Type '(FlattenMaps<IFriend> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; })[]' is not assignable to type 'IFriend[]'.
+  Type 'FlattenMaps<IFriend> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; }' is not assignable to type 'IFriend'.
+    The types of 'collection.conn.db.client' are incompatible between these types.
+      Type 'FlattenMaps<MongoClient>' is missing the following properties from type 'MongoClient': driverInfoList, _close
+src/services/gang.service.ts(63,70): error TS2339: Property 'session' does not exist on type 'Promise<IGang>'.
+src/services/gang.service.ts(119,7): error TS2740: Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/gang.service.ts(191,22): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ObjectId'.
+  Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/gang.service.ts(197,7): error TS2740: Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/gang.service.ts(726,14): error TS2322: Type '(FlattenMaps<IGangBankTransaction> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; })[]' is not assignable to type 'IGangBankTransaction[]'.
+  Type 'FlattenMaps<IGangBankTransaction> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; }' is not assignable to type 'IGangBankTransaction'.
+    The types of 'collection.conn.db.client' are incompatible between these types.
+      Type 'FlattenMaps<MongoClient>' is missing the following properties from type 'MongoClient': driverInfoList, _close
+src/services/gang.service.ts(778,14): error TS2322: Type '(FlattenMaps<IGang> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; })[]' is not assignable to type 'IGang[]'.
+  Type 'FlattenMaps<IGang> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; }' is not assignable to type 'IGang'.
+    The types of 'collection.conn.db.client' are incompatible between these types.
+      Type 'FlattenMaps<MongoClient>' is missing the following properties from type 'MongoClient': driverInfoList, _close
+src/services/gang.service.ts(875,66): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ObjectId'.
+  Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/gangWar.service.ts(224,22): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ObjectId'.
+  Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/gangWar.service.ts(303,29): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ObjectId'.
+  Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/gangWar.service.ts(431,33): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ObjectId'.
+  Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/gangWarDeck.service.ts(93,40): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ObjectId'.
+src/services/gangWarDeck.service.ts(288,48): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ObjectId'.
+src/services/gangWarDeck.service.ts(289,48): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ObjectId'.
+src/services/mail.service.ts(77,11): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | ObjectId'.
+src/services/mail.service.ts(134,7): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | ObjectId'.
+src/services/mail.service.ts(199,7): error TS2322: Type '(FlattenMaps<IMail> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; })[]' is not assignable to type 'IMail[]'.
+  Type 'FlattenMaps<IMail> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; }' is not assignable to type 'IMail'.
+    The types of 'collection.conn.db.client' are incompatible between these types.
+      Type 'FlattenMaps<MongoClient>' is missing the following properties from type 'MongoClient': driverInfoList, _close
+src/services/mail.service.ts(236,7): error TS2322: Type '(FlattenMaps<IMail> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; })[]' is not assignable to type 'IMail[]'.
+  Type 'FlattenMaps<IMail> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; }' is not assignable to type 'IMail'.
+    The types of 'collection.conn.db.client' are incompatible between these types.
+      Type 'FlattenMaps<MongoClient>' is missing the following properties from type 'MongoClient': driverInfoList, _close
+src/services/notification.service.ts(84,7): error TS2322: Type '(FlattenMaps<INotification> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; })[]' is not assignable to type 'INotification[]'.
+  Type 'FlattenMaps<INotification> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; }' is not assignable to type 'INotification'.
+    The types of 'collection.conn.db.client' are incompatible between these types.
+      Type 'FlattenMaps<MongoClient>' is missing the following properties from type 'MongoClient': driverInfoList, _close
+src/services/presence.service.ts(302,17): error TS2345: Argument of type '(member: mongoose.Types.ObjectId) => boolean' is not assignable to parameter of type '(value: IGangMember, index: number, array: IGangMember[]) => unknown'.
+  Types of parameters 'member' and 'value' are incompatible.
+    Type 'IGangMember' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/territory.service.ts(27,5): error TS2322: Type '(FlattenMaps<ITerritory> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; })[]' is not assignable to type 'ITerritory[]'.
+  Type 'FlattenMaps<ITerritory> & Required<{ _id: FlattenMaps<unknown>; }> & { __v: number; }' is not assignable to type 'ITerritory'.
+    The types of 'collection.conn.db.client' are incompatible between these types.
+      Type 'FlattenMaps<MongoClient>' is missing the following properties from type 'MongoClient': driverInfoList, _close
+src/services/territory.service.ts(78,57): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ObjectId'.
+  Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/services/territory.service.ts(126,57): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ObjectId'.
+  Type '{}' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/utils/chatAccess.ts(87,9): error TS2345: Argument of type '(member: mongoose.Types.ObjectId) => boolean' is not assignable to parameter of type '(value: IGangMember, index: number, array: IGangMember[]) => unknown'.
+  Types of parameters 'member' and 'value' are incompatible.
+    Type 'IGangMember' is missing the following properties from type 'ObjectId': _bsontype, id, toHexString, toJSON, and 4 more.
+src/utils/performanceMonitor.ts(47,16): error TS2554: Expected 0 arguments, but got 1.
+src/utils/performanceMonitor.ts(50,16): error TS2554: Expected 0 arguments, but got 1.
+src/utils/performanceMonitor.ts(66,16): error TS2554: Expected 0 arguments, but got 1.
+src/utils/performanceMonitor.ts(69,16): error TS2554: Expected 0 arguments, but got 1.
+src/utils/performanceMonitor.ts(197,14): error TS2554: Expected 0 arguments, but got 1.
+src/utils/performanceMonitor.ts(221,16): error TS2554: Expected 0 arguments, but got 1.

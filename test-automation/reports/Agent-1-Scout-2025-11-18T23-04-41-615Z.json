@@ -1,0 +1,201 @@
+{
+  "agent": "Agent-1-Scout",
+  "timestamp": "2025-11-18T23:04:41.615Z",
+  "duration": "23s",
+  "errors": 18,
+  "bugs": 0,
+  "screenshots": 2,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 7,
+    "Console Error": 11
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T23:04:19.921Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:19.923Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:19.923Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:21.937Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:21.937Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:21.937Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:24.230Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:24.230Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:24.230Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:27.417Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:27.418Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:27.418Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:41.491Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:41.491Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:41.491Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/actions",
+        "details": null,
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:41.491Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/actions"
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:41.492Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/territories",
+        "details": null,
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:41.492Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/territories"
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-1-Scout"
+      }
+    ],
+    "bugs": [],
+    "screenshots": [
+      "Agent-1-Scout-landing-page-baseline-2025-11-18T23-04-23-580Z.png",
+      "Agent-1-Scout-post-login-state-2025-11-18T23-04-41-258Z.png"
+    ]
+  }
+}

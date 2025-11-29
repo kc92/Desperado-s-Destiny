@@ -1,0 +1,199 @@
+{
+  "agent": "Agent-2-Pioneer",
+  "timestamp": "2025-11-27T18:23:18.501Z",
+  "duration": "59s",
+  "errors": 13,
+  "bugs": 3,
+  "screenshots": 5,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 3,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 3,
+    "Console Error": 9,
+    "Request Failed": 1
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-27T18:22:20.445Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:22:20.447Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:22:59.224Z",
+        "type": "Request Failed",
+        "message": "https://o4510426659487744.ingest.us.sentry.io/api/4510426660339712/envelope/?sentry_version=7&sentry_key=1498055fec0fa596067919bd41efe564&sentry_client=sentry.javascript.react%2F10.27.0 - net::ERR_ABORTED",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:22:59.224Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Encountered error running transport request: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:22:59.225Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Error while sending envelope: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:23:08.889Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/characters/69289659b8fbaa1b1c1d26d4/select",
+        "details": null,
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:23:08.889Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/characters/69289659b8fbaa1b1c1d26d4/select"
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:23:08.889Z",
+        "type": "Console Error",
+        "message": "Failed to select character: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:23:08.889Z",
+        "type": "Console Error",
+        "message": "Failed to select character: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:23:12.603Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/characters/69289642b8fbaa1b1c1d25e6/select",
+        "details": null,
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:23:12.604Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/characters/69289642b8fbaa1b1c1d25e6/select"
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:23:12.604Z",
+        "type": "Console Error",
+        "message": "Failed to select character: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:23:12.604Z",
+        "type": "Console Error",
+        "message": "Failed to select character: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1764267767008-4jj2c1e27",
+        "timestamp": "2025-11-27T18:22:47.008Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Registration Flow Issue",
+        "description": "Unexpected redirect to http://localhost:3001/characters",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-0-2025-11-27T18-22-47-008Z.png"
+      },
+      {
+        "id": "BUG-1764267790887-0uwq8zd0w",
+        "timestamp": "2025-11-27T18:23:10.887Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Selection Failed",
+        "description": "Did not navigate to game after selecting character 1",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-1-2025-11-27T18-23-10-887Z.png"
+      },
+      {
+        "id": "BUG-1764267794598-rznlw83hx",
+        "timestamp": "2025-11-27T18:23:14.598Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Selection Failed",
+        "description": "Did not navigate to game after selecting character 2",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-2-2025-11-27T18-23-14-598Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-2-Pioneer-registration-form-filled-2025-11-27T18-22-42-575Z.png",
+      "Agent-2-Pioneer-bug-0-2025-11-27T18-22-47-008Z.png",
+      "Agent-2-Pioneer-existing-characters-2025-11-27T18-23-02-110Z.png",
+      "Agent-2-Pioneer-bug-1-2025-11-27T18-23-10-887Z.png",
+      "Agent-2-Pioneer-bug-2-2025-11-27T18-23-14-598Z.png"
+    ]
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "agent": "Agent-1-Scout",
+  "timestamp": "2025-11-19T00:40:03.804Z",
+  "duration": "23s",
+  "errors": 18,
+  "bugs": 2,
+  "screenshots": 4,
+  "bugsByPriority": {
+    "P0": 2,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 5,
+    "Console Error": 12,
+    "Login Failed": 1
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-19T00:39:41.657Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:39:41.658Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:39:41.658Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:39:43.648Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:39:43.649Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:39:43.649Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:39:45.877Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:39:45.877Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:39:45.877Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:39:49.278Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:39:49.278Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:39:49.279Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:40:00.139Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3000/api/auth/login",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:40:00.139Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/login"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:40:00.139Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:40:00.139Z",
+        "type": "Console Error",
+        "message": "[AUTH STORE DEBUG] Login error: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/store/useAuthStore.ts",
+          "lineNumber": 30,
+          "columnNumber": 18
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:40:00.153Z",
+        "type": "Console Error",
+        "message": "[LOGIN DEBUG] Login failed with error: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/pages/Login.tsx",
+          "lineNumber": 86,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-19T00:40:03.192Z",
+        "type": "Login Failed",
+        "message": "Failed to login as scout@test.com",
+        "details": "Ended up at http://localhost:3000/login",
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763512803192-9aq6p8nz0",
+        "timestamp": "2025-11-19T00:40:03.192Z",
+        "agent": "Agent-1-Scout",
+        "severity": "P0",
+        "title": "Authentication Broken",
+        "description": "Cannot login with test credentials",
+        "reproduction": null,
+        "url": "http://localhost:3000/login",
+        "screenshot": "Agent-1-Scout-bug-0-2025-11-19T00-40-03-192Z.png"
+      },
+      {
+        "id": "BUG-1763512803620-26hwmz4cp",
+        "timestamp": "2025-11-19T00:40:03.620Z",
+        "agent": "Agent-1-Scout",
+        "severity": "P0",
+        "title": "Critical Systems Offline",
+        "description": "The following systems are not operational: Database, Authentication, Game Load",
+        "reproduction": "Restart services and check logs",
+        "url": "http://localhost:3000/login",
+        "screenshot": "Agent-1-Scout-bug-1-2025-11-19T00-40-03-620Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-1-Scout-landing-page-baseline-2025-11-19T00-39-45-285Z.png",
+      "Agent-1-Scout-bug-0-2025-11-19T00-40-03-192Z.png",
+      "Agent-1-Scout-post-login-state-2025-11-19T00-40-03-385Z.png",
+      "Agent-1-Scout-bug-1-2025-11-19T00-40-03-620Z.png"
+    ]
+  }
+}

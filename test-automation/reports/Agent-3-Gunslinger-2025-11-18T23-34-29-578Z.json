@@ -1,0 +1,455 @@
+{
+  "agent": "Agent-3-Gunslinger",
+  "timestamp": "2025-11-18T23:34:29.578Z",
+  "duration": "27s",
+  "errors": 35,
+  "bugs": 5,
+  "screenshots": 9,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 5,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 6,
+    "Console Error": 24,
+    "Page Error": 5
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T23:34:04.066Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:04.067Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:04.067Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:05.008Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:05.008Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:05.008Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:19.988Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3000/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3000/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.054Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3000/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.060Z",
+        "type": "HTTP Error",
+        "message": "400 - http://localhost:3000/api/skills",
+        "details": null,
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.060Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "details": {
+          "url": "http://localhost:3000/api/skills"
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.060Z",
+        "type": "Console Error",
+        "message": "[API Error 400] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.060Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.061Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3000/src/store/useGameStore.ts",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.089Z",
+        "type": "HTTP Error",
+        "message": "400 - http://localhost:3000/api/skills",
+        "details": null,
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.090Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "details": {
+          "url": "http://localhost:3000/api/skills"
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.090Z",
+        "type": "Console Error",
+        "message": "[API Error 400] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.090Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.090Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3000/src/store/useGameStore.ts",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.090Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3000/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3000/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.105Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3000/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.121Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3000/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3000/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:20.121Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3000/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/game",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.270Z",
+        "type": "HTTP Error",
+        "message": "400 - http://localhost:3000/api/skills",
+        "details": null,
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.270Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "details": {
+          "url": "http://localhost:3000/api/skills"
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.271Z",
+        "type": "Console Error",
+        "message": "[API Error 400] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.273Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.274Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3000/src/store/useGameStore.ts",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.309Z",
+        "type": "HTTP Error",
+        "message": "400 - http://localhost:3000/api/skills",
+        "details": null,
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.309Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "details": {
+          "url": "http://localhost:3000/api/skills"
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.309Z",
+        "type": "Console Error",
+        "message": "[API Error 400] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.309Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.309Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3000/src/store/useGameStore.ts",
+          "lineNumber": 401,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.330Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3000/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3000/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.359Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3000/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3000/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3000/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T23:34:26.359Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3000/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763508865185-0nf8zl97v",
+        "timestamp": "2025-11-18T23:34:25.185Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Crimes",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/404",
+        "screenshot": "Agent-3-Gunslinger-bug-0-2025-11-18T23-34-25-185Z.png"
+      },
+      {
+        "id": "BUG-1763508865416-3889l08pm",
+        "timestamp": "2025-11-18T23:34:25.416Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Territory",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/404",
+        "screenshot": "Agent-3-Gunslinger-bug-1-2025-11-18T23-34-25-416Z.png"
+      },
+      {
+        "id": "BUG-1763508865661-0q6xi62qy",
+        "timestamp": "2025-11-18T23:34:25.661Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Gang",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/404",
+        "screenshot": "Agent-3-Gunslinger-bug-2-2025-11-18T23-34-25-661Z.png"
+      },
+      {
+        "id": "BUG-1763508865879-24m8tf4eo",
+        "timestamp": "2025-11-18T23:34:25.879Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Leaderboard",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/404",
+        "screenshot": "Agent-3-Gunslinger-bug-3-2025-11-18T23-34-25-879Z.png"
+      },
+      {
+        "id": "BUG-1763508869361-pgzyr3qn0",
+        "timestamp": "2025-11-18T23:34:29.361Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Stats not displayed",
+        "description": "Character stats not visible",
+        "reproduction": null,
+        "url": "http://localhost:3000/character-select",
+        "screenshot": "Agent-3-Gunslinger-bug-4-2025-11-18T23-34-29-361Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-3-Gunslinger-after-login-2025-11-18T23-34-19-615Z.png",
+      "Agent-3-Gunslinger-character-selected-2025-11-18T23-34-22-931Z.png",
+      "Agent-3-Gunslinger-section-actions-2025-11-18T23-34-24-383Z.png",
+      "Agent-3-Gunslinger-bug-0-2025-11-18T23-34-25-185Z.png",
+      "Agent-3-Gunslinger-bug-1-2025-11-18T23-34-25-416Z.png",
+      "Agent-3-Gunslinger-bug-2-2025-11-18T23-34-25-661Z.png",
+      "Agent-3-Gunslinger-bug-3-2025-11-18T23-34-25-879Z.png",
+      "Agent-3-Gunslinger-dashboard-complete-2025-11-18T23-34-29-096Z.png",
+      "Agent-3-Gunslinger-bug-4-2025-11-18T23-34-29-361Z.png"
+    ]
+  }
+}

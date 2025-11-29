@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tee:*)",
+      "Bash(for file in \"src/services/propertyPurchase.service.ts\" \"src/services/gangWarDeck.service.ts\" \"src/services/warObjectives.service.ts\" \"src/routes/npcGangConflict.routes.ts\")",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)",
+      "Bash(cat:*)",
+      "WebSearch",
+      "Bash(find:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

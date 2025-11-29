@@ -1,0 +1,163 @@
+{
+  "agent": "Agent-1-Scout",
+  "timestamp": "2025-11-27T17:34:33.672Z",
+  "duration": "25s",
+  "errors": 13,
+  "bugs": 1,
+  "screenshots": 3,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 1,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 5,
+    "Console Error": 7,
+    "Request Failed": 1
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-27T17:34:11.718Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:11.719Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:13.779Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:13.779Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:15.993Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:15.993Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:19.194Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:19.194Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:30.236Z",
+        "type": "Request Failed",
+        "message": "https://o4510426659487744.ingest.us.sentry.io/api/4510426660339712/envelope/?sentry_version=7&sentry_key=1498055fec0fa596067919bd41efe564&sentry_client=sentry.javascript.react%2F10.27.0 - net::ERR_ABORTED",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:30.236Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Encountered error running transport request: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:30.236Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Error while sending envelope: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:33.270Z",
+        "type": "HTTP Error",
+        "message": "400 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-27T17:34:33.270Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-1-Scout"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1764264873337-qjgr7l4vo",
+        "timestamp": "2025-11-27T17:34:33.337Z",
+        "agent": "Agent-1-Scout",
+        "severity": "P1",
+        "title": "Skills API Broken",
+        "description": "Endpoint returned 400",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-1-Scout-bug-0-2025-11-27T17-34-33-337Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-1-Scout-landing-page-baseline-2025-11-27T17-34-15-386Z.png",
+      "Agent-1-Scout-post-login-state-2025-11-27T17-34-33-009Z.png",
+      "Agent-1-Scout-bug-0-2025-11-27T17-34-33-337Z.png"
+    ]
+  }
+}

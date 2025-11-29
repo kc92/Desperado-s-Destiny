@@ -1,0 +1,199 @@
+{
+  "agent": "Agent-1-Scout",
+  "timestamp": "2025-11-18T23:06:56.822Z",
+  "duration": "38s",
+  "errors": 15,
+  "bugs": 4,
+  "screenshots": 4,
+  "bugsByPriority": {
+    "P0": 4,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "Request Failed": 9,
+    "Navigation Failed": 3,
+    "Console Error": 1,
+    "Evaluate Failed": 2
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T23:06:22.556Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/ - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "about:blank",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:26.923Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/ - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:31.292Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/ - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:31.301Z",
+        "type": "Navigation Failed",
+        "message": "Could not navigate to http://localhost:3000/",
+        "details": "net::ERR_CONNECTION_REFUSED at http://localhost:3000/",
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:32.368Z",
+        "type": "Console Error",
+        "message": "Fetch API cannot load chrome-error://chromewebdata/api/health. URL scheme \"chrome-error\" is not supported.",
+        "details": {
+          "url": "pptr:evaluate;ScoutAgent.evaluate%20(C%3A%5CUsers%5Ckaine%5CDocuments%5CDesperados%20Destiny%20Dev%5Ctest-automation%5Ccore%5CTestRunner.js%3A283%3A30)",
+          "lineNumber": 1
+        },
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:32.368Z",
+        "type": "Evaluate Failed",
+        "message": "JavaScript execution failed",
+        "details": "Failed to fetch",
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:34.859Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/ - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:39.229Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/ - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:43.593Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/ - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:43.603Z",
+        "type": "Navigation Failed",
+        "message": "Could not navigate to http://localhost:3000/",
+        "details": "net::ERR_CONNECTION_REFUSED at http://localhost:3000/",
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:46.075Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/login - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:50.442Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/login - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:54.815Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/login - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:54.815Z",
+        "type": "Navigation Failed",
+        "message": "Could not navigate to http://localhost:3000/login",
+        "details": "net::ERR_CONNECTION_REFUSED at http://localhost:3000/login",
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:06:56.712Z",
+        "type": "Evaluate Failed",
+        "message": "JavaScript execution failed",
+        "details": "SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.",
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763507192368-uimtct6j2",
+        "timestamp": "2025-11-18T23:06:32.368Z",
+        "agent": "Agent-1-Scout",
+        "severity": "P0",
+        "title": "Backend Offline",
+        "description": "Health check failed",
+        "reproduction": null,
+        "url": "chrome-error://chromewebdata/",
+        "screenshot": "Agent-1-Scout-bug-0-2025-11-18T23-06-32-368Z.png"
+      },
+      {
+        "id": "BUG-1763507203603-11zvzrwj2",
+        "timestamp": "2025-11-18T23:06:43.603Z",
+        "agent": "Agent-1-Scout",
+        "severity": "P0",
+        "title": "Frontend Not Loading",
+        "description": "Cannot access landing page",
+        "reproduction": null,
+        "url": "chrome-error://chromewebdata/",
+        "screenshot": "Agent-1-Scout-bug-1-2025-11-18T23-06-43-603Z.png"
+      },
+      {
+        "id": "BUG-1763507216510-ro073ykh6",
+        "timestamp": "2025-11-18T23:06:56.510Z",
+        "agent": "Agent-1-Scout",
+        "severity": "P0",
+        "title": "Login Form Broken",
+        "description": "Login form elements missing",
+        "reproduction": null,
+        "url": "chrome-error://chromewebdata/",
+        "screenshot": "Agent-1-Scout-bug-2-2025-11-18T23-06-56-510Z.png"
+      },
+      {
+        "id": "BUG-1763507216713-cbachclnl",
+        "timestamp": "2025-11-18T23:06:56.713Z",
+        "agent": "Agent-1-Scout",
+        "severity": "P0",
+        "title": "Scout Mission Failure",
+        "description": "Cannot read properties of null (reading 'auth')",
+        "reproduction": "TypeError: Cannot read properties of null (reading 'auth')\n    at ScoutAgent.documentState (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\test-automation\\journeys\\agent-1-scout.js:251:30)\n    at async ScoutAgent.runMission (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\test-automation\\journeys\\agent-1-scout.js:45:7)",
+        "url": "chrome-error://chromewebdata/",
+        "screenshot": "Agent-1-Scout-bug-3-2025-11-18T23-06-56-713Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-1-Scout-bug-0-2025-11-18T23-06-32-368Z.png",
+      "Agent-1-Scout-bug-1-2025-11-18T23-06-43-603Z.png",
+      "Agent-1-Scout-bug-2-2025-11-18T23-06-56-510Z.png",
+      "Agent-1-Scout-bug-3-2025-11-18T23-06-56-713Z.png"
+    ]
+  }
+}

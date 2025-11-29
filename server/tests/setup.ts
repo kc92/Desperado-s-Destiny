@@ -2,18 +2,20 @@
  * Test Setup
  *
  * Global test setup for backend tests
- * Sets up in-memory MongoDB for testing
+ * Sets up in-memory MongoDB REPLICA SET for testing
+ * Enables transaction support for financial operations
  */
 
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 
-let mongoServer: MongoMemoryServer;
+let mongoServer: MongoMemoryReplSet;
 
 // Set test environment
 process.env.NODE_ENV = 'test';
 process.env.PORT = '5001';
 process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.REDIS_PASSWORD = 'redispassword';
 process.env.JWT_SECRET = 'test-jwt-secret';
 process.env.FRONTEND_URL = 'http://localhost:5173';
 process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
@@ -22,8 +24,13 @@ process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
  * Setup before all tests
  */
 beforeAll(async () => {
-  // Create in-memory MongoDB instance
-  mongoServer = await MongoMemoryServer.create();
+  // Create in-memory MongoDB REPLICA SET (enables transactions)
+  mongoServer = await MongoMemoryReplSet.create({
+    replSet: {
+      count: 1, // Single node replica set
+      storageEngine: 'wiredTiger',
+    },
+  });
   const mongoUri = mongoServer.getUri();
 
   // Set the in-memory MongoDB URI
@@ -31,7 +38,7 @@ beforeAll(async () => {
 
   // Connect to the in-memory database
   await mongoose.connect(mongoUri);
-});
+}, 120000); // Increased timeout for replica set initialization
 
 /**
  * Cleanup after each test
@@ -55,11 +62,11 @@ afterAll(async () => {
     await mongoose.disconnect();
   }
 
-  // Stop in-memory MongoDB server
+  // Stop in-memory MongoDB replica set
   if (mongoServer) {
     await mongoServer.stop();
   }
-});
+}, 60000); // Increased timeout for cleanup
 
 // Increase test timeout for integration tests
 jest.setTimeout(30000);

@@ -1,0 +1,13 @@
+{
+  "botName": "SocialBot-Storyteller",
+  "sessionDuration": "0 minutes",
+  "totalActions": 1,
+  "actionsPerMinute": "3.51",
+  "topActions": [
+    {
+      "action": "login",
+      "count": 1
+    }
+  ],
+  "errors": 0
+}

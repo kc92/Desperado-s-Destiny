@@ -1,0 +1,17 @@
+{
+  "botName": "EconomyBot-Merchant",
+  "startTime": 1764214690971,
+  "totalActions": 1,
+  "actionCounts": {
+    "login": 1
+  },
+  "actionHistory": [
+    {
+      "action": "login",
+      "timestamp": 1764214737603
+    }
+  ],
+  "errors": 0,
+  "endTime": 1764214743506,
+  "sessionDuration": 52535
+}

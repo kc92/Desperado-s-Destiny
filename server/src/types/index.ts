@@ -64,25 +64,6 @@ export enum HttpStatus {
   SERVICE_UNAVAILABLE = 503,
 }
 
-/**
- * Request with user authentication data
- */
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    username: string;
-    email: string;
-    role: string;
-  };
-}
-
-/**
- * Async request handler type
- */
-export type AsyncRequestHandler = (
-  req: Request,
-  res: Response
-) => Promise<void | Response>;
 
 /**
  * Environment types

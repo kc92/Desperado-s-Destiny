@@ -1,0 +1,258 @@
+{
+  "agent": "Agent-1-Scout",
+  "timestamp": "2025-11-18T23:12:52.471Z",
+  "duration": "40s",
+  "errors": 22,
+  "bugs": 2,
+  "screenshots": 4,
+  "bugsByPriority": {
+    "P0": 2,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "Request Failed": 4,
+    "Navigation Failed": 1,
+    "Console Error": 10,
+    "Evaluate Failed": 1,
+    "HTTP Error": 6
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T23:12:15.359Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/ - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "about:blank",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:19.719Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/ - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:24.080Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/ - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:24.081Z",
+        "type": "Navigation Failed",
+        "message": "Could not navigate to http://localhost:3000/",
+        "details": "net::ERR_CONNECTION_REFUSED at http://localhost:3000/",
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:25.156Z",
+        "type": "Console Error",
+        "message": "Fetch API cannot load chrome-error://chromewebdata/api/health. URL scheme \"chrome-error\" is not supported.",
+        "details": {
+          "url": "pptr:evaluate;ScoutAgent.evaluate%20(C%3A%5CUsers%5Ckaine%5CDocuments%5CDesperados%20Destiny%20Dev%5Ctest-automation%5Ccore%5CTestRunner.js%3A283%3A30)",
+          "lineNumber": 1
+        },
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:25.156Z",
+        "type": "Evaluate Failed",
+        "message": "JavaScript execution failed",
+        "details": "Failed to fetch",
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:27.682Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/ - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:32.182Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:32.182Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:32.182Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:34.531Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:34.531Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:34.532Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:37.864Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:37.879Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:37.879Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:52.158Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/skills",
+        "details": null,
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:52.158Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/skills"
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:52.158Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/actions",
+        "details": null,
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:52.158Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/actions"
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:52.177Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/territories",
+        "details": null,
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-1-Scout"
+      },
+      {
+        "timestamp": "2025-11-18T23:12:52.177Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/territories"
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-1-Scout"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763507545156-qi3pj5i84",
+        "timestamp": "2025-11-18T23:12:25.156Z",
+        "agent": "Agent-1-Scout",
+        "severity": "P0",
+        "title": "Backend Offline",
+        "description": "Health check failed",
+        "reproduction": null,
+        "url": "chrome-error://chromewebdata/",
+        "screenshot": "Agent-1-Scout-bug-0-2025-11-18T23-12-25-156Z.png"
+      },
+      {
+        "id": "BUG-1763507572316-tfdmq3lq4",
+        "timestamp": "2025-11-18T23:12:52.316Z",
+        "agent": "Agent-1-Scout",
+        "severity": "P0",
+        "title": "Critical Systems Offline",
+        "description": "The following systems are not operational: Backend, Database",
+        "reproduction": "Restart services and check logs",
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-1-Scout-bug-1-2025-11-18T23-12-52-316Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-1-Scout-bug-0-2025-11-18T23-12-25-156Z.png",
+      "Agent-1-Scout-landing-page-baseline-2025-11-18T23-12-33-831Z.png",
+      "Agent-1-Scout-post-login-state-2025-11-18T23-12-51-915Z.png",
+      "Agent-1-Scout-bug-1-2025-11-18T23-12-52-316Z.png"
+    ]
+  }
+}

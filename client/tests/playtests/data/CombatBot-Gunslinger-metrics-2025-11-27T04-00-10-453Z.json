@@ -1,0 +1,17 @@
+{
+  "botName": "CombatBot-Gunslinger",
+  "startTime": 1764216010453,
+  "totalActions": 1,
+  "actionCounts": {
+    "login": 1
+  },
+  "actionHistory": [
+    {
+      "action": "login",
+      "timestamp": 1764216025703
+    }
+  ],
+  "errors": 0,
+  "endTime": 1764216027631,
+  "sessionDuration": 17178
+}

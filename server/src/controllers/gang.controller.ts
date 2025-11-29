@@ -1,0 +1,630 @@
+/**
+ * Gang Controller
+ *
+ * Handles HTTP requests for gang operations
+ */
+
+import { Request, Response } from 'express';
+import mongoose from 'mongoose';
+import { GangService } from '../services/gang.service';
+import { Gang } from '../models/Gang.model';
+import { GangInvitation } from '../models/GangInvitation.model';
+import { Character } from '../models/Character.model';
+import { GangRole, GangUpgradeType, GangSearchFilters } from '@desperados/shared';
+import { AuthRequest } from '../middleware/requireAuth';
+import { isValidUpgradeType } from '../utils/gangUpgrades';
+import logger from '../utils/logger';
+
+export class GangController {
+  /**
+   * POST /api/gangs/create
+   * Create a new gang
+   */
+  static async create(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
+      const { characterId, name, tag } = req.body;
+
+      if (!characterId || !name || !tag) {
+        res.status(400).json({
+          success: false,
+          error: 'characterId, name, and tag are required',
+        });
+        return;
+      }
+
+      const gang = await GangService.createGang(userId, characterId, name, tag);
+
+      res.status(201).json({
+        success: true,
+        data: gang.toSafeObject(),
+      });
+    } catch (error) {
+      logger.error('Error in create gang:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create gang',
+      });
+    }
+  }
+
+  /**
+   * GET /api/gangs
+   * List gangs with filters
+   */
+  static async list(req: Request, res: Response): Promise<void> {
+    try {
+      const filters: GangSearchFilters = {
+        sortBy: req.query.sortBy as 'level' | 'members' | 'territories' | 'createdAt',
+        sortOrder: req.query.sortOrder as 'asc' | 'desc',
+        search: req.query.search as string,
+        minLevel: req.query.minLevel ? parseInt(req.query.minLevel as string) : undefined,
+        maxLevel: req.query.maxLevel ? parseInt(req.query.maxLevel as string) : undefined,
+        hasSlots: req.query.hasSlots === 'true',
+        limit: Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50)),
+        offset: Math.max(0, parseInt(req.query.offset as string) || 0),
+      };
+
+      const { gangs, total } = await GangService.getGangsByFilters(filters);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          gangs: gangs.map(g => ({
+            _id: g._id,
+            name: g.name,
+            tag: g.tag,
+            level: g.level,
+            memberCount: g.members.length,
+            territoriesCount: g.territories.length,
+            createdAt: g.createdAt,
+          })),
+          pagination: {
+            total,
+            limit: filters.limit,
+            offset: filters.offset,
+          },
+        },
+      });
+    } catch (error) {
+      logger.error('Error listing gangs:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to list gangs',
+      });
+    }
+  }
+
+  /**
+   * GET /api/gangs/:id
+   * Get gang by ID
+   */
+  static async getById(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const gang = await Gang.findById(id).populate('members.characterId', 'name level');
+      if (!gang) {
+        res.status(404).json({ success: false, error: 'Gang not found' });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: gang.toSafeObject(),
+      });
+    } catch (error) {
+      logger.error('Error getting gang:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get gang',
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/:id/join
+   * Join a gang via invitation
+   */
+  static async join(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { characterId, invitationId } = req.body;
+
+      if (!characterId || !invitationId) {
+        res.status(400).json({
+          success: false,
+          error: 'characterId and invitationId are required',
+        });
+        return;
+      }
+
+      const gang = await GangService.joinGang(id, characterId, invitationId);
+
+      res.status(200).json({
+        success: true,
+        data: gang.toSafeObject(),
+      });
+    } catch (error) {
+      logger.error('Error joining gang:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to join gang',
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/:id/leave
+   * Leave a gang
+   */
+  static async leave(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { characterId } = req.body;
+
+      if (!characterId) {
+        res.status(400).json({
+          success: false,
+          error: 'characterId is required',
+        });
+        return;
+      }
+
+      await GangService.leaveGang(id, characterId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Successfully left gang',
+      });
+    } catch (error) {
+      logger.error('Error leaving gang:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to leave gang',
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/gangs/:id/members/:characterId
+   * Kick a member
+   */
+  static async kick(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id, characterId: targetId } = req.params;
+      const { kickerId } = req.body;
+
+      if (!kickerId) {
+        res.status(400).json({
+          success: false,
+          error: 'kickerId is required',
+        });
+        return;
+      }
+
+      const gang = await GangService.kickMember(id, kickerId, targetId);
+
+      res.status(200).json({
+        success: true,
+        data: gang.toSafeObject(),
+      });
+    } catch (error) {
+      logger.error('Error kicking member:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to kick member',
+      });
+    }
+  }
+
+  /**
+   * PATCH /api/gangs/:id/members/:characterId/promote
+   * Promote or demote a member
+   */
+  static async promote(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id, characterId: targetId } = req.params;
+      const { promoterId, newRole } = req.body;
+
+      if (!promoterId || !newRole) {
+        res.status(400).json({
+          success: false,
+          error: 'promoterId and newRole are required',
+        });
+        return;
+      }
+
+      if (!Object.values(GangRole).includes(newRole)) {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid role',
+        });
+        return;
+      }
+
+      const gang = await GangService.promoteMember(id, promoterId, targetId, newRole);
+
+      res.status(200).json({
+        success: true,
+        data: gang.toSafeObject(),
+      });
+    } catch (error) {
+      logger.error('Error promoting member:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to promote member',
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/:id/bank/deposit
+   * Deposit gold to gang bank
+   */
+  static async depositBank(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { characterId, amount } = req.body;
+
+      if (!characterId || amount === undefined) {
+        res.status(400).json({
+          success: false,
+          error: 'characterId and amount are required',
+        });
+        return;
+      }
+
+      if (amount <= 0) {
+        res.status(400).json({
+          success: false,
+          error: 'Amount must be positive',
+        });
+        return;
+      }
+
+      const { gang, transaction } = await GangService.depositToBank(id, characterId, amount);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          gang: gang.toSafeObject(),
+          transaction,
+        },
+      });
+    } catch (error) {
+      logger.error('Error depositing to bank:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to deposit gold',
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/:id/bank/withdraw
+   * Withdraw gold from gang bank
+   */
+  static async withdrawBank(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { characterId, amount } = req.body;
+
+      if (!characterId || amount === undefined) {
+        res.status(400).json({
+          success: false,
+          error: 'characterId and amount are required',
+        });
+        return;
+      }
+
+      if (amount <= 0) {
+        res.status(400).json({
+          success: false,
+          error: 'Amount must be positive',
+        });
+        return;
+      }
+
+      const { gang, transaction } = await GangService.withdrawFromBank(id, characterId, amount);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          gang: gang.toSafeObject(),
+          transaction,
+        },
+      });
+    } catch (error) {
+      logger.error('Error withdrawing from bank:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to withdraw gold',
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/:id/upgrades/:upgradeType
+   * Purchase an upgrade
+   */
+  static async purchaseUpgrade(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id, upgradeType } = req.params;
+      const { characterId } = req.body;
+
+      if (!characterId) {
+        res.status(400).json({
+          success: false,
+          error: 'characterId is required',
+        });
+        return;
+      }
+
+      if (!isValidUpgradeType(upgradeType)) {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid upgrade type',
+        });
+        return;
+      }
+
+      const gang = await GangService.purchaseUpgrade(id, characterId, upgradeType as GangUpgradeType);
+
+      res.status(200).json({
+        success: true,
+        data: gang.toSafeObject(),
+      });
+    } catch (error) {
+      logger.error('Error purchasing upgrade:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to purchase upgrade',
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/gangs/:id
+   * Disband gang
+   */
+  static async disband(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { characterId } = req.body;
+
+      if (!characterId) {
+        res.status(400).json({
+          success: false,
+          error: 'characterId is required',
+        });
+        return;
+      }
+
+      await GangService.disbandGang(id, characterId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Gang disbanded successfully',
+      });
+    } catch (error) {
+      logger.error('Error disbanding gang:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to disband gang',
+      });
+    }
+  }
+
+  /**
+   * GET /api/gangs/:id/transactions
+   * Get gang bank transaction history
+   */
+  static async getTransactions(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+      const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+
+      const { transactions, total } = await GangService.getGangTransactions(id, limit, offset);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          transactions,
+          pagination: {
+            total,
+            limit,
+            offset,
+          },
+        },
+      });
+    } catch (error) {
+      logger.error('Error getting transactions:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get transactions',
+      });
+    }
+  }
+
+  /**
+   * GET /api/gangs/:id/stats
+   * Get gang statistics
+   */
+  static async getStats(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const stats = await GangService.getGangStats(id);
+
+      res.status(200).json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      logger.error('Error getting gang stats:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get gang statistics',
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/:id/invitations
+   * Send gang invitation
+   */
+  static async sendInvitation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { inviterId, recipientId } = req.body;
+
+      if (!inviterId || !recipientId) {
+        res.status(400).json({
+          success: false,
+          error: 'inviterId and recipientId are required',
+        });
+        return;
+      }
+
+      const invitation = await GangService.sendInvitation(id, inviterId, recipientId);
+
+      res.status(201).json({
+        success: true,
+        data: invitation,
+      });
+    } catch (error) {
+      logger.error('Error sending invitation:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to send invitation',
+      });
+    }
+  }
+
+  /**
+   * GET /api/gangs/invitations/:characterId
+   * Get invitations for a character
+   */
+  static async getInvitations(req: Request, res: Response): Promise<void> {
+    try {
+      const { characterId } = req.params;
+
+      const character = await Character.findById(characterId);
+      if (!character) {
+        res.status(404).json({ success: false, error: 'Character not found' });
+        return;
+      }
+
+      const invitations = await GangInvitation.findPendingByRecipient(character._id as mongoose.Types.ObjectId);
+
+      res.status(200).json({
+        success: true,
+        data: invitations,
+      });
+    } catch (error) {
+      logger.error('Error getting invitations:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get invitations',
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/invitations/:id/accept
+   * Accept gang invitation
+   */
+  static async acceptInvitation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { characterId } = req.body;
+
+      if (!characterId) {
+        res.status(400).json({
+          success: false,
+          error: 'characterId is required',
+        });
+        return;
+      }
+
+      const invitation = await GangInvitation.findById(id);
+      if (!invitation) {
+        res.status(404).json({ success: false, error: 'Invitation not found' });
+        return;
+      }
+
+      if (invitation.recipientId.toString() !== characterId) {
+        res.status(403).json({ success: false, error: 'Invitation is for a different character' });
+        return;
+      }
+
+      const gang = await GangService.joinGang(
+        invitation.gangId.toString(),
+        characterId,
+        id
+      );
+
+      res.status(200).json({
+        success: true,
+        data: gang.toSafeObject(),
+      });
+    } catch (error) {
+      logger.error('Error accepting invitation:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to accept invitation',
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/invitations/:id/reject
+   * Reject gang invitation
+   */
+  static async rejectInvitation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { characterId } = req.body;
+
+      if (!characterId) {
+        res.status(400).json({
+          success: false,
+          error: 'characterId is required',
+        });
+        return;
+      }
+
+      const invitation = await GangInvitation.findById(id);
+      if (!invitation) {
+        res.status(404).json({ success: false, error: 'Invitation not found' });
+        return;
+      }
+
+      if (invitation.recipientId.toString() !== characterId) {
+        res.status(403).json({ success: false, error: 'Invitation is for a different character' });
+        return;
+      }
+
+      invitation.reject();
+      await invitation.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Invitation rejected',
+      });
+    } catch (error) {
+      logger.error('Error rejecting invitation:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to reject invitation',
+      });
+    }
+  }
+}

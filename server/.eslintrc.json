@@ -8,9 +8,27 @@
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
-    "plugin:@typescript-eslint/recommended-requiring-type-checking"
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "plugin:import/typescript"
   ],
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "import"],
+  "settings": {
+    "import/resolver": {
+      "alias": {
+        "map": [
+          ["@config", "./src/config"],
+          ["@middleware", "./src/middleware"],
+          ["@models", "./src/models"],
+          ["@routes", "./src/routes"],
+          ["@controllers", "./src/controllers"],
+          ["@services", "./src/services"],
+          ["@utils", "./src/utils"],
+          ["@types", "./src/types"]
+        ],
+        "extensions": [".ts", ".js", ".json"]
+      }
+    }
+  },
   "env": {
     "node": true,
     "es2022": true,

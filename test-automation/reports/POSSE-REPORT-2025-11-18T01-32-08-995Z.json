@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-11-18T01:32:08.994Z",
+  "duration": "127s",
+  "summary": {
+    "agentsRun": 2,
+    "successful": 2,
+    "failed": 0,
+    "totalBugs": 0,
+    "totalErrors": 22,
+    "totalScreenshots": 13
+  },
+  "bugsBySeverity": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "agentResults": [
+    {
+      "agent": "Scout",
+      "success": true,
+      "bugs": 2,
+      "errors": 16,
+      "critical": true
+    },
+    {
+      "agent": "Pioneer",
+      "success": true,
+      "bugs": 4,
+      "errors": 6,
+      "critical": false
+    }
+  ],
+  "criticalBugs": [],
+  "allBugs": [],
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Continue regular development",
+      "details": "System is relatively stable with only minor issues"
+    }
+  ]
+}

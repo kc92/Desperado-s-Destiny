@@ -195,8 +195,9 @@ export async function login(req: Request, res: Response): Promise<void> {
   res.cookie('token', token, {
     httpOnly: true, // Prevents JavaScript access
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: 'strict', // CSRF protection
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    sameSite: 'lax', // Always use 'lax' for development proxy to work
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/' // Explicitly set path to ensure cookie works for all routes
   });
 
   logger.info(`User logged in: ${user.email} (ID: ${user._id})`);
@@ -216,7 +217,8 @@ export async function logout(req: Request, res: Response): Promise<void> {
   res.clearCookie('token', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
+    sameSite: 'lax',
+    path: '/'
   });
 
   logger.info('User logged out');
@@ -343,12 +345,97 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
   sendSuccess(res, {}, 'Password reset successfully. You can now log in with your new password.');
 }
 
-export default {
-  register,
-  verifyEmail,
-  login,
-  logout,
-  getCurrentUser,
-  forgotPassword,
-  resetPassword
-};
+/**
+ * Check if username is available
+ * GET /api/auth/check-username?username=xxx
+ * Note: Currently we don't store usernames, so we just validate format
+ */
+export async function checkUsername(req: Request, res: Response): Promise<void> {
+  const username = req.query.username as string;
+
+  if (!username || username.trim().length < 3) {
+    res.status(400).json({
+      success: false,
+      error: 'Username must be at least 3 characters'
+    });
+    return;
+  }
+
+  if (username.length > 20) {
+    res.status(400).json({
+      success: false,
+      error: 'Username must be 20 characters or less'
+    });
+    return;
+  }
+
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    res.status(400).json({
+      success: false,
+      error: 'Username can only contain letters, numbers, and underscores'
+    });
+    return;
+  }
+
+  // Since we don't actually store usernames, all valid usernames are available
+  res.status(200).json({
+    success: true,
+    available: true,
+    username: username.trim()
+  });
+}
+
+/**
+ * Get user preferences
+ * GET /api/auth/preferences
+ */
+export async function getPreferences(req: Request, res: Response): Promise<void> {
+  const userId = req.userId;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    sendError(res, 'User not found', 404);
+    return;
+  }
+
+  sendSuccess(res, { preferences: user.preferences });
+}
+
+/**
+ * Update user preferences
+ * PUT /api/auth/preferences
+ */
+export async function updatePreferences(req: Request, res: Response): Promise<void> {
+  const userId = req.userId;
+  const { notifications, privacy } = req.body;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    sendError(res, 'User not found', 404);
+    return;
+  }
+
+  // Update notifications if provided
+  if (notifications) {
+    user.preferences.notifications = {
+      ...user.preferences.notifications,
+      ...notifications
+    };
+  }
+
+  // Update privacy if provided
+  if (privacy) {
+    user.preferences.privacy = {
+      ...user.preferences.privacy,
+      ...privacy
+    };
+  }
+
+  await user.save();
+
+  logger.info(`Preferences updated for user: ${user.email} (ID: ${user._id})`);
+
+  sendSuccess(res, { preferences: user.preferences }, 'Preferences saved successfully');
+}
+
+// Named exports are used above - no default export needed

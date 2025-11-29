@@ -6,6 +6,7 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 import { Faction, ENERGY, PROGRESSION, FACTIONS } from '@desperados/shared';
+import { TransactionSource } from './GoldTransaction.model';
 
 /**
  * Character appearance customization
@@ -49,6 +50,28 @@ export interface InventoryItem {
 }
 
 /**
+ * Equipment slots
+ */
+export interface CharacterEquipment {
+  weapon: string | null;
+  head: string | null;
+  body: string | null;
+  feet: string | null;
+  mount: string | null;
+  accessory: string | null;
+}
+
+/**
+ * Combat statistics
+ */
+export interface CombatStats {
+  wins: number;
+  losses: number;
+  totalDamage: number;
+  kills: number;
+}
+
+/**
  * Character document interface
  */
 export interface ICharacter extends Document {
@@ -70,9 +93,17 @@ export interface ICharacter extends Document {
   energy: number;
   maxEnergy: number;
   lastEnergyUpdate: Date;
+  gold: number;
+
+  // Bank Vault
+  bankVaultBalance: number;
+  bankVaultTier: 'none' | 'bronze' | 'silver' | 'gold';
 
   // Location
   currentLocation: string;
+
+  // Gang
+  gangId: mongoose.Types.ObjectId | null;
 
   // Stats
   stats: CharacterStats;
@@ -82,6 +113,81 @@ export interface ICharacter extends Document {
 
   // Inventory
   inventory: InventoryItem[];
+
+  // Equipment
+  equipment: CharacterEquipment;
+
+  // Combat Stats
+  combatStats: CombatStats;
+
+  // Crime and Jail System
+  isJailed: boolean;
+  jailedUntil: Date | null;
+  wantedLevel: number;
+  lastWantedDecay: Date;
+  bountyAmount: number;
+  lastArrestTime: Date | null;
+  arrestCooldowns: Map<string, Date>;
+  lastBailCost: number;
+
+  // Reputation System
+  factionReputation: {
+    settlerAlliance: number;
+    nahiCoalition: number;
+    frontera: number;
+  };
+  criminalReputation: number;
+
+  // Legacy compatibility - reputation alias
+  reputation?: {
+    outlaws?: number;
+    coalition?: number;
+    settlers?: number;
+  };
+
+  // Disguise System
+  currentDisguise: string | null;
+  disguiseExpiresAt: Date | null;
+  disguiseFaction: string | null;
+
+  // Mentor System
+  currentMentorId: string | null;
+
+  // Crafting Specializations (Phase 7.1)
+  specializations?: Array<{
+    pathId: string;
+    professionId: string;
+    unlockedAt: Date;
+    masteryProgress: number;
+    uniqueRecipesUnlocked: string[];
+  }>;
+
+  // Crafting professions (for workshop access)
+  professions?: string[];
+
+  // Completed quests (for quest-gated content)
+  completedQuests?: string[];
+
+  // Progression System (Phase 6)
+  talents?: Array<{
+    talentId: string;
+    ranks: number;
+    unlockedAt: Date;
+  }>;
+  prestige?: {
+    currentRank: number;
+    totalPrestiges: number;
+    permanentBonuses: Array<{
+      type: string;
+      value: number;
+      description: string;
+    }>;
+    prestigeHistory: Array<{
+      rank: number;
+      achievedAt: Date;
+      levelAtPrestige: number;
+    }>;
+  };
 
   // Timestamps
   createdAt: Date;
@@ -93,8 +199,34 @@ export interface ICharacter extends Document {
   regenerateEnergy(): void;
   canAffordAction(cost: number): boolean;
   spendEnergy(cost: number): void;
-  addExperience(amount: number): void;
+  addExperience(amount: number): Promise<void>;
   toSafeObject(): any;
+
+  // Gold methods
+  hasGold(amount: number): boolean;
+  addGold(amount: number, source: TransactionSource, metadata?: any): Promise<number>;
+  deductGold(amount: number, source: TransactionSource, metadata?: any): Promise<number>;
+
+  // Skill methods
+  getSkill(skillId: string): CharacterSkill | undefined;
+  getSkillLevel(skillId: string): number;
+  getSkillBonusForSuit(suit: string): number;
+  getCurrentTraining(): CharacterSkill | null;
+  canStartTraining(): boolean;
+  isTrainingComplete(): boolean;
+
+  // Crime and Jail methods
+  isCurrentlyJailed(): boolean;
+  getRemainingJailTime(): number;
+  releaseFromJail(): void;
+  increaseWantedLevel(amount: number): void;
+  decreaseWantedLevel(amount: number): void;
+  calculateBounty(): number;
+  canBeArrested(): boolean;
+  decayWantedLevel(): boolean;
+  sendToJail(minutes: number, bailCost?: number): void;
+  canArrestTarget(targetId: string): boolean;
+  recordArrest(targetId: string): void;
 
   // Virtuals
   energyRegenRate: number;
@@ -197,11 +329,36 @@ const CharacterSchema = new Schema<ICharacter>(
       type: Date,
       default: Date.now
     },
+    gold: {
+      type: Number,
+      default: 100,
+      min: 0
+    },
+
+    // Bank Vault System
+    bankVaultBalance: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    bankVaultTier: {
+      type: String,
+      enum: ['none', 'bronze', 'silver', 'gold'],
+      default: 'none'
+    },
 
     // Location
     currentLocation: {
       type: String,
       required: true
+    },
+
+    // Gang
+    gangId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Gang',
+      default: null,
+      index: true
     },
 
     // Stats
@@ -228,6 +385,136 @@ const CharacterSchema = new Schema<ICharacter>(
       acquiredAt: { type: Date, default: Date.now }
     }],
 
+    // Equipment
+    equipment: {
+      weapon: { type: String, default: null },
+      head: { type: String, default: null },
+      body: { type: String, default: null },
+      feet: { type: String, default: null },
+      mount: { type: String, default: null },
+      accessory: { type: String, default: null }
+    },
+
+    // Combat Stats
+    combatStats: {
+      wins: { type: Number, default: 0 },
+      losses: { type: Number, default: 0 },
+      totalDamage: { type: Number, default: 0 },
+      kills: { type: Number, default: 0 }
+    },
+
+    // Crime and Jail System
+    isJailed: {
+      type: Boolean,
+      default: false
+    },
+    jailedUntil: {
+      type: Date,
+      default: null
+    },
+    wantedLevel: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5
+    },
+    lastWantedDecay: {
+      type: Date,
+      default: Date.now
+    },
+    bountyAmount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    lastArrestTime: {
+      type: Date,
+      default: null
+    },
+    arrestCooldowns: {
+      type: Map,
+      of: Date,
+      default: new Map()
+    },
+    lastBailCost: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+
+    // Reputation System
+    factionReputation: {
+      settlerAlliance: { type: Number, default: 0, min: -100, max: 100 },
+      nahiCoalition: { type: Number, default: 0, min: -100, max: 100 },
+      frontera: { type: Number, default: 0, min: -100, max: 100 },
+    },
+    criminalReputation: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100
+    },
+
+    // Disguise System
+    currentDisguise: {
+      type: String,
+      default: null
+    },
+    disguiseExpiresAt: {
+      type: Date,
+      default: null
+    },
+    disguiseFaction: {
+      type: String,
+      enum: ['settler', 'nahi', 'frontera', null],
+      default: null
+    },
+
+    // Mentor System
+    currentMentorId: {
+      type: String,
+      default: null
+    },
+
+    // Crafting Specializations (Phase 7.1)
+    specializations: {
+      type: [{
+        pathId: { type: String, required: true },
+        professionId: { type: String, required: true },
+        unlockedAt: { type: Date, default: Date.now },
+        masteryProgress: { type: Number, default: 0, min: 0, max: 100 },
+        uniqueRecipesUnlocked: [{ type: String }]
+      }],
+      default: []
+    },
+
+    // Progression System (Phase 6)
+    talents: {
+      type: [{
+        talentId: { type: String, required: true },
+        ranks: { type: Number, required: true, min: 1, max: 3 },
+        unlockedAt: { type: Date, default: Date.now }
+      }],
+      default: []
+    },
+    prestige: {
+      type: {
+        currentRank: { type: Number, default: 0, min: 0 },
+        totalPrestiges: { type: Number, default: 0, min: 0 },
+        permanentBonuses: [{
+          type: { type: String, required: true },
+          value: { type: Number, required: true },
+          description: { type: String, required: true }
+        }],
+        prestigeHistory: [{
+          rank: { type: Number, required: true },
+          achievedAt: { type: Date, default: Date.now },
+          levelAtPrestige: { type: Number, required: true }
+        }]
+      },
+      default: undefined
+    },
+
     // Activity tracking
     lastActive: {
       type: Date,
@@ -248,6 +535,13 @@ const CharacterSchema = new Schema<ICharacter>(
  */
 CharacterSchema.index({ userId: 1, isActive: 1 });
 CharacterSchema.index({ name: 1 }, { unique: true });
+// Performance optimization indexes
+CharacterSchema.index({ wantedLevel: 1, isActive: 1 }); // For wanted player queries
+CharacterSchema.index({ level: -1, experience: -1 }); // For leaderboards
+CharacterSchema.index({ faction: 1, level: -1 }); // For faction leaderboards
+CharacterSchema.index({ jailedUntil: 1 }); // For jail release jobs
+CharacterSchema.index({ lastActive: -1 }); // For active player queries
+CharacterSchema.index({ gangId: 1, level: -1 }); // For gang member rankings
 
 /**
  * Virtual: Energy regeneration rate (per hour)
@@ -273,7 +567,7 @@ CharacterSchema.virtual('nextLevelXP').get(function(this: ICharacter) {
 /**
  * Instance method: Calculate energy regeneration amount
  */
-CharacterSchema.methods['calculateEnergyRegen'] = function(this: ICharacter): number {
+CharacterSchema.methods.calculateEnergyRegen = function(this: ICharacter): number {
   const now = Date.now();
   const lastUpdate = this.lastEnergyUpdate.getTime();
   const elapsedMs = now - lastUpdate;
@@ -289,8 +583,8 @@ CharacterSchema.methods['calculateEnergyRegen'] = function(this: ICharacter): nu
 /**
  * Instance method: Regenerate energy based on elapsed time
  */
-CharacterSchema.methods['regenerateEnergy'] = function(this: ICharacter): void {
-  const regenAmount = (this as any).calculateEnergyRegen();
+CharacterSchema.methods.regenerateEnergy = function(this: ICharacter): void {
+  const regenAmount = this.calculateEnergyRegen();
   this.energy = Math.min(this.energy + regenAmount, this.maxEnergy);
   this.lastEnergyUpdate = new Date();
 };
@@ -298,15 +592,17 @@ CharacterSchema.methods['regenerateEnergy'] = function(this: ICharacter): void {
 /**
  * Instance method: Check if character can afford an action
  */
-CharacterSchema.methods['canAffordAction'] = function(this: ICharacter, cost: number): boolean {
+CharacterSchema.methods.canAffordAction = function(this: ICharacter, cost: number): boolean {
+  this.regenerateEnergy();
   return this.energy >= cost;
 };
 
 /**
  * Instance method: Spend energy on an action
  */
-CharacterSchema.methods['spendEnergy'] = function(this: ICharacter, cost: number): void {
-  if (!(this as any).canAffordAction(cost)) {
+CharacterSchema.methods.spendEnergy = function(this: ICharacter, cost: number): void {
+  this.regenerateEnergy();
+  if (!this.canAffordAction(cost)) {
     throw new Error('Insufficient energy');
   }
   this.energy -= cost;
@@ -316,10 +612,13 @@ CharacterSchema.methods['spendEnergy'] = function(this: ICharacter, cost: number
 /**
  * Instance method: Add experience and handle level ups
  */
-CharacterSchema.methods['addExperience'] = function(this: ICharacter, amount: number): void {
+CharacterSchema.methods.addExperience = async function(this: ICharacter, amount: number): Promise<void> {
   this.experience += amount;
 
   // Check for level ups
+  let leveledUp = false;
+  const oldLevel = this.level;
+
   while (this.level < PROGRESSION.MAX_LEVEL) {
     const xpNeeded = Math.floor(
       PROGRESSION.BASE_EXPERIENCE * Math.pow(PROGRESSION.EXPERIENCE_MULTIPLIER, this.level - 1)
@@ -328,9 +627,22 @@ CharacterSchema.methods['addExperience'] = function(this: ICharacter, amount: nu
     if (this.experience >= xpNeeded) {
       this.experience -= xpNeeded;
       this.level += 1;
+      leveledUp = true;
       // On level up, could grant stat points, etc.
     } else {
       break;
+    }
+  }
+
+  // Trigger quest progress if level increased
+  if (leveledUp) {
+    try {
+      // Use dynamic import to avoid circular dependency
+      const { QuestService } = await import('../services/quest.service');
+      await QuestService.onLevelUp(this._id.toString(), this.level);
+    } catch (questError) {
+      // Don't fail level up if quest update fails
+      console.error('Failed to update quest progress for level up:', questError);
     }
   }
 };
@@ -338,9 +650,11 @@ CharacterSchema.methods['addExperience'] = function(this: ICharacter, amount: nu
 /**
  * Instance method: Return safe character object (no sensitive data)
  */
-CharacterSchema.methods['toSafeObject'] = function(this: ICharacter) {
+CharacterSchema.methods.toSafeObject = function(this: ICharacter) {
+  const id = this._id.toString();
   return {
-    _id: (this as any)._id.toString(),
+    id,
+    _id: id,
     name: this.name,
     faction: this.faction,
     appearance: this.appearance,
@@ -349,19 +663,248 @@ CharacterSchema.methods['toSafeObject'] = function(this: ICharacter) {
     experienceToNextLevel: this.nextLevelXP,
     energy: Math.floor(this.energy),
     maxEnergy: this.maxEnergy,
+    gold: this.gold,
     currentLocation: this.currentLocation,
+    gangId: this.gangId ? this.gangId.toString() : null,
     stats: this.stats,
     skills: this.skills,
     inventory: this.inventory,
+    combatStats: this.combatStats,
+    isJailed: this.isJailed,
+    jailedUntil: this.jailedUntil,
+    wantedLevel: this.wantedLevel,
+    bountyAmount: this.bountyAmount,
     createdAt: this.createdAt,
     lastActive: this.lastActive
   };
 };
 
 /**
+ * Instance method: Check if character has sufficient gold
+ */
+CharacterSchema.methods.hasGold = function(this: ICharacter, amount: number): boolean {
+  return this.gold >= amount;
+};
+
+/**
+ * Instance method: Add gold to character with transaction tracking
+ */
+CharacterSchema.methods.addGold = async function(
+  this: ICharacter,
+  amount: number,
+  source: TransactionSource,
+  metadata?: any
+): Promise<number> {
+  // Import GoldService dynamically to avoid circular dependencies
+  const { GoldService } = await import('../services/gold.service');
+  const { newBalance } = await GoldService.addGold(this._id as any, amount, source, metadata);
+  this.gold = newBalance; // Update local instance
+  return newBalance;
+};
+
+/**
+ * Instance method: Deduct gold from character with transaction tracking
+ */
+CharacterSchema.methods.deductGold = async function(
+  this: ICharacter,
+  amount: number,
+  source: TransactionSource,
+  metadata?: any
+): Promise<number> {
+  // Import GoldService dynamically to avoid circular dependencies
+  const { GoldService } = await import('../services/gold.service');
+  const { newBalance } = await GoldService.deductGold(this._id as any, amount, source, metadata);
+  this.gold = newBalance; // Update local instance
+  return newBalance;
+};
+
+/**
+ * Instance method: Get a specific skill by ID
+ */
+CharacterSchema.methods.getSkill = function(this: ICharacter, skillId: string): CharacterSkill | undefined {
+  return this.skills.find(skill => skill.skillId === skillId);
+};
+
+/**
+ * Instance method: Get skill level (returns 0 if skill not found)
+ */
+CharacterSchema.methods.getSkillLevel = function(this: ICharacter, skillId: string): number {
+  const skill = this.getSkill(skillId);
+  return skill ? skill.level : 0;
+};
+
+/**
+ * Instance method: Calculate total skill bonus for a specific Destiny Deck suit
+ * Each skill level = +1 to its suit
+ */
+CharacterSchema.methods.getSkillBonusForSuit = function(this: ICharacter, suit: string): number {
+  // Import skills constants to map skills to suits
+  const { SKILLS } = require('@desperados/shared');
+
+  let totalBonus = 0;
+
+  for (const characterSkill of this.skills) {
+    const skillDef = SKILLS[characterSkill.skillId.toUpperCase()];
+    if (skillDef && skillDef.suit === suit) {
+      totalBonus += characterSkill.level;
+    }
+  }
+
+  return totalBonus;
+};
+
+/**
+ * Instance method: Get current training session (if any)
+ */
+CharacterSchema.methods.getCurrentTraining = function(this: ICharacter): CharacterSkill | null {
+  const trainingSkill = this.skills.find(
+    skill => skill.trainingStarted && skill.trainingCompletes
+  );
+  return trainingSkill || null;
+};
+
+/**
+ * Instance method: Check if character can start training a new skill
+ */
+CharacterSchema.methods.canStartTraining = function(this: ICharacter): boolean {
+  return this.getCurrentTraining() === null;
+};
+
+/**
+ * Instance method: Check if current training is complete
+ */
+CharacterSchema.methods.isTrainingComplete = function(this: ICharacter): boolean {
+  const training = this.getCurrentTraining();
+  if (!training || !training.trainingCompletes) {
+    return false;
+  }
+  return new Date() >= training.trainingCompletes;
+};
+
+/**
+ * Instance method: Check if character is currently jailed
+ */
+CharacterSchema.methods.isCurrentlyJailed = function(this: ICharacter): boolean {
+  if (!this.isJailed || !this.jailedUntil) {
+    return false;
+  }
+  return new Date() < this.jailedUntil;
+};
+
+/**
+ * Instance method: Get remaining jail time in minutes
+ */
+CharacterSchema.methods.getRemainingJailTime = function(this: ICharacter): number {
+  if (!this.isCurrentlyJailed()) {
+    return 0;
+  }
+  const remaining = this.jailedUntil!.getTime() - Date.now();
+  return Math.max(0, Math.ceil(remaining / (60 * 1000)));
+};
+
+/**
+ * Instance method: Release character from jail
+ */
+CharacterSchema.methods.releaseFromJail = function(this: ICharacter): void {
+  this.isJailed = false;
+  this.jailedUntil = null;
+};
+
+/**
+ * Instance method: Send character to jail
+ */
+CharacterSchema.methods.sendToJail = function(this: ICharacter, minutes: number, bailCost?: number): void {
+  this.isJailed = true;
+  this.jailedUntil = new Date(Date.now() + minutes * 60 * 1000);
+  // Store bail cost from action if provided, otherwise calculate based on wanted level
+  this.lastBailCost = bailCost ?? (this.wantedLevel * 50);
+};
+
+/**
+ * Instance method: Increase wanted level
+ */
+CharacterSchema.methods.increaseWantedLevel = function(this: ICharacter, amount: number): void {
+  this.wantedLevel = Math.min(5, this.wantedLevel + amount);
+  this.bountyAmount = this.calculateBounty();
+};
+
+/**
+ * Instance method: Decrease wanted level
+ */
+CharacterSchema.methods.decreaseWantedLevel = function(this: ICharacter, amount: number): void {
+  this.wantedLevel = Math.max(0, this.wantedLevel - amount);
+  this.bountyAmount = this.calculateBounty();
+};
+
+/**
+ * Instance method: Calculate bounty based on wanted level
+ */
+CharacterSchema.methods.calculateBounty = function(this: ICharacter): number {
+  return this.wantedLevel * 100;
+};
+
+/**
+ * Instance method: Check if character can be arrested
+ */
+CharacterSchema.methods.canBeArrested = function(this: ICharacter): boolean {
+  return this.wantedLevel >= 3 && !this.isCurrentlyJailed();
+};
+
+/**
+ * Instance method: Decay wanted level (called every 24h)
+ */
+CharacterSchema.methods.decayWantedLevel = function(this: ICharacter): boolean {
+  if (this.wantedLevel === 0) {
+    return false;
+  }
+
+  const now = new Date();
+  const hoursSinceDecay = (now.getTime() - this.lastWantedDecay.getTime()) / (1000 * 60 * 60);
+
+  if (hoursSinceDecay >= 24) {
+    this.decreaseWantedLevel(1);
+    this.lastWantedDecay = now;
+    return true;
+  }
+
+  return false;
+};
+
+/**
+ * Instance method: Check if character can arrest a target
+ */
+CharacterSchema.methods.canArrestTarget = function(this: ICharacter, targetId: string): boolean {
+  // Can't arrest if you're jailed or a criminal yourself
+  if (this.isCurrentlyJailed()) {
+    return false;
+  }
+
+  // Check cooldown
+  const cooldowns = this.arrestCooldowns as Map<string, Date>;
+  const lastArrest = cooldowns.get(targetId);
+  if (lastArrest) {
+    const hoursSinceArrest = (Date.now() - lastArrest.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceArrest < 1) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
+ * Instance method: Record an arrest to prevent spam
+ */
+CharacterSchema.methods.recordArrest = function(this: ICharacter, targetId: string): void {
+  const cooldowns = this.arrestCooldowns as Map<string, Date>;
+  cooldowns.set(targetId, new Date());
+  this.arrestCooldowns = cooldowns;
+};
+
+/**
  * Static method: Find all active characters for a user
  */
-CharacterSchema.statics['findByUserId'] = async function(
+CharacterSchema.statics.findByUserId = async function(
   userId: string
 ): Promise<ICharacter[]> {
   return this.find({
@@ -373,7 +916,7 @@ CharacterSchema.statics['findByUserId'] = async function(
 /**
  * Static method: Find active character by name (case-insensitive)
  */
-CharacterSchema.statics['findActiveByName'] = async function(
+CharacterSchema.statics.findActiveByName = async function(
   name: string
 ): Promise<ICharacter | null> {
   return this.findOne({
@@ -385,7 +928,7 @@ CharacterSchema.statics['findActiveByName'] = async function(
 /**
  * Static method: Get count of characters for a user
  */
-CharacterSchema.statics['getCharacterCount'] = async function(
+CharacterSchema.statics.getCharacterCount = async function(
   userId: string
 ): Promise<number> {
   return this.countDocuments({

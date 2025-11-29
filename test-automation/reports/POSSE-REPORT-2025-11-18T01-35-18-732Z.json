@@ -1,0 +1,182 @@
+{
+  "timestamp": "2025-11-18T01:35:18.732Z",
+  "duration": "127s",
+  "summary": {
+    "agentsRun": 2,
+    "successful": 2,
+    "failed": 0,
+    "totalBugs": 6,
+    "totalErrors": 22,
+    "totalScreenshots": 13
+  },
+  "bugsBySeverity": {
+    "P0": 2,
+    "P1": 4,
+    "P2": 0,
+    "P3": 0
+  },
+  "agentResults": [
+    {
+      "agent": "Scout",
+      "success": true,
+      "bugs": 2,
+      "errors": 16,
+      "critical": true
+    },
+    {
+      "agent": "Pioneer",
+      "success": true,
+      "bugs": 4,
+      "errors": 6,
+      "critical": false
+    }
+  ],
+  "criticalBugs": [
+    {
+      "id": "BUG-1763429593213-dw579jvur",
+      "timestamp": "2025-11-18T01:33:13.213Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Backend Offline",
+      "description": "Health check failed",
+      "reproduction": null,
+      "url": "about:blank",
+      "screenshot": "Agent-1-Scout-bug-0-2025-11-18T01-33-13-213Z.png"
+    },
+    {
+      "id": "BUG-1763429614335-w363pttnx",
+      "timestamp": "2025-11-18T01:33:34.335Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Critical Systems Offline",
+      "description": "The following systems are not operational: Backend, Database",
+      "reproduction": "Restart services and check logs",
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-1-Scout-bug-1-2025-11-18T01-33-34-335Z.png"
+    },
+    {
+      "id": "BUG-1763429649087-rnvocvn9p",
+      "timestamp": "2025-11-18T01:34:09.087Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Registration Flow Issue",
+      "description": "Unexpected redirect to http://localhost:3000/register",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T01-34-09-087Z.png"
+    },
+    {
+      "id": "BUG-1763429680561-x0sugnkk9",
+      "timestamp": "2025-11-18T01:34:40.561Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create NAHI_COALITION character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T01-34-40-561Z.png"
+    },
+    {
+      "id": "BUG-1763429696551-dwcynez0k",
+      "timestamp": "2025-11-18T01:34:56.551Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create SETTLER_ALLIANCE character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T01-34-56-552Z.png"
+    },
+    {
+      "id": "BUG-1763429712762-d40dimuly",
+      "timestamp": "2025-11-18T01:35:12.762Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create FRONTERA character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-3-2025-11-18T01-35-12-762Z.png"
+    }
+  ],
+  "allBugs": [
+    {
+      "id": "BUG-1763429593213-dw579jvur",
+      "timestamp": "2025-11-18T01:33:13.213Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Backend Offline",
+      "description": "Health check failed",
+      "reproduction": null,
+      "url": "about:blank",
+      "screenshot": "Agent-1-Scout-bug-0-2025-11-18T01-33-13-213Z.png"
+    },
+    {
+      "id": "BUG-1763429614335-w363pttnx",
+      "timestamp": "2025-11-18T01:33:34.335Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Critical Systems Offline",
+      "description": "The following systems are not operational: Backend, Database",
+      "reproduction": "Restart services and check logs",
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-1-Scout-bug-1-2025-11-18T01-33-34-335Z.png"
+    },
+    {
+      "id": "BUG-1763429649087-rnvocvn9p",
+      "timestamp": "2025-11-18T01:34:09.087Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Registration Flow Issue",
+      "description": "Unexpected redirect to http://localhost:3000/register",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T01-34-09-087Z.png"
+    },
+    {
+      "id": "BUG-1763429680561-x0sugnkk9",
+      "timestamp": "2025-11-18T01:34:40.561Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create NAHI_COALITION character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T01-34-40-561Z.png"
+    },
+    {
+      "id": "BUG-1763429696551-dwcynez0k",
+      "timestamp": "2025-11-18T01:34:56.551Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create SETTLER_ALLIANCE character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T01-34-56-552Z.png"
+    },
+    {
+      "id": "BUG-1763429712762-d40dimuly",
+      "timestamp": "2025-11-18T01:35:12.762Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Not Created",
+      "description": "Failed to create FRONTERA character",
+      "reproduction": null,
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-2-Pioneer-bug-3-2025-11-18T01-35-12-762Z.png"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "IMMEDIATE",
+      "action": "Fix all P0 blockers before any other work",
+      "details": "Found 2 game-breaking bugs that prevent basic functionality"
+    },
+    {
+      "priority": "HIGH",
+      "action": "Address critical bugs in next sprint",
+      "details": "4 critical bugs affecting major features"
+    }
+  ]
+}

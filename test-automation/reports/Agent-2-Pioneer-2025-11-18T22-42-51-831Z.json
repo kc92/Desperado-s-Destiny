@@ -1,0 +1,143 @@
+{
+  "agent": "Agent-2-Pioneer",
+  "timestamp": "2025-11-18T22:42:51.831Z",
+  "duration": "130s",
+  "errors": 8,
+  "bugs": 3,
+  "screenshots": 7,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 3,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 2,
+    "Console Error": 4,
+    "Element Not Found": 2
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T22:40:42.960Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:40:42.961Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:40:42.961Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:41:11.598Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:41:11.598Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:41:11.599Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:42:18.015Z",
+        "type": "Element Not Found",
+        "message": "Selector not found: input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]",
+        "details": "Waiting for selector `input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]` failed",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T22:42:51.090Z",
+        "type": "Element Not Found",
+        "message": "Selector not found: input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]",
+        "details": "Waiting for selector `input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]` failed",
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-2-Pioneer"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763505704940-b3vfl120n",
+        "timestamp": "2025-11-18T22:41:44.940Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Not Created",
+        "description": "Failed to create NAHI_COALITION character",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T22-41-44-940Z.png"
+      },
+      {
+        "id": "BUG-1763505738015-wxlscxotv",
+        "timestamp": "2025-11-18T22:42:18.015Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Name Input Missing",
+        "description": "Cannot find character name input",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T22-42-18-015Z.png"
+      },
+      {
+        "id": "BUG-1763505771090-xe88zn5mi",
+        "timestamp": "2025-11-18T22:42:51.090Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Name Input Missing",
+        "description": "Cannot find character name input",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T22-42-51-090Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-2-Pioneer-registration-form-filled-2025-11-18T22-41-06-544Z.png",
+      "Agent-2-Pioneer-existing-characters-2025-11-18T22-41-26-392Z.png",
+      "Agent-2-Pioneer-character-creation-NAHI_COALITION-step1-2025-11-18T22-41-35-527Z.png",
+      "Agent-2-Pioneer-character-creation-NAHI_COALITION-step2-2025-11-18T22-41-40-047Z.png",
+      "Agent-2-Pioneer-bug-0-2025-11-18T22-41-44-940Z.png",
+      "Agent-2-Pioneer-bug-1-2025-11-18T22-42-18-015Z.png",
+      "Agent-2-Pioneer-bug-2-2025-11-18T22-42-51-090Z.png"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "botName": "EconomyBot-Merchant",
+  "reportTime": "2025-11-27T15:05:23.049Z",
+  "summary": {
+    "totalUptime": 1725514,
+    "totalActions": 0,
+    "totalErrors": 0,
+    "restartCount": 57,
+    "healthChecks": 0
+  },
+  "healthHistory": []
+}

@@ -1,0 +1,43 @@
+{
+  "botName": "SocialBot-Storyteller",
+  "startTime": 1764215532675,
+  "totalActions": 5,
+  "actionCounts": {
+    "login": 1,
+    "character_select": 1,
+    "lore_reading": 1,
+    "location_visit": 1,
+    "notifications_check": 1
+  },
+  "actionHistory": [
+    {
+      "action": "login",
+      "timestamp": 1764215549646
+    },
+    {
+      "action": "character_select",
+      "timestamp": 1764215566108
+    },
+    {
+      "action": "lore_reading",
+      "timestamp": 1764215768752
+    },
+    {
+      "action": "location_visit",
+      "timestamp": 1764215795820,
+      "metadata": {
+        "location": "saloon"
+      }
+    },
+    {
+      "action": "notifications_check",
+      "timestamp": 1764215830679,
+      "metadata": {
+        "count": 0
+      }
+    }
+  ],
+  "errors": 40,
+  "endTime": 1764245969434,
+  "sessionDuration": 30436759
+}

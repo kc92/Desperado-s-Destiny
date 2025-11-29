@@ -1,0 +1,130 @@
+{
+  "agent": "Agent-2-Pioneer",
+  "timestamp": "2025-11-18T12:36:08.553Z",
+  "duration": "100s",
+  "errors": 6,
+  "bugs": 3,
+  "screenshots": 11,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 3,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 2,
+    "Console Error": 4
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T12:34:29.809Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T12:34:29.810Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T12:34:29.810Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T12:34:58.397Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T12:34:58.398Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T12:34:58.398Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763469331634-vtittftbu",
+        "timestamp": "2025-11-18T12:35:31.634Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Not Created",
+        "description": "Failed to create NAHI_COALITION character",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T12-35-31-634Z.png"
+      },
+      {
+        "id": "BUG-1763469349729-o7ngqkfih",
+        "timestamp": "2025-11-18T12:35:49.729Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Not Created",
+        "description": "Failed to create SETTLER_ALLIANCE character",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T12-35-49-729Z.png"
+      },
+      {
+        "id": "BUG-1763469367822-bkbbczcfh",
+        "timestamp": "2025-11-18T12:36:07.822Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Not Created",
+        "description": "Failed to create FRONTERA character",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T12-36-07-822Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-2-Pioneer-registration-form-filled-2025-11-18T12-34-53-333Z.png",
+      "Agent-2-Pioneer-existing-characters-2025-11-18T12-35-13-041Z.png",
+      "Agent-2-Pioneer-character-creation-NAHI_COALITION-step1-2025-11-18T12-35-23-389Z.png",
+      "Agent-2-Pioneer-character-creation-NAHI_COALITION-step2-2025-11-18T12-35-27-032Z.png",
+      "Agent-2-Pioneer-bug-0-2025-11-18T12-35-31-634Z.png",
+      "Agent-2-Pioneer-character-creation-SETTLER_ALLIANCE-step1-2025-11-18T12-35-41-505Z.png",
+      "Agent-2-Pioneer-character-creation-SETTLER_ALLIANCE-step2-2025-11-18T12-35-45-102Z.png",
+      "Agent-2-Pioneer-bug-1-2025-11-18T12-35-49-729Z.png",
+      "Agent-2-Pioneer-character-creation-FRONTERA-step1-2025-11-18T12-35-59-599Z.png",
+      "Agent-2-Pioneer-character-creation-FRONTERA-step2-2025-11-18T12-36-03-212Z.png",
+      "Agent-2-Pioneer-bug-2-2025-11-18T12-36-07-822Z.png"
+    ]
+  }
+}

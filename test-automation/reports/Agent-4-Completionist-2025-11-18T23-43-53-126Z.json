@@ -1,0 +1,568 @@
+{
+  "agent": "Agent-4-Completionist",
+  "timestamp": "2025-11-18T23:43:53.125Z",
+  "duration": "55s",
+  "errors": 42,
+  "bugs": 9,
+  "screenshots": 20,
+  "bugsByPriority": {
+    "P0": 1,
+    "P1": 7,
+    "P2": 1,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 13,
+    "Console Error": 28,
+    "Login Failed": 1
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T23:42:59.303Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:42:59.305Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:42:59.305Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:02.838Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:02.838Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:02.852Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:14.246Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/login",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:14.247Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/login"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:14.247Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:14.247Z",
+        "type": "Console Error",
+        "message": "[AUTH STORE DEBUG] Login error: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/store/useAuthStore.ts",
+          "lineNumber": 30,
+          "columnNumber": 18
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:14.248Z",
+        "type": "Console Error",
+        "message": "[LOGIN DEBUG] Login failed with error: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/pages/Login.tsx",
+          "lineNumber": 86,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:17.311Z",
+        "type": "Login Failed",
+        "message": "Failed to login as pioneer@test.com",
+        "details": "Ended up at http://localhost:3001/login",
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:17.697Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:17.698Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:17.698Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:21.175Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:21.175Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:21.175Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:24.799Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:24.799Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:24.799Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:28.435Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:28.435Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:28.435Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:31.987Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:31.988Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:31.988Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:35.663Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:35.664Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:35.664Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:39.110Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:39.110Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:39.110Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:42.380Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:42.380Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:42.380Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:46.153Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:46.153Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:46.153Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:49.686Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:49.686Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      },
+      {
+        "timestamp": "2025-11-18T23:43:49.687Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Completionist"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763509397312-rttpycrn2",
+        "timestamp": "2025-11-18T23:43:17.312Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P0",
+        "title": "Login failed",
+        "description": "Could not authenticate test user",
+        "reproduction": null,
+        "url": "http://localhost:3001/login",
+        "screenshot": "Agent-4-Completionist-bug-0-2025-11-18T23-43-17-312Z.png"
+      },
+      {
+        "id": "BUG-1763509400631-krsfbelu7",
+        "timestamp": "2025-11-18T23:43:20.631Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P1",
+        "title": "Dashboard missing critical stats",
+        "description": "Missing: level, gold, energy",
+        "reproduction": null,
+        "url": "http://localhost:3001/login",
+        "screenshot": "Agent-4-Completionist-bug-1-2025-11-18T23-43-20-631Z.png"
+      },
+      {
+        "id": "BUG-1763509400804-ot4vwgmgq",
+        "timestamp": "2025-11-18T23:43:20.804Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P2",
+        "title": "Dashboard navigation incomplete",
+        "description": "Expected 10+ nav cards, found 0",
+        "reproduction": null,
+        "url": "http://localhost:3001/login",
+        "screenshot": "Agent-4-Completionist-bug-2-2025-11-18T23-43-20-804Z.png"
+      },
+      {
+        "id": "BUG-1763509404429-gdoz1ghy0",
+        "timestamp": "2025-11-18T23:43:24.429Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P1",
+        "title": "No actions found",
+        "description": "Actions page has no action cards",
+        "reproduction": null,
+        "url": "http://localhost:3001/login",
+        "screenshot": "Agent-4-Completionist-bug-3-2025-11-18T23-43-24-429Z.png"
+      },
+      {
+        "id": "BUG-1763509408050-eonrw4xee",
+        "timestamp": "2025-11-18T23:43:28.050Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P1",
+        "title": "Crimes interface not found",
+        "description": "Crimes page missing core UI",
+        "reproduction": null,
+        "url": "http://localhost:3001/login",
+        "screenshot": "Agent-4-Completionist-bug-4-2025-11-18T23-43-28-050Z.png"
+      },
+      {
+        "id": "BUG-1763509415261-rfqxe60r2",
+        "timestamp": "2025-11-18T23:43:35.261Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P1",
+        "title": "Skills interface not found",
+        "description": "Skills page missing core UI",
+        "reproduction": null,
+        "url": "http://localhost:3001/login",
+        "screenshot": "Agent-4-Completionist-bug-5-2025-11-18T23-43-35-261Z.png"
+      },
+      {
+        "id": "BUG-1763509421998-jf1dtw94y",
+        "timestamp": "2025-11-18T23:43:41.998Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P1",
+        "title": "Gang interface not found",
+        "description": "Gang page missing core UI",
+        "reproduction": null,
+        "url": "http://localhost:3001/login",
+        "screenshot": "Agent-4-Completionist-bug-6-2025-11-18T23-43-41-998Z.png"
+      },
+      {
+        "id": "BUG-1763509425669-lhanb8mwm",
+        "timestamp": "2025-11-18T23:43:45.669Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P1",
+        "title": "Leaderboard interface not found",
+        "description": "Leaderboard page missing core UI",
+        "reproduction": null,
+        "url": "http://localhost:3001/login",
+        "screenshot": "Agent-4-Completionist-bug-7-2025-11-18T23-43-45-669Z.png"
+      },
+      {
+        "id": "BUG-1763509432938-x33g1xkuq",
+        "timestamp": "2025-11-18T23:43:52.938Z",
+        "agent": "Agent-4-Completionist",
+        "severity": "P1",
+        "title": "Friends interface not found",
+        "description": "Friends page missing core UI",
+        "reproduction": null,
+        "url": "http://localhost:3001/login",
+        "screenshot": "Agent-4-Completionist-bug-8-2025-11-18T23-43-52-938Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-4-Completionist-01-login-page-2025-11-18T23-43-01-179Z.png",
+      "Agent-4-Completionist-bug-0-2025-11-18T23-43-17-312Z.png",
+      "Agent-4-Completionist-04-dashboard-2025-11-18T23-43-20-394Z.png",
+      "Agent-4-Completionist-bug-1-2025-11-18T23-43-20-631Z.png",
+      "Agent-4-Completionist-bug-2-2025-11-18T23-43-20-804Z.png",
+      "Agent-4-Completionist-05-actions-page-2025-11-18T23-43-24-199Z.png",
+      "Agent-4-Completionist-bug-3-2025-11-18T23-43-24-429Z.png",
+      "Agent-4-Completionist-06-crimes-page-2025-11-18T23-43-27-808Z.png",
+      "Agent-4-Completionist-bug-4-2025-11-18T23-43-28-050Z.png",
+      "Agent-4-Completionist-07-combat-page-2025-11-18T23-43-31-464Z.png",
+      "Agent-4-Completionist-08-skills-page-2025-11-18T23-43-35-012Z.png",
+      "Agent-4-Completionist-bug-5-2025-11-18T23-43-35-261Z.png",
+      "Agent-4-Completionist-09-territory-page-2025-11-18T23-43-38-682Z.png",
+      "Agent-4-Completionist-10-gang-page-2025-11-18T23-43-41-765Z.png",
+      "Agent-4-Completionist-bug-6-2025-11-18T23-43-41-998Z.png",
+      "Agent-4-Completionist-11-leaderboard-page-2025-11-18T23-43-45-406Z.png",
+      "Agent-4-Completionist-bug-7-2025-11-18T23-43-45-669Z.png",
+      "Agent-4-Completionist-12-mail-page-2025-11-18T23-43-49-196Z.png",
+      "Agent-4-Completionist-13-friends-page-2025-11-18T23-43-52-705Z.png",
+      "Agent-4-Completionist-bug-8-2025-11-18T23-43-52-938Z.png"
+    ]
+  }
+}

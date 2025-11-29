@@ -6,7 +6,11 @@
 
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { authRateLimiter } from '../middleware/rateLimiter';
+import {
+  loginRateLimiter,
+  registrationRateLimiter,
+  passwordResetRateLimiter
+} from '../middleware/rateLimiter';
 import { requireAuth } from '../middleware/auth.middleware';
 import {
   register,
@@ -15,16 +19,13 @@ import {
   logout,
   getCurrentUser,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  getPreferences,
+  updatePreferences,
+  checkUsername
 } from '../controllers/auth.controller';
 
 const router = Router();
-
-/**
- * Apply rate limiting to all auth routes
- * 5 requests per 15 minutes per IP
- */
-router.use(authRateLimiter);
 
 /**
  * POST /api/auth/register
@@ -38,8 +39,23 @@ router.use(authRateLimiter);
  * - 201: User registered successfully
  * - 400: Validation error
  * - 409: Email already exists
+ *
+ * Rate limited: 3 requests per hour (strict to prevent spam)
  */
-router.post('/register', asyncHandler(register));
+/**
+ * GET /api/auth/check-username
+ * Check if username is available
+ *
+ * Query:
+ * - username: string (required, 3-20 chars, alphanumeric + underscore)
+ *
+ * Response:
+ * - 200: { available: boolean }
+ * - 400: Invalid username format
+ */
+router.get('/check-username', asyncHandler(checkUsername));
+
+router.post('/register', registrationRateLimiter, asyncHandler(register));
 
 /**
  * POST /api/auth/verify-email
@@ -66,8 +82,10 @@ router.post('/verify-email', asyncHandler(verifyEmail));
  * - 200: Login successful (sets httpOnly cookie)
  * - 401: Invalid credentials
  * - 403: Email not verified or account inactive
+ *
+ * Rate limited: 5 requests per 15 minutes (prevents brute force)
  */
-router.post('/login', asyncHandler(login));
+router.post('/login', loginRateLimiter, asyncHandler(login));
 
 /**
  * POST /api/auth/logout
@@ -100,8 +118,10 @@ router.get('/me', requireAuth, asyncHandler(getCurrentUser));
  *
  * Response:
  * - 200: Reset link sent (always, to prevent email enumeration)
+ *
+ * Rate limited: 3 requests per hour (prevents spam and enumeration)
  */
-router.post('/forgot-password', asyncHandler(forgotPassword));
+router.post('/forgot-password', passwordResetRateLimiter, asyncHandler(forgotPassword));
 
 /**
  * POST /api/auth/reset-password
@@ -114,7 +134,39 @@ router.post('/forgot-password', asyncHandler(forgotPassword));
  * Response:
  * - 200: Password reset successfully
  * - 400: Invalid token or password validation failed
+ *
+ * Rate limited: 3 requests per hour (prevents abuse)
  */
-router.post('/reset-password', asyncHandler(resetPassword));
+router.post('/reset-password', passwordResetRateLimiter, asyncHandler(resetPassword));
+
+/**
+ * GET /api/auth/preferences
+ * Get user preferences
+ *
+ * Headers:
+ * - Cookie: token=<jwt>
+ *
+ * Response:
+ * - 200: User preferences
+ * - 401: Not authenticated
+ */
+router.get('/preferences', requireAuth, asyncHandler(getPreferences));
+
+/**
+ * PUT /api/auth/preferences
+ * Update user preferences
+ *
+ * Headers:
+ * - Cookie: token=<jwt>
+ *
+ * Body:
+ * - notifications: object (optional)
+ * - privacy: object (optional)
+ *
+ * Response:
+ * - 200: Preferences updated
+ * - 401: Not authenticated
+ */
+router.put('/preferences', requireAuth, asyncHandler(updatePreferences));
 
 export default router;

@@ -1,0 +1,198 @@
+{
+  "agent": "Agent-2-Pioneer",
+  "timestamp": "2025-11-18T01:41:04.350Z",
+  "duration": "50s",
+  "errors": 12,
+  "bugs": 4,
+  "screenshots": 5,
+  "bugsByPriority": {
+    "P0": 2,
+    "P1": 2,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 3,
+    "Console Error": 8,
+    "Login Failed": 1
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T01:40:16.137Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:40:16.137Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:40:16.144Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:40:44.695Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:40:44.695Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:40:44.695Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:40:56.539Z",
+        "type": "HTTP Error",
+        "message": "429 - http://localhost:3000/api/auth/login",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:40:56.539Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/login"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:40:56.539Z",
+        "type": "Console Error",
+        "message": "[API Error 429] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:40:56.539Z",
+        "type": "Console Error",
+        "message": "[AUTH STORE DEBUG] Login error: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/store/useAuthStore.ts?t=1763427285554",
+          "lineNumber": 30,
+          "columnNumber": 18
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:40:56.553Z",
+        "type": "Console Error",
+        "message": "[LOGIN DEBUG] Login failed with error: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/pages/Login.tsx?t=1763427620347",
+          "lineNumber": 86,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T01:40:59.612Z",
+        "type": "Login Failed",
+        "message": "Failed to login as test@desperados.com",
+        "details": "Ended up at http://localhost:3000/login",
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-2-Pioneer"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763430044183-0hfq785d5",
+        "timestamp": "2025-11-18T01:40:44.183Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Registration Flow Issue",
+        "description": "Unexpected redirect to http://localhost:3000/register",
+        "reproduction": null,
+        "url": "http://localhost:3000/register",
+        "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T01-40-44-183Z.png"
+      },
+      {
+        "id": "BUG-1763430059612-ci0rh7v14",
+        "timestamp": "2025-11-18T01:40:59.612Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P0",
+        "title": "Login Failed",
+        "description": "Cannot login with existing test user",
+        "reproduction": null,
+        "url": "http://localhost:3000/login",
+        "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T01-40-59-612Z.png"
+      },
+      {
+        "id": "BUG-1763430062380-33chtjbdm",
+        "timestamp": "2025-11-18T01:41:02.380Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Creator Modal Issue",
+        "description": "Modal did not open",
+        "reproduction": null,
+        "url": "http://localhost:3000/register",
+        "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T01-41-02-380Z.png"
+      },
+      {
+        "id": "BUG-1763430063576-bl7h2h5cv",
+        "timestamp": "2025-11-18T01:41:03.576Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P0",
+        "title": "Create Button Missing",
+        "description": "Cannot find create character button",
+        "reproduction": null,
+        "url": "http://localhost:3000/register",
+        "screenshot": "Agent-2-Pioneer-bug-3-2025-11-18T01-41-03-576Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-2-Pioneer-registration-form-filled-2025-11-18T01-40-39-681Z.png",
+      "Agent-2-Pioneer-bug-0-2025-11-18T01-40-44-183Z.png",
+      "Agent-2-Pioneer-bug-1-2025-11-18T01-40-59-612Z.png",
+      "Agent-2-Pioneer-bug-2-2025-11-18T01-41-02-380Z.png",
+      "Agent-2-Pioneer-bug-3-2025-11-18T01-41-03-576Z.png"
+    ]
+  }
+}

@@ -24,13 +24,12 @@ export function generateToken(
   payload: Omit<TokenPayload, 'iat' | 'exp'>,
   options?: TokenOptions
 ): string {
-  const expiresIn = options?.expiresIn || config.jwt.expire;
-
   try {
+    // @ts-ignore - TypeScript has issues with jwt.sign overload matching
     const token = jwt.sign(
       payload,
       config.jwt.secret,
-      { expiresIn }
+      { expiresIn: options?.expiresIn || config.jwt.expiresIn }
     );
 
     return token;

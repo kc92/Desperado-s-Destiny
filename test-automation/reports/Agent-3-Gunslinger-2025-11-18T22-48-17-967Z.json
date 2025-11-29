@@ -1,0 +1,467 @@
+{
+  "agent": "Agent-3-Gunslinger",
+  "timestamp": "2025-11-18T22:48:17.966Z",
+  "duration": "26s",
+  "errors": 32,
+  "bugs": 8,
+  "screenshots": 11,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 1,
+    "P2": 7,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 7,
+    "Console Error": 25
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T22:47:53.543Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:47:53.545Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:47:53.545Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:47:54.506Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:47:54.506Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/auth/me"
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:47:54.507Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/login",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:09.493Z",
+        "type": "HTTP Error",
+        "message": "500 - http://localhost:3000/api/characters/691cf430334e2eac929b5b5c/select",
+        "details": null,
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:09.494Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "details": {
+          "url": "http://localhost:3000/api/characters/691cf430334e2eac929b5b5c/select"
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:09.494Z",
+        "type": "Console Error",
+        "message": "[API Error 500] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:09.494Z",
+        "type": "Console Error",
+        "message": "Internal server error",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 46,
+          "columnNumber": 18
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:09.494Z",
+        "type": "Console Error",
+        "message": "Failed to select character: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/store/useGameStore.ts",
+          "lineNumber": 118,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:09.494Z",
+        "type": "Console Error",
+        "message": "Failed to select character: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/pages/CharacterSelect.tsx?t=1763505953755",
+          "lineNumber": 53,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/characters",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.488Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/actions",
+        "details": null,
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.488Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/actions"
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.488Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.488Z",
+        "type": "Console Error",
+        "message": "Failed to get actions: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/services/action.service.ts",
+          "lineNumber": 16,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.488Z",
+        "type": "Console Error",
+        "message": "Failed to fetch actions: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3000/src/store/useGameStore.ts",
+          "lineNumber": 266,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.488Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/skills",
+        "details": null,
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.488Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/skills"
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.488Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.489Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.489Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3000/src/store/useGameStore.ts",
+          "lineNumber": 337,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.489Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/actions",
+        "details": null,
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.489Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/actions"
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.489Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.489Z",
+        "type": "Console Error",
+        "message": "Failed to get actions: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/services/action.service.ts",
+          "lineNumber": 16,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.489Z",
+        "type": "Console Error",
+        "message": "Failed to fetch actions: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3000/src/store/useGameStore.ts",
+          "lineNumber": 266,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.503Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3000/api/skills",
+        "details": null,
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.503Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3000/api/skills"
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.504Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3000/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.504Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3000/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      },
+      {
+        "timestamp": "2025-11-18T22:48:14.504Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3000/src/store/useGameStore.ts",
+          "lineNumber": 337,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3000/character-select",
+        "agent": "Agent-3-Gunslinger"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763506092675-lhgvd2r5l",
+        "timestamp": "2025-11-18T22:48:12.675Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P1",
+        "title": "Not navigated to game",
+        "description": "Current URL: http://localhost:3000/characters",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-0-2025-11-18T22-48-12-675Z.png"
+      },
+      {
+        "id": "BUG-1763506092889-1e5lj17fp",
+        "timestamp": "2025-11-18T22:48:12.889Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Missing navigation links",
+        "description": "Only found 0 nav links",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-1-2025-11-18T22-48-12-889Z.png"
+      },
+      {
+        "id": "BUG-1763506093137-0020e7yy0",
+        "timestamp": "2025-11-18T22:48:13.137Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Actions",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-2-2025-11-18T22-48-13-137Z.png"
+      },
+      {
+        "id": "BUG-1763506093370-ouch8in45",
+        "timestamp": "2025-11-18T22:48:13.370Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Crimes",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-3-2025-11-18T22-48-13-370Z.png"
+      },
+      {
+        "id": "BUG-1763506093602-fstc04jhk",
+        "timestamp": "2025-11-18T22:48:13.602Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Territory",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-4-2025-11-18T22-48-13-602Z.png"
+      },
+      {
+        "id": "BUG-1763506093837-i8kuzpfad",
+        "timestamp": "2025-11-18T22:48:13.837Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Gang",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-5-2025-11-18T22-48-13-837Z.png"
+      },
+      {
+        "id": "BUG-1763506094085-jojrsvb7v",
+        "timestamp": "2025-11-18T22:48:14.085Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Cannot navigate to Leaderboard",
+        "description": "Navigation element not found or not clickable",
+        "reproduction": null,
+        "url": "http://localhost:3000/characters",
+        "screenshot": "Agent-3-Gunslinger-bug-6-2025-11-18T22-48-14-085Z.png"
+      },
+      {
+        "id": "BUG-1763506097793-ffj5pv1sj",
+        "timestamp": "2025-11-18T22:48:17.793Z",
+        "agent": "Agent-3-Gunslinger",
+        "severity": "P2",
+        "title": "Stats not displayed",
+        "description": "Character stats not visible",
+        "reproduction": null,
+        "url": "http://localhost:3000/character-select",
+        "screenshot": "Agent-3-Gunslinger-bug-7-2025-11-18T22-48-17-793Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-3-Gunslinger-after-login-2025-11-18T22-48-09-168Z.png",
+      "Agent-3-Gunslinger-character-selected-2025-11-18T22-48-12-493Z.png",
+      "Agent-3-Gunslinger-bug-0-2025-11-18T22-48-12-675Z.png",
+      "Agent-3-Gunslinger-bug-1-2025-11-18T22-48-12-889Z.png",
+      "Agent-3-Gunslinger-bug-2-2025-11-18T22-48-13-137Z.png",
+      "Agent-3-Gunslinger-bug-3-2025-11-18T22-48-13-370Z.png",
+      "Agent-3-Gunslinger-bug-4-2025-11-18T22-48-13-602Z.png",
+      "Agent-3-Gunslinger-bug-5-2025-11-18T22-48-13-837Z.png",
+      "Agent-3-Gunslinger-bug-6-2025-11-18T22-48-14-085Z.png",
+      "Agent-3-Gunslinger-dashboard-complete-2025-11-18T22-48-17-560Z.png",
+      "Agent-3-Gunslinger-bug-7-2025-11-18T22-48-17-793Z.png"
+    ]
+  }
+}

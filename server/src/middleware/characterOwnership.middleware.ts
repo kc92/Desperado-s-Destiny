@@ -14,11 +14,13 @@ import logger from '../utils/logger';
  */
 export interface CharacterRequest extends AuthRequest {
   character?: ICharacter;
+  characterId?: string;
 }
 
 /**
  * Middleware to verify character ownership
  * Requires requireAuth to be used first
+ * Checks for characterId in query params, body, or route params
  */
 export async function requireCharacterOwnership(
   req: CharacterRequest,
@@ -26,7 +28,8 @@ export async function requireCharacterOwnership(
   next: NextFunction
 ): Promise<void> {
   try {
-    const characterId = req.params['id'];
+    // Check for characterId in query params, body, or route params
+    const characterId = req.query.characterId as string || req.body.characterId || req.params['id'];
     const userId = req.user?._id;
 
     // Ensure user is authenticated
@@ -38,11 +41,36 @@ export async function requireCharacterOwnership(
       return;
     }
 
+    // If no characterId provided, try to get the most recent active character
+    if (!characterId) {
+      logger.debug(`[requireCharacter] Finding character for userId: ${userId}`);
+      const characters = await Character.find({
+        userId: userId,
+        isActive: true
+      }).sort({ lastActive: -1 }).limit(1);
+
+      logger.debug(`[requireCharacter] Found ${characters?.length || 0} characters`);
+
+      if (!characters || characters.length === 0) {
+        res.status(400).json({
+          success: false,
+          error: 'No active character found. Please select a character or provide characterId parameter.'
+        });
+        return;
+      }
+
+      req.character = characters[0];
+      req.characterId = characters[0]._id.toString();
+      logger.debug(`[requireCharacter] Set characterId: ${req.characterId}`);
+      next();
+      return;
+    }
+
     // Validate character ID format
-    if (!characterId || !characterId.match(/^[0-9a-fA-F]{24}$/)) {
+    if (!characterId.match(/^[0-9a-fA-F]{24}$/)) {
       res.status(400).json({
         success: false,
-        error: 'Invalid character ID'
+        error: 'Invalid character ID format'
       });
       return;
     }
@@ -73,6 +101,7 @@ export async function requireCharacterOwnership(
 
     // Attach character to request for use in route handler
     req.character = character;
+    req.characterId = character._id.toString();
     next();
   } catch (error) {
     logger.error('Character ownership verification error:', error);
@@ -82,3 +111,7 @@ export async function requireCharacterOwnership(
     });
   }
 }
+
+// Aliases for simpler imports
+export const requireCharacter = requireCharacterOwnership;
+export const characterOwnership = requireCharacterOwnership;

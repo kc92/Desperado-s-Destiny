@@ -1,22 +1,22 @@
 /**
- * Authentication Middleware
+ * DEPRECATED: This file is deprecated. Use auth.middleware.ts instead.
  *
- * Verifies JWT tokens and attaches user data to requests
+ * This file remains for type compatibility only.
+ * All middleware imports should use '../middleware/auth.middleware'
  */
 
 import { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { config } from '../config';
 import logger from '../utils/logger';
+import { SafeUser } from '@desperados/shared';
 
 /**
+ * @deprecated Use AuthenticatedRequest from auth.middleware.ts instead
  * Extended request interface with user data
  */
 export interface AuthRequest extends Request {
-  user?: {
-    _id: string;
-    email: string;
-  };
+  user?: SafeUser & { _id: string; characterId?: string };
 }
 
 /**
@@ -52,7 +52,11 @@ export async function requireAuth(
     // Attach user to request
     req.user = {
       _id: decoded.userId,
-      email: decoded.email
+      email: decoded.email,
+      emailVerified: true,
+      role: 'user', // Default role
+      createdAt: new Date(),
+      lastLogin: new Date()
     };
 
     next();

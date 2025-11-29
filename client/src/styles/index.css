@@ -1,0 +1,228 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles for Desperados Destiny */
+@layer base {
+  body {
+    @apply bg-desert-sand text-western-text font-sans;
+    background-image:
+      linear-gradient(to bottom, rgba(230, 213, 184, 0.9), rgba(230, 213, 184, 0.95)),
+      url('data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence baseFrequency="0.9" /%3E%3C/filter%3E%3Crect width="100" height="100" filter="url(%23noise)" opacity="0.03" /%3E%3C/svg%3E');
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-western;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 12px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-wood-light;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-wood-dark rounded;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-leather-brown;
+  }
+}
+
+/* Custom component styles */
+@layer components {
+  /* Wood panel effect */
+  .wood-panel {
+    @apply bg-wood-medium border-4 border-wood-dark rounded-lg shadow-wood p-6;
+    background-image: url('data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence baseFrequency="0.9" /%3E%3C/filter%3E%3Crect width="100" height="100" filter="url(%23noise)" opacity="0.05" /%3E%3C/svg%3E');
+  }
+
+  /* Leather panel effect */
+  .leather-panel {
+    @apply bg-leather-brown border-4 border-leather-saddle rounded-lg shadow-leather p-6;
+    background-image: linear-gradient(135deg, transparent 24%, rgba(0, 0, 0, .05) 25%, rgba(0, 0, 0, .05) 26%, transparent 27%, transparent 74%, rgba(0, 0, 0, .05) 75%, rgba(0, 0, 0, .05) 76%, transparent 77%, transparent);
+    background-size: 50px 50px;
+  }
+
+  /* Parchment/paper effect */
+  .parchment {
+    @apply bg-desert-sand border-2 border-desert-clay rounded shadow-md;
+    background-image:
+      linear-gradient(to bottom, rgba(230, 213, 184, 0.95), rgba(200, 185, 161, 0.95)),
+      url('data:image/svg+xml,%3Csvg width="100" height="100" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence baseFrequency="0.8" /%3E%3C/filter%3E%3Crect width="100" height="100" filter="url(%23noise)" opacity="0.08" /%3E%3C/svg%3E');
+  }
+
+  /* Western button base */
+  .btn-western {
+    @apply font-western font-bold py-3 px-6 rounded-lg transition-all duration-200;
+    @apply border-2 shadow-md hover:shadow-lg;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Card component styling */
+  .playing-card {
+    @apply bg-white border-2 border-gray-800 rounded-lg shadow-lg;
+    @apply transition-transform duration-200 hover:scale-105;
+    aspect-ratio: 5/7;
+  }
+
+  /* 3D card flip animations */
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+
+  /* Input field styling */
+  .input-western {
+    @apply w-full px-4 py-3 rounded-lg;
+    @apply bg-desert-dust border-2 border-wood-light;
+    @apply text-western-text placeholder-wood-grain;
+    @apply focus:outline-none focus:ring-2 focus:ring-gold-medium focus:border-transparent;
+    @apply transition-all duration-200;
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  /* Accessibility - Screen Reader Only */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .sr-only-focusable {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .sr-only-focusable:focus,
+  .sr-only-focusable:active {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Skip link styling */
+  .skip-link {
+    @apply sr-only-focusable;
+    @apply bg-gold-dark text-wood-dark font-western font-bold;
+    @apply py-3 px-6 rounded-lg;
+    @apply focus:fixed focus:top-4 focus:left-4 focus:z-50;
+    @apply focus:ring-4 focus:ring-gold-light;
+  }
+
+  /* Enhanced focus styles */
+  .focus-visible-gold:focus-visible {
+    @apply outline-none ring-4 ring-gold-light ring-offset-2;
+  }
+
+  .focus-visible-red:focus-visible {
+    @apply outline-none ring-4 ring-blood-red ring-offset-2;
+  }
+
+  /* Text shadows */
+  .text-shadow-gold {
+    text-shadow: 0 2px 4px rgba(184, 134, 11, 0.3);
+  }
+
+  .text-shadow-dark {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Ornamental dividers */
+  .divider-western {
+    @apply relative my-8;
+  }
+
+  .divider-western::before {
+    content: '';
+    @apply absolute left-0 right-0 top-1/2 h-px bg-wood-dark;
+  }
+
+  .divider-western::after {
+    content: '★';
+    @apply absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2;
+    @apply bg-desert-sand px-4 text-gold-medium;
+  }
+
+  /* Fade animations */
+  .fade-in {
+    animation: fadeIn 0.3s ease-in;
+  }
+
+  .slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  /* Zodiac star twinkle animation */
+  .animate-twinkle {
+    animation: twinkle 2s ease-in-out infinite;
+  }
+
+  /* Scale animations */
+  .hover\:scale-102:hover {
+    transform: scale(1.02);
+  }
+}
+
+/* Keyframe animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 15px currentColor, 0 0 25px currentColor;
+  }
+}

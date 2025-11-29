@@ -1,0 +1,177 @@
+{
+  "timestamp": "2025-11-18T01:38:19.782Z",
+  "duration": "82s",
+  "summary": {
+    "agentsRun": 2,
+    "successful": 2,
+    "failed": 0,
+    "totalBugs": 6,
+    "totalErrors": 28,
+    "totalScreenshots": 9
+  },
+  "bugsBySeverity": {
+    "P0": 4,
+    "P1": 2,
+    "P2": 0,
+    "P3": 0
+  },
+  "agentResults": [
+    {
+      "agent": "Scout",
+      "success": true,
+      "bugs": 2,
+      "errors": 16,
+      "critical": true
+    },
+    {
+      "agent": "Pioneer",
+      "success": true,
+      "bugs": 4,
+      "errors": 12,
+      "critical": false
+    }
+  ],
+  "criticalBugs": [
+    {
+      "id": "BUG-1763429818693-817yp2x13",
+      "timestamp": "2025-11-18T01:36:58.693Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Backend Offline",
+      "description": "Health check failed",
+      "reproduction": null,
+      "url": "about:blank",
+      "screenshot": "Agent-1-Scout-bug-0-2025-11-18T01-36-58-694Z.png"
+    },
+    {
+      "id": "BUG-1763429839689-gom4zhchr",
+      "timestamp": "2025-11-18T01:37:19.689Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Critical Systems Offline",
+      "description": "The following systems are not operational: Backend, Database",
+      "reproduction": "Restart services and check logs",
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-1-Scout-bug-1-2025-11-18T01-37-19-689Z.png"
+    },
+    {
+      "id": "BUG-1763429874397-da4qwv6xh",
+      "timestamp": "2025-11-18T01:37:54.397Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Registration Flow Issue",
+      "description": "Unexpected redirect to http://localhost:3000/register",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T01-37-54-397Z.png"
+    },
+    {
+      "id": "BUG-1763429889843-3qdj264ui",
+      "timestamp": "2025-11-18T01:38:09.843Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P0",
+      "title": "Login Failed",
+      "description": "Cannot login with existing test user",
+      "reproduction": null,
+      "url": "http://localhost:3000/login",
+      "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T01-38-09-843Z.png"
+    },
+    {
+      "id": "BUG-1763429892593-3vonnm4x2",
+      "timestamp": "2025-11-18T01:38:12.593Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Creator Modal Issue",
+      "description": "Modal did not open",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T01-38-12-593Z.png"
+    },
+    {
+      "id": "BUG-1763429893777-806g31wng",
+      "timestamp": "2025-11-18T01:38:13.777Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P0",
+      "title": "Create Button Missing",
+      "description": "Cannot find create character button",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-3-2025-11-18T01-38-13-777Z.png"
+    }
+  ],
+  "allBugs": [
+    {
+      "id": "BUG-1763429818693-817yp2x13",
+      "timestamp": "2025-11-18T01:36:58.693Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Backend Offline",
+      "description": "Health check failed",
+      "reproduction": null,
+      "url": "about:blank",
+      "screenshot": "Agent-1-Scout-bug-0-2025-11-18T01-36-58-694Z.png"
+    },
+    {
+      "id": "BUG-1763429839689-gom4zhchr",
+      "timestamp": "2025-11-18T01:37:19.689Z",
+      "agent": "Agent-1-Scout",
+      "severity": "P0",
+      "title": "Critical Systems Offline",
+      "description": "The following systems are not operational: Backend, Database",
+      "reproduction": "Restart services and check logs",
+      "url": "http://localhost:3000/characters",
+      "screenshot": "Agent-1-Scout-bug-1-2025-11-18T01-37-19-689Z.png"
+    },
+    {
+      "id": "BUG-1763429874397-da4qwv6xh",
+      "timestamp": "2025-11-18T01:37:54.397Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Registration Flow Issue",
+      "description": "Unexpected redirect to http://localhost:3000/register",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T01-37-54-397Z.png"
+    },
+    {
+      "id": "BUG-1763429889843-3qdj264ui",
+      "timestamp": "2025-11-18T01:38:09.843Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P0",
+      "title": "Login Failed",
+      "description": "Cannot login with existing test user",
+      "reproduction": null,
+      "url": "http://localhost:3000/login",
+      "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T01-38-09-843Z.png"
+    },
+    {
+      "id": "BUG-1763429892593-3vonnm4x2",
+      "timestamp": "2025-11-18T01:38:12.593Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P1",
+      "title": "Character Creator Modal Issue",
+      "description": "Modal did not open",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T01-38-12-593Z.png"
+    },
+    {
+      "id": "BUG-1763429893777-806g31wng",
+      "timestamp": "2025-11-18T01:38:13.777Z",
+      "agent": "Agent-2-Pioneer",
+      "severity": "P0",
+      "title": "Create Button Missing",
+      "description": "Cannot find create character button",
+      "reproduction": null,
+      "url": "http://localhost:3000/register",
+      "screenshot": "Agent-2-Pioneer-bug-3-2025-11-18T01-38-13-777Z.png"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "IMMEDIATE",
+      "action": "Fix all P0 blockers before any other work",
+      "details": "Found 4 game-breaking bugs that prevent basic functionality"
+    }
+  ]
+}

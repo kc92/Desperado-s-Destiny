@@ -1,0 +1,103 @@
+{
+  "agent": "Agent-2-Pioneer",
+  "timestamp": "2025-11-27T18:22:01.840Z",
+  "duration": "49s",
+  "errors": 5,
+  "bugs": 2,
+  "screenshots": 4,
+  "bugsByPriority": {
+    "P0": 1,
+    "P1": 1,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 1,
+    "Console Error": 3,
+    "Request Failed": 1
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-27T18:21:14.594Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:21:14.596Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:21:53.861Z",
+        "type": "Request Failed",
+        "message": "https://o4510426659487744.ingest.us.sentry.io/api/4510426660339712/envelope/?sentry_version=7&sentry_key=1498055fec0fa596067919bd41efe564&sentry_client=sentry.javascript.react%2F10.27.0 - net::ERR_ABORTED",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:21:53.862Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Encountered error running transport request: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T18:21:53.862Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Error while sending envelope: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1764267701198-l2d7npcxi",
+        "timestamp": "2025-11-27T18:21:41.198Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Registration Flow Issue",
+        "description": "Unexpected redirect to http://localhost:3001/characters",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-0-2025-11-27T18-21-41-198Z.png"
+      },
+      {
+        "id": "BUG-1764267721578-b2mq6fzgp",
+        "timestamp": "2025-11-27T18:22:01.578Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P0",
+        "title": "Pioneer Mission Failure",
+        "description": "SyntaxError: Failed to execute 'querySelectorAll' on 'Document': '[data-testid=\"character-play-button\"], button:contains(\"Play\")' is not a valid selector.",
+        "reproduction": "DOMException: SyntaxError: Failed to execute 'querySelectorAll' on 'Document': '[data-testid=\"character-play-button\"], button:contains(\"Play\")' is not a valid selector.\n    at evaluateHandle (evaluateHandle at CSSQueryHandler.queryAll (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\common\\QueryHandler.js:117:73), <anonymous>:1:15)\n    at #evaluate (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\cdp\\ExecutionContext.js:391:56)\n    at async ExecutionContext.evaluateHandle (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\cdp\\ExecutionContext.js:329:16)\n    at async IsolatedWorld.evaluateHandle (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\cdp\\IsolatedWorld.js:89:16)\n    at async CdpJSHandle.evaluateHandle (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\api\\JSHandle.js:157:20)\n    at async CdpElementHandle.evaluateHandle (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\api\\ElementHandle.js:354:20)\n    at async CSSQueryHandler.queryAll (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\common\\QueryHandler.js:117:59)\n    at async AsyncIterableUtil.collect (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\util\\AsyncIterableUtil.js:20:26)\n    at async #$$impl (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\api\\ElementHandle.js:451:20)\n    at async #$$ (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\api\\ElementHandle.js:270:28)",
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-1-2025-11-27T18-22-01-578Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-2-Pioneer-registration-form-filled-2025-11-27T18-21-36-747Z.png",
+      "Agent-2-Pioneer-bug-0-2025-11-27T18-21-41-198Z.png",
+      "Agent-2-Pioneer-existing-characters-2025-11-27T18-21-56-733Z.png",
+      "Agent-2-Pioneer-bug-1-2025-11-27T18-22-01-578Z.png"
+    ]
+  }
+}

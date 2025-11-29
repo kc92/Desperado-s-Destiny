@@ -1,0 +1,246 @@
+{
+  "agent": "Agent-2-Pioneer",
+  "timestamp": "2025-11-27T17:41:48.417Z",
+  "duration": "131s",
+  "errors": 16,
+  "bugs": 5,
+  "screenshots": 8,
+  "bugsByPriority": {
+    "P0": 1,
+    "P1": 4,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 3,
+    "Console Error": 8,
+    "Page Error": 2,
+    "Request Failed": 1,
+    "Element Not Found": 2
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-27T17:39:51.273Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:39:51.275Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:39:51.397Z",
+        "type": "Page Error",
+        "message": "Cannot access 'values' before initialization",
+        "details": "ReferenceError: Cannot access 'values' before initialization\n    at Register (http://localhost:3001/src/pages/Register.tsx:61:7)\n    at renderWithHooks (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:11548:26)\n    at updateFunctionComponent (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:14582:28)\n    at mountLazyComponent (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:14833:23)\n    at beginWork (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:15918:22)\n    at callCallback2 (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:3674:22)\n    at sentryWrapped (http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533:12870:17)\n    at invokeGuardedCallbackDev (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:3699:24)\n    at invokeGuardedCallback (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:3733:39)\n    at beginWork$1 (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:19765:15)",
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:39:51.412Z",
+        "type": "Page Error",
+        "message": "Cannot access 'values' before initialization",
+        "details": "ReferenceError: Cannot access 'values' before initialization\n    at Register (http://localhost:3001/src/pages/Register.tsx:61:7)\n    at renderWithHooks (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:11548:26)\n    at updateFunctionComponent (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:14582:28)\n    at mountLazyComponent (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:14833:23)\n    at beginWork (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:15918:22)\n    at callCallback2 (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:3674:22)\n    at sentryWrapped (http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533:12870:17)\n    at invokeGuardedCallbackDev (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:3699:24)\n    at invokeGuardedCallback (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:3733:39)\n    at beginWork$1 (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=c9188cef:19765:15)",
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:39:51.412Z",
+        "type": "Console Error",
+        "message": "The above error occurred in the <Register> component:\n\n    at Register (http://localhost:3001/src/pages/Register.tsx:27:20)\n    at RenderedRoute (http://localhost:3001/node_modules/.vite/deps/react-router-dom.js?v=ecf8eb9d:4108:5)\n    at Routes (http://localhost:3001/node_modules/.vite/deps/react-router-dom.js?v=ecf8eb9d:4578:5)\n    at Suspense\n    at Router (http://localhost:3001/node_modules/.vite/deps/react-router-dom.js?v=ecf8eb9d:4521:15)\n    at BrowserRouter (http://localhost:3001/node_modules/.vite/deps/react-router-dom.js?v=ecf8eb9d:5267:5)\n    at AnimationPreferencesProvider (http://localhost:3001/src/contexts/AnimationPreferencesContext.tsx:33:48)\n    at ErrorBoundary (http://localhost:3001/src/components/errors/ErrorBoundary.tsx:8:5)\n    at App (http://localhost:3001/src/App.tsx:97:67)\n\nReact will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:39:51.412Z",
+        "type": "Console Error",
+        "message": "ErrorBoundary caught an error: JSHandle@error JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/register",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:39:55.930Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:39:55.930Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:40:10.867Z",
+        "type": "Request Failed",
+        "message": "https://o4510426659487744.ingest.us.sentry.io/api/4510426660339712/envelope/?sentry_version=7&sentry_key=1498055fec0fa596067919bd41efe564&sentry_client=sentry.javascript.react%2F10.27.0 - net::ERR_ABORTED",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:40:10.868Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Encountered error running transport request: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:40:10.868Z",
+        "type": "Console Error",
+        "message": "Sentry Logger [error]: Error while sending envelope: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 345,
+          "columnNumber": 31
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:40:23.674Z",
+        "type": "HTTP Error",
+        "message": "400 - http://localhost:3001/api/characters/check-name?name=NAHI213873",
+        "details": null,
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:40:23.676Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "details": {
+          "url": "http://localhost:3001/api/characters/check-name?name=NAHI213873"
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:40:23.705Z",
+        "type": "Console Error",
+        "message": "Failed to check character name: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/node_modules/.vite/deps/@sentry_react.js?v=07676533",
+          "lineNumber": 7233,
+          "columnNumber": 37
+        },
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:41:10.117Z",
+        "type": "Element Not Found",
+        "message": "Selector not found: input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]",
+        "details": "Waiting for selector `input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]` failed",
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-27T17:41:43.666Z",
+        "type": "Element Not Found",
+        "message": "Selector not found: input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]",
+        "details": "Waiting for selector `input#character-name, input[name=\"name\"], input[placeholder*=\"name\"]` failed",
+        "url": "http://localhost:3001/characters",
+        "agent": "Agent-2-Pioneer"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1764265194187-2mq839vkr",
+        "timestamp": "2025-11-27T17:39:54.187Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P0",
+        "title": "Registration Form Broken",
+        "description": "Missing required form fields",
+        "reproduction": null,
+        "url": "http://localhost:3001/register",
+        "screenshot": "Agent-2-Pioneer-bug-0-2025-11-27T17-39-54-187Z.png"
+      },
+      {
+        "id": "BUG-1764265236820-xleauuhdd",
+        "timestamp": "2025-11-27T17:40:36.820Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Not Created",
+        "description": "Failed to create NAHI_COALITION character",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-1-2025-11-27T17-40-36-820Z.png"
+      },
+      {
+        "id": "BUG-1764265270118-dz07kyi8k",
+        "timestamp": "2025-11-27T17:41:10.119Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Name Input Missing",
+        "description": "Cannot find character name input",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-2-2025-11-27T17-41-10-120Z.png"
+      },
+      {
+        "id": "BUG-1764265303667-10knywjd5",
+        "timestamp": "2025-11-27T17:41:43.667Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Name Input Missing",
+        "description": "Cannot find character name input",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-3-2025-11-27T17-41-43-667Z.png"
+      },
+      {
+        "id": "BUG-1764265307179-gsgnkp9t2",
+        "timestamp": "2025-11-27T17:41:47.179Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P1",
+        "title": "Character Selection Failed",
+        "description": "Did not navigate to game after selecting character 1",
+        "reproduction": null,
+        "url": "http://localhost:3001/characters",
+        "screenshot": "Agent-2-Pioneer-bug-4-2025-11-27T17-41-47-179Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-2-Pioneer-bug-0-2025-11-27T17-39-54-187Z.png",
+      "Agent-2-Pioneer-existing-characters-2025-11-27T17-40-13-331Z.png",
+      "Agent-2-Pioneer-character-creation-NAHI_COALITION-step1-2025-11-27T17-40-25-366Z.png",
+      "Agent-2-Pioneer-character-creation-NAHI_COALITION-step2-2025-11-27T17-40-31-251Z.png",
+      "Agent-2-Pioneer-bug-1-2025-11-27T17-40-36-820Z.png",
+      "Agent-2-Pioneer-bug-2-2025-11-27T17-41-10-120Z.png",
+      "Agent-2-Pioneer-bug-3-2025-11-27T17-41-43-667Z.png",
+      "Agent-2-Pioneer-bug-4-2025-11-27T17-41-47-179Z.png"
+    ]
+  }
+}

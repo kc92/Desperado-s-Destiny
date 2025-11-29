@@ -1,0 +1,12 @@
+{
+  "botName": "CombatBot-Gunslinger",
+  "reportTime": "2025-11-27T14:38:29.629Z",
+  "summary": {
+    "totalUptime": 112098,
+    "totalActions": 0,
+    "totalErrors": 0,
+    "restartCount": 3,
+    "healthChecks": 0
+  },
+  "healthHistory": []
+}

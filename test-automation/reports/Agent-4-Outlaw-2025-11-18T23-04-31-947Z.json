@@ -1,0 +1,624 @@
+{
+  "agent": "Agent-4-Outlaw",
+  "timestamp": "2025-11-18T23:04:31.947Z",
+  "duration": "27s",
+  "errors": 54,
+  "bugs": 2,
+  "screenshots": 7,
+  "bugsByPriority": {
+    "P0": 0,
+    "P1": 2,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "HTTP Error": 10,
+    "Console Error": 39,
+    "Page Error": 5
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T23:04:06.325Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:06.326Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:06.326Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:07.341Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/auth/me",
+        "details": null,
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:07.341Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/auth/me"
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:07.342Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/login",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.401Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.470Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/actions",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.471Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/actions"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.471Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.471Z",
+        "type": "Console Error",
+        "message": "Failed to get actions: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/action.service.ts",
+          "lineNumber": 16,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.471Z",
+        "type": "Console Error",
+        "message": "Failed to fetch actions: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts",
+          "lineNumber": 267,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.479Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.479Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.480Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.480Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.480Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts",
+          "lineNumber": 338,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.489Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/actions",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.489Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/actions"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.490Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.490Z",
+        "type": "Console Error",
+        "message": "Failed to get actions: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/action.service.ts",
+          "lineNumber": 16,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.490Z",
+        "type": "Console Error",
+        "message": "Failed to fetch actions: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts",
+          "lineNumber": 267,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.496Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3001/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.508Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.508Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.508Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.508Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.508Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts",
+          "lineNumber": 338,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.538Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.553Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:22.553Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3001/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/game",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.970Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/actions",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.971Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/actions"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.971Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.971Z",
+        "type": "Console Error",
+        "message": "Failed to get actions: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/action.service.ts",
+          "lineNumber": 16,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.971Z",
+        "type": "Console Error",
+        "message": "Failed to fetch actions: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts",
+          "lineNumber": 267,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.976Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.976Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.976Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.976Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.976Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts",
+          "lineNumber": 338,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.979Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/actions",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.979Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/actions"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.981Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.981Z",
+        "type": "Console Error",
+        "message": "Failed to get actions: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/action.service.ts",
+          "lineNumber": 16,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.981Z",
+        "type": "Console Error",
+        "message": "Failed to fetch actions: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts",
+          "lineNumber": 267,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.987Z",
+        "type": "HTTP Error",
+        "message": "401 - http://localhost:3001/api/skills",
+        "details": null,
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.987Z",
+        "type": "Console Error",
+        "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "details": {
+          "url": "http://localhost:3001/api/skills"
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.989Z",
+        "type": "Console Error",
+        "message": "[API Error 401] An error occurred",
+        "details": {
+          "url": "http://localhost:3001/src/services/api.ts",
+          "lineNumber": 34,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.989Z",
+        "type": "Console Error",
+        "message": "Failed to get skills: JSHandle@object",
+        "details": {
+          "url": "http://localhost:3001/src/services/skill.service.ts",
+          "lineNumber": 10,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:28.989Z",
+        "type": "Console Error",
+        "message": "Failed to fetch skills: JSHandle@error",
+        "details": {
+          "url": "http://localhost:3001/src/store/useGameStore.ts",
+          "lineNumber": 338,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:29.045Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:29.046Z",
+        "type": "Page Error",
+        "message": "Not connected to chat server",
+        "details": "Error: Not connected to chat server\n    at joinRoom (http://localhost:3001/src/store/useChatStore.ts:227:13)\n    at <anonymous> (http://localhost:3001/src/components/chat/ChatWindow.tsx:70:7)\n    at commitHookEffectListMount (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:16915:34)\n    at commitPassiveMountOnFiber (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18156:19)\n    at commitPassiveMountEffects_complete (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18129:17)\n    at commitPassiveMountEffects_begin (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18119:15)\n    at commitPassiveMountEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:18109:11)\n    at flushPassiveEffectsImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19490:11)\n    at flushPassiveEffects (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19447:22)\n    at commitRootImpl (http://localhost:3001/node_modules/.vite/deps/chunk-6GSFWH52.js?v=4787ba51:19416:13)",
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      },
+      {
+        "timestamp": "2025-11-18T23:04:29.046Z",
+        "type": "Console Error",
+        "message": "[Socket] Connection error: Authentication required",
+        "details": {
+          "url": "http://localhost:3001/src/services/socket.service.ts",
+          "lineNumber": 42,
+          "columnNumber": 14
+        },
+        "url": "http://localhost:3001/character-select",
+        "agent": "Agent-4-Outlaw"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763507068252-uyybx28wc",
+        "timestamp": "2025-11-18T23:04:28.252Z",
+        "agent": "Agent-4-Outlaw",
+        "severity": "P1",
+        "title": "No actions available",
+        "description": "No action cards or buttons found on the page",
+        "reproduction": null,
+        "url": "http://localhost:3001/404",
+        "screenshot": "Agent-4-Outlaw-bug-0-2025-11-18T23-04-28-252Z.png"
+      },
+      {
+        "id": "BUG-1763507068530-3nz3ey3i5",
+        "timestamp": "2025-11-18T23:04:28.530Z",
+        "agent": "Agent-4-Outlaw",
+        "severity": "P1",
+        "title": "No auth token",
+        "description": "Cannot perform API action without token",
+        "reproduction": null,
+        "url": "http://localhost:3001/404",
+        "screenshot": "Agent-4-Outlaw-bug-1-2025-11-18T23-04-28-530Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-4-Outlaw-after-login-2025-11-18T23-04-22-016Z.png",
+      "Agent-4-Outlaw-character-selected-2025-11-18T23-04-25-339Z.png",
+      "Agent-4-Outlaw-initial-state-2025-11-18T23-04-25-681Z.png",
+      "Agent-4-Outlaw-navigated-to-nav-actions-2025-11-18T23-04-28-035Z.png",
+      "Agent-4-Outlaw-bug-0-2025-11-18T23-04-28-252Z.png",
+      "Agent-4-Outlaw-bug-1-2025-11-18T23-04-28-530Z.png",
+      "Agent-4-Outlaw-final-state-2025-11-18T23-04-31-761Z.png"
+    ]
+  }
+}

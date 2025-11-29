@@ -1,0 +1,12 @@
+{
+  "botName": "SocialBot-Storyteller",
+  "reportTime": "2025-11-27T14:47:42.587Z",
+  "summary": {
+    "totalUptime": 740682,
+    "totalActions": 0,
+    "totalErrors": 0,
+    "restartCount": 35,
+    "healthChecks": 0
+  },
+  "healthHistory": []
+}

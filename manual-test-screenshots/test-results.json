@@ -1,0 +1,33 @@
+{
+  "steps": [
+    {
+      "step": 1,
+      "name": "Navigate to login",
+      "status": "success"
+    },
+    {
+      "step": 2,
+      "name": "Fill login form",
+      "status": "success"
+    },
+    {
+      "step": 3,
+      "name": "Login submitted",
+      "status": "success",
+      "url": "http://localhost:3000/characters"
+    }
+  ],
+  "errors": [
+    {
+      "message": "SyntaxError: Failed to execute 'querySelector' on 'Document': 'button:has-text(\"Create Your First Character\"), button:has-text(\"CREATE CHARACTER\")' is not a valid selector.",
+      "stack": "DOMException: SyntaxError: Failed to execute 'querySelector' on 'Document': 'button:has-text(\"Create Your First Character\"), button:has-text(\"CREATE CHARACTER\")' is not a valid selector.\n    at evaluateHandle (evaluateHandle at CSSQueryHandler.queryOne (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\common\\QueryHandler.js:138:73), <anonymous>:1:15)\n    at #evaluate (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\cdp\\ExecutionContext.js:391:56)\n    at async ExecutionContext.evaluateHandle (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\cdp\\ExecutionContext.js:329:16)\n    at async IsolatedWorld.evaluateHandle (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\cdp\\IsolatedWorld.js:89:16)\n    at async CdpJSHandle.evaluateHandle (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\api\\JSHandle.js:157:20)\n    at async CdpElementHandle.evaluateHandle (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\api\\ElementHandle.js:354:20)\n    at async CSSQueryHandler.queryOne (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\common\\QueryHandler.js:138:59)\n    at async CdpElementHandle.$ (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\api\\ElementHandle.js:409:21)\n    at async CdpElementHandle.<anonymous> (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\api\\ElementHandle.js:133:24)\n    at async CdpFrame.$ (C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\node_modules\\puppeteer-core\\lib\\cjs\\puppeteer\\api\\Frame.js:400:20)"
+    }
+  ],
+  "screenshots": [
+    "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\manual-test-screenshots\\01-login-page.png",
+    "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\manual-test-screenshots\\02-login-filled.png",
+    "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\manual-test-screenshots\\03-after-login.png",
+    "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\manual-test-screenshots\\ERROR-state.png"
+  ],
+  "success": false
+}

@@ -1,0 +1,91 @@
+{
+  "name": "desperados-destiny",
+  "version": "0.1.0",
+  "description": "Browser-based persistent MMORPG set in a mythic wild west (1875 Sangre Territory)",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client",
+    "shared"
+  ],
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "dev": "docker-compose up --build",
+    "dev:local": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd server && npm run dev",
+    "dev:frontend": "cd client && npm run dev",
+    "stop": "docker-compose down",
+    "stop:clean": "docker-compose down -v",
+    "logs": "docker-compose logs -f",
+    "logs:backend": "docker-compose logs -f backend",
+    "logs:frontend": "docker-compose logs -f frontend",
+    "logs:mongo": "docker-compose logs -f mongodb",
+    "logs:redis": "docker-compose logs -f redis",
+    "clean": "docker-compose down -v && docker system prune -f",
+    "health": "node scripts/health-check.js",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd server && npm run lint",
+    "lint:frontend": "cd client && npm run lint",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd server && npm test",
+    "test:frontend": "cd client && npm test",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd server && npm run build",
+    "build:frontend": "cd client && npm run build",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^7.0.4",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "concurrently": "^8.2.0",
+    "eslint": "^8.45.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-airbnb-typescript": "^17.1.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "eslint-plugin-react": "^7.33.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^14.0.1",
+    "prettier": "^3.0.0",
+    "puppeteer": "^24.30.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/desperados-destiny.git"
+  },
+  "keywords": [
+    "mmorpg",
+    "browser-game",
+    "wild-west",
+    "multiplayer",
+    "nodejs",
+    "react",
+    "typescript",
+    "mongodb",
+    "redis",
+    "socketio"
+  ],
+  "author": "Kaine & Hawk",
+  "license": "UNLICENSED"
+}

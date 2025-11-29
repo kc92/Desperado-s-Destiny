@@ -62,6 +62,12 @@ Thumbs.db
 *.log
 docker-compose.override.yml
 
+# Docker volumes (local data)
+# These should not be committed as they contain runtime data
+.docker-volumes/
+docker/mongo-data/
+docker/redis-data/
+
 # Temporary files
 tmp/
 temp/
@@ -151,3 +157,13 @@ docs/build/
 !.gitignore
 !.gitkeep
 !README.md
+!.env.example
+
+# Husky
+.husky/_
+
+# Vite
+.vite
+client/.vite
+client/dist
+vite.config.ts.timestamp-*

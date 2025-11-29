@@ -1,0 +1,135 @@
+{
+  "agent": "Agent-2-Pioneer",
+  "timestamp": "2025-11-18T23:10:56.817Z",
+  "duration": "58s",
+  "errors": 9,
+  "bugs": 3,
+  "screenshots": 3,
+  "bugsByPriority": {
+    "P0": 3,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "errorTypes": {
+    "Request Failed": 6,
+    "Navigation Failed": 2,
+    "Element Not Found": 1
+  },
+  "details": {
+    "errors": [
+      {
+        "timestamp": "2025-11-18T23:10:01.963Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/register - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "about:blank",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T23:10:06.351Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/register - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T23:10:10.731Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/register - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T23:10:10.732Z",
+        "type": "Navigation Failed",
+        "message": "Could not navigate to http://localhost:3000/register",
+        "details": "net::ERR_CONNECTION_REFUSED at http://localhost:3000/register",
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T23:10:14.999Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/login - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T23:10:19.369Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/login - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T23:10:23.738Z",
+        "type": "Request Failed",
+        "message": "http://localhost:3000/login - net::ERR_CONNECTION_REFUSED",
+        "details": null,
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T23:10:23.738Z",
+        "type": "Navigation Failed",
+        "message": "Could not navigate to http://localhost:3000/login",
+        "details": "net::ERR_CONNECTION_REFUSED at http://localhost:3000/login",
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-2-Pioneer"
+      },
+      {
+        "timestamp": "2025-11-18T23:10:54.761Z",
+        "type": "Element Not Found",
+        "message": "Selector not found: input[name=\"email\"]",
+        "details": "Waiting for selector `input[name=\"email\"]` failed",
+        "url": "chrome-error://chromewebdata/",
+        "agent": "Agent-2-Pioneer"
+      }
+    ],
+    "bugs": [
+      {
+        "id": "BUG-1763507412475-n5mivy04s",
+        "timestamp": "2025-11-18T23:10:12.475Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P0",
+        "title": "Registration Form Broken",
+        "description": "Missing required form fields",
+        "reproduction": null,
+        "url": "chrome-error://chromewebdata/",
+        "screenshot": "Agent-2-Pioneer-bug-0-2025-11-18T23-10-12-475Z.png"
+      },
+      {
+        "id": "BUG-1763507454761-ndtczp8pj",
+        "timestamp": "2025-11-18T23:10:54.761Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P0",
+        "title": "Login Failed",
+        "description": "Cannot login with existing test user",
+        "reproduction": null,
+        "url": "chrome-error://chromewebdata/",
+        "screenshot": "Agent-2-Pioneer-bug-1-2025-11-18T23-10-54-761Z.png"
+      },
+      {
+        "id": "BUG-1763507456125-f8au5j5jn",
+        "timestamp": "2025-11-18T23:10:56.125Z",
+        "agent": "Agent-2-Pioneer",
+        "severity": "P0",
+        "title": "Create Button Missing",
+        "description": "Cannot find create character button",
+        "reproduction": null,
+        "url": "chrome-error://chromewebdata/",
+        "screenshot": "Agent-2-Pioneer-bug-2-2025-11-18T23-10-56-125Z.png"
+      }
+    ],
+    "screenshots": [
+      "Agent-2-Pioneer-bug-0-2025-11-18T23-10-12-475Z.png",
+      "Agent-2-Pioneer-bug-1-2025-11-18T23-10-54-761Z.png",
+      "Agent-2-Pioneer-bug-2-2025-11-18T23-10-56-125Z.png"
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+# Dependencies
+node_modules
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+dist
+build
+coverage
+.next
+out
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs
+
+# Cache
+.cache
+.parcel-cache
+.eslintcache
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Version control
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Generated files
+*.min.js
+*.min.css

@@ -1,0 +1,77 @@
+{
+  "locationIds": {
+    "RED_GULCH": "6501a0000000000000000001",
+    "THE_FRONTERA": "6501a0000000000000000002",
+    "FORT_ASHFORD": "6501a0000000000000000003",
+    "KAIOWA_MESA": "6501a0000000000000000004",
+    "SANGRE_CANYON": "6501a0000000000000000005",
+    "GOLDFINGERS_MINE": "6501a0000000000000000006",
+    "THUNDERBIRDS_PERCH": "6501a0000000000000000007",
+    "THE_SCAR": "6501a0000000000000000008",
+    "DUSTY_TRAIL": "6501a0000000000000000009",
+    "LONGHORN_RANCH": "6501a000000000000000000a",
+    "SPIRIT_SPRINGS": "6501a000000000000000000b",
+    "WHISKEY_BEND": "6501a000000000000000000c"
+  },
+  "locationNames": {
+    "RED_GULCH": "Red Gulch",
+    "THE_FRONTERA": "The Frontera",
+    "FORT_ASHFORD": "Fort Ashford",
+    "KAIOWA_MESA": "Kaiowa Mesa",
+    "SANGRE_CANYON": "Sangre Canyon",
+    "GOLDFINGERS_MINE": "Goldfinger's Mine",
+    "THUNDERBIRDS_PERCH": "Thunderbird's Perch",
+    "THE_SCAR": "The Scar",
+    "DUSTY_TRAIL": "Dusty Trail",
+    "LONGHORN_RANCH": "Longhorn Ranch",
+    "SPIRIT_SPRINGS": "Spirit Springs",
+    "WHISKEY_BEND": "Whiskey Bend"
+  },
+  "testJobs": {
+    "RED_GULCH": ["Deputy Work", "General Labor", "Stable Hand"],
+    "THE_FRONTERA": ["Smuggling Run", "Fencing Goods", "Underground Guide"],
+    "WHISKEY_BEND": ["Card Dealer", "Bouncer", "Information Broker"]
+  },
+  "testShops": {
+    "RED_GULCH": {
+      "general": {
+        "id": "red-gulch-general",
+        "name": "Henderson's General Store",
+        "cheapItem": "Bandages",
+        "cheapItemPrice": 5
+      },
+      "weapons": {
+        "id": "red-gulch-gunsmith",
+        "name": "Cole's Gunsmith",
+        "cheapItem": "Pistol Ammo (20)",
+        "cheapItemPrice": 10
+      }
+    }
+  },
+  "testCrimes": {
+    "RED_GULCH": ["Pickpocket Drunk", "Steal from Market", "Burglarize Store", "Pick Lock"],
+    "THE_FRONTERA": ["Forge Documents", "Rob Saloon", "Murder for Hire", "Pickpocket Drunk"],
+    "WHISKEY_BEND": ["Rob Saloon", "Pickpocket Drunk", "Bank Heist"],
+    "SPIRIT_SPRINGS": []
+  },
+  "testNPCs": {
+    "RED_GULCH": {
+      "name": "Marshal Tom Hawkins",
+      "title": "Town Marshal"
+    },
+    "THE_FRONTERA": {
+      "name": "El Diablo",
+      "title": "Frontera Kingpin"
+    }
+  },
+  "connections": {
+    "RED_GULCH": ["The Frontera", "Sangre Canyon"],
+    "THE_FRONTERA": ["Red Gulch", "Whiskey Bend"],
+    "WHISKEY_BEND": ["Spirit Springs", "The Frontera"]
+  },
+  "factionStartingLocations": {
+    "SETTLER_ALLIANCE": "RED_GULCH",
+    "NAHI_COALITION": "KAIOWA_MESA",
+    "FRONTERA": "THE_FRONTERA"
+  }
+}

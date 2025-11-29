@@ -1,0 +1,68 @@
+{
+  "summary": {
+    "totalSkips": 3,
+    "skipsBySection": {
+      "destiny_deck": 2,
+      "combat": 1
+    },
+    "completedSections": [
+      "welcome",
+      "energy"
+    ],
+    "averageProgressAtSkip": 38.33,
+    "averageTimeBeforeSkipMs": 52333.33,
+    "sectionCompletionTimes": {
+      "welcome": 125000,
+      "energy": 95000
+    }
+  },
+  "details": {
+    "skipEvents": [
+      {
+        "sectionId": "destiny_deck",
+        "stepId": "deck-3",
+        "timestamp": "2025-11-25T10:15:30.123Z",
+        "progress": 35,
+        "timeSpentMs": 45000
+      },
+      {
+        "sectionId": "destiny_deck",
+        "stepId": "deck-6",
+        "timestamp": "2025-11-25T10:18:45.456Z",
+        "progress": 42,
+        "timeSpentMs": 67000
+      },
+      {
+        "sectionId": "combat",
+        "stepId": "combat-2",
+        "timestamp": "2025-11-25T10:25:12.789Z",
+        "progress": 38,
+        "timeSpentMs": 45000
+      }
+    ],
+    "completionEvents": [
+      {
+        "sectionId": "welcome",
+        "timestamp": "2025-11-25T10:10:00.000Z",
+        "timeSpentMs": 125000
+      },
+      {
+        "sectionId": "energy",
+        "timestamp": "2025-11-25T10:12:35.000Z",
+        "timeSpentMs": 95000
+      }
+    ],
+    "sectionStartTimes": {
+      "welcome": 1732532475000,
+      "energy": 1732532600000,
+      "destiny_deck": 1732532695000,
+      "combat": 1732532845000
+    }
+  },
+  "metadata": {
+    "tutorialCompleted": false,
+    "totalSkipCount": 3,
+    "startedAt": "2025-11-25T10:07:55.000Z",
+    "completedAt": null
+  }
+}
