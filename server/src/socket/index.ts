@@ -4,56 +4,36 @@
  * Manages real-time communication for mail, friends, notifications, etc.
  */
 
-import { Server as SocketServer, Socket } from 'socket.io';
-import jwt from 'jsonwebtoken';
-import { config } from '../config';
+import { Server as SocketServer } from 'socket.io';
 import logger from '../utils/logger';
 import { getRedisClient, isRedisConnected } from '../config/redis';
-
-interface JWTPayload {
-  userId: string;
-  email: string;
-  iat: number;
-  exp: number;
-}
-
-interface AuthenticatedSocket extends Socket {
-  userId?: string;
-  characterId?: string;
-}
+import { socketAuthMiddleware, AuthenticatedSocket } from '../middleware/socketAuth';
 
 /**
  * Initialize Socket.io handlers
  */
 export function initializeSocketHandlers(io: SocketServer): void {
-  io.use(async (socket: AuthenticatedSocket, next) => {
-    try {
-      const token = socket.handshake.auth.token;
+  // Use robust authentication middleware
+  io.use(socketAuthMiddleware);
 
-      if (!token) {
-        return next(new Error('Authentication token required'));
-      }
+  io.on('connection', async (rawSocket) => {
+    const socket = rawSocket as AuthenticatedSocket;
+    const { userId, characterId, characterName } = socket.data;
 
-      const decoded = jwt.verify(token, config.auth.jwtSecret) as JWTPayload;
-      socket.userId = decoded.userId;
+    logger.info(`Socket connected: ${socket.id}, User: ${userId}, Character: ${characterName} (${characterId})`);
 
-      next();
-    } catch (error) {
-      logger.error('Socket authentication error:', error);
-      next(new Error('Invalid authentication token'));
-    }
-  });
+    // Automatically join user-specific room for notifications
+    const userRoom = `user:${userId}`;
+    await socket.join(userRoom);
 
-  io.on('connection', async (socket: AuthenticatedSocket) => {
-    logger.info(`Socket connected: ${socket.id}, User: ${socket.userId}`);
-
-    socket.on('character:join', async (characterId: string) => {
-      if (!characterId) {
-        socket.emit('error', { message: 'Character ID required' });
+    socket.on('character:join', async (requestedCharacterId: string) => {
+      // Validate that the requested character matches the authenticated character
+      if (requestedCharacterId && requestedCharacterId !== characterId) {
+        logger.warn(`Socket ${socket.id} attempted to join unauthorized character room: ${requestedCharacterId}`);
+        socket.emit('error', { message: 'Unauthorized character access' });
         return;
       }
 
-      socket.characterId = characterId;
       const roomName = `character:${characterId}`;
 
       await socket.join(roomName);
@@ -71,7 +51,7 @@ export function initializeSocketHandlers(io: SocketServer): void {
         }
       }
 
-      logger.info(`Character ${characterId} joined room ${roomName}`);
+      logger.info(`Character ${characterId} (${characterName}) joined room ${roomName}`);
 
       socket.emit('character:joined', {
         characterId,
@@ -82,8 +62,9 @@ export function initializeSocketHandlers(io: SocketServer): void {
       io.to(roomName).emit('character:online', { characterId });
     });
 
-    socket.on('character:leave', async (characterId: string) => {
-      if (!characterId) {
+    socket.on('character:leave', async (targetCharacterId: string) => {
+      // Only allow leaving the authenticated character's room
+      if (targetCharacterId && targetCharacterId !== characterId) {
         return;
       }
 
@@ -107,14 +88,14 @@ export function initializeSocketHandlers(io: SocketServer): void {
     socket.on('disconnect', async (reason) => {
       logger.info(`Socket disconnected: ${socket.id} - Reason: ${reason}`);
 
-      if (socket.characterId && isRedisConnected()) {
+      if (isRedisConnected()) {
         try {
           const redisClient = getRedisClient();
-          await redisClient.del(`session:character:${socket.characterId}`);
+          await redisClient.del(`session:character:${characterId}`);
 
-          const roomName = `character:${socket.characterId}`;
+          const roomName = `character:${characterId}`;
           io.to(roomName).emit('character:offline', {
-            characterId: socket.characterId
+            characterId: characterId
           });
         } catch (error) {
           logger.error('Error cleaning up Redis session:', error);

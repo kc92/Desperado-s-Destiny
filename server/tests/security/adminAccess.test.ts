@@ -609,4 +609,306 @@ describe('Admin Access Security Tests', () => {
       expect(response2.status).toBe(403);
     });
   });
+
+  /**
+   * Security Audit - Phase 2
+   * Tests for 13 newly-secured admin endpoints
+   * Added: 2025-11-30
+   */
+  describe('Critical Admin Endpoint Protection (Security Audit)', () => {
+    describe('Calendar Admin Endpoints', () => {
+      it('should reject calendar advance without auth (401)', async () => {
+        const response = await apiPost(app, '/api/calendar/admin/advance', { days: 1 });
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject calendar advance from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/calendar/admin/advance', { days: 1 }, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow calendar advance for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/calendar/admin/advance', { days: 1 }, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+
+      it('should reject calendar sync without auth (401)', async () => {
+        const response = await apiPost(app, '/api/calendar/admin/sync', {});
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject calendar sync from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/calendar/admin/sync', {}, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow calendar sync for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/calendar/admin/sync', {}, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+    });
+
+    describe('World Boss Admin Endpoints', () => {
+      it('should reject world boss spawn without auth (401)', async () => {
+        const response = await apiPost(app, '/api/world-boss/test-boss/spawn', {});
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject world boss spawn from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/world-boss/test-boss/spawn', {}, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow world boss spawn for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/world-boss/test-boss/spawn', {}, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+
+      it('should reject world boss end without auth (401)', async () => {
+        const response = await apiPost(app, '/api/world-boss/test-boss/end', {});
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject world boss end from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/world-boss/test-boss/end', {}, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow world boss end for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/world-boss/test-boss/end', {}, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+    });
+
+    describe('Weather Admin Endpoints', () => {
+      it('should reject weather set without auth (401)', async () => {
+        const response = await apiPost(app, '/api/weather/set', { region: 'test', weather: 'clear' });
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject weather set from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/weather/set', { region: 'test', weather: 'clear' }, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow weather set for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/weather/set', { region: 'test', weather: 'clear' }, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+    });
+
+    describe('Energy Admin Endpoints', () => {
+      it('should reject energy grant without auth (401)', async () => {
+        const response = await apiPost(app, '/api/energy/grant', { amount: 100 });
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject energy grant from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/energy/grant', { amount: 100 }, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow energy grant for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/energy/grant', { amount: 100 }, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+    });
+
+    describe('Login Reward Admin Endpoints', () => {
+      it('should reject reward reset without auth (401)', async () => {
+        const response = await apiPost(app, '/api/login-rewards/reset', { characterId: 'test-id' });
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject reward reset from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/login-rewards/reset', { characterId: 'test-id' }, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow reward reset for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/login-rewards/reset', { characterId: 'test-id' }, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+    });
+
+    describe('Jail Admin Endpoints', () => {
+      it('should reject jail release without auth (401)', async () => {
+        const response = await apiPost(app, '/api/jail/release/test-character-id', {});
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject jail release from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/jail/release/test-character-id', {}, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow jail release for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/jail/release/test-character-id', {}, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+    });
+
+    describe('Gossip Admin Endpoints', () => {
+      it('should reject gossip spread without auth (401)', async () => {
+        const response = await apiPost(app, '/api/gossip/test-gossip-id/spread', {});
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject gossip spread from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/gossip/test-gossip-id/spread', {}, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow gossip spread for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/gossip/test-gossip-id/spread', {}, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+
+      it('should reject gossip create without auth (401)', async () => {
+        const response = await apiPost(app, '/api/gossip/create', { content: 'test' });
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject gossip create from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/gossip/create', { content: 'test' }, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow gossip create for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/gossip/create', { content: 'test' }, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+    });
+
+    describe('Newspaper Admin Endpoints', () => {
+      it('should reject article creation without auth (401)', async () => {
+        const response = await apiPost(app, '/api/newspaper/articles', { title: 'test' });
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject article creation from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/newspaper/articles', { title: 'test' }, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow article creation for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/newspaper/articles', { title: 'test' }, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+
+      it('should reject newspaper publish without auth (401)', async () => {
+        const response = await apiPost(app, '/api/newspaper/publish', {});
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject newspaper publish from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/newspaper/publish', {}, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow newspaper publish for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/newspaper/publish', {}, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+
+      it('should reject world event without auth (401)', async () => {
+        const response = await apiPost(app, '/api/newspaper/world-event', { eventType: 'test' });
+        expect(response.status).toBe(401);
+      });
+
+      it('should reject world event from regular users (403)', async () => {
+        const regularUser = await setupCompleteGameState(app);
+        const response = await apiPost(app, '/api/newspaper/world-event', { eventType: 'test' }, regularUser.token);
+        expect(response.status).toBe(403);
+      });
+
+      it('should allow world event for admins', async () => {
+        const { token } = await createAdminUser();
+        const response = await apiPost(app, '/api/newspaper/world-event', { eventType: 'test' }, token);
+        expect([200, 400, 404]).toContain(response.status);
+        expect(response.status).not.toBe(403);
+      });
+    });
+
+    describe('Audit Log Integration', () => {
+      it('should create audit logs for all admin actions', async () => {
+        const { AuditLog } = await import('../../src/models/AuditLog.model');
+        const { token, admin } = await createAdminUser();
+
+        // Clear existing audit logs
+        await AuditLog.deleteMany({});
+
+        // Perform an admin action
+        await apiPost(app, '/api/calendar/admin/advance', { days: 1 }, token);
+
+        // Wait for async logging to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Check audit log was created
+        const logs = await AuditLog.find({ userId: admin._id });
+        expect(logs.length).toBeGreaterThan(0);
+
+        if (logs.length > 0) {
+          const log = logs[0];
+          expect(log.action).toBeTruthy();
+          expect(log.endpoint).toBeTruthy();
+          expect(log.method).toBe('POST');
+        }
+      });
+
+      it('should not create audit logs for non-admin actions', async () => {
+        const { AuditLog } = await import('../../src/models/AuditLog.model');
+        const regularUser = await setupCompleteGameState(app);
+
+        // Clear existing audit logs
+        await AuditLog.deleteMany({});
+
+        // Perform a regular user action
+        await apiGet(app, '/api/character', regularUser.token);
+
+        // Wait for async logging to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Check no audit log was created for regular user
+        const logs = await AuditLog.find({ userId: regularUser.user._id });
+        expect(logs.length).toBe(0);
+      });
+    });
+  });
 });

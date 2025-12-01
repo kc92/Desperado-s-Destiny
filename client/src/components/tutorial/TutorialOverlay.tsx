@@ -1,16 +1,12 @@
-/**
- * TutorialOverlay Component - AAA Tutorial System
- * Main tutorial orchestrator with mentor dialogue, spotlight, and interactive elements
- */
-
 import React, { useEffect } from 'react';
-import { useTutorialStore, TUTORIAL_SECTIONS } from '@/store/useTutorialStore';
+import { useTutorialStore, CORE_TUTORIAL_SECTIONS, DEEP_DIVE_TUTORIALS } from '@/store/useTutorialStore';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { MentorDialogue } from './MentorDialogue';
 import { TutorialSpotlight } from './TutorialSpotlight';
 import { TutorialAutoTrigger } from './TutorialAutoTrigger';
 import { HandQuiz } from './HandQuiz';
 import { Button, Modal } from '@/components/ui';
+import { useGlobalTutorialActionHandlers } from '@/utils/tutorialActionHandlers';
 
 // Skip confirmation modal
 interface SkipConfirmModalProps {
@@ -48,13 +44,13 @@ const SkipConfirmModal: React.FC<SkipConfirmModalProps> = ({
 
 // Tutorial progress indicator (top-right)
 const TutorialProgress: React.FC = () => {
-  const { currentSection, currentStep, getTotalProgress, getCurrentSection } = useTutorialStore();
+  const { currentSection, currentStep, getTotalProgress, getCurrentSection, tutorialType } = useTutorialStore();
   const section = getCurrentSection();
 
-  if (!section) return null;
+  if (!section || tutorialType !== 'core') return null; // Only show progress for core tutorial
 
   const progress = getTotalProgress();
-  const sectionIndex = TUTORIAL_SECTIONS.findIndex(s => s.id === currentSection);
+  const sectionIndex = CORE_TUTORIAL_SECTIONS.findIndex(s => s.id === currentSection);
 
   return (
     <div className="fixed top-20 right-4 z-[9997] bg-leather-dark/95 border-2 border-gold-dark rounded-lg p-3 min-w-[200px] shadow-xl">
@@ -64,7 +60,7 @@ const TutorialProgress: React.FC = () => {
 
       {/* Section dots */}
       <div className="flex items-center gap-1 mb-2">
-        {TUTORIAL_SECTIONS.map((s, i) => (
+        {CORE_TUTORIAL_SECTIONS.map((s, i) => (
           <React.Fragment key={s.id}>
             <div
               className={`w-3 h-3 rounded-full transition-all ${
@@ -76,7 +72,7 @@ const TutorialProgress: React.FC = () => {
               }`}
               title={s.name}
             />
-            {i < TUTORIAL_SECTIONS.length - 1 && (
+            {i < CORE_TUTORIAL_SECTIONS.length - 1 && (
               <div className={`w-2 h-0.5 ${i < sectionIndex ? 'bg-gold-light/50' : 'bg-wood-grain/30'}`} />
             )}
           </React.Fragment>
@@ -118,13 +114,16 @@ export const TutorialOverlay: React.FC = () => {
     currentStep,
     getCurrentStep,
     skipTutorial,
-    completeAction,
+    tutorialType,
   } = useTutorialStore();
   const { currentCharacter } = useCharacterStore();
 
   const [showSkipConfirm, setShowSkipConfirm] = React.useState(false);
   const [spotlightPosition, setSpotlightPosition] = React.useState<'top' | 'bottom' | 'center' | null>(null);
   const currentStepData = getCurrentStep();
+
+  // Initialize global action handlers
+  useGlobalTutorialActionHandlers();
 
   // Calculate spotlight position when step changes
   useEffect(() => {
@@ -183,30 +182,6 @@ export const TutorialOverlay: React.FC = () => {
   const showQuiz = currentSection === 'destiny_deck' &&
     currentStepData?.requiresAction === 'complete-quiz';
 
-  // Listen for navigation events to complete navigation actions
-  useEffect(() => {
-    if (!isActive || !currentStepData?.requiresAction) return;
-
-    const checkNavigation = () => {
-      const path = window.location.pathname;
-
-      if (currentStepData.requiresAction === 'navigate-actions' && path.includes('/actions')) {
-        completeAction('navigate-actions');
-      } else if (currentStepData.requiresAction === 'navigate-skills' && path.includes('/skills')) {
-        completeAction('navigate-skills');
-      } else if (currentStepData.requiresAction === 'navigate-combat' && path.includes('/combat')) {
-        completeAction('navigate-combat');
-      }
-    };
-
-    // Check immediately
-    checkNavigation();
-
-    // Also listen for route changes
-    window.addEventListener('popstate', checkNavigation);
-    return () => window.removeEventListener('popstate', checkNavigation);
-  }, [isActive, currentStepData, completeAction]);
-
   // Render auto-trigger (handles resume prompts)
   // This renders even when tutorial is not active
   const autoTrigger = <TutorialAutoTrigger />;
@@ -234,7 +209,7 @@ export const TutorialOverlay: React.FC = () => {
       )}
 
       {/* Progress indicator */}
-      <TutorialProgress />
+      {tutorialType === 'core' && <TutorialProgress />}
 
       {/* Spotlight overlay */}
       <TutorialSpotlight />

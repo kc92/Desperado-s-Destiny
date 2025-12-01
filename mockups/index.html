@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desperados Destiny - UI Polish Mockups</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .header h1 {
+            font-size: 56px;
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 20px;
+            color: #b8b8b8;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            line-height: 1.6;
+        }
+
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .mockup-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .mockup-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .mockup-card h2 {
+            font-size: 32px;
+            margin-bottom: 15px;
+            color: #ffffff;
+        }
+
+        .mockup-card .subtitle {
+            font-size: 16px;
+            color: #888;
+            margin-bottom: 25px;
+            font-style: italic;
+        }
+
+        .mockup-card .description {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #b8b8b8;
+            margin-bottom: 25px;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-bottom: 30px;
+        }
+
+        .feature-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 15px;
+            color: #d4d4d4;
+        }
+
+        .feature-list li::before {
+            content: '✓ ';
+            color: #4ecdc4;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .preview-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            color: #ffffff;
+            padding: 15px 40px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            text-align: center;
+            display: block;
+        }
+
+        .preview-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(78, 205, 196, 0.3);
+        }
+
+        .mockup-card.style-1 .preview-btn {
+            background: linear-gradient(135deg, #D2691E 0%, #8B4513 100%);
+        }
+
+        .mockup-card.style-2 .preview-btn {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+        }
+
+        .mockup-card.style-3 .preview-btn {
+            background: linear-gradient(135deg, #8b0000 0%, #5a0000 100%);
+        }
+
+        .comparison-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+
+        .comparison-section h2 {
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .comparison-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .tag {
+            display: inline-block;
+            background: rgba(78, 205, 196, 0.2);
+            border: 1px solid #4ecdc4;
+            color: #4ecdc4;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin: 2px;
+        }
+
+        .tag.pro {
+            background: rgba(46, 213, 115, 0.2);
+            border-color: #2ed573;
+            color: #2ed573;
+        }
+
+        .tag.con {
+            background: rgba(255, 107, 107, 0.2);
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+
+        .recommendations {
+            background: linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, rgba(68, 160, 141, 0.1) 100%);
+            border: 2px solid rgba(78, 205, 196, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 40px;
+        }
+
+        .recommendations h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #4ecdc4;
+        }
+
+        .recommendations p {
+            line-height: 1.8;
+            color: #d4d4d4;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .mockup-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 36px;
+            }
+
+            .comparison-table {
+                font-size: 14px;
+            }
+
+            .comparison-table th,
+            .comparison-table td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 UI Polish Mockups</h1>
+            <p>Choose your visual direction for Desperados Destiny. Each mockup demonstrates card animations, combat feedback, loading screens, and mobile layouts in a unique aesthetic style.</p>
+            <p style="font-size: 16px; color: #888; margin-top: 20px;">Click any mockup below to view the interactive demo</p>
+        </div>
+
+        <div class="mockup-grid">
+            <!-- Mockup 1: Classic Western -->
+            <div class="mockup-card style-1">
+                <h2>🤠 Classic Western</h2>
+                <p class="subtitle">Authentic frontier aesthetics</p>
+                <p class="description">
+                    Rustic wood textures, leather tones, and gold accents evoke the authentic feel of the Old West. Perfect for players who want an immersive, historically-grounded experience.
+                </p>
+                <ul class="feature-list">
+                    <li>Wood & leather texture patterns</li>
+                    <li>Gold and bronze color palette</li>
+                    <li>Serif typography with Western flair</li>
+                    <li>Warm, earthy tones throughout</li>
+                    <li>3D card flip with depth</li>
+                    <li>Sheriff star loading spinner</li>
+                </ul>
+                <a href="ui-mockup-1-classic-western.html" class="preview-btn">View Classic Western Demo</a>
+            </div>
+
+            <!-- Mockup 2: Modern Minimal -->
+            <div class="mockup-card style-2">
+                <h2>✨ Modern Minimal</h2>
+                <p class="subtitle">Contemporary UI with Western accents</p>
+                <p class="description">
+                    Clean lines, glassmorphism effects, and subtle animations create a sleek, modern experience. Western themes are present but understated, focusing on usability and clarity.
+                </p>
+                <ul class="feature-list">
+                    <li>Glassmorphism & backdrop blur</li>
+                    <li>Smooth cubic-bezier transitions</li>
+                    <li>Sans-serif clean typography</li>
+                    <li>Muted color palette with accents</li>
+                    <li>Minimal floating damage numbers</li>
+                    <li>Sleek progress indicators</li>
+                </ul>
+                <a href="ui-mockup-2-modern-minimal.html" class="preview-btn">View Modern Minimal Demo</a>
+            </div>
+
+            <!-- Mockup 3: Gritty Cinematic -->
+            <div class="mockup-card style-3">
+                <h2>💀 Gritty Cinematic</h2>
+                <p class="subtitle">Dark, dramatic, high-contrast</p>
+                <p class="description">
+                    Film noir meets Western in this bold, high-contrast design. Heavy shadows, blood-red accents, and dramatic animations create an intense, visceral experience.
+                </p>
+                <ul class="feature-list">
+                    <li>High contrast black & blood red</li>
+                    <li>Dramatic shadows and glows</li>
+                    <li>Impact-style bold typography</li>
+                    <li>Film grain texture overlay</li>
+                    <li>Explosive combat animations</li>
+                    <li>Cinematic loading screens</li>
+                </ul>
+                <a href="ui-mockup-3-gritty-cinematic.html" class="preview-btn">View Gritty Cinematic Demo</a>
+            </div>
+        </div>
+
+        <!-- Comparison Section -->
+        <div class="comparison-section">
+            <h2>📊 Feature Comparison</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Classic Western</th>
+                        <th>Modern Minimal</th>
+                        <th>Gritty Cinematic</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Visual Style</strong></td>
+                        <td>Warm, rustic, authentic</td>
+                        <td>Clean, sleek, contemporary</td>
+                        <td>Dark, dramatic, intense</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Color Palette</strong></td>
+                        <td>Brown, tan, gold</td>
+                        <td>Grays, white, subtle accents</td>
+                        <td>Black, blood red, shadows</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Animation Style</strong></td>
+                        <td>Traditional, smooth</td>
+                        <td>Subtle, refined</td>
+                        <td>Explosive, dramatic</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Typography</strong></td>
+                        <td>Serif, Western-inspired</td>
+                        <td>Sans-serif, modern</td>
+                        <td>Impact, bold, aggressive</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Combat Feedback</strong></td>
+                        <td>Floating numbers, gold flash</td>
+                        <td>Clean numbers, subtle glow</td>
+                        <td>Explosive numbers, blood effects</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Mobile Readability</strong></td>
+                        <td><span class="tag pro">Excellent</span></td>
+                        <td><span class="tag pro">Outstanding</span></td>
+                        <td><span class="tag pro">Good</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Performance</strong></td>
+                        <td><span class="tag pro">Good</span></td>
+                        <td><span class="tag pro">Excellent</span></td>
+                        <td><span class="tag">Moderate</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Accessibility</strong></td>
+                        <td><span class="tag pro">Good</span></td>
+                        <td><span class="tag pro">Excellent</span></td>
+                        <td><span class="tag con">Fair</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Best For</strong></td>
+                        <td>Immersion seekers</td>
+                        <td>Casual & mobile players</td>
+                        <td>Hardcore, atmospheric play</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="recommendations">
+            <h3>💡 Design Recommendations</h3>
+            <p><strong>Classic Western</strong> is perfect if you want to emphasize the historical setting and create a warm, inviting atmosphere. It appeals to players who value authenticity and thematic consistency.</p>
+            <p><strong>Modern Minimal</strong> excels at accessibility and works beautifully across all devices. Choose this if your priority is broad appeal, mobile optimization, and clean UX.</p>
+            <p><strong>Gritty Cinematic</strong> creates the most memorable, dramatic experience. It's ideal for players who want intensity and atmosphere, though it may be too dark for some users.</p>
+            <p style="margin-top: 20px; padding-top: 20px; border-top: 2px solid rgba(255,255,255,0.1);">
+                <strong>Hybrid Approach:</strong> You can also mix elements! For example, use Modern Minimal as the base UI structure (for accessibility), but incorporate Classic Western textures and colors for thematic consistency.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

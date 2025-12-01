@@ -382,6 +382,9 @@ export const Actions: React.FC = () => {
                           }
                         `}
                         onClick={() => setSelectedAction(action)}
+                        data-testid={`action-${action.id}`}
+                        data-action-name={action.name}
+                        data-action-category={action.type}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -427,6 +430,7 @@ export const Actions: React.FC = () => {
                               !!(isJailed && action.type === ActionType.CRIME) ||
                               !!(energy && Math.floor(energy.currentEnergy) < (action.energyRequired ?? 0))
                             }
+                            data-testid={`action-attempt-${action.id}`}
                           >
                             {!unlocked
                               ? 'Locked'

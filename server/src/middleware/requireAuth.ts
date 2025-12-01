@@ -29,19 +29,25 @@ export async function requireAuth(
   next: NextFunction
 ): Promise<void> {
   try {
-    // Get token from Authorization header
+    // Get token from Authorization header OR cookie
     const authHeader = req.headers.authorization;
+    let token: string | undefined;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      // Extract token from Authorization header
+      token = authHeader.substring(7);
+    } else if (req.cookies && req.cookies.token) {
+      // Extract token from cookie
+      token = req.cookies.token;
+    }
+
+    if (!token) {
       res.status(401).json({
         success: false,
         error: 'No token provided'
       });
       return;
     }
-
-    // Extract token
-    const token = authHeader.substring(7);
 
     // Verify token
     const decoded = jwt.verify(token, config.jwt.secret) as {

@@ -187,11 +187,11 @@ export const PlayingCard: React.FC<PlayingCardProps> = React.memo(({
       )}
       <div
         className={`
-          relative w-full h-full transition-all duration-300 ease-in-out
+          relative w-full h-full transition-smooth
           ${isFlipped ? 'rotate-y-180' : ''}
-          ${isHighlighted ? 'ring-4 ring-gold-light ring-offset-2 ring-offset-wood-dark shadow-gold' : ''}
+          ${isHighlighted ? 'ring-4 ring-gold-light ring-offset-2 ring-offset-wood-dark glow-gold' : ''}
           ${isSelected ? 'ring-4 ring-green-500 -translate-y-4 shadow-lg shadow-green-500/50' : ''}
-          ${isSelectable && !disabled && !isSelected ? 'hover:-translate-y-2 hover:shadow-lg' : ''}
+          ${isSelectable && !disabled && !isSelected ? 'hover:-translate-y-2 hover:shadow-lg hover:glow-gold' : ''}
         `}
         style={{
           transformStyle: 'preserve-3d',
@@ -200,25 +200,26 @@ export const PlayingCard: React.FC<PlayingCardProps> = React.memo(({
       >
         {/* Card Back */}
         <div
-          className="absolute inset-0 rounded-lg border-4 border-leather-saddle shadow-wood overflow-hidden"
+          className="absolute inset-0 rounded-lg border-4 border-leather-saddle shadow-wood overflow-hidden texture-leather"
           style={{
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
           }}
         >
           {/* Leather texture background */}
-          <div className="w-full h-full bg-gradient-to-br from-leather-brown via-leather-tan to-leather-brown p-2">
+          <div className="w-full h-full p-2">
             {/* Gold border pattern */}
-            <div className="w-full h-full border-4 border-gold-dark rounded flex items-center justify-center relative overflow-hidden">
-              {/* Western pattern */}
-              <div className="absolute inset-0 opacity-20">
-                <div className="absolute inset-0 bg-repeat" style={{
-                  backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(139,69,19,0.3) 10px, rgba(139,69,19,0.3) 20px)`,
-                }}></div>
-              </div>
+            <div className="w-full h-full border-4 rounded flex items-center justify-center relative overflow-hidden"
+              style={{
+                borderColor: 'var(--color-gold)',
+                background: 'linear-gradient(135deg, rgba(139, 69, 19, 0.2), rgba(210, 105, 30, 0.1))'
+              }}
+            >
+              {/* Western pattern overlay */}
+              <div className="absolute inset-0 opacity-20 texture-wood" />
 
               {/* Center emblem */}
-              <div className="text-gold-light text-4xl font-western z-10">DD</div>
+              <div className="text-4xl font-western z-10" style={{ color: 'var(--color-gold)' }}>DD</div>
             </div>
           </div>
         </div>

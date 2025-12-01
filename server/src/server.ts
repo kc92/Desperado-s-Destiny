@@ -20,6 +20,7 @@ import {
   rateLimiter,
   sanitizeInput,
 } from './middleware';
+import { auditLogMiddleware } from './middleware/auditLog.middleware';
 import routes from './routes';
 
 /**
@@ -112,6 +113,9 @@ function configureMiddleware(): void {
 
   // Request logging
   app.use(requestLogger);
+
+  // Audit logging for admin actions (before rate limiting)
+  app.use(auditLogMiddleware);
 
   // Global rate limiting
   app.use(rateLimiter);

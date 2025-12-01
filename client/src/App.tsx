@@ -63,6 +63,7 @@ const DailyContracts = lazy(() => import('@/pages/DailyContractsPage').then(m =>
 const StarMap = lazy(() => import('@/pages/StarMapPage').then(m => ({ default: m.StarMapPage })));
 const ZodiacCalendar = lazy(() => import('@/pages/ZodiacCalendarPage').then(m => ({ default: m.ZodiacCalendarPage })));
 const Marketplace = lazy(() => import('@/pages/MarketplacePage').then(m => ({ default: m.MarketplacePage })));
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })));
 
 // Global flag to track if we've checked auth (persists across React StrictMode remounts)
@@ -72,30 +73,27 @@ let hasCheckedAuthGlobal = false;
  * Main App component with React Router configuration
  */
 function App() {
-  const { checkAuth, isLoading, isAuthenticated, _hasHydrated } = useAuthStore();
+  const { checkAuth, isLoading, isAuthenticated } = useAuthStore();
 
-  // Check authentication status ONCE on initial app load only
-  // DON'T run checkAuth if we're already authenticated (from persisted state or login)
-  // This prevents checkAuth from interfering with login flow
+  // Check authentication status on app load by validating session cookie with backend
+  // This is the ONLY source of truth - no localStorage persistence
   useEffect(() => {
-    // Wait for hydration to complete before checking auth
-    if (!_hasHydrated) {
-      return;
-    }
-
-    // Skip if we've already checked OR if user is already authenticated
-    if (hasCheckedAuthGlobal || isAuthenticated) {
+    // Skip if we've already checked (prevents double-checking in React StrictMode)
+    if (hasCheckedAuthGlobal) {
       return;
     }
 
     hasCheckedAuthGlobal = true;
-    checkAuth();
-  }, [checkAuth, _hasHydrated, isAuthenticated]);
 
-  // Show loading screen while checking auth
-  if (isLoading) {
-    return <LoadingSpinner fullScreen />;
-  }
+    // Only check auth if we're not already authenticated
+    // This prevents checkAuth from running after login
+    if (!isAuthenticated) {
+      checkAuth();
+    }
+  }, [checkAuth, isAuthenticated]);
+
+  // Don't show global loading screen - let pages handle their own loading states
+  // This prevents blocking the login page when checkAuth is running
 
   return (
     <ErrorBoundary>
@@ -119,6 +117,16 @@ function App() {
 
               {/* Debug Route */}
               <Route path="/auth-debug" element={<AuthDebug />} />
+
+              {/* Admin Route - Protected */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Protected Routes - Require Authentication */}
               <Route

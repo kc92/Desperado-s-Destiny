@@ -177,7 +177,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ connectionStatus: status });
     });
 
-    socketService.connect();
+    // Socket connection is managed by useAuthStore
 
     socketService.on('chat:message', (message) => {
       const roomKey = getRoomKey(message.roomType, message.roomId);

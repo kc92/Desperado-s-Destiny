@@ -1,0 +1,415 @@
+/* =============================================================================
+   DESPERADOS DESTINY - MOBILE OPTIMIZATIONS
+   Touch-friendly interactions and responsive layouts
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   TOUCH TARGETS - Minimum 44x44px for accessibility
+   ----------------------------------------------------------------------------- */
+
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.touch-target-lg {
+  min-height: 56px;
+  min-width: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Interactive elements on mobile */
+@media (max-width: 768px) {
+  button,
+  a,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Increase spacing between interactive elements */
+  button + button,
+  a + a {
+    margin-left: var(--space-sm);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   MOBILE GESTURES & TOUCH FEEDBACK
+   ----------------------------------------------------------------------------- */
+
+/* Active/touch state for buttons */
+.touch-active:active {
+  transform: scale(0.95);
+  opacity: 0.9;
+}
+
+.touch-feedback {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ripple effect on touch */
+.touch-feedback::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s, opacity 0.3s;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.touch-feedback:active::after {
+  width: 200px;
+  height: 200px;
+  opacity: 1;
+}
+
+/* Disable hover effects on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  *:hover {
+    /* Reset hover states on touch devices */
+  }
+
+  /* Use active states instead */
+  button:active,
+  a:active,
+  [role="button"]:active {
+    transform: scale(0.95);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   MOBILE NAVIGATION
+   ----------------------------------------------------------------------------- */
+
+/* Bottom navigation bar for mobile */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--color-background-light);
+  border-top: 2px solid var(--color-border);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: var(--z-sticky);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.mobile-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--font-size-xs);
+  transition: var(--transition-fast);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
+.mobile-nav-item:active {
+  background: var(--color-surface-active);
+  transform: scale(0.95);
+}
+
+.mobile-nav-item.active {
+  color: var(--color-gold);
+  background: var(--color-surface-hover);
+}
+
+.mobile-nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30%;
+  height: 3px;
+  background: var(--color-gold);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.mobile-nav-icon {
+  font-size: 24px;
+  margin-bottom: 2px;
+}
+
+/* Safe area for devices with notches */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .mobile-nav {
+    padding-bottom: max(var(--space-xs), env(safe-area-inset-bottom));
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   MOBILE CARD GRID
+   ----------------------------------------------------------------------------- */
+
+.mobile-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+
+@media (max-width: 480px) {
+  .mobile-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   MOBILE MODAL/DIALOG
+   ----------------------------------------------------------------------------- */
+
+.mobile-modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.mobile-modal-content {
+  width: 100%;
+  max-height: 90vh;
+  background: var(--color-background-light);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  overflow-y: auto;
+  animation: slideInFromBottom 0.3s ease-out;
+}
+
+.mobile-modal-header {
+  position: sticky;
+  top: 0;
+  background: var(--color-background-light);
+  border-bottom: 2px solid var(--color-border);
+  padding: var(--space-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1;
+}
+
+.mobile-modal-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  margin: 0 auto var(--space-sm);
+}
+
+/* -----------------------------------------------------------------------------
+   MOBILE INPUT & FORM ELEMENTS
+   ----------------------------------------------------------------------------- */
+
+.mobile-input {
+  font-size: 16px; /* Prevents zoom on iOS */
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  width: 100%;
+  transition: var(--transition-fast);
+}
+
+.mobile-input:focus {
+  outline: none;
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+}
+
+.mobile-select {
+  appearance: none;
+  font-size: 16px; /* Prevents zoom on iOS */
+  padding: var(--space-md);
+  padding-right: var(--space-xl);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  width: 100%;
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8"><path fill="%23ffffff" d="M0 0l6 8 6-8z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right var(--space-md) center;
+}
+
+/* -----------------------------------------------------------------------------
+   MOBILE SCROLLING
+   ----------------------------------------------------------------------------- */
+
+/* Smooth scrolling on mobile */
+.mobile-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Hide scrollbar on mobile for cleaner look */
+@media (max-width: 768px) {
+  .mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+}
+
+/* Pull to refresh indicator space */
+.mobile-scroll-content {
+  padding-top: var(--space-md);
+  padding-bottom: calc(64px + var(--space-lg)); /* Account for bottom nav */
+}
+
+/* -----------------------------------------------------------------------------
+   MOBILE TYPOGRAPHY
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .mobile-heading {
+    font-size: var(--font-size-2xl);
+    line-height: var(--line-height-tight);
+    margin-bottom: var(--space-md);
+  }
+
+  .mobile-subheading {
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-base);
+    margin-bottom: var(--space-sm);
+  }
+
+  .mobile-body {
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-relaxed);
+  }
+
+  .mobile-caption {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-base);
+    color: var(--color-text-secondary);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   MOBILE UTILITIES
+   ----------------------------------------------------------------------------- */
+
+/* Hide on mobile */
+.hidden-mobile {
+  @media (max-width: 768px) {
+    display: none !important;
+  }
+}
+
+/* Show only on mobile */
+.visible-mobile {
+  display: none;
+
+  @media (max-width: 768px) {
+    display: block;
+  }
+}
+
+.visible-mobile-flex {
+  display: none;
+
+  @media (max-width: 768px) {
+    display: flex;
+  }
+}
+
+/* Full width on mobile */
+.mobile-full-width {
+  @media (max-width: 768px) {
+    width: 100% !important;
+  }
+}
+
+/* Stack on mobile */
+.mobile-stack {
+  @media (max-width: 768px) {
+    flex-direction: column !important;
+  }
+}
+
+/* Prevent text selection on interactive elements (better for mobile UX) */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Prevent accidental double-tap zoom */
+.no-zoom {
+  touch-action: manipulation;
+}
+
+/* -----------------------------------------------------------------------------
+   LANDSCAPE ORIENTATION OPTIMIZATIONS
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 768px) and (orientation: landscape) {
+  .mobile-nav {
+    height: 48px;
+  }
+
+  .mobile-nav-item {
+    min-height: 44px;
+    font-size: 11px;
+  }
+
+  .mobile-nav-icon {
+    font-size: 20px;
+  }
+
+  .mobile-modal-content {
+    max-height: 80vh;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   PERFORMANCE OPTIMIZATIONS
+   ----------------------------------------------------------------------------- */
+
+/* Use GPU acceleration for smoother animations on mobile */
+.mobile-gpu {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Disable GPU acceleration after animation */
+.mobile-gpu-idle {
+  transform: none;
+  will-change: auto;
+}

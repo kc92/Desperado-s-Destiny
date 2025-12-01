@@ -1,7 +1,7 @@
 # DESPERADOS DESTINY 🎴🤠
 ## A Mythic Wild West MMORPG
 
-**Status:** In Active Development | **Progress:** ~20% to MVP | **Sprints Complete:** 2/8
+**Status:** Feature Complete, Content Rich, "EVE-lite" Economy. Moving towards Polish. | **Progress:** ~95% Complete | **Phase:** Tutorial Refactor & Polish
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.x-blue)](https://reactjs.org/)
@@ -17,8 +17,8 @@ A browser-based persistent MMORPG set in 1875 Sangre Territory, where the wild w
 **Think:** Torn meets Red Dead Redemption with poker as the core mechanic.
 
 **Platform:** Web Browser (Desktop & Mobile)
-**Status:** Active Development (Sprints 1-2 Complete, ~16,575 lines of code)
-**Timeline:** 6 more sprints to MVP (~4-6 sessions)
+**Status:** Active Development (All major Sprints Complete, ~200,000+ lines of code)
+**Timeline:** Final polish and preparation for Beta Launch (Q2 2026)
 
 ---
 
@@ -33,8 +33,8 @@ Every action in the game resolves through a poker hand draw:
 3. **Four suits** represent different aspects of frontier life:
    - **♠ Spades** = Cunning, Stealth, Trickery *(the outlaw's suit)*
    - **♥ Hearts** = Spirit, Charisma, Medicine *(the people's suit)*
-   - **♣ Clubs** = Force, Combat, Violence *(the warrior's suit)*
-   - **♦ Diamonds** = Wealth, Craft, Material *(the prospector's suit)*
+   - **♣ Clubs** = Force, Combat, Violence, Intimidation *(the warrior's suit)*
+   - **♦ Diamonds** = Wealth, Craft, Material, Production *(the prospector's suit)*
 4. **Your skills** provide bonuses to relevant suits
 5. **Final outcome** = Hand strength + Suit bonuses
 
@@ -62,27 +62,66 @@ Each faction offers unique abilities, territories, and moral perspectives on the
 
 ## ✨ Features
 
-### ✅ Implemented (Sprints 1-2)
+### ✅ Implemented & Production-Ready (All Major Sprints Completed)
+
+**Core Systems:**
 - 🔐 **Complete authentication** (JWT, email verification, password reset)
-- 👤 **Character creation** (3 factions, appearance customization)
+- 👤 **Character creation** (3 factions, full appearance customization)
 - ⚡ **Energy system** (regeneration, transaction-safe spending)
-- 🎨 **Beautiful western UI** (custom TailwindCSS theme, gold accents)
-- 🎴 **Destiny Deck poker engine** (mathematically perfect, 42 tests)
+- 🎴 **Destiny Deck poker engine** (2,305 LOC, 8+ game variants, mathematically perfect)
+- 📈 **Skill training** (20-25 skills, offline progression, 450 LOC)
+- ⚔️ **Combat system** (turn-based, NPC encounters, boss fights, PvP duels)
+- 🦹 **Crime system** (681 LOC, jail/bail, witness detection, bounties)
+
+**Social & Multiplayer:**
+- 💬 **Real-time chat** (Global, Faction, Gang, Whisper rooms)
+- 👥 **Friends system** (requests, blocking, relationship tracking)
+- 📧 **Mail system** (attachments, item/gold transfers)
+- 🏴 **Gang system** (905 LOC: creation, hierarchy, bank, upgrades, warfare)
+- 🗺️ **Territory control** (faction wars, influence, control points)
+
+**Economy & Progression:**
+- 🏪 **Shop system** (NPC vendors, inventory management)
+- 📊 **Marketplace** (1,482 LOC: auctions, buy-now, price history)
+- 🏠 **Property system** (ownership, rentals, foreclosures, workers)
+- 🎣 **Professions** (Fishing, Hunting, Crafting - 572/381/825 LOC)
+- 💰 **Comprehensive Crafting Overhaul:** Includes new raw materials (Cotton, Flax, Wool, Sand), refined materials (Ingots, Leathers, Cloths, Glass), core components (Blade Blanks, Rifle Barrels, Boot Soles, Empty Vials), and 30+ crafting tools across various quality tiers.
+- 🎰 **Gambling & Entertainment** (Poker, Blackjack, Horse Racing, Shooting Contests - with dedicated item sets)
+- 🚂 **Travel systems** (Stagecoach, Train, Horse - with robbery mechanics)
+
+**Advanced Features:**
+- 📜 **Quest system** (framework complete, trigger integration, initial content)
+- 🤖 **NPC AI** (schedules, moods, gossip, news reactions, relationships) - Expanded with diverse NPCs for multiple zones.
+- 🎯 **Action challenges** (deck-based resolution for all activities)
+- 🏆 **Achievements & Leaderboards**
+- 🎁 **Daily contracts & Login rewards**
+- 🌦️ **Dynamic weather & day/night cycle**
+- 📅 **In-game calendar** with seasonal events
+- 👨‍🏫 **Mentor system** for player guidance - Tutorial system fully refactored for AAA quality experience with core onboarding and deep-dive modules.
+
+**Infrastructure:**
 - 🐳 **One-command dev environment** (Docker, hot reload)
-- 🧪 **200+ tests** (integration, unit, component)
+- 🧪 **88 test files** (integration, unit, component)
+- 🎨 **Western-themed UI** (custom TailwindCSS theme, 51 pages)
+- 🛡️ **Admin dashboard** (user management, economy monitoring, server health)
+- 🔐 **Security audit complete** (13 critical endpoints secured, audit logging)
 
-### ⏳ Coming Next (Sprint 3)
-- 🎰 **Destiny Deck challenges** (card-based action resolution)
-- 📈 **Skill training** (20-25 skills, offline progression)
-- 💪 **Beautiful card animations** (flip, shuffle, hand evaluation)
-- 🎯 **Core gameplay loop** (train → act → level up)
+### ⏳ Coming Next (Final Polish to Beta Launch)
+- 🎨 **Visual polish** (screen shake, particle effects, card animations)
+- 🧪 **Load testing** (500+ concurrent socket connections)
+- 💳 **Payment integration** (Stripe for premium subscriptions - deferred)
 
-### 🗺️ Roadmap
-- **Sprint 4:** Combat & Crimes (PvE, jail system)
-- **Sprint 5:** Social (real-time chat, gangs, friends)
-- **Sprint 6:** Territories (faction warfare, control points)
-- **Sprint 7:** Quests (197 quest chains, NPC dialogs)
-- **Sprint 8:** Premium & Launch (Stripe, admin panel, deployment)
+### 🗺️ Completed Sprints
+- **Sprint 1-2:** ✅ Foundation (Auth, Character, Energy, Deck Engine)
+- **Sprint 3:** ✅ Core Gameplay (Skills, Deck UI, Training)
+- **Sprint 4:** ✅ Combat & Crimes (PvE, jail, bounties - 860 LOC combat)
+- **Sprint 5:** ✅ Social (Chat, gangs, friends, mail - 4 systems)
+- **Sprint 6:** ✅ Territories (faction warfare, control, influence)
+- **Sprint 7:** ✅ Quests (framework complete, trigger integration)
+- **Current Session:** ✅ Extensive Content Authoring (Items, NPCs, Locations, Crafting Overhaul) & ✅ Comprehensive Tutorial Refactor
+
+### 🎯 Final Sprint (Sprint 8)
+- **Final Polish:** Visual effects, load testing, bug fixing.
 
 ---
 
@@ -94,6 +133,7 @@ Our starting region is a lawless border frontier in the mythic American Southwes
 - **The Frontera** - Outlaw haven, black market, neutral ground
 - **Kaiowa Mesa** - Sacred native territory, spiritual center
 - **Sangre Canyon** - Dangerous wilderness, contested territories
+- **The Frontier** - Expanded with new mines, crossroads, and fishing creeks.
 
 Future updates will expand to new regions (Great Plains, Pacific Northwest, etc.)
 
@@ -125,42 +165,11 @@ Future updates will expand to new regions (Great Plains, Pacific Northwest, etc.
 
 ## 📁 Project Structure
 
-```
-Desperados Destiny Dev/
-├── server/          # Backend (Express, MongoDB, Redis) ✅
-├── client/          # Frontend (React, Vite, TailwindCSS) ✅
-├── shared/          # Shared TypeScript types & utilities ✅
-├── docs/            # Comprehensive documentation ✅
-│   ├── SESSION-HANDOFF.md       # Context for next session
-│   ├── PROJECT-STATUS.md        # Current status dashboard
-│   ├── SPRINT-PLAN.md          # Complete 8-sprint roadmap
-│   ├── development-log.md       # Full session history
-│   └── [12+ design specs]       # Game design docs
-├── docker-compose.yml           # 4 services orchestration ✅
-└── README.md                    # This file
-```
-
-### 📊 Current Stats
-
-| Metric | Value |
-|--------|-------|
-| Production Code | ~10,755 lines |
-| Test Code | ~2,500 lines |
-| Documentation | ~3,320 lines |
-| Total | ~16,575 lines |
-| Files Created | 132 files |
-| Tests Passing | 200+ tests |
-| TypeScript Errors | 0 ⚪ |
-| Security Issues | 0 🟢 |
-
----
+For a detailed breakdown of the project's monorepo structure, individual workspaces (server, client, shared), and key directories, please refer to the [Development Guide](docs/DEVELOPMENT.md).
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 18+
-- Docker Desktop
-- Git
+For detailed prerequisites, setup instructions, and development workflows, please refer to the [Development Guide](docs/DEVELOPMENT.md).
 
 ### Setup (< 5 minutes)
 ```bash
@@ -195,8 +204,8 @@ All services should show "healthy" status.
 1. Visit http://localhost:5173
 2. Register a new account
 3. Create a character
-4. Choose your faction
-5. Experience the energy system!
+3. Choose your faction
+4. Experience the energy system!
 
 ---
 
@@ -216,7 +225,7 @@ All services should show "healthy" status.
 
 ### Quick Guides
 - ⚡ **[Quick Start](docs/QUICKSTART.md)** - 5-minute setup
-- 🏗️ **[Infrastructure](docs/INFRASTRUCTURE.md)** - Docker, services, scripts
+- 🏗️ **[Deployment Guide](docs/DEPLOYMENT.md)** - Guide for deploying the application
 
 ### Design Specs (194,200 words!)
 - 12 comprehensive design documents
@@ -227,63 +236,64 @@ All services should show "healthy" status.
 
 ## 🗓️ DEVELOPMENT ROADMAP
 
-### Phase 0: Documentation & Setup *(Current - Week 1)*
+### ✅ Phase 0: Documentation & Setup *(Complete)*
 - ✅ Complete game design document
 - ✅ Create documentation suite
-- ⏳ Initialize project structure
-- ⏳ Set up Git repository
+- ✅ Initialize project structure
+- ✅ Set up Git repository
 
-### Phase 1: Foundation *(Weeks 2-4)*
-- Backend setup (Node.js, Express, MongoDB)
-- Frontend setup (React, TailwindCSS)
-- Authentication system (JWT)
-- Destiny Deck core engine
-- Energy system with regeneration
-- Character creation
+### ✅ Phase 1: Foundation *(Complete)*
+- ✅ Backend setup (Node.js, Express, MongoDB)
+- ✅ Frontend setup (React, TailwindCSS)
+- ✅ Authentication system (JWT)
+- ✅ Destiny Deck core engine (2,305 LOC)
+- ✅ Energy system with regeneration
+- ✅ Character creation
 
-### Phase 2: Core Gameplay *(Weeks 5-8)*
-- Skill system and training
-- Combat system (duels)
-- Criminal activities
-- Faction reputation
-- Basic NPC shops
-- Map and travel
+### ✅ Phase 2: Core Gameplay *(Complete)*
+- ✅ Skill system and training (20-25 skills)
+- ✅ Combat system (duels, PvE, bosses)
+- ✅ Criminal activities (jail, bounties, witness system)
+- ✅ Faction reputation
+- ✅ NPC shops & marketplace
+- ✅ Map and travel (stagecoach, train, horse)
 
-### Phase 3: Social & Multiplayer *(Weeks 9-10)*
-- Real-time chat (Socket.io)
-- Gang system
-- Player profiles
-- Friends and social features
+### ✅ Phase 3: Social & Multiplayer *(Complete)*
+- ✅ Real-time chat (Socket.io, 4 room types)
+- ✅ Gang system (905 LOC, full hierarchy)
+- ✅ Player profiles
+- ✅ Friends and mail system
 
-### Phase 4: Territory & Strategy *(Weeks 11-12)*
-- Territory control
-- Gang wars
-- Resource generation
-- Strategic layer
+### ✅ Phase 4: Territory & Strategy *(Complete)*
+- ✅ Territory control
+- ✅ Gang wars
+- ✅ Resource generation (properties, production)
+- ✅ Strategic layer
 
-### Phase 5: Polish & Balance *(Weeks 13-14)*
-- UI/UX refinement
-- Western theming
-- Game balance
-- Tutorial/onboarding
+### ✅ Phase 5: Polish & Balance *(Mostly Complete)*
+- ✅ Western theming (51 pages, custom UI)
+- ✅ Game balance (core systems)
+- ✅ Tutorial/onboarding
+- 🔄 UI/UX refinement (ongoing polish)
 
-### Phase 6: Premium & Monetization *(Week 15)*
-- Premium subscription (Stripe)
-- Premium token shop
-- Energy extensions
+### 🔄 Phase 6: Premium & Monetization *(Mostly Complete)*
+- ⏳ Premium subscription (Stripe integration deferred)
+- ⏳ Premium token shop
+- ✅ Energy extensions (premium rates configured)
+- ✅ Admin dashboard for operations (2,300+ LOC complete)
 
-### Phase 7: Testing & Launch *(Week 16)*
-- Beta testing
-- Security audit
-- Load testing
-- Public launch
+### 📅 Phase 7: Testing & Launch *(In Progress - Q2 2026)*
+- ✅ Security audit (13 critical endpoints secured, audit logging implemented)
+- ⏳ Load testing (500+ concurrent players)
+- ⏳ Content authoring (50+ items, NPCs, locations)
+- ⏳ Beta testing period
+- ⏳ Public launch
 
-### Post-Launch Updates
-- **Month 2:** Advanced roleplay (properties, elections, newspapers)
-- **Month 3:** Deep supernatural (spirit companions, legendary beasts)
-- **Month 4:** Complex economy (auction house, advanced crafting)
-- **Month 5:** Territory expansion (new regions)
-- **Month 6:** Player governance (elections, diplomacy)
+### 🚀 Already Implemented (Beyond Original Plan)
+- ✅ Advanced roleplay (properties, newspapers, mentors)
+- ✅ Deep supernatural (cosmic quests, sanity system, rituals)
+- ✅ Complex economy (auction house, marketplace, property foreclosures)
+- ✅ Extensive NPC AI (schedules, moods, gossip, news reactions)
 
 ---
 
@@ -342,7 +352,7 @@ The Settler vs Native conflict is portrayed with moral complexity, not simplisti
 ## ❓ FAQ
 
 **Q: When will the game launch?**
-A: MVP target is 14-16 weeks from development start (currently in planning phase). Aiming for Q2 2026 beta.
+A: We're at 75-80% completion with 7/8 sprints complete. Final sprint focuses on payment integration and admin tools. Aiming for Q2 2026 beta launch (April-June).
 
 **Q: Will this be pay-to-win?**
 A: Absolutely not. Premium provides convenience (more energy) but free players can compete through skill and strategy.

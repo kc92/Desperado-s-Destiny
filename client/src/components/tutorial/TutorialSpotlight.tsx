@@ -1,10 +1,6 @@
-/**
- * TutorialSpotlight Component
- * Creates a dark overlay with a spotlight cutout around target elements
- */
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTutorialStore } from '@/store/useTutorialStore';
+import { completeTutorialAction } from '@/utils/tutorialActionHandlers';
 
 interface SpotlightRect {
   top: number;
@@ -30,7 +26,7 @@ export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
   onTargetClick,
   children,
 }) => {
-  const { isActive, getCurrentStep, completeAction } = useTutorialStore();
+  const { isActive, getCurrentStep } = useTutorialStore(); // Removed completeAction from here
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const observerRef = useRef<MutationObserver | null>(null);
@@ -126,12 +122,12 @@ export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
       if (onTargetClick) {
         onTargetClick();
       }
-      // Check if this completes a required action
-      if (currentStep?.requiresAction === 'click-dashboard') {
-        completeAction('click-dashboard');
+      // Check if this completes a required action (now generalized)
+      if (currentStep?.requiresAction) {
+        completeTutorialAction(currentStep.requiresAction);
       }
     }
-  }, [spotlightRect, allowClick, onTargetClick, currentStep, completeAction]);
+  }, [spotlightRect, allowClick, onTargetClick, currentStep]); // Removed completeAction from dependencies
 
   // Add highlight classes to multiple elements
   useEffect(() => {

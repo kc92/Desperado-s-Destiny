@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import UI Polish - Hybrid Western-Modern Design System */
+@import './theme.css';
+@import './animations.css';
+@import './mobile.css';
+
 /* Global styles for Desperados Destiny */
 @layer base {
   body {

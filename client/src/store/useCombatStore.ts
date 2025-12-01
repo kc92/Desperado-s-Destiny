@@ -79,6 +79,8 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
     try {
       const response = await combatService.startCombat(npcId, characterId);
 
+      console.log('Combat API Response:', response); // Debug log
+
       if (response.success && response.data) {
         set({
           activeCombat: response.data.encounter,
@@ -87,7 +89,9 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
           error: null,
         });
       } else {
-        throw new Error(response.error || 'Failed to start combat');
+        const errorMsg = response.error || 'Failed to start combat';
+        console.error('Combat start failed:', errorMsg, response); // More detailed error
+        throw new Error(errorMsg);
       }
     } catch (error: any) {
       console.error('Failed to start combat:', error);
@@ -118,10 +122,8 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
       const response = await combatService.playTurn(activeCombat._id);
 
       if (response.success && response.data) {
-        const { result } = response.data;
-
         set({
-          activeCombat: result.encounter,
+          activeCombat: response.data.encounter,
           isProcessingCombat: false,
           error: null,
         });

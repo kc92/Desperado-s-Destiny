@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import healthRoutes from './health.routes';
 import authRoutes from './auth.routes';
+import adminRoutes from './admin.routes';
 import characterRoutes from './character.routes';
 import actionRoutes from './action.routes';
 import skillRoutes from './skill.routes';
@@ -101,6 +102,9 @@ router.use('/health', healthRoutes);
 
 // Authentication routes (includes built-in rate limiting)
 router.use('/auth', authRoutes);
+
+// Admin routes (no rate limiting - protected by requireAuth + requireAdmin)
+router.use('/admin', adminRoutes);
 
 // Character routes (with API rate limiting)
 router.use('/characters', apiRateLimiter, characterRoutes);

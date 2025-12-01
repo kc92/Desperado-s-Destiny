@@ -96,6 +96,7 @@ connect.lock
 typings/
 .npm
 .yarn-integrity
+nul
 
 # MacOS
 .DS_Store

@@ -6,6 +6,8 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { useTutorialStore } from '@/store/useTutorialStore';
+import { completeTutorialAction } from '@/utils/tutorialActionHandlers';
 
 export type ItemType = 'weapon' | 'armor' | 'consumable' | 'mount' | 'material' | 'quest';
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
@@ -80,6 +82,7 @@ export const useShop = (): UseShopReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { refreshCharacter } = useCharacterStore();
+  const { isActive, getCurrentStep } = useTutorialStore();
 
   const fetchShopItems = useCallback(async (type?: ItemType) => {
     setIsLoading(true);
@@ -108,6 +111,15 @@ export const useShop = (): UseShopReturn => {
     }
   }, []);
 
+  const fetchEquipment = useCallback(async () => {
+    try {
+      const response = await api.get<{ data: { equipment: Equipment } }>('/shop/equipment');
+      setEquipment(response.data.data.equipment);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to fetch equipment');
+    }
+  }, []);
+
   const buyItem = useCallback(async (itemId: string, quantity: number = 1): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.post<{ data: { message: string } }>('/shop/buy', { itemId, quantity });
@@ -123,17 +135,29 @@ export const useShop = (): UseShopReturn => {
       const response = await api.post<{ data: { message: string } }>('/shop/sell', { itemId, quantity });
       await refreshCharacter();
       await fetchInventory();
+
+      // Tutorial action: sell-item-<itemid>
+      if (isActive && getCurrentStep()?.requiresAction === `sell-item-${itemId}`) {
+          completeTutorialAction(`sell-item-${itemId}`);
+      }
+
       return { success: true, message: response.data.data.message };
     } catch (err: any) {
       return { success: false, message: err.response?.data?.error || 'Sale failed' };
     }
-  }, [refreshCharacter, fetchInventory]);
+  }, [refreshCharacter, fetchInventory, isActive, getCurrentStep]);
 
   const useItem = useCallback(async (itemId: string): Promise<{ success: boolean; message: string; effects?: string[] }> => {
     try {
       const response = await api.post<{ data: { message: string; effects: string[] } }>('/shop/use', { itemId });
       await refreshCharacter();
       await fetchInventory();
+
+      // Tutorial action: use-item-<itemid>
+      if (isActive && getCurrentStep()?.requiresAction === `use-item-${itemId}`) {
+          completeTutorialAction(`use-item-${itemId}`);
+      }
+
       return {
         success: true,
         message: response.data.data.message,
@@ -142,26 +166,23 @@ export const useShop = (): UseShopReturn => {
     } catch (err: any) {
       return { success: false, message: err.response?.data?.error || 'Failed to use item' };
     }
-  }, [refreshCharacter, fetchInventory]);
-
-  const fetchEquipment = useCallback(async () => {
-    try {
-      const response = await api.get<{ data: { equipment: Equipment } }>('/shop/equipment');
-      setEquipment(response.data.data.equipment);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch equipment');
-    }
-  }, []);
+  }, [refreshCharacter, fetchInventory, isActive, getCurrentStep]);
 
   const equipItem = useCallback(async (itemId: string): Promise<{ success: boolean; message: string }> => {
     try {
       const response = await api.post<{ data: { message: string } }>('/shop/equip', { itemId });
       await fetchEquipment();
+
+      // Tutorial action: equip-item-<itemid>
+      if (isActive && getCurrentStep()?.requiresAction === `equip-${itemId}`) {
+          completeTutorialAction(`equip-${itemId}`);
+      }
+
       return { success: true, message: response.data.data.message };
     } catch (err: any) {
       return { success: false, message: err.response?.data?.error || 'Failed to equip item' };
     }
-  }, [fetchEquipment]);
+  }, [fetchEquipment, isActive, getCurrentStep]);
 
   const unequipItem = useCallback(async (slot: string): Promise<{ success: boolean; message: string }> => {
     try {

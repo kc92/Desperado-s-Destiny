@@ -10,6 +10,8 @@ import { useShop, InventoryItemWithDetails, ItemRarity, Equipment } from '@/hook
 import { Card, Button, Modal } from '@/components/ui';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
+import { useTutorialStore } from '@/store/useTutorialStore';
+import { completeTutorialAction } from '@/utils/tutorialActionHandlers';
 
 /**
  * Equipment slot display names
@@ -56,10 +58,17 @@ export const Inventory: React.FC = () => {
   const [actionMessage, setActionMessage] = useState<{ text: string; success: boolean } | null>(null);
   const [isActioning, setIsActioning] = useState(false);
 
+  const { isActive, getCurrentStep } = useTutorialStore();
+
   useEffect(() => {
     fetchInventory();
     fetchEquipment();
-  }, [fetchInventory, fetchEquipment]);
+
+    // Tutorial action: open-inventory
+    if (isActive && getCurrentStep()?.requiresAction === 'open-inventory') {
+        completeTutorialAction('open-inventory');
+    }
+  }, [fetchInventory, fetchEquipment, isActive, getCurrentStep]);
 
   const handleUse = async (invItem: InventoryItemWithDetails) => {
     if (isActioning) return;
@@ -70,6 +79,10 @@ export const Inventory: React.FC = () => {
     setIsActioning(false);
     if (result.success) {
       setSelectedItem(null);
+      // Tutorial action: use-item-predator-scent-gland
+      if (isActive && getCurrentStep()?.requiresAction === 'use-item-predator-scent-gland' && invItem.item.itemId === 'predator-scent-gland') {
+          completeTutorialAction('use-item-predator-scent-gland');
+      }
     }
   };
 
@@ -359,7 +372,7 @@ export const Inventory: React.FC = () => {
                   <li key={i} className="text-sm text-gold-light">
                     • {effect.description}
                   </li>
-                ))}
+                  ))}
               </ul>
             </Card>
 

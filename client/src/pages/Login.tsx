@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { Button, Card, Input } from '@/components/ui';
@@ -19,6 +19,7 @@ interface LoginFormValues {
  */
 export const Login: React.FC = () => {
   const { login, isLoading, error, clearError } = useAuthStore();
+  const navigate = useNavigate();
 
   // Clear errors when component unmounts
   useEffect(() => {
@@ -62,9 +63,8 @@ export const Login: React.FC = () => {
     try {
       await login(formValues);
       // Navigate to character select on successful login
-      // Using replace() prevents back-button from returning to login
-      // while also ensuring Zustand state is properly rehydrated
-      window.location.replace('/characters');
+      // Use React Router navigation to preserve in-memory auth state
+      navigate('/characters', { replace: true });
     } catch (err) {
       // Error is handled by the store and displayed in the UI
     }

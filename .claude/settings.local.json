@@ -7,7 +7,8 @@
       "Bash(done)",
       "Bash(cat:*)",
       "WebSearch",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []

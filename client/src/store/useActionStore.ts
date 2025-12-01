@@ -81,6 +81,11 @@ export const useActionStore = create<ActionStore>((set, get) => ({
       if (response.success && response.data) {
         const result = response.data.result;
 
+        // Dispatch game-event-item-crafted for successful crafting actions
+        if (result.action.type === 'CRAFT' && result.success) {
+            window.dispatchEvent(new CustomEvent('game-event-item-crafted', { detail: { recipeId: result.action.id } }));
+        }
+
         set({
           currentChallenge: result,
           isChallengingAction: false,

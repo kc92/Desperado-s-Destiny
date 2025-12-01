@@ -11,6 +11,7 @@ import { seasonService } from '../services/season.service';
 import { TIME_CONVERSION } from '../services/calendar.service';
 import { getAllHolidays } from '../data/holidays';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -216,8 +217,9 @@ router.get(
  */
 router.post(
   '/admin/advance',
+  requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
-    // TODO: Add admin authentication middleware
     const { days } = req.body;
 
     if (!days || days < 1 || days > 365) {
@@ -247,8 +249,9 @@ router.post(
  */
 router.post(
   '/admin/sync',
+  requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
-    // TODO: Add admin authentication middleware
     await calendarService.syncCalendar();
     const currentDate = await calendarService.getCurrentDate();
 

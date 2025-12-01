@@ -50,16 +50,11 @@ export class EnergyService {
    * @throws Error if transaction fails
    */
   static async spendEnergy(characterId: string, cost: number): Promise<boolean> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      // Find character within transaction
-      const character = await Character.findById(characterId).session(session);
+      // Find character
+      const character = await Character.findById(characterId);
 
       if (!character) {
-        await session.abortTransaction();
-        session.endSession();
         throw new Error('Character not found');
       }
 
@@ -68,8 +63,6 @@ export class EnergyService {
 
       // Check if character has enough energy
       if (character.energy < cost) {
-        await session.abortTransaction();
-        session.endSession();
         return false;
       }
 
@@ -77,20 +70,12 @@ export class EnergyService {
       character.energy -= cost;
       character.lastEnergyUpdate = new Date();
 
-      // Save within transaction
-      await character.save({ session });
-
-      // Commit transaction
-      await session.commitTransaction();
-      session.endSession();
+      // Save character
+      await character.save();
 
       logger.debug(`Character ${characterId} spent ${cost} energy. Remaining: ${character.energy}`);
       return true;
     } catch (error) {
-      // Abort transaction on error
-      await session.abortTransaction();
-      session.endSession();
-
       logger.error('Error spending energy:', error);
       throw error;
     }

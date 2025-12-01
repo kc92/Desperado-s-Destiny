@@ -16,15 +16,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   redirectTo = '/login',
 }) => {
-  const { isAuthenticated, isLoading, _hasHydrated } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuthStore();
 
-  // CRITICAL: Wait for hydration to complete before checking auth
-  // This prevents the race condition where we check auth before persisted state loads
-  if (!_hasHydrated) {
-    return <LoadingSpinner fullScreen />;
-  }
-
-  // Show loading spinner while checking authentication
+  // Show loading spinner while validating authentication with backend
   if (isLoading) {
     return <LoadingSpinner fullScreen />;
   }

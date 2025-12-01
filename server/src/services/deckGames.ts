@@ -18,7 +18,22 @@ import { ActionType } from '../models/Action.model';
 // =============================================================================
 
 export type Suit = 'spades' | 'hearts' | 'clubs' | 'diamonds';
-export type GameType = 'pokerHoldDraw' | 'pressYourLuck' | 'blackjack' | 'deckbuilder' | 'combatDuel';
+export type GameType =
+  // Original 5 games
+  | 'pokerHoldDraw'
+  | 'pressYourLuck'
+  | 'blackjack'
+  | 'deckbuilder'
+  | 'combatDuel'
+  // New card game expansion (8 games)
+  | 'faro'                  // Simple betting on card order
+  | 'threeCardMonte'        // Track the card, perception vs sleight of hand
+  | 'solitaireRace'         // Time-based puzzle, clear cards in sequence
+  | 'texasHoldem'           // Strategic poker variant with community cards
+  | 'rummy'                 // Set collection for investigation
+  | 'warOfAttrition'        // Endurance contest, card comparison
+  | 'euchre'                // Team partnership game
+  | 'cribbage';             // Counting/math game
 
 /**
  * Extended PlayerAction for Phase 3 strategic choices
@@ -1642,6 +1657,80 @@ function countSuitMatches(hand: Card[], relevantSuit?: string): number {
 
 
 // =============================================================================
+// NEW CARD GAME RESOLVERS
+// =============================================================================
+
+/**
+ * Faro - Simple betting on card order
+ * Classic Old West saloon game with minimal complexity
+ *
+ * Rules:
+ * - Draw a series of cards (5-7 cards based on difficulty)
+ * - Score based on card values (Ace=14, King=13, ..., 2=2)
+ * - Success if total value meets or exceeds threshold
+ * - Suit matches provide bonus multipliers
+ */
+function resolveFaroGame(
+  state: GameState,
+  suitMatches: number,
+  suitBonus: { multiplier: number; specialEffect?: string }
+): GameResult {
+  // Calculate card values for Faro
+  const cardValues = state.hand.map(card => {
+    if (card.rank === Rank.ACE) return 14;
+    if (card.rank === Rank.KING) return 13;
+    if (card.rank === Rank.QUEEN) return 12;
+    if (card.rank === Rank.JACK) return 11;
+    return card.rank as number;
+  });
+
+  const baseScore = cardValues.reduce((sum, val) => sum + val, 0);
+
+  // Get skill modifiers
+  const modifiers = calculateSkillModifiers(state.characterSuitBonus || 0, state.difficulty);
+
+  // Calculate threshold based on difficulty
+  // Easy: 35, Medium: 50, Hard: 65, Very Hard: 80, Extreme: 95
+  const baseThreshold = 35 + (state.difficulty * 15);
+  const adjustedThreshold = Math.max(30, baseThreshold - modifiers.thresholdReduction);
+
+  // Apply skill bonus to score
+  const adjustedScore = baseScore + modifiers.cardBonus;
+
+  const success = adjustedScore >= adjustedThreshold;
+
+  // Build hand description
+  const highCard = cardValues.length > 0 ? Math.max(...cardValues) : 0;
+  const highCardName = highCard === 14 ? 'Ace' :
+                        highCard === 13 ? 'King' :
+                        highCard === 12 ? 'Queen' :
+                        highCard === 11 ? 'Jack' : `${highCard}`;
+
+  const handName = `Faro (${state.hand.length} cards, High: ${highCardName})`;
+
+  // Build feedback
+  const feedbackParts: string[] = [];
+  if (modifiers.cardBonus > 0) {
+    feedbackParts.push(`Skill +${modifiers.cardBonus}`);
+  }
+  if (suitMatches > 0) {
+    feedbackParts.push(`${suitMatches} suit match${suitMatches > 1 ? 'es' : ''}`);
+  }
+
+  const feedbackStr = feedbackParts.length > 0 ? ` (${feedbackParts.join(', ')})` : '';
+
+  return {
+    success,
+    score: adjustedScore,
+    handName: handName + feedbackStr,
+    suitMatches,
+    suitBonus,
+    mitigation: success ? undefined : { damageReduction: Math.min(0.4, suitMatches * 0.1) }
+  };
+}
+
+
+// =============================================================================
 // PHASE 5: RISK/REWARD SYSTEMS
 // =============================================================================
 
@@ -1941,11 +2030,21 @@ export function getGameTypeForAction(actionType: string): GameType {
  */
 export function getGameTypeName(gameType: GameType): string {
   const names: Record<GameType, string> = {
+    // Original 5 games
     pokerHoldDraw: 'Poker Hold/Draw',
     pressYourLuck: 'Press Your Luck',
     blackjack: 'Blackjack',
     deckbuilder: 'Deckbuilder',
-    combatDuel: 'Combat Duel'
+    combatDuel: 'Combat Duel',
+    // New card game expansion
+    faro: 'Faro',
+    threeCardMonte: 'Three-Card Monte',
+    solitaireRace: 'Solitaire Race',
+    texasHoldem: 'Texas Hold\'em',
+    rummy: 'Rummy',
+    warOfAttrition: 'War of Attrition',
+    euchre: 'Euchre',
+    cribbage: 'Cribbage'
   };
   return names[gameType];
 }
@@ -2160,6 +2259,7 @@ export function resolveGame(state: GameState): GameResult {
   const suitBonus = calculateSuitBonus(suitMatches);
 
   switch (state.gameType) {
+    // Original 5 games
     case 'pokerHoldDraw':
       return resolvePokerGame(state, suitMatches, suitBonus);
     case 'pressYourLuck':
@@ -2170,6 +2270,22 @@ export function resolveGame(state: GameState): GameResult {
       return resolveDeckbuilderGame(state, suitMatches, suitBonus);
     case 'combatDuel':
       return resolveCombatDuelGame(state, suitMatches, suitBonus);
+
+    // New card game expansion
+    case 'faro':
+      return resolveFaroGame(state, suitMatches, suitBonus);
+
+    // TODO: Add remaining new game types
+    case 'threeCardMonte':
+    case 'solitaireRace':
+    case 'texasHoldem':
+    case 'rummy':
+    case 'warOfAttrition':
+    case 'euchre':
+    case 'cribbage':
+      // Temporary fallback - implement these resolvers
+      return resolveFaroGame(state, suitMatches, suitBonus);
+
     default:
       return {
         success: false,

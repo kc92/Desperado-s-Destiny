@@ -166,74 +166,56 @@ export class CombatService {
     character: ICharacter,
     npcId: string
   ): Promise<ICombatEncounter> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    // Check if character already in active combat
+    const characterId = typeof character._id === 'string' ? character._id : character._id.toString();
+    const existingCombat = await CombatEncounter.findActiveByCharacter(characterId);
 
-    try {
-      // Check if character already in active combat
-      const characterId = typeof character._id === 'string' ? character._id : character._id.toString();
-      const existingCombat = await CombatEncounter.findActiveByCharacter(characterId);
-
-      if (existingCombat) {
-        await session.abortTransaction();
-        session.endSession();
-        throw new Error('Character is already in combat');
-      }
-
-      // Fetch NPC
-      const npc = await NPC.findById(npcId).session(session);
-      if (!npc || !npc.isActive) {
-        await session.abortTransaction();
-        session.endSession();
-        throw new Error('NPC not found or not available');
-      }
-
-      // Check character has enough energy
-      const hasEnergy = await EnergyService.spendEnergy(
-        characterId,
-        this.COMBAT_ENERGY_COST
-      );
-
-      if (!hasEnergy) {
-        await session.abortTransaction();
-        session.endSession();
-        throw new Error('Insufficient energy to start combat');
-      }
-
-      // Calculate HP values
-      const isPremium = false; // TODO: Get from user model
-      const playerMaxHP = this.getCharacterMaxHP(character, isPremium);
-
-      // Create combat encounter
-      const encounter = new CombatEncounter({
-        characterId: character._id,
-        npcId: npc._id,
-        playerHP: playerMaxHP,
-        playerMaxHP,
-        npcHP: npc.maxHP,
-        npcMaxHP: npc.maxHP,
-        turn: 0, // Player goes first
-        roundNumber: 1,
-        rounds: [],
-        status: CombatStatus.ACTIVE,
-        startedAt: new Date()
-      });
-
-      await encounter.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
-
-      logger.info(
-        `Combat initiated: Character ${character.name} vs NPC ${npc.name} (Level ${npc.level})`
-      );
-
-      return encounter;
-    } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
-      throw error;
+    if (existingCombat) {
+      throw new Error('Character is already in combat');
     }
+
+    // Fetch NPC
+    const npc = await NPC.findById(npcId);
+    if (!npc) {
+      throw new Error('NPC not found');
+    }
+
+    // Check character has enough energy
+    const hasEnergy = await EnergyService.spendEnergy(
+      characterId,
+      this.COMBAT_ENERGY_COST
+    );
+
+    if (!hasEnergy) {
+      throw new Error('Insufficient energy to start combat');
+    }
+
+    // Calculate HP values
+    const isPremium = false; // TODO: Get from user model
+    const playerMaxHP = this.getCharacterMaxHP(character, isPremium);
+
+    // Create combat encounter
+    const encounter = new CombatEncounter({
+      characterId: character._id,
+      npcId: npc._id,
+      playerHP: playerMaxHP,
+      playerMaxHP,
+      npcHP: npc.maxHP,
+      npcMaxHP: npc.maxHP,
+      turn: 0, // Player goes first
+      roundNumber: 1,
+      rounds: [],
+      status: CombatStatus.ACTIVE,
+      startedAt: new Date()
+    });
+
+    await encounter.save();
+
+    logger.info(
+      `Combat initiated: Character ${character.name} vs NPC ${npc.name} (Level ${npc.level})`
+    );
+
+    return encounter;
   }
 
   /**
@@ -245,47 +227,33 @@ export class CombatService {
     encounterId: string,
     characterId: string
   ): Promise<CombatTurnResult> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
       // Fetch encounter
       const encounter = await CombatEncounter.findById(encounterId)
-        .populate('npcId')
-        .session(session);
+        .populate('npcId');
 
       if (!encounter) {
-        await session.abortTransaction();
-        session.endSession();
         throw new Error('Combat encounter not found');
       }
 
       // Verify ownership
       if (encounter.characterId.toString() !== characterId) {
-        await session.abortTransaction();
-        session.endSession();
         throw new Error('You do not own this combat encounter');
       }
 
       // Verify combat is active
       if (encounter.status !== CombatStatus.ACTIVE) {
-        await session.abortTransaction();
-        session.endSession();
         throw new Error('Combat is not active');
       }
 
       // Verify it's player's turn
       if (!encounter.isPlayerTurn()) {
-        await session.abortTransaction();
-        session.endSession();
         throw new Error('It is not your turn');
       }
 
       // Fetch character for skill bonuses
-      const character = await Character.findById(characterId).session(session);
+      const character = await Character.findById(characterId);
       if (!character) {
-        await session.abortTransaction();
-        session.endSession();
         throw new Error('Character not found');
       }
 
@@ -328,7 +296,7 @@ export class CombatService {
         encounter.lootAwarded = loot;
 
         // Award loot to character
-        await this.awardLoot(character, npc, loot, session, encounter);
+        await this.awardLoot(character, npc, loot, undefined, encounter);
 
         // Update quest progress for kill objective
         const npcType = (npc as INPC).type || 'enemy';
@@ -337,9 +305,7 @@ export class CombatService {
         // Add round to history
         encounter.rounds.push(playerRound);
 
-        await encounter.save({ session });
-        await session.commitTransaction();
-        session.endSession();
+        await encounter.save();
 
         logger.info(
           `Combat victory: Character ${character.name} defeated ${npc.name}`
@@ -355,10 +321,10 @@ export class CombatService {
 
       // NPC survived - switch turn and play NPC turn
       encounter.turn = 1;
-      await encounter.save({ session });
+      await encounter.save();
 
       // Play NPC turn immediately
-      const npcRound = await this.playNPCTurnInternal(encounter, character, session);
+      const npcRound = await this.playNPCTurnInternal(encounter, character, undefined);
 
       // Update player round with NPC's actions
       playerRound.npcCards = npcRound.npcCards;
@@ -391,7 +357,7 @@ export class CombatService {
             'bounty_collection' as any,
             undefined,
             true,
-            session
+            undefined
           );
 
           logger.info(
@@ -399,7 +365,7 @@ export class CombatService {
           );
         } else {
           // Apply normal death penalty
-          deathPenalty = await this.applyDeathPenalty(character, session);
+          deathPenalty = await this.applyDeathPenalty(character, undefined);
         }
       }
 
@@ -409,9 +375,7 @@ export class CombatService {
         encounter.turn = 0;
       }
 
-      await encounter.save({ session });
-      await session.commitTransaction();
-      session.endSession();
+      await encounter.save();
 
       return {
         encounter: encounter as any,
@@ -421,8 +385,6 @@ export class CombatService {
         deathPenalty
       };
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       throw error;
     }
   }
@@ -527,7 +489,7 @@ export class CombatService {
     character: ICharacter,
     npc: INPC,
     loot: ILootAwarded,
-    session: mongoose.ClientSession,
+    session: mongoose.ClientSession | undefined,
     encounter: ICombatEncounter
   ): Promise<void> {
     // Award gold using GoldService (transaction-safe)
@@ -541,8 +503,7 @@ export class CombatService {
           npcName: npc.name,
           npcLevel: npc.level,
           description: `Defeated ${npc.name} (Level ${npc.level}) and looted ${loot.gold} gold`,
-        },
-        session
+        }
       );
     }
 
@@ -592,8 +553,8 @@ export class CombatService {
     npc.lastDefeated = new Date();
     npc.isActive = false;
 
-    await character.save({ session });
-    await npc.save({ session });
+    await character.save();
+    await npc.save();
 
     logger.info(
       `Loot awarded to ${character.name}: ${loot.gold} gold, ${loot.xp} XP, ${loot.items.length} items`
@@ -686,22 +647,7 @@ export class CombatService {
    */
   static async getActiveNPCs(): Promise<any> {
     const npcs = await NPC.findActiveNPCs();
-
-    const byType: any = {
-      OUTLAW: [],
-      WILDLIFE: [],
-      LAWMAN: [],
-      BOSS: []
-    };
-
-    for (const npc of npcs) {
-      byType[npc.type].push(npc);
-    }
-
-    return {
-      total: npcs.length,
-      byType
-    };
+    return npcs;
   }
 
   /**

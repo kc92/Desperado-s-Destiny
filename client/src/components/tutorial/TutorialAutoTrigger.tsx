@@ -41,7 +41,7 @@ export const TutorialAutoTrigger: React.FC = () => {
     if (isNewCharacter) {
       // Small delay to let the UI settle
       const timer = setTimeout(() => {
-        startTutorial('welcome');
+        startTutorial('welcome', 'core');
       }, 1500);
 
       return () => clearTimeout(timer);
@@ -92,7 +92,7 @@ export const TutorialAutoTrigger: React.FC = () => {
             variant="secondary"
             onClick={() => {
               resetTutorial();
-              startTutorial('welcome');
+              startTutorial('welcome', 'core');
             }}
             fullWidth
           >

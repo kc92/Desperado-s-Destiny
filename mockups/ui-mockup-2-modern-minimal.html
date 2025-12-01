@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 2: Modern Minimal Style</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .mockup-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .mockup-header {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+
+        .mockup-header h1 {
+            font-size: 56px;
+            color: #ffffff;
+            font-weight: 300;
+            letter-spacing: 8px;
+            margin-bottom: 10px;
+        }
+
+        .mockup-header p {
+            font-size: 18px;
+            color: #b8b8b8;
+            font-weight: 300;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 300;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        /* Card Flip Animation - Minimal */
+        .card-demo {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .card {
+            width: 200px;
+            height: 300px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card:hover .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 300;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            transform: rotateY(180deg);
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        /* Combat Feedback - Minimal */
+        .combat-demo {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .damage-number {
+            position: absolute;
+            font-size: 56px;
+            font-weight: 700;
+            color: #ff6b6b;
+            animation: damageFloat 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            pointer-events: none;
+        }
+
+        @keyframes damageFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(0.8);
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(-50px) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-120px) scale(1);
+            }
+        }
+
+        .hit-effect {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: rgba(255, 107, 107, 0.2);
+            animation: hitFlash 0.25s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes hitFlash {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+
+        .combat-button {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            border: none;
+            color: #ffffff;
+            padding: 18px 50px;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .combat-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3);
+        }
+
+        .combat-button:active {
+            transform: translateY(0);
+        }
+
+        /* Loading Screen - Minimal */
+        .loading-demo {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 80px;
+            text-align: center;
+            border-radius: 16px;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #ffffff;
+            border-radius: 50%;
+            margin: 30px auto;
+            animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 20px;
+            color: #ffffff;
+            margin-top: 20px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .loading-bar {
+            width: 100%;
+            max-width: 400px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin: 40px auto;
+            overflow: hidden;
+        }
+
+        .loading-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffffff 0%, #b8b8b8 100%);
+            animation: loadProgress 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes loadProgress {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* Mobile Layout - Minimal */
+        .mobile-demo {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 24px;
+        }
+
+        .mobile-header {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+
+        .mobile-stat {
+            display: flex;
+            justify-content: space-between;
+            margin: 12px 0;
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        .mobile-button {
+            width: 100%;
+            padding: 18px;
+            margin: 12px 0;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 1px;
+        }
+
+        .mobile-button:active {
+            transform: scale(0.98);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .feature-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            padding: 8px 20px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        .stat-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .hp-bar { background: linear-gradient(90deg, #ff6b6b 0%, #ee5a6f 100%); }
+        .energy-bar { background: linear-gradient(90deg, #4ecdc4 0%, #44a08d 100%); }
+    </style>
+</head>
+<body>
+    <div class="mockup-container">
+        <div class="mockup-header">
+            <h1>MODERN MINIMAL</h1>
+            <p>Clean lines, subtle animations, contemporary aesthetics with Western accents</p>
+        </div>
+
+        <!-- Card Flip Demo -->
+        <div class="section">
+            <h2>Destiny Deck Cards</h2>
+            <p style="margin-bottom: 20px; font-size: 16px; color: #b8b8b8; font-weight: 300;">Hover to reveal</p>
+            <div class="feature-tag">Glass Morphism</div>
+            <div class="feature-tag">Smooth Easing</div>
+            <div class="feature-tag">Gradient Backs</div>
+
+            <div class="card-demo">
+                <div class="card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div>
+                                <div style="font-size: 64px; margin-bottom: 15px;">🎴</div>
+                                <div style="font-size: 14px; letter-spacing: 2px;">DESTINY</div>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div>
+                                <div style="font-size: 40px; margin-bottom: 15px;">⚡</div>
+                                <div style="line-height: 1.6;">
+                                    <strong style="font-size: 16px;">Quick Draw</strong><br>
+                                    <span style="font-size: 12px; opacity: 0.9;">+5 Combat<br>+2 Cunning</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div>
+                                <div style="font-size: 64px; margin-bottom: 15px;">🎴</div>
+                                <div style="font-size: 14px; letter-spacing: 2px;">DESTINY</div>
+                            </div>
+                        </div>
+                        <div class="card-back" style="background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);">
+                            <div>
+                                <div style="font-size: 40px; margin-bottom: 15px;">🦅</div>
+                                <div style="line-height: 1.6;">
+                                    <strong style="font-size: 16px;">Eagle Vision</strong><br>
+                                    <span style="font-size: 12px; opacity: 0.9;">+8 Spirit<br>+3 Wisdom</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div>
+                                <div style="font-size: 64px; margin-bottom: 15px;">🎴</div>
+                                <div style="font-size: 14px; letter-spacing: 2px;">DESTINY</div>
+                            </div>
+                        </div>
+                        <div class="card-back" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">
+                            <div>
+                                <div style="font-size: 40px; margin-bottom: 15px;">💀</div>
+                                <div style="line-height: 1.6;">
+                                    <strong style="font-size: 16px;">Dead Man</strong><br>
+                                    <span style="font-size: 12px; opacity: 0.9;">+10 Luck<br>-5 Health</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Combat Feedback Demo -->
+        <div class="section">
+            <h2>Combat Feedback</h2>
+            <p style="margin-bottom: 20px; font-size: 16px; color: #b8b8b8; font-weight: 300;">Click to attack</p>
+            <div class="feature-tag">Clean Numbers</div>
+            <div class="feature-tag">Subtle Flash</div>
+            <div class="feature-tag">Smooth Motion</div>
+
+            <div class="combat-demo" id="combatDemo">
+                <div style="text-align: center; margin-bottom: 40px;">
+                    <div style="font-size: 16px; color: #b8b8b8; margin-bottom: 15px; font-weight: 300; letter-spacing: 1px;">OUTLAW GUNSLINGER</div>
+                    <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 15px 30px; border-radius: 12px; display: inline-block;">
+                        <div style="font-size: 14px; color: #b8b8b8; margin-bottom: 8px;">HEALTH</div>
+                        <div style="font-size: 24px; font-weight: 300;"><span id="enemyHP">100</span> / 100</div>
+                        <div class="stat-bar" style="width: 200px; margin: 10px auto 0;">
+                            <div class="stat-bar-fill hp-bar" id="hpBar" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <button class="combat-button" onclick="triggerCombat()">Attack</button>
+            </div>
+        </div>
+
+        <!-- Loading Screen Demo -->
+        <div class="section">
+            <h2>Loading Screen</h2>
+            <div class="feature-tag">Minimal Spinner</div>
+            <div class="feature-tag">Subtle Progress</div>
+            <div class="feature-tag">Clean Typography</div>
+
+            <div class="loading-demo">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">LOADING</div>
+                <div class="loading-bar">
+                    <div class="loading-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Layout Demo -->
+        <div class="section">
+            <h2>Mobile Interface</h2>
+            <div class="feature-tag">Touch Optimized</div>
+            <div class="feature-tag">Glassmorphism</div>
+            <div class="feature-tag">Clean Stats</div>
+
+            <div class="mobile-demo">
+                <div class="mobile-header">
+                    <div style="text-align: center; font-size: 20px; font-weight: 300; margin-bottom: 20px; letter-spacing: 2px;">
+                        JACK MORGAN
+                    </div>
+                    <div class="mobile-stat">
+                        <span style="color: #b8b8b8;">Health</span>
+                        <span style="color: #ff6b6b; font-weight: 500;">85 / 100</span>
+                    </div>
+                    <div class="stat-bar">
+                        <div class="stat-bar-fill hp-bar" style="width: 85%;"></div>
+                    </div>
+
+                    <div class="mobile-stat" style="margin-top: 15px;">
+                        <span style="color: #b8b8b8;">Energy</span>
+                        <span style="color: #4ecdc4; font-weight: 500;">60 / 80</span>
+                    </div>
+                    <div class="stat-bar">
+                        <div class="stat-bar-fill energy-bar" style="width: 75%;"></div>
+                    </div>
+
+                    <div class="mobile-stat" style="margin-top: 15px;">
+                        <span style="color: #b8b8b8;">Gold</span>
+                        <span style="color: #ffffff; font-weight: 500;">$425</span>
+                    </div>
+                </div>
+
+                <button class="mobile-button">ACTIONS</button>
+                <button class="mobile-button">TRAVEL</button>
+                <button class="mobile-button">INVENTORY</button>
+                <button class="mobile-button">CHARACTER</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function triggerCombat() {
+            const demo = document.getElementById('combatDemo');
+            const hpElement = document.getElementById('enemyHP');
+            const hpBar = document.getElementById('hpBar');
+            const currentHP = parseInt(hpElement.textContent);
+
+            const damage = Math.floor(Math.random() * 30) + 20;
+            const newHP = Math.max(0, currentHP - damage);
+            hpElement.textContent = newHP;
+            hpBar.style.width = newHP + '%';
+
+            const damageNum = document.createElement('div');
+            damageNum.className = 'damage-number';
+            damageNum.textContent = `-${damage}`;
+            damageNum.style.left = Math.random() * 60 + 20 + '%';
+            damageNum.style.top = Math.random() * 40 + 30 + '%';
+            demo.appendChild(damageNum);
+
+            const hitEffect = document.createElement('div');
+            hitEffect.className = 'hit-effect';
+            demo.appendChild(hitEffect);
+
+            setTimeout(() => {
+                damageNum.remove();
+                hitEffect.remove();
+            }, 1500);
+
+            if (newHP === 0) {
+                setTimeout(() => {
+                    hpElement.textContent = '100';
+                    hpBar.style.width = '100%';
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>

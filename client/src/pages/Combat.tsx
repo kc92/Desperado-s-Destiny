@@ -84,7 +84,7 @@ export const Combat: React.FC = () => {
   }, [activeCombat, currentCharacter]);
 
   // Filter NPCs based on selected filter
-  const filteredNPCs = npcs.filter((npc) => {
+  const filteredNPCs = (npcs || []).filter((npc) => {
     if (selectedFilter === 'ALL') return true;
     if (selectedFilter === 'BOSS') return npc.isBoss;
     return npc.type === selectedFilter;
@@ -102,7 +102,7 @@ export const Combat: React.FC = () => {
 
     setShowConfirmModal(false);
     try {
-      await startCombat(selectedNPCId);
+      await startCombat(selectedNPCId, currentCharacter?._id || '');
     } catch (error) {
       console.error('Failed to start combat:', error);
     }

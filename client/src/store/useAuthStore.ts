@@ -4,7 +4,6 @@
  */
 
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import type { User, LoginCredentials, RegisterCredentials } from '@/types';
 import authService from '@/services/auth.service';
 import { socketService } from '@/services/socket.service';
@@ -31,17 +30,16 @@ interface AuthStore {
 }
 
 /**
- * Zustand store for authentication with persistence
+ * Zustand store for authentication
+ * Note: No localStorage persistence - auth state is validated via cookie on page load
  */
-export const useAuthStore = create<AuthStore>()(
-  persist(
-    (set) => ({
+export const useAuthStore = create<AuthStore>()((set) => ({
   // Initial state
   user: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
-  _hasHydrated: false,
+  _hasHydrated: true, // Always true since we're not using persistence
 
   /**
    * Login user with credentials
@@ -51,6 +49,9 @@ export const useAuthStore = create<AuthStore>()(
 
     try {
       const user = await authService.login(credentials);
+
+      // Initialize socket connection
+      socketService.connect();
 
       set({
         user,
@@ -133,6 +134,9 @@ export const useAuthStore = create<AuthStore>()(
       const result = await authService.verifySession();
 
       if (result.valid && result.user) {
+        // Initialize socket connection
+        socketService.connect();
+
         set({
           user: result.user,
           isAuthenticated: true,
@@ -240,17 +244,4 @@ export const useAuthStore = create<AuthStore>()(
       throw error;
     }
   },
-}),
-    {
-      name: 'auth-store', // unique name for localStorage key
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated
-      }), // Only persist user and auth status, not loading or error states
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
-      },
-    }
-  )
-);
+}));

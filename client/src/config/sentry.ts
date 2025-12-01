@@ -10,6 +10,15 @@ import * as Sentry from '@sentry/react';
  * Call this function early in the application lifecycle, before React renders
  */
 export function initializeSentry(): void {
+  // Get environment and release info
+  const environment = import.meta.env.VITE_ENV || import.meta.env.MODE || 'development';
+
+  // Disable Sentry in development to avoid tracking protection errors
+  if (environment === 'development') {
+    console.info('Sentry disabled in development environment');
+    return;
+  }
+
   // Only initialize if DSN is provided
   const dsn = import.meta.env.VITE_SENTRY_DSN;
 
@@ -18,8 +27,6 @@ export function initializeSentry(): void {
     return;
   }
 
-  // Get environment and release info
-  const environment = import.meta.env.VITE_ENV || import.meta.env.MODE || 'development';
   const release = import.meta.env.VITE_SENTRY_RELEASE || `desperados-destiny-client@${import.meta.env.VITE_APP_VERSION || '1.0.0'}`;
 
   Sentry.init({

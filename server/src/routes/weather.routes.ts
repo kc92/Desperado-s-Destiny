@@ -13,7 +13,7 @@ import {
   setWeather,
   getWeatherTypes,
 } from '../controllers/weather.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
 
 const router = express.Router();
 
@@ -55,8 +55,8 @@ router.post('/update', updateWeather);
 /**
  * @route   POST /api/weather/set
  * @desc    Admin endpoint to set weather for testing
- * @access  Private (Admin only - TODO: add admin middleware)
+ * @access  Private (Admin only)
  */
-router.post('/set', requireAuth, setWeather);
+router.post('/set', requireAuth, requireAdmin, setWeather);
 
 export default router;

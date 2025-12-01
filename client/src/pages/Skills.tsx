@@ -218,9 +218,20 @@ export const Skills: React.FC = () => {
           )}
         </div>
 
-        <Button variant="secondary" onClick={() => setShowHowItWorks(true)}>
-          How Skills Work
-        </Button>
+        <div className="flex gap-2">
+          {isActive && getCurrentStep()?.requiresAction === 'toggle-skills' && (
+            <Button
+              variant="primary"
+              onClick={() => completeTutorialAction('toggle-skills')}
+              data-tutorial-target="toggle-skills-button"
+            >
+              Toggle Skill Bonus
+            </Button>
+          )}
+          <Button variant="secondary" onClick={() => setShowHowItWorks(true)}>
+            How Skills Work
+          </Button>
+        </div>
       </div>
 
       {/* Error Display */}

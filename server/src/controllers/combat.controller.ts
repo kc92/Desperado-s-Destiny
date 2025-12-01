@@ -190,7 +190,7 @@ export const listNPCs = asyncHandler(
     res.status(HttpStatus.OK).json({
       success: true,
       message: 'NPCs retrieved successfully',
-      data: npcs
+      data: { npcs }
     });
   }
 );

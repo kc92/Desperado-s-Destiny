@@ -7,7 +7,7 @@
 
 import express from 'express';
 import { LoginRewardController } from '../controllers/loginReward.controller';
-import { requireAuth } from '../middleware/auth.middleware';
+import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
 
 const router = express.Router();
 
@@ -58,6 +58,6 @@ router.get('/statistics', requireAuth, LoginRewardController.getStatistics);
  * Reset a character's login reward progress
  * Body: { characterId: string }
  */
-router.post('/reset', requireAuth, LoginRewardController.resetProgress);
+router.post('/reset', requireAuth, requireAdmin, LoginRewardController.resetProgress);
 
 export default router;

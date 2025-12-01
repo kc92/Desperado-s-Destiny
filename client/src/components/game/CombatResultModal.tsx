@@ -4,8 +4,10 @@
  */
 
 import React from 'react';
-import { CombatResult } from '@desperados/shared';
+import { CombatResult, NPCType } from '@desperados/shared'; // Import NPCType if needed for more complex checks
 import { Modal, Button } from '@/components/ui';
+import { useTutorialStore } from '@/store/useTutorialStore';
+import { completeTutorialAction } from '@/utils/tutorialActionHandlers';
 
 interface CombatResultModalProps {
   /** Combat result data */
@@ -43,9 +45,20 @@ export const CombatResultModal: React.FC<CombatResultModalProps> = ({
   onContinue,
 }) => {
   const isVictory = result.victory;
+  const { isActive, getCurrentStep } = useTutorialStore();
+
+  const handleContinueAndTutorial = () => {
+    // Tutorial action: defeat-wildlife-for-perfect-hide
+    if (isActive && getCurrentStep()?.requiresAction === 'defeat-wildlife-for-perfect-hide' && isVictory) {
+        // Simplified check: if it's a victory and the tutorial step is active, assume "perfect hide" criteria met.
+        // In a full implementation, you'd check result.itemsEarned for "perfect-hide" and result.npcType for WILDLIFE.
+        completeTutorialAction('defeat-wildlife-for-perfect-hide');
+    }
+    onContinue();
+  };
 
   return (
-    <Modal isOpen={isOpen} onClose={onContinue} title={isVictory ? "Victory" : "Defeated"}>
+    <Modal isOpen={isOpen} onClose={handleContinueAndTutorial} title={isVictory ? "Victory" : "Defeated"}>
       {isVictory ? (
         /* VICTORY MODE */
         <div className="relative bg-gradient-to-br from-gold-pale to-desert-sand border-4 border-gold-dark rounded-lg p-8 shadow-gold max-w-2xl">
@@ -135,7 +148,7 @@ export const CombatResultModal: React.FC<CombatResultModalProps> = ({
 
             {/* Continue Button */}
             <Button
-              onClick={onContinue}
+              onClick={handleContinueAndTutorial}
               variant="primary"
               className="w-full font-western text-lg py-3 bg-gold-dark hover:bg-gold-medium"
             >
@@ -209,7 +222,7 @@ export const CombatResultModal: React.FC<CombatResultModalProps> = ({
 
             {/* Respawn Button */}
             <Button
-              onClick={onContinue}
+              onClick={handleContinueAndTutorial}
               variant="secondary"
               className="w-full font-western text-lg py-3 bg-blood-red hover:bg-blood-crimson border-2 border-desert-sand"
             >

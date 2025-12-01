@@ -12,6 +12,10 @@
     "test:e2e": "jest --config jest.e2e.config.cjs",
     "test:e2e:headed": "HEADLESS=false jest --config jest.e2e.config.cjs",
     "test:e2e:watch": "jest --config jest.e2e.config.cjs --watch",
+    "test:comprehensive:e2e": "tsx tests/playtests/comprehensive/runComprehensiveE2E.ts",
+    "test:comprehensive:e2e:headless": "HEADLESS=true tsx tests/playtests/comprehensive/runComprehensiveE2E.ts",
+    "test:locations:e2e": "tsx -e \"import {AllLocationsE2EBot} from './tests/playtests/comprehensive/AllLocationsE2E.js'; const bot = new AllLocationsE2EBot({name:'LocationTest',username:'test',email:'test@test.com',password:'Test123!',characterName:'Tester'}); bot.runTests();\"",
+    "test:actions:e2e": "tsx -e \"import {AllActionsE2EBot} from './tests/playtests/comprehensive/AllActionsE2E.js'; const bot = new AllActionsE2EBot({name:'ActionTest',username:'test',email:'test@test.com',password:'Test123!',characterName:'Tester'}); bot.runTests();\"",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "playtest": "tsx tests/playtests/runPlaytests.ts all",
     "playtest:combat": "tsx tests/playtests/runPlaytests.ts combat",
@@ -19,7 +23,9 @@
     "playtest:social": "tsx tests/playtests/runPlaytests.ts social",
     "test:adversarial": "tsx tests/playtests/advanced/runAdversarialBot.ts",
     "test:adversarial:headless": "HEADLESS=true tsx tests/playtests/advanced/runAdversarialBot.ts",
-    "example:exploits": "tsx tests/playtests/advanced/ExploitTesting.example.ts"
+    "example:exploits": "tsx tests/playtests/advanced/ExploitTesting.example.ts",
+    "bot:autonomous": "tsx tests/playtests/autonomous/runAutonomousLevelerBot.ts",
+    "bot:autonomous:headless": "HEADLESS=true tsx tests/playtests/autonomous/runAutonomousLevelerBot.ts"
   },
   "dependencies": {
     "@desperados/shared": "file:../shared",

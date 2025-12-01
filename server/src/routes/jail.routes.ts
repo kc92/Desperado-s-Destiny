@@ -6,7 +6,7 @@
 
 import { Router } from 'express';
 import { JailController } from '../controllers/jail.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
@@ -64,8 +64,8 @@ router.post('/turn-in/:characterId', asyncHandler(JailController.turnInPlayer));
 /**
  * POST /api/jail/release/:characterId (Admin only)
  * Release a player from jail
- * Note: This should have admin middleware in production
+ * Note: Protected by requireAdmin middleware
  */
-router.post('/release/:characterId', asyncHandler(JailController.releasePlayer));
+router.post('/release/:characterId', requireAdmin, asyncHandler(JailController.releasePlayer));
 
 export default router;

@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
 import worldBossController from '../controllers/worldBoss.controller';
 
@@ -57,21 +57,21 @@ router.post('/:bossId/attack', requireAuth, requireCharacter, worldBossControlle
 router.get('/:bossId/participant', requireAuth, requireCharacter, worldBossController.getParticipantData);
 
 // ============================================
-// Admin Routes (auth required, TODO: add admin check)
+// Admin Routes (admin authentication required)
 // ============================================
 
 /**
  * POST /api/world-bosses/:bossId/spawn
  * Spawn a world boss (admin only)
  */
-router.post('/:bossId/spawn', requireAuth, worldBossController.spawnWorldBoss);
+router.post('/:bossId/spawn', requireAuth, requireAdmin, worldBossController.spawnWorldBoss);
 
 /**
  * POST /api/world-bosses/:bossId/end
  * End a world boss session (admin only)
  * Body: { victory: boolean }
  */
-router.post('/:bossId/end', requireAuth, worldBossController.endWorldBossSession);
+router.post('/:bossId/end', requireAuth, requireAdmin, worldBossController.endWorldBossSession);
 
 // ============================================
 // Boss Encounter Routes (Individual Boss Fights)

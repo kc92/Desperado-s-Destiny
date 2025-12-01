@@ -416,6 +416,9 @@ export const Location: React.FC = () => {
                       building.isOpen ? 'hover:border-amber-500' : 'opacity-60 cursor-not-allowed'
                     }`}
                     disabled={!building.isOpen}
+                    data-testid={`building-${building.id}`}
+                    data-building-name={building.name}
+                    data-building-type={building.type}
                   >
                     <div className="flex items-start gap-2">
                       <span className="text-2xl">{config.icon}</span>
@@ -647,7 +650,13 @@ export const Location: React.FC = () => {
               const connection = location.connections.find(c => c.targetLocationId === dest._id);
               const energyCost = connection?.energyCost || 10;
               return (
-                <div key={dest._id} className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                <div
+                  key={dest._id}
+                  className="p-4 bg-gray-800/50 rounded-lg border border-gray-700"
+                  data-testid={`travel-destination-${dest._id}`}
+                  data-location-name={dest.name}
+                  data-location-type={dest.type}
+                >
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{dest.icon || '📍'}</span>
                     <div>
@@ -661,6 +670,7 @@ export const Location: React.FC = () => {
                       size="sm"
                       onClick={() => handleTravel(dest._id)}
                       disabled={travelingTo === dest._id || (currentCharacter?.energy || 0) < energyCost}
+                      data-testid={`travel-button-${dest._id}`}
                     >
                       {travelingTo === dest._id ? 'Traveling...' : 'Go'}
                     </Button>

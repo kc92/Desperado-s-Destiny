@@ -128,6 +128,7 @@ export interface ICharacter extends Document {
   bountyAmount: number;
   lastArrestTime: Date | null;
   arrestCooldowns: Map<string, Date>;
+  jobCooldowns: Map<string, Date>;
   lastBailCost: number;
 
   // Reputation System
@@ -432,6 +433,11 @@ const CharacterSchema = new Schema<ICharacter>(
       default: null
     },
     arrestCooldowns: {
+      type: Map,
+      of: Date,
+      default: new Map()
+    },
+    jobCooldowns: {
       type: Map,
       of: Date,
       default: new Map()

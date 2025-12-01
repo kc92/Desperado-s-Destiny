@@ -6,7 +6,7 @@
 
 import { Router } from 'express';
 import { EnergyController } from '../controllers/energy.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 
@@ -39,10 +39,10 @@ router.post('/spend', asyncHandler(EnergyController.spend));
 
 /**
  * POST /api/energy/grant
- * Grant energy to a character (admin or item use)
+ * Grant energy to a character (admin only)
  * Body: { amount: number, allowOverMax?: boolean }
  */
-router.post('/grant', asyncHandler(EnergyController.grant));
+router.post('/grant', requireAdmin, asyncHandler(EnergyController.grant));
 
 /**
  * POST /api/energy/regenerate

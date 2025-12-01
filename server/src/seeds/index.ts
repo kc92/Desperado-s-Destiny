@@ -15,6 +15,8 @@ import { seedTheScarBuildings } from './buildings/theScar.seed';
 import { seedTheWastesBuildings } from './buildings/theWastes.seed';
 import { seedEncounters } from './encounters.seed';
 import { seedTerritoryZones } from './territoryZones.seed';
+import { seedNewRecipes } from './recipes_new';
+import { seedNewNPCs } from './npcs_new';
 
 async function seedAll() {
   try {
@@ -32,6 +34,8 @@ async function seedAll() {
     await seedTheWastesBuildings(); // The Wastes - Mad Max wasteland (L25-35)
     await seedItems();
     await seedQuests();
+    await seedNewRecipes();
+    await seedNewNPCs();
     await seedEncounters(); // Random encounters
     await seedTerritoryZones(); // Territory control zones
 
@@ -61,5 +65,7 @@ export {
   seedTheScarBuildings,
   seedTheWastesBuildings,
   seedEncounters,
-  seedTerritoryZones
+  seedTerritoryZones,
+  seedNewRecipes,
+  seedNewNPCs
 };

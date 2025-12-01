@@ -6,6 +6,8 @@
 import React, { useEffect, useState } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useActionStore } from '@/store/useActionStore';
+import { useTutorialStore } from '@/store/useTutorialStore'; // Import useTutorialStore
+import { completeTutorialAction } from '@/utils/tutorialActionHandlers'; // Import completeTutorialAction
 import { ActionCard } from '@/components/game/ActionCard';
 import { CardHand } from '@/components/game/CardHand';
 import { HandEvaluation } from '@/components/game/HandEvaluation';
@@ -32,6 +34,8 @@ export const ActionChallenge: React.FC = () => {
     clearChallenge,
   } = useActionStore();
 
+  const { isActive, getCurrentStep } = useTutorialStore(); // Get tutorial state
+
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
@@ -57,6 +61,15 @@ export const ActionChallenge: React.FC = () => {
   const handleActionSelect = (action: Action) => {
     setSelectedAction(action);
     setShowConfirmModal(true);
+
+    // Tutorial action: accept-job-general-labor
+    if (isActive && getCurrentStep()?.requiresAction === 'accept-job-general-labor' && action.id === 'general-labor') {
+        completeTutorialAction('accept-job-general-labor');
+    }
+    // Tutorial action: initiate-combat-coyote
+    if (isActive && getCurrentStep()?.requiresAction === 'initiate-combat-coyote' && action.id === 'combat-coyote') { // Assuming action.id for coyote combat
+        completeTutorialAction('initiate-combat-coyote');
+    }
   };
 
   // Handle challenge attempt
@@ -71,8 +84,26 @@ export const ActionChallenge: React.FC = () => {
   const handleCloseResult = () => {
     setShowResultModal(false);
     setIsRevealing(false);
+
+    // Tutorial action: complete-job-general-labor
+    if (isActive && getCurrentStep()?.requiresAction === 'complete-job-general-labor' && currentChallenge?.action.id === 'general-labor' && currentChallenge.success) {
+        completeTutorialAction('complete-job-general-labor');
+    }
+    // Tutorial action: complete-job-mine-iron-ore
+    if (isActive && getCurrentStep()?.requiresAction === 'complete-job-mine-iron-ore' && currentChallenge?.action.id === 'mine-iron-ore' && currentChallenge.success) {
+        completeTutorialAction('complete-job-mine-iron-ore');
+    }
+
     clearChallenge();
     setSelectedAction(null);
+
+    // Tutorial action: achieve-good-hand (for deep-dive)
+    if (isActive && getCurrentStep()?.requiresAction === 'achieve-good-hand' && currentChallenge?.handEvaluation) {
+        // Consider HandRank.PAIR (2) or better as a "good hand"
+        if (currentChallenge.handEvaluation.rank >= 2) { // HandRank.PAIR is 2
+            completeTutorialAction('achieve-good-hand');
+        }
+    }
   };
 
   // Filter actions by type
@@ -252,7 +283,10 @@ export const ActionChallenge: React.FC = () => {
                 cards={currentChallenge.hand}
                 isRevealing={isRevealing}
                 onRevealComplete={() => {
-                  // Card reveal complete
+                  // Tutorial action: draw-cards
+                  if (isActive && getCurrentStep()?.requiresAction === 'draw-cards') {
+                    completeTutorialAction('draw-cards');
+                  }
                 }}
                 size="md"
               />

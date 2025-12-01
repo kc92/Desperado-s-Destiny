@@ -8,6 +8,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button, NavLink, GameClock } from '@/components/ui';
 import { NotificationBell } from '@/components/notifications';
+import { useTutorialStore } from '@/store/useTutorialStore';
+import { completeTutorialAction } from '@/utils/tutorialActionHandlers';
 
 /**
  * Application header with navigation and user menu
@@ -16,12 +18,28 @@ import { NotificationBell } from '@/components/notifications';
 export const Header: React.FC = React.memo(() => {
   const { isAuthenticated, user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const { isActive, getCurrentStep } = useTutorialStore();
 
   // Memoize logout handler
   const handleLogout = useCallback(async () => {
     await logout();
     navigate('/');
   }, [logout, navigate]);
+
+  // Handle navigation clicks for tutorial actions
+  const handleNavLinkClick = useCallback((actionId: string, path: string) => {
+    if (isActive && getCurrentStep()?.requiresAction === actionId) {
+      completeTutorialAction(actionId);
+    }
+    navigate(path);
+  }, [isActive, getCurrentStep, navigate]);
+
+  // Handle dashboard click for tutorial action
+  const handleDashboardClick = useCallback(() => {
+    if (isActive && getCurrentStep()?.requiresAction === 'click-dashboard') {
+      completeTutorialAction('click-dashboard');
+    }
+  }, [isActive, getCurrentStep]);
 
   return (
     <header className="bg-wood-dark border-b-4 border-wood-medium shadow-wood">
@@ -53,23 +71,23 @@ export const Header: React.FC = React.memo(() => {
                 <GameClock showIcon={true} compact={false} />
 
                 {/* Authenticated navigation with active route indicators */}
-                <NavLink to="/game/location" exact>
+                <NavLink to="/game/location" exact onClick={() => handleNavLinkClick('navigate-location', '/game/location')}>
                   Location
                 </NavLink>
 
-                <NavLink to="/game/actions" exact>
+                <NavLink to="/game/actions" exact onClick={() => handleNavLinkClick('navigate-jobs', '/game/actions')}>
                   Actions
                 </NavLink>
 
-                <NavLink to="/game/skills" exact>
+                <NavLink to="/game/skills" exact onClick={() => handleNavLinkClick('navigate-skills', '/game/skills')}>
                   Skills
                 </NavLink>
 
-                <NavLink to="/game/combat" exact>
+                <NavLink to="/game/combat" exact onClick={() => handleNavLinkClick('navigate-combat', '/game/combat')}>
                   Combat
                 </NavLink>
 
-                <NavLink to="/game/gang" exact>
+                <NavLink to="/game/gang" exact onClick={() => handleNavLinkClick('navigate-gang', '/game/gang')}>
                   Gangs
                 </NavLink>
 
@@ -77,7 +95,22 @@ export const Header: React.FC = React.memo(() => {
                   {/* Notification Bell */}
                   <NotificationBell />
 
-                  <span className="text-desert-sand font-serif text-sm">
+                  {/* Hidden Character Info Button for Tutorial */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => completeTutorialAction('open-character-panel')}
+                    className="hidden" // Hidden by default
+                    data-tutorial-target="character-panel-button"
+                  >
+                    Character Info
+                  </Button>
+
+                  <span
+                    className="text-desert-sand font-serif text-sm cursor-pointer"
+                    onClick={handleDashboardClick}
+                    data-tutorial-target="dashboard-stats"
+                  >
                     {user?.email}
                   </span>
 

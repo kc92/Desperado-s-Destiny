@@ -1,0 +1,17 @@
+{
+  "botName": "AutonomousLeveler",
+  "sessionDuration": "0 minutes",
+  "totalActions": 2,
+  "actionsPerMinute": "3.84",
+  "topActions": [
+    {
+      "action": "login",
+      "count": 1
+    },
+    {
+      "action": "character_select",
+      "count": 1
+    }
+  ],
+  "errors": 0
+}

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 3: Gritty Cinematic Style</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            background: #0a0a0a;
+            color: #d4d4d4;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, transparent 1px, transparent 2px, rgba(0,0,0,0.15) 3px),
+                radial-gradient(circle at 50% 50%, transparent 0%, rgba(0,0,0,0.5) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .mockup-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .mockup-header {
+            text-align: center;
+            padding: 80px 20px;
+            background: linear-gradient(180deg, rgba(20,20,20,0.95) 0%, rgba(10,10,10,0.95) 100%);
+            border: 2px solid #1a1a1a;
+            border-radius: 0;
+            margin-bottom: 40px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9), inset 0 0 100px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .mockup-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent 0%, #8b0000 50%, transparent 100%);
+        }
+
+        .mockup-header h1 {
+            font-size: 72px;
+            color: #ffffff;
+            text-shadow:
+                0 0 20px rgba(139, 0, 0, 0.8),
+                0 0 40px rgba(139, 0, 0, 0.5),
+                4px 4px 8px rgba(0,0,0,0.9);
+            letter-spacing: 12px;
+            font-weight: 900;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .mockup-header p {
+            font-size: 18px;
+            color: #888;
+            font-family: 'Arial', sans-serif;
+            font-weight: normal;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .section {
+            background: linear-gradient(180deg, rgba(15,15,15,0.98) 0%, rgba(8,8,8,0.98) 100%);
+            border: 2px solid #1a1a1a;
+            border-radius: 0;
+            padding: 50px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        .section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 20px;
+            right: 20px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, #8b0000 50%, transparent 100%);
+        }
+
+        .section h2 {
+            color: #ffffff;
+            font-size: 42px;
+            margin-bottom: 30px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            text-shadow: 0 0 15px rgba(139, 0, 0, 0.6), 3px 3px 6px rgba(0,0,0,0.9);
+        }
+
+        /* Card Flip Animation - Gritty */
+        .card-demo {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .card {
+            width: 220px;
+            height: 320px;
+            perspective: 1000px;
+            cursor: pointer;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.9));
+        }
+
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.7s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            transform-style: preserve-3d;
+        }
+
+        .card:hover .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 900;
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+        }
+
+        .card-front {
+            background:
+                linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(10,10,10,0.95) 100%);
+            border: 3px solid #2a2a2a;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(139, 0, 0, 0.8);
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #8b0000 0%, #5a0000 100%);
+            border: 3px solid #000000;
+            color: #ffffff;
+            transform: rotateY(180deg);
+            padding: 25px;
+            text-align: center;
+            font-size: 16px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+        }
+
+        /* Combat Feedback - Gritty */
+        .combat-demo {
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(20,0,0,0.9) 100%);
+            border: 3px solid #1a0000;
+            border-radius: 0;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .damage-number {
+            position: absolute;
+            font-size: 72px;
+            font-weight: 900;
+            color: #ff0000;
+            text-shadow:
+                0 0 30px rgba(255,0,0,1),
+                0 0 60px rgba(255,0,0,0.8),
+                4px 4px 8px rgba(0,0,0,1);
+            animation: damageFloat 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+            pointer-events: none;
+        }
+
+        @keyframes damageFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(0.5) rotate(-10deg);
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(-80px) scale(1.5) rotate(5deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-150px) scale(1) rotate(0deg);
+            }
+        }
+
+        .hit-effect {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: radial-gradient(circle, rgba(255,0,0,0.6) 0%, transparent 60%);
+            animation: hitFlash 0.4s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes hitFlash {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+
+        .combat-button {
+            background: linear-gradient(180deg, #8b0000 0%, #5a0000 100%);
+            border: 3px solid #000000;
+            color: #ffffff;
+            padding: 20px 60px;
+            font-size: 24px;
+            font-weight: 900;
+            border-radius: 0;
+            cursor: pointer;
+            text-shadow: 2px 2px 4px rgba(0,0,0,1);
+            transition: all 0.2s;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+        }
+
+        .combat-button:hover {
+            background: linear-gradient(180deg, #a00000 0%, #6a0000 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(139, 0, 0, 0.6);
+        }
+
+        .combat-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+        }
+
+        /* Loading Screen - Gritty */
+        .loading-demo {
+            background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(20,0,0,0.95) 100%);
+            padding: 100px;
+            text-align: center;
+            border-radius: 0;
+            border: 3px solid #1a0000;
+        }
+
+        .loading-spinner {
+            width: 100px;
+            height: 100px;
+            border: 8px solid rgba(139, 0, 0, 0.2);
+            border-top: 8px solid #8b0000;
+            border-radius: 50%;
+            margin: 40px auto;
+            animation: spin 1s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(139, 0, 0, 0.6);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 32px;
+            color: #ffffff;
+            margin-top: 30px;
+            text-shadow: 0 0 20px rgba(139, 0, 0, 0.8);
+            letter-spacing: 6px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .loading-bar {
+            width: 100%;
+            max-width: 600px;
+            height: 40px;
+            background: rgba(0,0,0,0.8);
+            border: 3px solid #1a1a1a;
+            border-radius: 0;
+            margin: 50px auto;
+            overflow: hidden;
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.9);
+        }
+
+        .loading-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8b0000 0%, #ff0000 50%, #8b0000 100%);
+            animation: loadProgress 3s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(139, 0, 0, 0.8);
+        }
+
+        @keyframes loadProgress {
+            0% { width: 0%; }
+            50% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* Mobile Layout - Gritty */
+        .mobile-demo {
+            max-width: 420px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, rgba(0,0,0,0.98) 0%, rgba(20,0,0,0.98) 100%);
+            border: 3px solid #1a1a1a;
+            border-radius: 0;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+        }
+
+        .mobile-header {
+            background: linear-gradient(180deg, rgba(20,20,20,0.9) 0%, rgba(10,10,10,0.9) 100%);
+            padding: 25px;
+            border-radius: 0;
+            margin-bottom: 25px;
+            border: 2px solid #2a2a2a;
+        }
+
+        .mobile-stat {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .mobile-button {
+            width: 100%;
+            padding: 20px;
+            margin: 15px 0;
+            background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 3px solid #3a3a3a;
+            border-radius: 0;
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.8);
+        }
+
+        .mobile-button:active {
+            transform: scale(0.97);
+            background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.8);
+        }
+
+        .feature-tag {
+            display: inline-block;
+            background: rgba(139, 0, 0, 0.3);
+            border: 2px solid #8b0000;
+            color: #ffffff;
+            padding: 8px 20px;
+            border-radius: 0;
+            margin: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(139, 0, 0, 0.4);
+        }
+
+        .blood-splatter {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, rgba(139, 0, 0, 0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="mockup-container">
+        <div class="mockup-header">
+            <h1>GRITTY CINEMATIC</h1>
+            <p>Dark, dramatic, high contrast film noir Western</p>
+        </div>
+
+        <!-- Card Flip Demo -->
+        <div class="section">
+            <h2>DESTINY DECK</h2>
+            <p style="margin-bottom: 30px; font-size: 16px; color: #888; font-family: Arial; letter-spacing: 2px;">HOVER TO REVEAL YOUR FATE</p>
+            <div class="feature-tag">Dark Aesthetic</div>
+            <div class="feature-tag">Blood Red Backs</div>
+            <div class="feature-tag">Dramatic Shadows</div>
+
+            <div class="card-demo">
+                <div class="card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div>
+                                <div style="font-size: 72px; margin-bottom: 10px;">🎴</div>
+                                <div style="font-size: 16px; letter-spacing: 4px;">DESTINY</div>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div>
+                                <div style="font-size: 48px; margin-bottom: 20px;">💀</div>
+                                <div style="line-height: 1.8;">
+                                    <strong style="font-size: 18px;">DEAD MAN'S HAND</strong><br>
+                                    <span style="font-size: 14px; opacity: 0.9;">+10 LUCK<br>-5 HEALTH</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div>
+                                <div style="font-size: 72px; margin-bottom: 10px;">🎴</div>
+                                <div style="font-size: 16px; letter-spacing: 4px;">DESTINY</div>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div>
+                                <div style="font-size: 48px; margin-bottom: 20px;">🔫</div>
+                                <div style="line-height: 1.8;">
+                                    <strong style="font-size: 18px;">THE KILLER</strong><br>
+                                    <span style="font-size: 14px; opacity: 0.9;">+15 COMBAT<br>+5 CUNNING</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div>
+                                <div style="font-size: 72px; margin-bottom: 10px;">🎴</div>
+                                <div style="font-size: 16px; letter-spacing: 4px;">DESTINY</div>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div>
+                                <div style="font-size: 48px; margin-bottom: 20px;">⚰️</div>
+                                <div style="line-height: 1.8;">
+                                    <strong style="font-size: 18px;">THE UNDERTAKER</strong><br>
+                                    <span style="font-size: 14px; opacity: 0.9;">+20 SPIRIT<br>SEE THE DEAD</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Combat Feedback Demo -->
+        <div class="section">
+            <h2>COMBAT FEEDBACK</h2>
+            <p style="margin-bottom: 30px; font-size: 16px; color: #888; font-family: Arial; letter-spacing: 2px;">CLICK TO UNLEASH HELL</p>
+            <div class="feature-tag">Explosive Numbers</div>
+            <div class="feature-tag">Blood Flash</div>
+            <div class="feature-tag">Intense Impact</div>
+
+            <div class="combat-demo" id="combatDemo">
+                <div style="text-align: center; margin-bottom: 50px;">
+                    <div style="font-size: 18px; color: #888; margin-bottom: 20px; font-family: Arial; letter-spacing: 3px; text-transform: uppercase;">TARGET ACQUIRED</div>
+                    <div style="background: rgba(0,0,0,0.8); border: 3px solid #1a1a1a; padding: 20px 40px; border-radius: 0; display: inline-block;">
+                        <div style="font-size: 16px; color: #888; margin-bottom: 10px; letter-spacing: 2px; font-family: Arial;">OUTLAW GUNSLINGER</div>
+                        <div style="font-size: 32px; font-weight: 900; color: #ff0000; text-shadow: 0 0 20px rgba(255,0,0,0.8);"><span id="enemyHP">100</span> HP</div>
+                    </div>
+                </div>
+                <button class="combat-button" onclick="triggerCombat()">🔫 FIRE</button>
+            </div>
+        </div>
+
+        <!-- Loading Screen Demo -->
+        <div class="section">
+            <h2>LOADING SCREEN</h2>
+            <div class="feature-tag">Blood Spinner</div>
+            <div class="feature-tag">Dramatic Progress</div>
+            <div class="feature-tag">Cinematic Feel</div>
+
+            <div class="loading-demo">
+                <div style="font-size: 64px; margin-bottom: 30px; filter: drop-shadow(0 0 20px rgba(139,0,0,0.8));">💀</div>
+                <div class="loading-spinner"></div>
+                <div class="loading-text">LOADING</div>
+                <div class="loading-bar">
+                    <div class="loading-bar-fill"></div>
+                </div>
+                <div style="font-size: 18px; color: #666; margin-top: 30px; font-family: Arial; letter-spacing: 3px; text-transform: uppercase;">
+                    ENTERING THE BADLANDS
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Layout Demo -->
+        <div class="section">
+            <h2>MOBILE INTERFACE</h2>
+            <div class="feature-tag">High Contrast</div>
+            <div class="feature-tag">Bold Typography</div>
+            <div class="feature-tag">Impact Design</div>
+
+            <div class="mobile-demo">
+                <div class="mobile-header">
+                    <div style="text-align: center; font-size: 24px; font-weight: 900; margin-bottom: 25px; letter-spacing: 3px; text-shadow: 0 0 15px rgba(139,0,0,0.6);">
+                        JACK "KILLER" MORGAN
+                    </div>
+                    <div class="mobile-stat">
+                        <span style="color: #888;">HEALTH</span>
+                        <span style="color: #ff0000; text-shadow: 0 0 10px rgba(255,0,0,0.6);">85 / 100</span>
+                    </div>
+                    <div class="mobile-stat">
+                        <span style="color: #888;">ENERGY</span>
+                        <span style="color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.6);">60 / 80</span>
+                    </div>
+                    <div class="mobile-stat">
+                        <span style="color: #888;">GOLD</span>
+                        <span style="color: #ffffff;">$425</span>
+                    </div>
+                </div>
+
+                <button class="mobile-button">🎯 ACTIONS</button>
+                <button class="mobile-button">🗺️ TRAVEL</button>
+                <button class="mobile-button">🎒 INVENTORY</button>
+                <button class="mobile-button">💀 CHARACTER</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function triggerCombat() {
+            const demo = document.getElementById('combatDemo');
+            const hpElement = document.getElementById('enemyHP');
+            const currentHP = parseInt(hpElement.textContent);
+
+            const damage = Math.floor(Math.random() * 35) + 25;
+            const newHP = Math.max(0, currentHP - damage);
+            hpElement.textContent = newHP;
+
+            const damageNum = document.createElement('div');
+            damageNum.className = 'damage-number';
+            damageNum.textContent = `-${damage}`;
+            damageNum.style.left = Math.random() * 50 + 25 + '%';
+            damageNum.style.top = Math.random() * 30 + 35 + '%';
+            demo.appendChild(damageNum);
+
+            const hitEffect = document.createElement('div');
+            hitEffect.className = 'hit-effect';
+            demo.appendChild(hitEffect);
+
+            // Add blood splatter effect
+            for (let i = 0; i < 3; i++) {
+                const splatter = document.createElement('div');
+                splatter.className = 'blood-splatter';
+                splatter.style.left = Math.random() * 80 + 10 + '%';
+                splatter.style.top = Math.random() * 60 + 20 + '%';
+                splatter.style.animation = `damageFloat ${1 + Math.random()}s ease-out forwards`;
+                demo.appendChild(splatter);
+                setTimeout(() => splatter.remove(), 2000);
+            }
+
+            setTimeout(() => {
+                damageNum.remove();
+                hitEffect.remove();
+            }, 1500);
+
+            if (newHP === 0) {
+                setTimeout(() => {
+                    hpElement.textContent = '100';
+                }, 2500);
+            }
+        }
+    </script>
+</body>
+</html>

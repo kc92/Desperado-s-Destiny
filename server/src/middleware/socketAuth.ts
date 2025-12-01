@@ -23,6 +23,24 @@ export interface AuthenticatedSocket extends Socket {
 }
 
 /**
+ * Parse cookies from cookie string
+ */
+function parseCookies(cookieString: string): Record<string, string> {
+  const cookies: Record<string, string> = {};
+  if (!cookieString) return cookies;
+
+  cookieString.split(';').forEach((cookie) => {
+    const parts = cookie.split('=');
+    const name = parts.shift()?.trim();
+    const value = parts.join('=')?.trim();
+    if (name && value) {
+      cookies[name] = decodeURIComponent(value);
+    }
+  });
+  return cookies;
+}
+
+/**
  * Socket.io authentication middleware
  * Validates JWT token and attaches user/character data to socket
  *
@@ -34,8 +52,13 @@ export async function socketAuthMiddleware(
   next: (err?: Error) => void
 ): Promise<void> {
   try {
-    // Extract JWT from handshake auth
-    const token = socket.handshake.auth.token as string | undefined;
+    // Extract JWT from handshake auth OR cookies
+    let token = socket.handshake.auth.token as string | undefined;
+
+    if (!token && socket.handshake.headers.cookie) {
+      const cookies = parseCookies(socket.handshake.headers.cookie);
+      token = cookies.token;
+    }
 
     if (!token) {
       logger.warn(`Socket ${socket.id} connection attempt without token`);

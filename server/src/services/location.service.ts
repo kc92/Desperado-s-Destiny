@@ -355,14 +355,9 @@ export class LocationService {
     locationId: string,
     jobId: string
   ): Promise<JobResult> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      const character = await Character.findById(characterId).session(session);
+      const character = await Character.findById(characterId);
       if (!character) {
-        await session.abortTransaction();
-        session.endSession();
         return {
           success: false,
           goldEarned: 0,
@@ -374,8 +369,6 @@ export class LocationService {
 
       // Check if character is at the location
       if (character.currentLocation !== locationId) {
-        await session.abortTransaction();
-        session.endSession();
         return {
           success: false,
           goldEarned: 0,
@@ -385,10 +378,8 @@ export class LocationService {
         };
       }
 
-      const location = await Location.findById(locationId).session(session);
+      const location = await Location.findById(locationId);
       if (!location) {
-        await session.abortTransaction();
-        session.endSession();
         return {
           success: false,
           goldEarned: 0,
@@ -401,8 +392,6 @@ export class LocationService {
       // Find the job
       const job = location.jobs.find(j => j.id === jobId);
       if (!job) {
-        await session.abortTransaction();
-        session.endSession();
         return {
           success: false,
           goldEarned: 0,
@@ -415,8 +404,6 @@ export class LocationService {
       // Check energy
       character.regenerateEnergy();
       if (character.energy < job.energyCost) {
-        await session.abortTransaction();
-        session.endSession();
         return {
           success: false,
           goldEarned: 0,
@@ -429,8 +416,6 @@ export class LocationService {
       // Check requirements
       if (job.requirements) {
         if (job.requirements.minLevel && character.level < job.requirements.minLevel) {
-          await session.abortTransaction();
-          session.endSession();
           return {
             success: false,
             goldEarned: 0,
@@ -441,8 +426,33 @@ export class LocationService {
         }
       }
 
+      // Check cooldown
+      const cooldowns = character.jobCooldowns as Map<string, Date>;
+      const lastJobTime = cooldowns.get(jobId);
+      if (lastJobTime) {
+        const cooldownMinutes = job.cooldownMinutes;
+        const cooldownMs = cooldownMinutes * 60 * 1000;
+        const timeSinceLastJob = Date.now() - lastJobTime.getTime();
+
+        if (timeSinceLastJob < cooldownMs) {
+          const remainingMs = cooldownMs - timeSinceLastJob;
+          const remainingMinutes = Math.ceil(remainingMs / 60000);
+          return {
+            success: false,
+            goldEarned: 0,
+            xpEarned: 0,
+            items: [],
+            message: `Job on cooldown. Try again in ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`,
+          };
+        }
+      }
+
       // Spend energy
       character.energy -= job.energyCost;
+
+      // Set cooldown for this job
+      cooldowns.set(jobId, new Date());
+      character.jobCooldowns = cooldowns;
 
       // Apply weather effects to job success
       let jobSuccessModifier = 1.0;
@@ -468,7 +478,7 @@ export class LocationService {
       const xpEarned = Math.floor(job.rewards.xp * jobSuccessModifier);
       const items = job.rewards.items || [];
 
-      // Add rewards
+      // Add rewards (without session)
       await GoldService.addGold(
         character._id as any,
         goldEarned,
@@ -478,16 +488,12 @@ export class LocationService {
           jobName: job.name,
           locationId,
           description: `Earned ${goldEarned} gold from ${job.name}`,
-        },
-        session
+        }
       );
 
       await character.addExperience(xpEarned);
       character.lastActive = new Date();
-      await character.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
+      await character.save();
 
       logger.info(`Character ${characterId} completed job ${job.name}: ${goldEarned} gold, ${xpEarned} XP`);
 
@@ -499,8 +505,6 @@ export class LocationService {
         message: `You completed ${job.name} and earned ${goldEarned} gold and ${xpEarned} XP`,
       };
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       logger.error('Error performing job:', error);
       throw error;
     }

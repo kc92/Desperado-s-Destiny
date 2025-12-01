@@ -18,7 +18,7 @@ import {
   createGossip,
   cleanupGossip
 } from '../controllers/gossip.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
 
 const router = express.Router();
 
@@ -53,14 +53,14 @@ router.get('/relationships/:npcId', requireAuth, getNPCRelationships);
 
 /**
  * Admin/testing routes
- * TODO: Add admin middleware when available
+ * Protected by requireAdmin middleware
  */
 
 // Spread gossip (for testing/events)
-router.post('/:gossipId/spread', requireAuth, spreadGossip);
+router.post('/:gossipId/spread', requireAuth, requireAdmin, spreadGossip);
 
 // Create gossip (for testing/events)
-router.post('/create', requireAuth, createGossip);
+router.post('/create', requireAuth, requireAdmin, createGossip);
 
 // Cleanup old gossip (cron job endpoint)
 router.post('/cleanup', cleanupGossip);

@@ -9,6 +9,12 @@
     "start": "node dist/server.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
+    "test:comprehensive": "jest --config jest.comprehensive.config.js --runInBand",
+    "test:all-systems": "jest --config jest.comprehensive.config.js tests/comprehensive/allSystems.exhaustive.test.ts --runInBand",
+    "test:all-locations": "jest --config jest.comprehensive.config.js tests/comprehensive/allLocations.exhaustive.test.ts --runInBand",
+    "test:all-actions": "jest --config jest.comprehensive.config.js tests/comprehensive/allActions.exhaustive.test.ts --runInBand",
+    "test:orchestrator": "jest --config jest.comprehensive.config.js tests/comprehensive/runAll.test.ts --runInBand",
+    "validate:all": "node runComprehensiveTests.js",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "typecheck": "tsc --noEmit"

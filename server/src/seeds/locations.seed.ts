@@ -7,6 +7,7 @@
 
 import mongoose from 'mongoose';
 import { Location } from '../models/Location.model';
+import { frontierLocations } from '../data/locations/frontier_locations';
 
 // Location IDs for consistent references
 export const LOCATION_IDS = {
@@ -23,6 +24,10 @@ export const LOCATION_IDS = {
   SPIRIT_SPRINGS: new mongoose.Types.ObjectId('6501a000000000000000000b'),
   WHISKEY_BEND: new mongoose.Types.ObjectId('6501a000000000000000000c'),
   THE_WASTES: new mongoose.Types.ObjectId('6501a000000000000000000d'),
+  // New Frontier Locations
+  ABANDONED_MINE: new mongoose.Types.ObjectId('6501a0000000000000000010'),
+  DUSTY_CROSSROADS: new mongoose.Types.ObjectId('6501a0000000000000000011'),
+  SNAKE_CREEK: new mongoose.Types.ObjectId('6501a0000000000000000012'),
 };
 
 // Starting location IDs for each faction
@@ -659,7 +664,7 @@ const locationSeeds = [
     shops: [
       {
         id: 'healer-tent',
-        name: 'Healer\'s Tent',
+        name: "Healer's Tent",
         description: 'Medicines from all traditions.',
         shopType: 'medicine',
         items: [
@@ -803,9 +808,9 @@ export async function seedLocations(): Promise<void> {
     await Location.deleteMany({});
 
     // Insert new locations
-    await Location.insertMany(locationSeeds);
+    await Location.insertMany([...locationSeeds, ...frontierLocations]);
 
-    console.log(`Successfully seeded ${locationSeeds.length} locations`);
+    console.log(`Successfully seeded ${locationSeeds.length + frontierLocations.length} locations`);
   } catch (error) {
     console.error('Error seeding locations:', error);
     throw error;

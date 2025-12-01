@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import { newspaperController } from '../controllers/newspaper.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
@@ -41,11 +41,11 @@ router.get(
   asyncHandler(newspaperController.getCharacterMentions)
 );
 
-// Admin routes (TODO: Add admin middleware)
-router.post('/articles', asyncHandler(newspaperController.createArticle));
-router.post('/publish', asyncHandler(newspaperController.publishNewspaper));
+// Admin routes (Protected by requireAdmin middleware)
+router.post('/articles', requireAuth, requireAdmin, asyncHandler(newspaperController.createArticle));
+router.post('/publish', requireAuth, requireAdmin, asyncHandler(newspaperController.publishNewspaper));
 
-// System routes (TODO: Add system auth)
-router.post('/world-event', asyncHandler(newspaperController.handleWorldEvent));
+// System routes (Protected by requireAdmin middleware)
+router.post('/world-event', requireAuth, requireAdmin, asyncHandler(newspaperController.handleWorldEvent));
 
 export default router;
