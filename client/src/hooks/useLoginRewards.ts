@@ -21,7 +21,7 @@ const STATUS_FETCH_DEBOUNCE_MS = 5000; // Minimum 5 seconds between fetches
 /**
  * Reward types
  */
-export type RewardType = 'dollars' | 'item' | 'energy' | 'material' | 'premium';
+export type RewardType = 'dollars' | 'gold' | 'item' | 'energy' | 'material' | 'premium' | 'experience' | 'skill_points' | 'bundle';
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 /**
@@ -228,7 +228,7 @@ export const useLoginRewards = (): UseLoginRewardsReturn => {
       const data = await loginRewardService.getCalendar();
 
       // Map service response to hook state format
-      const calendarDays: CalendarDay[] = data.calendar.map((dayReward, index) => ({
+      const calendarDays: CalendarDay[] = data.calendar.map((dayReward, _index) => ({
         absoluteDay: dayReward.day,
         dayOfWeek: ((dayReward.day - 1) % 7) + 1,
         week: dayReward.week,

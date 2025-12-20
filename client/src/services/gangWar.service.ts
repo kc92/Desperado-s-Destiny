@@ -4,16 +4,14 @@
  */
 
 import api from './api';
+import { GangWarStatus } from '@shared/types/gangWar.types';
 import type {
   GangWar,
   GangWarType,
-  GangWarStatus,
   WarMission,
-  WarBattle,
   WarStatistics,
   WarSpoils,
   WarOutcome,
-  DeclareGangWarRequest,
 } from '@shared/types/gangWar.types';
 
 // ===== Types =====

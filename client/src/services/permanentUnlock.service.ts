@@ -9,7 +9,7 @@ import type {
   AvailableUnlock,
   UnlockProgress,
   ClaimUnlockResponse,
-} from '@desperados-destiny/shared';
+} from '@desperados/shared';
 
 /**
  * Response wrapper for API calls

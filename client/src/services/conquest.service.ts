@@ -5,10 +5,12 @@
  */
 
 import api from './api';
-import type {
-  ConquestAttempt,
+import {
   ConquestStage,
   ConquestAttemptStatus,
+} from '@shared/types/conquest.types';
+import type {
+  ConquestAttempt,
   TerritoryConquestState,
   SiegeEligibility,
   ConquestResult,

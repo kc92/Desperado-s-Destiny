@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { useWorldStore, WorldEvent } from '../../store/useWorldStore';
+import { useWorldStore, type GlobalEvent } from '../../store/useWorldStore';
 
 // Event type configurations
 const EVENT_CONFIG: Record<string, { icon: string; color: string; category: string }> = {
@@ -52,13 +52,17 @@ export const WorldEventPanel: React.FC<WorldEventPanelProps> = ({
   maxEvents = 5,
   showUpcoming = true,
 }) => {
-  const { activeEvents, upcomingEvents, joinEvent, isLoading } = useWorldStore();
+  const { getActiveEvents, isLoading } = useWorldStore();
   const [joiningEvent, setJoiningEvent] = useState<string | null>(null);
   const [tab, setTab] = useState<'active' | 'upcoming'>('active');
 
+  // Get events from the store
+  const activeEvents = getActiveEvents();
+  const upcomingEvents: GlobalEvent[] = []; // Backend doesn't support upcoming events yet
+
   const handleJoinEvent = async (eventId: string) => {
     setJoiningEvent(eventId);
-    await joinEvent(eventId);
+    // joinEvent not implemented in backend yet
     setJoiningEvent(null);
   };
 
@@ -135,23 +139,31 @@ export const WorldEventPanel: React.FC<WorldEventPanelProps> = ({
 
 // Individual event card
 const EventCard: React.FC<{
-  event: WorldEvent;
+  event: GlobalEvent;
   isActive: boolean;
   onJoin: () => void;
   isJoining: boolean;
 }> = ({ event, isActive, onJoin, isJoining }) => {
-  const config = EVENT_CONFIG[event.type] || { icon: '📋', color: 'text-stone-400', category: 'Event' };
+  const config = EVENT_CONFIG[event.type.toUpperCase()] || { icon: '📋', color: 'text-stone-400', category: 'Event' };
 
-  const timeRemaining = isActive
-    ? new Date(event.scheduledEnd).getTime() - Date.now()
-    : new Date(event.scheduledStart).getTime() - Date.now();
+  const timeRemaining = isActive && event.endsAt
+    ? new Date(event.endsAt).getTime() - Date.now()
+    : new Date(event.startedAt).getTime() - Date.now();
 
   const formatTime = (ms: number) => {
+    if (ms < 0) return '0m';
     const minutes = Math.floor(ms / (60 * 1000));
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     return `${hours}h ${minutes % 60}m`;
   };
+
+  // Get effects as array for display
+  const effectsList = Object.entries(event.effects || {}).map(([key, value]) => ({
+    key,
+    value,
+    description: `${key}: ${value > 0 ? '+' : ''}${value}%`
+  }));
 
   return (
     <div className="p-4 hover:bg-stone-700/50 transition-colors">
@@ -167,7 +179,7 @@ const EventCard: React.FC<{
             <h4 className="font-semibold text-stone-100 truncate">
               {event.name}
             </h4>
-            {event.isGlobal && (
+            {event.affectedRegions.length === 0 && (
               <span className="px-1.5 py-0.5 text-xs bg-purple-600/50 text-purple-300 rounded">
                 Global
               </span>
@@ -179,9 +191,9 @@ const EventCard: React.FC<{
           </p>
 
           {/* Effects preview */}
-          {event.worldEffects && event.worldEffects.length > 0 && (
+          {effectsList.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-2">
-              {event.worldEffects.slice(0, 2).map((effect, idx) => (
+              {effectsList.slice(0, 2).map((effect, idx: number) => (
                 <span
                   key={idx}
                   className="px-2 py-0.5 text-xs bg-stone-600/50 text-stone-300 rounded"
@@ -189,9 +201,9 @@ const EventCard: React.FC<{
                   {effect.description}
                 </span>
               ))}
-              {event.worldEffects.length > 2 && (
+              {effectsList.length > 2 && (
                 <span className="px-2 py-0.5 text-xs bg-stone-600/50 text-stone-400 rounded">
-                  +{event.worldEffects.length - 2} more
+                  +{effectsList.length - 2} more
                 </span>
               )}
             </div>
@@ -203,10 +215,11 @@ const EventCard: React.FC<{
               <span>
                 {isActive ? '⏳' : '📅'} {isActive ? 'Ends in' : 'Starts in'} {formatTime(timeRemaining)}
               </span>
-              <span>
-                👥 {event.participantCount}
-                {event.maxParticipants && `/${event.maxParticipants}`}
-              </span>
+              {event.affectedRegions.length > 0 && (
+                <span>
+                  📍 {event.affectedRegions.length} region{event.affectedRegions.length !== 1 ? 's' : ''}
+                </span>
+              )}
             </div>
 
             {isActive && (
@@ -220,21 +233,6 @@ const EventCard: React.FC<{
               </button>
             )}
           </div>
-
-          {/* Rewards preview */}
-          {event.participationRewards && event.participationRewards.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-stone-700/50">
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-stone-500">Rewards:</span>
-                {event.participationRewards.map((reward, idx) => (
-                  <span key={idx} className="text-amber-400">
-                    {reward.type === 'gold' && `💰${reward.amount}`}
-                    {reward.type === 'xp' && `⭐${reward.amount} XP`}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

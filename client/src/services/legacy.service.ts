@@ -12,7 +12,6 @@ import type {
   LegacyReward,
   LifetimeStats,
   CharacterLegacyContribution,
-  ClaimLegacyRewardRequest,
   ClaimLegacyRewardResponse,
 } from '@shared/types';
 

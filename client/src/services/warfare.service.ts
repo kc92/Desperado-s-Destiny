@@ -5,11 +5,13 @@
  */
 
 import api from './api';
+import {
+  FortificationType,
+  ResistanceActivityType,
+} from '@shared/types/conquest.types';
 import type {
   TerritoryFortification,
-  FortificationType,
   ResistanceActivity,
-  ResistanceActivityType,
   TerritoryConquestState,
   LiberationCampaign,
   DiplomaticSolution,

@@ -9,7 +9,13 @@
  */
 
 import api from './api';
-import { CurrencyType } from '@desperados/shared';
+
+// Currency types (local definition since not exported from shared)
+export enum CurrencyType {
+  DOLLAR = 'dollar',
+  GOLD_RESOURCE = 'gold_resource',
+  SILVER_RESOURCE = 'silver_resource',
+}
 
 // =============================================================================
 // TYPES

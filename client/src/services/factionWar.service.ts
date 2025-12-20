@@ -5,14 +5,15 @@
  */
 
 import api from './api';
+import {
+  WarPhase,
+  WarEventStatus,
+} from '@shared/types/factionWar.types';
 import type {
   FactionWarEvent,
   WarEventType,
-  WarPhase,
-  WarEventStatus,
   WarParticipant,
   WarObjective,
-  WarEventTemplate,
   FactionWarStatistics,
   WarEventSummary,
   WarLeaderboardEntry,

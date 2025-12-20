@@ -4,12 +4,14 @@
  */
 
 import { apiCall } from './api';
+import {
+  AuctionStatus,
+  BankruptcyStatus,
+} from '@shared/types/propertyTax.types';
 import type {
   PropertyAuction,
   AuctionBid,
-  AuctionStatus,
   TaxDelinquencyRecord,
-  BankruptcyStatus,
 } from '@shared/types/propertyTax.types';
 
 // ===== Request Types =====

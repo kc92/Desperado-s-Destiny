@@ -611,12 +611,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ _pendingTimeouts: pendingTimeouts });
 
     try {
-      const emitSuccess = socketService.emit('chat:send_message', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const emitSuccess = (socketService.emit as any)('chat:send_message', {
         roomType,
         roomId,
         content: trimmedContent,
         recipientId,
-        _clientId: clientId, // Include client ID for matching response
       });
 
       if (!emitSuccess) {
@@ -676,12 +676,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ _pendingTimeouts: pendingTimeouts });
 
     // Retry sending
-    const emitSuccess = socketService.emit('chat:send_message', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const emitSuccess = (socketService.emit as any)('chat:send_message', {
       roomType: failedMessage.roomType,
       roomId: failedMessage.roomId,
       content: failedMessage.content,
       recipientId: failedMessage.recipientId,
-      _clientId: clientId,
     });
 
     if (!emitSuccess) {

@@ -21,6 +21,8 @@ export interface NPCWithTrust extends LocationNPC {
   interactionCount: number;
   locationId: string;
   locationName: string;
+  role?: string;
+  offersQuests?: boolean;
 }
 
 /**

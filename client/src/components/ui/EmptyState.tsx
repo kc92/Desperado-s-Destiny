@@ -21,6 +21,8 @@ interface EmptyStateProps {
   actionText?: string;
   /** Primary action callback */
   onAction?: () => void;
+  /** Alternative action format { label, onClick } */
+  action?: { label: string; onClick: () => void };
   /** Secondary action button text */
   secondaryActionText?: string;
   /** Secondary action callback */
@@ -82,6 +84,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   variant = 'default',
   actionText,
   onAction,
+  action,
   secondaryActionText,
   onSecondaryAction,
   className = '',
@@ -89,6 +92,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   const styles = variantStyles[variant];
   const sizes = sizeStyles[size];
+
+  // Support both action formats
+  const finalActionText = actionText || action?.label;
+  const finalOnAction = onAction || action?.onClick;
 
   return (
     <div
@@ -134,15 +141,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       )}
 
       {/* Actions */}
-      {(actionText || secondaryActionText) && (
+      {(finalActionText || secondaryActionText) && (
         <div className="flex gap-3 flex-wrap justify-center">
-          {actionText && onAction && (
+          {finalActionText && finalOnAction && (
             <Button
               variant="primary"
               size={size === 'lg' ? 'lg' : size === 'sm' ? 'sm' : 'md'}
-              onClick={onAction}
+              onClick={finalOnAction}
             >
-              {actionText}
+              {finalActionText}
             </Button>
           )}
           {secondaryActionText && onSecondaryAction && (

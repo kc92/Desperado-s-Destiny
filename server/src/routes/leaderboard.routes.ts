@@ -13,6 +13,8 @@ import {
   getGangsLeaderboard
 } from '../controllers/leaderboard.controller';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { authenticate } from '../middleware/auth.middleware';
+import { apiRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -20,42 +22,48 @@ const router = Router();
  * GET /api/leaderboard/level
  * Get level leaderboard
  * Query params: range (all|monthly|weekly|daily), limit
+ * Protected: Requires authentication
  */
-router.get('/level', asyncHandler(getLevelLeaderboard));
+router.get('/level', authenticate, apiRateLimiter, asyncHandler(getLevelLeaderboard));
 
 /**
  * GET /api/leaderboard/gold
  * Get gold/wealth leaderboard
  * Query params: range, limit
+ * Protected: Requires authentication
  */
-router.get('/gold', asyncHandler(getGoldLeaderboard));
+router.get('/gold', authenticate, apiRateLimiter, asyncHandler(getGoldLeaderboard));
 
 /**
  * GET /api/leaderboard/reputation
  * Get reputation leaderboard
  * Query params: range, limit
+ * Protected: Requires authentication
  */
-router.get('/reputation', asyncHandler(getReputationLeaderboard));
+router.get('/reputation', authenticate, apiRateLimiter, asyncHandler(getReputationLeaderboard));
 
 /**
  * GET /api/leaderboard/combat
  * Get combat wins leaderboard
  * Query params: range, limit
+ * Protected: Requires authentication
  */
-router.get('/combat', asyncHandler(getCombatLeaderboard));
+router.get('/combat', authenticate, apiRateLimiter, asyncHandler(getCombatLeaderboard));
 
 /**
  * GET /api/leaderboard/bounties
  * Get bounties/wanted leaderboard
  * Query params: range, limit
+ * Protected: Requires authentication
  */
-router.get('/bounties', asyncHandler(getBountiesLeaderboard));
+router.get('/bounties', authenticate, apiRateLimiter, asyncHandler(getBountiesLeaderboard));
 
 /**
  * GET /api/leaderboard/gangs
  * Get gangs leaderboard
  * Query params: range, limit
+ * Protected: Requires authentication
  */
-router.get('/gangs', asyncHandler(getGangsLeaderboard));
+router.get('/gangs', authenticate, apiRateLimiter, asyncHandler(getGangsLeaderboard));
 
 export default router;

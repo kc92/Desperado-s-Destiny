@@ -34,7 +34,7 @@ const registeredGangListeners: RegisteredGangListener[] = [];
  * Add a socket listener and track it for cleanup
  */
 const addTrackedGangListener = (event: string, handler: (...args: unknown[]) => void): void => {
-  socketService.on(event, handler);
+  socketService.on(event as any, handler as any);
   registeredGangListeners.push({ event, handler });
 };
 
@@ -44,7 +44,7 @@ const addTrackedGangListener = (event: string, handler: (...args: unknown[]) => 
  */
 const removeAllTrackedGangListeners = (): void => {
   registeredGangListeners.forEach(({ event, handler }) => {
-    socketService.off(event, handler);
+    socketService.off(event as any, handler as any);
   });
   registeredGangListeners.length = 0; // Clear the array
 };

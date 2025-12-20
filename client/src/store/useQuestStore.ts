@@ -129,8 +129,8 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      // Get quest details first
-      const questDetails = await questService.getQuestDetails(questId);
+      // Get quest details first (validates quest exists)
+      await questService.getQuestDetails(questId);
 
       // Move quest from activeQuests to completedQuests
       set((state) => {

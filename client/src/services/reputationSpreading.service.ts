@@ -9,11 +9,9 @@ import type { ApiResponse } from '@/types';
 import type {
   ReputationEvent,
   ReputationEventType,
-  ReputationNPCKnowledge,
   ReputationModifier,
   LocationReputation,
   SpreadResult,
-  CreateReputationEventRequest,
   GetNPCKnowledgeResponse,
 } from '@desperados/shared';
 

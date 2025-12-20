@@ -16,7 +16,6 @@ import {
   stagecoachService,
   type StagecoachRoute,
   type AmbushSpot,
-  type AmbushPlan,
   type AmbushResult,
 } from '@/services/stagecoach.service';
 
@@ -30,7 +29,6 @@ export const StagecoachAmbush: React.FC = () => {
     stagecoachRoutes,
     ambushSpots,
     ambushPlan,
-    isLoading: storeLoading,
     error: storeError,
     loadStagecoachData,
     loadAmbushSpots,
@@ -40,7 +38,7 @@ export const StagecoachAmbush: React.FC = () => {
     cancelAmbush,
     clearError,
   } = useTransportStore();
-  const { success, error: showError, warning } = useToast();
+  const { success, error: showError } = useToast();
 
   // State
   const [activeTab, setActiveTab] = useState<TabType>('select');
@@ -94,7 +92,7 @@ export const StagecoachAmbush: React.FC = () => {
     if (!selectedRoute || !selectedSpot) return;
 
     // Check if character is jailed
-    if (currentCharacter?.jailed) {
+    if (currentCharacter?.isJailed) {
       showError('Jailed', 'You cannot plan an ambush while in jail.');
       return;
     }

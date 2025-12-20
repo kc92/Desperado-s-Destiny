@@ -5,7 +5,7 @@
  * When one tab updates a value, other tabs are notified and can sync.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { logger } from '@/services/logger.service';
 
 /**

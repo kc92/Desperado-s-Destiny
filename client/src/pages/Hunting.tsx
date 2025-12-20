@@ -28,7 +28,7 @@ export function Hunting() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [availability, setAvailability] = useState<HuntAvailability | null>(null);
-  const [currentTrip, setCurrentTrip] = useState<HuntingTrip | null>(null);
+  const [, setCurrentTrip] = useState<HuntingTrip | null>(null);
   const [statistics, setStatistics] = useState<HuntingStatistics | null>(null);
   const [phase, setPhase] = useState<HuntingPhase>('idle');
 
@@ -81,7 +81,7 @@ export function Hunting() {
         setStatistics(statsData);
       }
     } catch (err) {
-      logger.error('Failed to load hunting data', err);
+      logger.error('Failed to load hunting data', err instanceof Error ? err : undefined);
       setError('Failed to load hunting data. Please try again.');
     } finally {
       setIsLoading(false);
@@ -114,7 +114,7 @@ export function Hunting() {
         setError(result.message || 'Failed to start hunt');
       }
     } catch (err) {
-      logger.error('Failed to start hunt', err);
+      logger.error('Failed to start hunt', err instanceof Error ? err : undefined);
       setError('Failed to start hunt. Please try again.');
     } finally {
       setIsLoading(false);
@@ -138,7 +138,7 @@ export function Hunting() {
         setError(result.error || 'Tracking failed');
       }
     } catch (err) {
-      logger.error('Failed to track', err);
+      logger.error('Failed to track', err instanceof Error ? err : undefined);
       setError('Failed to track animal. Please try again.');
     } finally {
       setIsLoading(false);
@@ -164,7 +164,7 @@ export function Hunting() {
 
       setPhase('result');
     } catch (err) {
-      logger.error('Failed to shoot', err);
+      logger.error('Failed to shoot', err instanceof Error ? err : undefined);
       setError('Shot failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -187,7 +187,7 @@ export function Hunting() {
       setAnimalDistance(null);
       setLastResult(null);
     } catch (err) {
-      logger.error('Failed to abandon hunt', err);
+      logger.error('Failed to abandon hunt', err instanceof Error ? err : undefined);
       setError('Failed to abandon hunt. Please try again.');
     } finally {
       setIsLoading(false);

@@ -6,7 +6,7 @@
  * PHASE 2 FIX: Created to provide consistent error handling across pages
  */
 
-import { Home, RefreshCw, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { RefreshCw, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { logger } from '@/services/logger.service';
 

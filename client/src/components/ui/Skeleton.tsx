@@ -126,11 +126,12 @@ export const ListItemSkeleton: React.FC<{ count?: number }> = ({ count = 3 }) =>
 /**
  * Pre-composed skeleton for cards in a grid
  */
-export const CardGridSkeleton: React.FC<{ count?: number; columns?: 2 | 3 | 4 }> = ({
+export const CardGridSkeleton: React.FC<{ count?: number; columns?: 1 | 2 | 3 | 4 }> = ({
   count = 6,
   columns = 3
 }) => {
   const colsClass = {
+    1: 'grid-cols-1',
     2: 'grid-cols-1 sm:grid-cols-2',
     3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
     4: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4',

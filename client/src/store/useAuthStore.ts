@@ -11,7 +11,7 @@ import type { User, LoginCredentials, RegisterCredentials } from '@/types';
 import authService from '@/services/auth.service';
 import { socketService } from '@/services/socket.service';
 import { useCsrfStore } from '@/store/useCsrfStore';
-import { broadcastAuthEvent, type AuthBroadcastMessage } from '@/hooks/useStorageSync';
+import { broadcastAuthEvent } from '@/hooks/useStorageSync';
 import { setUserContext } from '@/config/sentry';
 
 interface AuthStore {
@@ -76,10 +76,10 @@ export const useAuthStore = create<AuthStore>()((set) => ({
       });
 
       // Set Sentry user context for error tracking
-      setUserContext({ id: user.id, email: user.email, username: user.username });
+      setUserContext({ id: user.id ?? '', email: user.email });
 
       // Broadcast login to other tabs
-      broadcastAuthEvent('LOGIN', { userId: user.id });
+      broadcastAuthEvent('LOGIN', { userId: user.id ?? '' });
     } catch (error: any) {
       set({
         user: null,
@@ -120,10 +120,10 @@ export const useAuthStore = create<AuthStore>()((set) => ({
       });
 
       // Set Sentry user context for error tracking
-      setUserContext({ id: user.id, email: user.email, username: user.username });
+      setUserContext({ id: user.id ?? '', email: user.email });
 
       // Broadcast login to other tabs (registration also logs in)
-      broadcastAuthEvent('LOGIN', { userId: user.id });
+      broadcastAuthEvent('LOGIN', { userId: user.id ?? '' });
     } catch (error: any) {
       set({
         user: null,
@@ -201,7 +201,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
         }
 
         // Set Sentry user context for error tracking (session restored)
-        setUserContext({ id: result.user.id, email: result.user.email, username: result.user.username });
+        setUserContext({ id: result.user.id ?? '', email: result.user.email });
 
         set({
           user: result.user,

@@ -35,15 +35,21 @@ export const useMailStore = create<MailStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = unreadOnly
-        ? await mailService.getUnreadMail({ limit, offset })
-        : await mailService.getInbox({ limit, offset });
-
-      set({
-        inbox: unreadOnly ? response : response.data,
-        unreadCount: unreadOnly ? 0 : response.unreadCount || 0,
-        isLoading: false
-      });
+      if (unreadOnly) {
+        const mails = await mailService.getUnreadMail({ limit, offset });
+        set({
+          inbox: mails,
+          unreadCount: mails.length,
+          isLoading: false
+        });
+      } else {
+        const response = await mailService.getInbox({ limit, offset });
+        set({
+          inbox: response.data,
+          unreadCount: response.unreadCount || 0,
+          isLoading: false
+        });
+      }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to fetch inbox';
       logger.error('Failed to fetch inbox', error as Error, {

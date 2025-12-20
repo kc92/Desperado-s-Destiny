@@ -143,7 +143,7 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
       const response = await adminService.getUsers(params);
 
       set({
-        users: response.users,
+        users: response.users as unknown as AdminUser[],
         isLoading: false
       });
     } catch (error: any) {
@@ -366,7 +366,7 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
       const response = await adminService.getGangs(params);
 
       set({
-        gangs: response.gangs,
+        gangs: response.gangs as unknown as AdminGang[],
         isLoading: false
       });
     } catch (error: any) {

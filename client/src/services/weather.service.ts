@@ -4,8 +4,8 @@
  */
 
 import api from './api';
+import { WeatherType } from '@shared/types/weather.types';
 import type {
-  WeatherType,
   WeatherEffects,
   WeatherInfo,
   GetAllWeatherResponse,

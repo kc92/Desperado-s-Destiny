@@ -4,6 +4,7 @@
  */
 
 import api from './api';
+import { EmpireRating } from '@shared/types/territoryControl.types';
 import type {
   TerritoryZone,
   TerritoryControl,
@@ -15,7 +16,6 @@ import type {
   InfluenceActivityType,
   GangInfluence,
   ControlledZone,
-  EmpireRating,
 } from '@shared/types/territoryControl.types';
 
 // ===== Types =====

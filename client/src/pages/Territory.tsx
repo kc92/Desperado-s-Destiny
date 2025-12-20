@@ -9,7 +9,7 @@ import { useCharacterStore } from '@/store/useCharacterStore';
 import { useActionStore } from '@/store/useActionStore';
 import { useTerritoryStore } from '@/store/useTerritoryStore';
 import { Card, Button } from '@/components/ui';
-import type { Territory } from '@desperados/shared';
+import type { Territory as TerritoryData } from '@desperados/shared';
 // import { formatDistanceToNow } from 'date-fns';
 
 interface TerritoryLocation {
@@ -78,7 +78,7 @@ export const Territory: React.FC = () => {
    * Map Territory from store to TerritoryLocation for UI
    * This is a temporary adapter until we fully migrate to Territory types
    */
-  function mapTerritoryToLocation(territory: Territory): TerritoryLocation {
+  function mapTerritoryToLocation(territory: TerritoryData): TerritoryLocation {
     return {
       id: territory.id,
       name: territory.name,
@@ -94,7 +94,7 @@ export const Territory: React.FC = () => {
     };
   }
 
-  const getMockTerritories = (): TerritoryLocation[] => [
+  function getMockTerritories(): TerritoryLocation[] { return [
     {
       id: 'dusty-gulch',
       name: 'Dusty Gulch',
@@ -146,7 +146,7 @@ export const Territory: React.FC = () => {
       availableActions: ['fence', 'recruit', 'raid'],
       playerCount: 5
     }
-  ];
+  ]; }
 
   const calculateTravelTime = (from: TerritoryLocation, to: TerritoryLocation) => {
     const distance = Math.sqrt(

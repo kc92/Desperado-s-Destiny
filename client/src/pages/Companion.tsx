@@ -4,41 +4,31 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button, Card, LoadingSpinner, ProgressBar } from '@/components/ui';
-import { useToast } from '@/store/useToastStore';
 import {
   companionService,
-  Companion,
-  ShopCompanion,
-  WildEncounter,
-  CareTask,
-  CompanionCategory,
-  CompanionSpecies,
-  TrustLevel,
-  CombatRole,
+  type Companion as CompanionData,
+  type ShopCompanion,
+  type WildEncounter,
+  type CareTask,
 } from '@/services/companion.service';
 import { logger } from '@/services/logger.service';
 
 type CompanionView = 'overview' | 'shop' | 'taming' | 'care' | 'details';
 
 export function Companion() {
-  const navigate = useNavigate();
-  const { success, info } = useToast();
-
   // State
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [companions, setCompanions] = useState<Companion[]>([]);
-  const [activeCompanion, setActiveCompanion] = useState<Companion | null>(null);
+  const [companions, setCompanions] = useState<CompanionData[]>([]);
+  const [activeCompanion, setActiveCompanion] = useState<CompanionData | null>(null);
   const [shopCompanions, setShopCompanions] = useState<ShopCompanion[]>([]);
   const [wildEncounters, setWildEncounters] = useState<WildEncounter[]>([]);
   const [careTasks, setCareTasks] = useState<CareTask[]>([]);
   const [view, setView] = useState<CompanionView>('overview');
 
   // Selection state
-  const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
-  const [selectedShopItem, setSelectedShopItem] = useState<ShopCompanion | null>(null);
+  const [selectedCompanion, setSelectedCompanion] = useState<CompanionData | null>(null);
   const [selectedEncounter, setSelectedEncounter] = useState<WildEncounter | null>(null);
 
   // ===== Data Loading =====
@@ -51,7 +41,7 @@ export function Companion() {
       setCompanions(companionsData.companions || []);
       setActiveCompanion(companionsData.activeCompanion || null);
     } catch (err) {
-      logger.error('Failed to load companions', err);
+      logger.error('Failed to load companions', err instanceof Error ? err : undefined);
       setError('Failed to load companions. Please try again later.');
     }
 
@@ -59,7 +49,7 @@ export function Companion() {
       const shopData = await companionService.getShop();
       setShopCompanions(shopData || []);
     } catch (err) {
-      logger.error('Failed to load shop data', err);
+      logger.error('Failed to load shop data', err instanceof Error ? err : undefined);
       // Shop error is non-critical, continue loading other data
     }
 
@@ -67,7 +57,7 @@ export function Companion() {
       const encountersData = await companionService.getWildEncounters();
       setWildEncounters(encountersData || []);
     } catch (err) {
-      logger.error('Failed to load wild encounters', err);
+      logger.error('Failed to load wild encounters', err instanceof Error ? err : undefined);
       // Encounters error is non-critical, continue loading other data
     }
 
@@ -75,7 +65,7 @@ export function Companion() {
       const tasksData = await companionService.getCareTasks();
       setCareTasks(tasksData || []);
     } catch (err) {
-      logger.error('Failed to load care tasks', err);
+      logger.error('Failed to load care tasks', err instanceof Error ? err : undefined);
       // Care tasks error is non-critical, continue loading other data
     }
 
@@ -87,7 +77,7 @@ export function Companion() {
   }, [loadData]);
 
   // ===== Actions =====
-  const handleActivateCompanion = async (companion: Companion) => {
+  const handleActivateCompanion = async (companion: CompanionData) => {
     try {
       const result = await companionService.activateCompanion(companion._id);
       if (result.success && result.companion) {
@@ -97,12 +87,12 @@ export function Companion() {
         setError(result.message || 'Failed to activate companion');
       }
     } catch (err) {
-      logger.error('Failed to activate companion', err);
+      logger.error('Failed to activate companion', err instanceof Error ? err : undefined);
       setError('Failed to activate companion. Please try again.');
     }
   };
 
-  const handleFeedCompanion = async (companion: Companion) => {
+  const handleFeedCompanion = async (companion: CompanionData) => {
     try {
       const result = await companionService.feedCompanion(companion._id);
       if (result.success) {
@@ -111,12 +101,12 @@ export function Companion() {
         setError(result.message || 'Failed to feed companion');
       }
     } catch (err) {
-      logger.error('Failed to feed companion', err);
+      logger.error('Failed to feed companion', err instanceof Error ? err : undefined);
       setError('Failed to feed companion. Please try again.');
     }
   };
 
-  const handleHealCompanion = async (companion: Companion) => {
+  const handleHealCompanion = async (companion: CompanionData) => {
     try {
       const result = await companionService.healCompanion(companion._id);
       if (result.success) {
@@ -125,7 +115,7 @@ export function Companion() {
         setError(result.message || 'Failed to heal companion');
       }
     } catch (err) {
-      logger.error('Failed to heal companion', err);
+      logger.error('Failed to heal companion', err instanceof Error ? err : undefined);
       setError('Failed to heal companion. Please try again.');
     }
   };
@@ -140,7 +130,7 @@ export function Companion() {
         setError(result.message || 'Failed to purchase companion');
       }
     } catch (err) {
-      logger.error('Failed to purchase companion', err);
+      logger.error('Failed to purchase companion', err instanceof Error ? err : undefined);
       setError('Failed to purchase companion. Please try again.');
     }
   };
@@ -155,7 +145,7 @@ export function Companion() {
         setError(result.message || 'Taming attempt failed');
       }
     } catch (err) {
-      logger.error('Failed to attempt taming', err);
+      logger.error('Failed to attempt taming', err instanceof Error ? err : undefined);
       setError('Failed to attempt taming. Please try again.');
     }
   };

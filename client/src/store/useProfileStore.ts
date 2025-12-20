@@ -35,7 +35,7 @@ interface ProfileStore {
   clearSearchResults: () => void;
 }
 
-export const useProfileStore = create<ProfileStore>((set, get) => ({
+export const useProfileStore = create<ProfileStore>((set, _get) => ({
   // Initial state
   viewedProfile: null,
   profileStats: null,

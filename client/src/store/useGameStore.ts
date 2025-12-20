@@ -52,7 +52,6 @@ export const useGameStore = () => {
 
     // Energy state
     energy: energy.energy,
-    energyTimerId: energy.energyTimerId,
 
     // Action state
     actions: action.actions,
@@ -85,7 +84,7 @@ export const useGameStore = () => {
       await character.selectCharacter(id);
       const char = character.currentCharacter;
       if (char) {
-        energy.initializeEnergy(char.energy, char.maxEnergy || 100, 1, false);
+        energy.initializeEnergy(char.energy, char.maxEnergy || 100, 1, undefined, false);
       }
     },
     deleteCharacter: character.deleteCharacter,
@@ -93,7 +92,7 @@ export const useGameStore = () => {
       await character.loadSelectedCharacter();
       const char = character.currentCharacter;
       if (char) {
-        energy.initializeEnergy(char.energy, char.maxEnergy || 100, 1, false);
+        energy.initializeEnergy(char.energy, char.maxEnergy || 100, 1, undefined, false);
       }
     },
     updateCharacter: character.updateCharacter,
@@ -117,9 +116,8 @@ export const useGameStore = () => {
     // Energy actions
     initializeEnergy: energy.initializeEnergy,
     updateEnergy: energy.updateEnergy,
-    deductEnergy: energy.deductEnergy,
-    startEnergyTimer: energy.startEnergyTimer,
-    stopEnergyTimer: energy.stopEnergyTimer,
+    applyOptimisticDeduct: energy.applyOptimisticDeduct,
+    confirmServerState: energy.confirmServerState,
     syncEnergyWithBackend: async () => {
       if (character.currentCharacter) {
         await energy.syncEnergyWithBackend(character.currentCharacter._id);

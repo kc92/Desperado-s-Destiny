@@ -40,7 +40,6 @@ if (import.meta.env.DEV) {
       console.log('[Tutorial] Force started! Section:', section, 'Faction:', factionId);
     },
     skip: () => {
-      const tutorialStore = useTutorialStore.getState();
       // Set tutorialCompleted to true to skip
       useTutorialStore.setState({
         tutorialCompleted: true,

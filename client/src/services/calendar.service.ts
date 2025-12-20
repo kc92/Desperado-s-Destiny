@@ -4,10 +4,12 @@
  */
 
 import api from './api';
-import type {
+import {
   Season,
   Month,
   MoonPhase,
+} from '@shared/types/calendar.types';
+import type {
   GameDate,
   GameCalendar,
   Holiday,

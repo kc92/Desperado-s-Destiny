@@ -8,7 +8,7 @@
 import React, { useMemo } from 'react';
 import { Tooltip } from '@/components/ui';
 import { useKarma } from '@/hooks/useKarma';
-import { karmaService, KarmaDimensions } from '@/services/karma.service';
+import type { KarmaDimensions } from '@/services/karma.service';
 
 // ============================================================================
 // PROPS

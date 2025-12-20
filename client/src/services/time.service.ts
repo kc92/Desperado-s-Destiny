@@ -4,8 +4,8 @@
  */
 
 import api from './api';
+import { TimePeriod } from '@shared/types/time.types';
 import type {
-  TimePeriod,
   TimeState,
   TimeEffects,
   BuildingCategory,

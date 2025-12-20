@@ -149,7 +149,7 @@ export function useGameTime(): GameTimeState {
   // Update game time state when world state changes
   const updateGameTime = useCallback(() => {
     if (worldState) {
-      const hour = worldState.gameHour;
+      const hour = worldState.gameHour ?? 12; // Default to noon if undefined
       const periodInfo = getTimePeriod(hour);
       const isDay = hour >= 6 && hour < 18;
 

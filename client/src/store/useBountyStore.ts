@@ -18,7 +18,6 @@ import {
   type BountyHunter,
   type ActiveEncounter,
   type HireableHunter,
-  type BountyHunterEncounter,
 } from '@/services/bountyHunter.service';
 import { logger } from '@/services/logger.service';
 

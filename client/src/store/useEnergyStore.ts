@@ -33,7 +33,7 @@ interface EnergyStore {
   clearEnergyState: () => void;
 }
 
-export const useEnergyStore = create<EnergyStore>((set, get) => ({
+export const useEnergyStore = create<EnergyStore>((set, _get) => ({
   // Initial state
   energy: null,
 
@@ -122,12 +122,10 @@ export const useEnergyStore = create<EnergyStore>((set, get) => ({
           energy: {
             currentEnergy: character.energy,
             maxEnergy: character.maxEnergy,
-            regenRate: character.energyRegenRate || 1,
-            // Use server's lastEnergyUpdate timestamp if available
-            lastUpdate: character.lastEnergyUpdate
-              ? new Date(character.lastEnergyUpdate)
-              : new Date(),
-            isPremium: character.isPremium || false,
+            regenRate: 1, // Default regen rate
+            // Use current time as fallback
+            lastUpdate: new Date(),
+            isPremium: false, // Default non-premium
             isOptimistic: false,
           },
         });

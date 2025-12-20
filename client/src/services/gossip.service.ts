@@ -10,10 +10,8 @@ import type {
   RelationshipGossipItem,
   NPCRelationship,
   RelationshipNPCOpinion,
-  GossipCategory,
-  GetGossipResponse,
   SpreadGossipResponse,
-  RelationshipCluster,
+  GossipCategory,
 } from '@desperados/shared';
 
 /**

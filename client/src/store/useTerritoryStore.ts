@@ -11,7 +11,6 @@ import type {
   TerritoryFaction,
   TerritoryInfluence,
   TerritoryInfluenceSummary,
-  FactionInfluenceGainResult,
   FactionOverview,
   AlignmentBenefits,
   InfluenceChange,

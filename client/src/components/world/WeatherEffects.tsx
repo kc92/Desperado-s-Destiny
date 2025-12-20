@@ -21,7 +21,7 @@ export const WeatherEffects: React.FC<WeatherEffectsProps> = ({ enabled = true }
   return (
     <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
       {/* Time of day overlay */}
-      <TimeOverlay timeOfDay={timeOfDay} />
+      <TimeOverlay timeOfDay={timeOfDay || 'day'} />
 
       {/* Weather particles */}
       {weather === 'RAIN' && <RainEffect />}

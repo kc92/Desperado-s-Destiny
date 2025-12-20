@@ -46,7 +46,7 @@ export const Train: React.FC = () => {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   // Current location
-  const currentLocation = currentCharacter?.location || 'unknown';
+  const currentLocation = currentCharacter?.locationId || 'unknown';
 
   useEffect(() => {
     loadData();

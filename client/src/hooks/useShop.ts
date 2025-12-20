@@ -5,6 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { shopService } from '@/services/shop.service';
+import type { ItemType as ServiceItemType } from '@/services/shop.service';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useTutorialStore } from '@/store/useTutorialStore';
 import { completeTutorialAction } from '@/utils/tutorialActionHandlers';
@@ -88,8 +89,8 @@ export const useShop = (): UseShopReturn => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await shopService.getShopItems(type);
-      setItems(response.items);
+      const response = await shopService.getShopItems(type as ServiceItemType | undefined);
+      setItems(response.items as unknown as ShopItem[]);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to fetch shop items');
     } finally {

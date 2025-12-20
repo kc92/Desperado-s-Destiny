@@ -8,7 +8,7 @@ import api from './api';
 
 // ===== Types =====
 
-export type RewardType = 'dollars' | 'item' | 'energy' | 'material' | 'premium';
+export type RewardType = 'dollars' | 'gold' | 'item' | 'energy' | 'material' | 'premium' | 'experience' | 'skill_points' | 'bundle';
 
 export interface RewardItem {
   type: RewardType;
@@ -273,11 +273,14 @@ export const loginRewardService = {
    */
   getRewardTypeDisplay(type: RewardType): { icon: string; color: string } {
     const displays: Record<RewardType, { icon: string; color: string }> = {
+      dollars: { icon: '💵', color: '#85BB65' },
       gold: { icon: '💰', color: '#FFD700' },
       item: { icon: '📦', color: '#8B4513' },
+      energy: { icon: '⚡', color: '#00CED1' },
+      material: { icon: '🔧', color: '#A0522D' },
+      premium: { icon: '👑', color: '#9400D3' },
       experience: { icon: '⭐', color: '#4169E1' },
       skill_points: { icon: '🎯', color: '#FF4500' },
-      energy: { icon: '⚡', color: '#00CED1' },
       bundle: { icon: '🎁', color: '#9370DB' },
     };
     return displays[type] || { icon: '❓', color: '#808080' };

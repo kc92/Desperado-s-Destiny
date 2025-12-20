@@ -8,7 +8,7 @@ import { Card, Button, Modal } from '@/components/ui';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useQuestStore } from '@/store/useQuestStore';
-import type { Quest, QuestDefinition, QuestObjective } from '@/services/quest.service';
+import type { Quest, QuestDefinition } from '@/services/quest.service';
 
 type QuestTab = 'active' | 'available' | 'completed';
 type QuestType = 'main' | 'side' | 'daily' | 'weekly' | 'event' | 'repeatable' | 'legendary' | 'faction';

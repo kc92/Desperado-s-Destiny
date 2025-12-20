@@ -8,7 +8,7 @@
 import React from 'react';
 import { Tooltip } from '@/components/ui';
 import { useKarma } from '@/hooks/useKarma';
-import { karmaService, Blessing, Curse, DeityName } from '@/services/karma.service';
+import { karmaService, Blessing, Curse } from '@/services/karma.service';
 
 // ============================================================================
 // PROPS

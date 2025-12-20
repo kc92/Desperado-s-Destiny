@@ -7,7 +7,6 @@ import React, { useState, useEffect } from 'react';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { NotificationItem } from '@/components/notifications';
 import { Card, Button, EmptyState } from '@/components/ui';
-import type { Notification } from '@desperados/shared';
 
 // Define notification types locally since we no longer use the hook
 type NotificationType =
@@ -54,7 +53,6 @@ export const Notifications: React.FC = () => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
-    clearError,
   } = useNotificationStore();
 
   // Fetch notifications on mount

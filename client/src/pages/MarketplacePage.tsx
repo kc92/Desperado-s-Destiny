@@ -22,7 +22,7 @@ import {
   TransactionHistory,
 } from '@/components/marketplace';
 import { formatDollars } from '@/utils/format';
-import type { Listing, ListingsFilter, TransactionHistoryEntry } from '@/services/marketplace.service';
+import type { Listing, ListingsFilter } from '@/services/marketplace.service';
 import type { PriceHistoryEntry } from '@/services/marketplace.service';
 import { marketplaceService } from '@/services/marketplace.service';
 // Import old types for component compatibility
@@ -30,9 +30,6 @@ import type { MarketListing } from '@/hooks/useMarketplace';
 
 // Tab types
 type MarketTab = 'browse' | 'my-listings' | 'my-bids' | 'history';
-
-// Type alias for compatibility - the Listing type from the store is compatible with MarketListing used by components
-type CompatibleListing = Listing & Partial<MarketListing>;
 
 export const MarketplacePage: React.FC = () => {
   const { currentCharacter } = useCharacterStore();
@@ -366,8 +363,8 @@ export const MarketplacePage: React.FC = () => {
             <aside className="lg:w-56 flex-shrink-0">
               <Card variant="wood" padding="md" className="sticky top-4">
                 <CategorySidebar
-                  categories={categories}
-                  selectedCategory={filters.category}
+                  categories={categories as any}
+                  selectedCategory={filters.category as any}
                   onCategoryChange={(category) =>
                     setFilters((prev) => ({ ...prev, category, page: 1 }))
                   }
@@ -380,8 +377,8 @@ export const MarketplacePage: React.FC = () => {
             <main className="flex-1">
               {/* Filters */}
               <MarketFilters
-                categories={categories}
-                currentFilters={filters}
+                categories={categories as any}
+                currentFilters={filters as any}
                 onFiltersChange={handleFiltersChange}
                 onSearch={handleSearch}
                 isLoading={isLoading}
@@ -522,7 +519,7 @@ export const MarketplacePage: React.FC = () => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         inventoryItems={sellableInventory}
-        onCreateListing={handleCreateListing}
+        onCreateListing={handleCreateListing as any}
         isProcessing={isProcessing}
       />
     </div>

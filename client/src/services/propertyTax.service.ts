@@ -4,13 +4,15 @@
  */
 
 import api from './api';
+import {
+  TaxPaymentStatus,
+  SpecialTaxType,
+} from '@desperados/shared';
 import type {
   PropertyTaxRecord,
   TaxCalculation,
   OwnerTaxSummary,
   PropertySize,
-  TaxPaymentStatus,
-  SpecialTaxType,
 } from '@desperados/shared';
 
 // ===== Request/Response Types =====

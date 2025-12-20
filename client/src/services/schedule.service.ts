@@ -9,7 +9,6 @@ import type {
   NPCSchedule,
   NPCActivityState,
   NPCActivity,
-  ScheduleEntry,
   GetNPCsAtLocationResponse,
   GetNPCScheduleResponse,
   GetCurrentActivityResponse,

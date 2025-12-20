@@ -4,7 +4,6 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button, Card, LoadingSpinner, ProgressBar } from '@/components/ui';
 import {
   craftingService,
@@ -20,8 +19,6 @@ const CATEGORIES: RecipeCategory[] = ['weapon', 'armor', 'consumable', 'ammo', '
 type CraftingView = 'recipes' | 'stations' | 'crafting';
 
 export function Crafting() {
-  const navigate = useNavigate();
-
   // State
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +56,7 @@ export function Crafting() {
       setRecipes(recipesData);
       setStations(stationsData);
     } catch (err) {
-      logger.error('Failed to load crafting data', err);
+      logger.error('Failed to load crafting data', err instanceof Error ? err : undefined);
       setError('Failed to load crafting data. Please try again later.');
     } finally {
       setIsLoading(false);
@@ -135,7 +132,7 @@ export function Crafting() {
       }
     } catch (err) {
       clearInterval(progressInterval);
-      logger.error('Crafting failed', err);
+      logger.error('Crafting failed', err instanceof Error ? err : undefined);
       setError('Crafting failed. Please try again.');
       setCraftResult({
         success: false,

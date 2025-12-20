@@ -9,7 +9,6 @@ import {
   LeaderboardEntry,
   GangLeaderboardEntry,
   LeaderboardType,
-  LeaderboardRange,
 } from './leaderboard.service';
 import api from './api';
 

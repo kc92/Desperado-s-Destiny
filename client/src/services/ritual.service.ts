@@ -4,7 +4,7 @@
  */
 
 import api from './api';
-import type { Ritual, RitualType, ActiveRitual, RitualResult, RitualFailure } from '@desperados/shared';
+import type { Ritual, ActiveRitual, RitualResult, RitualFailure } from '@desperados/shared';
 
 // ===== Request Types =====
 

@@ -121,7 +121,7 @@ export const useAchievementStore = create<AchievementStore>((set, get) => ({
           ? Object.entries(state.achievementsByCategory).reduce(
               (acc, [category, achievements]) => ({
                 ...acc,
-                [category]: achievements.map((achievement) =>
+                [category]: achievements.map((achievement: Achievement) =>
                   achievement._id === achievementId
                     ? { ...achievement, claimedAt: response.achievement.claimedAt }
                     : achievement

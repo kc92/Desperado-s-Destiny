@@ -6,15 +6,10 @@
 import apiClient from './api';
 import type { ApiResponse } from '@desperados/shared';
 import type {
-  WanderingServiceProvider,
   Service,
-  ServiceEffect,
-  ServiceCost,
-  UseServiceRequest,
   UseServiceResponse,
   GetServiceProvidersAtLocationResponse,
   GetProviderScheduleResponse,
-  NPCActivity,
 } from '@desperados/shared';
 
 /**

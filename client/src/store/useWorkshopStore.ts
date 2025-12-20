@@ -16,7 +16,6 @@ import type {
 } from '@/services/workshop.service';
 import type {
   ProductionSlot,
-  ActiveProduction,
   CompletedProduction,
 } from '@/services/production.service';
 import type { Recipe } from '@/services/crafting.service';

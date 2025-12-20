@@ -113,7 +113,7 @@ interface DivineMessageToastProps {
   deity: DeityName;
 }
 
-const DivineMessageToast: React.FC<DivineMessageToastProps> = ({ message, deity }) => {
+const DivineMessageToast: React.FC<DivineMessageToastProps> = ({ message: _message, deity }) => {
   const deityName = karmaService.getDeityDisplayName(deity);
   const icon = karmaService.getDeityIcon(deity);
   const isGambler = deity === 'GAMBLER';
@@ -153,8 +153,8 @@ interface EffectExpiredToastProps {
 const EffectExpiredToast: React.FC<EffectExpiredToastProps> = ({
   effectType,
   effectName,
-  deity,
-  message,
+  deity: _deity,
+  message: _message,
 }) => {
   const isBlessing = effectType === 'blessing';
 

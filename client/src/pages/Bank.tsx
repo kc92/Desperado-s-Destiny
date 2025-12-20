@@ -20,7 +20,7 @@ type TabType = 'vault' | 'transactions' | 'upgrade';
 
 export const Bank: React.FC = () => {
   const { currentCharacter, updateCharacter } = useCharacterStore();
-  const { success, error: showError, info } = useToast();
+  const { success, error: showError } = useToast();
 
   // State
   const [activeTab, setActiveTab] = useState<TabType>('vault');

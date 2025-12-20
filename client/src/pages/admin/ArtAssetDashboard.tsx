@@ -11,7 +11,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useArtAssetStore } from '@/store/useArtAssetStore';
-import { ArtAsset, AssetPriority, AssetStatus, STYLE_PREFIXES, GEMINI_STYLES, CARD_BG_SUFFIX } from '@/data/artAssets';
+import { ArtAsset, AssetPriority, AssetStatus, STYLE_PREFIXES, GEMINI_STYLES } from '@/data/artAssets';
 
 // Prompt source type
 type PromptSource = 'zimage' | 'gemini';
@@ -59,7 +59,6 @@ export const ArtAssetDashboard: React.FC = () => {
     filterPriority,
     filterStatus,
     isLoading,
-    imagesLoaded,
     initializeImages,
     selectCategory,
     selectAsset,
@@ -121,7 +120,8 @@ export const ArtAssetDashboard: React.FC = () => {
   }, []);
 
   // Auto-save image to the selected folder
-  const autoSaveToFolder = useCallback(async (assetId: string, imageData: string) => {
+  // @ts-expect-error - Reserved for future use with File System Access API
+  const _autoSaveToFolder = useCallback(async (assetId: string, imageData: string) => {
     if (!autoSaveFolder || !autoSaveEnabled) return;
 
     try {

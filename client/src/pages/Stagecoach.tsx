@@ -12,7 +12,7 @@ import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/store/useToastStore';
 import { formatDollars } from '@/utils/format';
 import { logger } from '@/services/logger.service';
-import { stagecoachService, type StagecoachRoute, type StagecoachTicket, type WayStation } from '@/services/stagecoach.service';
+import { stagecoachService, type StagecoachRoute, type StagecoachTicket } from '@/services/stagecoach.service';
 
 type TabType = 'routes' | 'booking' | 'journey' | 'history';
 
@@ -31,7 +31,7 @@ export const Stagecoach: React.FC = () => {
     getJourneyProgress,
     clearError,
   } = useTransportStore();
-  const { success, error: showError, info } = useToast();
+  const { success, error: showError } = useToast();
 
   // State
   const [activeTab, setActiveTab] = useState<TabType>('routes');
@@ -51,7 +51,7 @@ export const Stagecoach: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Current location
-  const currentLocation = currentCharacter?.location || 'unknown';
+  const currentLocation = currentCharacter?.locationId || 'unknown';
 
   useEffect(() => {
     loadData();

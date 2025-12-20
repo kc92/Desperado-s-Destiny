@@ -4,9 +4,9 @@
  */
 
 import api from './api';
+import { DuelType } from '@shared/types/duel.types';
 import type {
   DuelStatus,
-  DuelType,
   DuelPlayer,
   DuelClientState,
   BettingAction,

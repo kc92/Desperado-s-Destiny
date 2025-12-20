@@ -264,7 +264,8 @@ class SocketService {
     }, timeoutMs);
 
     try {
-      this.socket.emit(event, args, (response: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this.socket.emit as any)(event, args, (response: any) => {
         if (timedOut) return;
 
         clearTimeout(timeoutId);

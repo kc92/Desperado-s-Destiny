@@ -30,7 +30,6 @@ export const TrainRobbery: React.FC = () => {
     trainSchedules,
     robberyPlans,
     activePursuit,
-    isLoading: storeLoading,
     error: storeError,
     loadTrainData,
     loadRobberyPlans,
@@ -40,7 +39,7 @@ export const TrainRobbery: React.FC = () => {
     executeRobbery,
     clearError,
   } = useTransportStore();
-  const { success, error: showError, info, warning } = useToast();
+  const { success, error: showError, warning } = useToast();
 
   // State
   const [activeTab, setActiveTab] = useState<TabType>('scout');
@@ -57,7 +56,7 @@ export const TrainRobbery: React.FC = () => {
   const [isPlanning, setIsPlanning] = useState(false);
 
   // Execute state
-  const [selectedPlan, setSelectedPlan] = useState<TrainRobberyPlan | null>(null);
+  const [, setSelectedPlan] = useState<TrainRobberyPlan | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [robberyResult, setRobberyResult] = useState<any>(null);
   const [showResultModal, setShowResultModal] = useState(false);
@@ -96,14 +95,15 @@ export const TrainRobbery: React.FC = () => {
     if (!train) return;
 
     // Check cunning requirement
-    const cunning = currentCharacter?.skills?.cunning || 0;
+    const cunningSkill = currentCharacter?.skills?.find(s => s.skillId === 'cunning');
+    const cunning = cunningSkill?.level || 0;
     if (cunning < TRAIN_CONSTANTS.SCOUTING.CUNNING_REQUIRED) {
       showError('Insufficient Cunning', `You need at least ${TRAIN_CONSTANTS.SCOUTING.CUNNING_REQUIRED} Cunning to scout trains.`);
       return;
     }
 
     // Check energy
-    const energy = currentCharacter?.energy?.current || 0;
+    const energy = currentCharacter?.energy || 0;
     if (energy < TRAIN_CONSTANTS.SCOUTING.ENERGY_COST) {
       showError('Insufficient Energy', `Scouting costs ${TRAIN_CONSTANTS.SCOUTING.ENERGY_COST} energy.`);
       return;

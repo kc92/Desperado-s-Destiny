@@ -5,7 +5,6 @@
  */
 
 import { apiCall } from './api';
-import type { ApiResponse } from '@/types';
 import type {
   Newspaper,
   NewsArticle,
@@ -15,7 +14,6 @@ import type {
   SearchArticlesRequest,
   CreateArticleRequest,
   SubscribeRequest,
-  ArticleGenerationParams,
 } from '@desperados/shared';
 
 // Request types
