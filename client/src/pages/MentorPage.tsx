@@ -21,6 +21,7 @@ import {
   AbilityStatus,
   ActiveMentorship,
 } from '@/hooks/useMentors';
+import { dispatchTrainingStarted } from '@/utils/tutorialEvents';
 
 type ViewTab = 'browse' | 'current' | 'abilities' | 'history';
 
@@ -574,6 +575,8 @@ export const MentorPage: React.FC = () => {
     if (result.success) {
       success('Training Complete!', result.message);
       setShowTrainingModal(false);
+      // Dispatch tutorial event for training
+      dispatchTrainingStarted(currentMentor.mentor.id);
       if (result.rewards?.abilityUnlocked) {
         success('Ability Unlocked!', `You learned: ${result.rewards.abilityUnlocked}`);
       }

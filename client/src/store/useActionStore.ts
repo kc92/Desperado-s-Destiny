@@ -4,8 +4,9 @@
  */
 
 import { create } from 'zustand';
-import type { Action, ActionResult, SafeCharacter } from '@desperados/shared';
+import type { Action, ActionResult } from '@desperados/shared';
 import { actionService } from '@/services/action.service';
+import { logger } from '@/services/logger.service';
 
 interface ActionStore {
   // State
@@ -22,7 +23,7 @@ interface ActionStore {
   clearActionState: () => void;
 }
 
-export const useActionStore = create<ActionStore>((set, get) => ({
+export const useActionStore = create<ActionStore>((set) => ({
   // Initial state
   actions: [],
   currentChallenge: null,
@@ -58,7 +59,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         throw new Error(response.error || 'Failed to load actions');
       }
     } catch (error: any) {
-      console.error('Failed to fetch actions:', error);
+      logger.error('Failed to fetch actions', error as Error, { context: 'useActionStore.fetchActions', locationId });
       set({
         actions: [],
         isLoading: false,
@@ -96,7 +97,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         throw new Error(response.error || 'Failed to attempt action');
       }
     } catch (error: any) {
-      console.error('Failed to attempt action:', error);
+      logger.error('Failed to attempt action', error as Error, { context: 'useActionStore.attemptAction', actionId, characterId });
       set({
         isChallengingAction: false,
         error: error.message || 'Failed to attempt action',

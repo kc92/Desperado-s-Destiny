@@ -9,6 +9,13 @@ import { useCharacterStore } from '@/store/useCharacterStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button, Modal } from '@/components/ui';
 
+// Map faction ID to intro section
+const FACTION_INTRO_MAP: Record<string, string> = {
+  'SETTLER_ALLIANCE': 'intro_settler',
+  'NAHI_COALITION': 'intro_nahi',
+  'FRONTERA': 'intro_frontera',
+};
+
 export const TutorialAutoTrigger: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
   const { currentCharacter } = useCharacterStore();
@@ -18,12 +25,21 @@ export const TutorialAutoTrigger: React.FC = () => {
     isPaused,
     showResumePrompt,
     currentSection,
+    characterId: tutorialCharacterId,
     startTutorial,
     resumeTutorial,
     skipTutorial,
     resetTutorial,
     dismissResumePrompt,
   } = useTutorialStore();
+
+  // Helper to get start params
+  const getStartParams = () => {
+    if (!currentCharacter?.faction) return { section: 'intro_settler', factionId: 'SETTLER_ALLIANCE' };
+
+    const section = FACTION_INTRO_MAP[currentCharacter.faction] || 'intro_settler';
+    return { section, factionId: currentCharacter.faction };
+  };
 
   // Auto-trigger tutorial for new characters
   useEffect(() => {
@@ -41,15 +57,19 @@ export const TutorialAutoTrigger: React.FC = () => {
     if (isNewCharacter) {
       // Small delay to let the UI settle
       const timer = setTimeout(() => {
-        startTutorial('welcome', 'core');
+        const { section, factionId } = getStartParams();
+        startTutorial(section, 'core', factionId);
       }, 1500);
 
       return () => clearTimeout(timer);
     }
   }, [isAuthenticated, currentCharacter, tutorialCompleted, isActive, isPaused, showResumePrompt, startTutorial]);
 
-  // Don't render anything if no resume prompt needed
-  if (!showResumePrompt || !currentSection) {
+  // Only show resume prompt if it's for the current character
+  const isCurrentCharacterTutorial = tutorialCharacterId === currentCharacter?._id;
+
+  // Don't render anything if not authenticated, no resume prompt needed, or tutorial is for a different character
+  if (!isAuthenticated || !currentCharacter || !showResumePrompt || !currentSection || !isCurrentCharacterTutorial) {
     return null;
   }
 
@@ -92,7 +112,8 @@ export const TutorialAutoTrigger: React.FC = () => {
             variant="secondary"
             onClick={() => {
               resetTutorial();
-              startTutorial('welcome', 'core');
+              const { section, factionId } = getStartParams();
+              startTutorial(section, 'core', factionId);
             }}
             fullWidth
           >

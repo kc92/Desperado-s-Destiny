@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Quest status types
 export type QuestStatus = 'AVAILABLE' | 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'EXPIRED';
@@ -118,7 +119,7 @@ export const useQuests = (): UseQuestsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch available quests';
       setError(errorMessage);
-      console.error('[useQuests] Fetch available quests error:', err);
+      logger.error('Fetch available quests error', err as Error, { context: 'useQuests' });
     } finally {
       setIsLoading(false);
     }
@@ -135,7 +136,7 @@ export const useQuests = (): UseQuestsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch active quests';
       setError(errorMessage);
-      console.error('[useQuests] Fetch active quests error:', err);
+      logger.error('Fetch active quests error', err as Error, { context: 'useQuests' });
     } finally {
       setIsLoading(false);
     }
@@ -152,7 +153,7 @@ export const useQuests = (): UseQuestsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch completed quests';
       setError(errorMessage);
-      console.error('[useQuests] Fetch completed quests error:', err);
+      logger.error('Fetch completed quests error', err as Error, { context: 'useQuests' });
     } finally {
       setIsLoading(false);
     }
@@ -166,7 +167,7 @@ export const useQuests = (): UseQuestsReturn => {
       setCurrentQuest(quest);
       return quest;
     } catch (err: any) {
-      console.error('[useQuests] Get quest details error:', err);
+      logger.error('Get quest details error', err as Error, { context: 'useQuests' });
       return null;
     }
   }, []);
@@ -186,7 +187,7 @@ export const useQuests = (): UseQuestsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to accept quest';
       setError(errorMessage);
-      console.error('[useQuests] Accept quest error:', err);
+      logger.error('Accept quest error', err as Error, { context: 'useQuests' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -206,7 +207,7 @@ export const useQuests = (): UseQuestsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to abandon quest';
       setError(errorMessage);
-      console.error('[useQuests] Abandon quest error:', err);
+      logger.error('Abandon quest error', err as Error, { context: 'useQuests' });
       return { success: false, message: errorMessage };
     }
   }, [currentQuest]);
@@ -236,7 +237,7 @@ export const useQuests = (): UseQuestsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to update quest progress';
       setError(errorMessage);
-      console.error('[useQuests] Update progress error:', err);
+      logger.error('Update progress error', err as Error, { context: 'useQuests' });
       return { success: false, message: errorMessage };
     }
   }, [currentQuest]);
@@ -263,7 +264,7 @@ export const useQuests = (): UseQuestsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to complete quest';
       setError(errorMessage);
-      console.error('[useQuests] Complete quest error:', err);
+      logger.error('Complete quest error', err as Error, { context: 'useQuests' });
       return { success: false, message: errorMessage };
     }
   }, [currentQuest, refreshCharacter]);

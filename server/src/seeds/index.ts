@@ -5,6 +5,7 @@
 
 import mongoose from 'mongoose';
 import { config } from '../config';
+import logger from '../utils/logger';
 import { seedItems } from './items.seed';
 import { seedQuests } from './quests.seed';
 import { seedLocations } from './locations.seed';
@@ -17,6 +18,7 @@ import { seedEncounters } from './encounters.seed';
 import { seedTerritoryZones } from './territoryZones.seed';
 import { seedNewRecipes } from './recipes_new';
 import { seedNewNPCs } from './npcs_new';
+import { seedDeities } from './deities.seed';
 
 async function seedAll() {
   try {
@@ -38,10 +40,11 @@ async function seedAll() {
     await seedNewNPCs();
     await seedEncounters(); // Random encounters
     await seedTerritoryZones(); // Territory control zones
+    await seedDeities(); // Divine entities (The Gambler & The Outlaw King)
 
     console.log('\n✅ All seeds completed successfully!');
   } catch (error) {
-    console.error('Seed error:', error);
+    logger.error('Seed error', { error: error instanceof Error ? error.message : error });
     process.exit(1);
   } finally {
     await mongoose.disconnect();
@@ -67,5 +70,6 @@ export {
   seedEncounters,
   seedTerritoryZones,
   seedNewRecipes,
-  seedNewNPCs
+  seedNewNPCs,
+  seedDeities
 };

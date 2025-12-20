@@ -84,7 +84,7 @@ export interface SecretRequirement {
 /**
  * Reward types
  */
-export type RewardType = 'gold' | 'xp' | 'item' | 'quest_unlock' | 'location_access' | 'npc_dialogue' | 'lore_entry' | 'achievement';
+export type RewardType = 'dollars' | 'xp' | 'item' | 'quest_unlock' | 'location_access' | 'npc_dialogue' | 'lore_entry' | 'achievement';
 
 /**
  * Secret reward structure
@@ -406,7 +406,7 @@ export const STARTER_SECRETS: Partial<ISecretDefinition>[] = [
         description: 'A rare deputy\'s badge granting special privileges'
       },
       {
-        type: 'gold',
+        type: 'dollars',
         amount: 500
       }
     ],
@@ -618,7 +618,7 @@ export const STARTER_SECRETS: Partial<ISecretDefinition>[] = [
     ],
     rewards: [
       {
-        type: 'gold',
+        type: 'dollars',
         amount: 1000
       },
       {
@@ -701,7 +701,7 @@ export const STARTER_SECRETS: Partial<ISecretDefinition>[] = [
     ],
     rewards: [
       {
-        type: 'gold',
+        type: 'dollars',
         amount: 150
       },
       {

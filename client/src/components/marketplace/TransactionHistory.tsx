@@ -5,8 +5,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { Card, EmptyState } from '@/components/ui';
+import { ListItemSkeleton } from '@/components/ui/Skeleton';
 import { Transaction, ItemRarity } from '@/hooks/useMarketplace';
-import { formatGold, formatTimeAgo } from '@/utils/format';
+import { formatDollars, formatTimeAgo } from '@/utils/format';
 
 interface TransactionHistoryProps {
   transactions: Transaction[];
@@ -28,7 +29,6 @@ type TransactionFilter = 'all' | 'purchase' | 'sale';
 
 export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
   transactions,
-  currentCharacterId,
   isLoading = false,
 }) => {
   const [filter, setFilter] = useState<TransactionFilter>('all');
@@ -73,6 +73,17 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
     };
   }, [transactions]);
 
+  // Show loading skeleton while fetching data
+  if (isLoading) {
+    return (
+      <div>
+        <h3 className="text-lg font-western text-gold-light mb-4">Transaction History</h3>
+        <ListItemSkeleton count={8} />
+      </div>
+    );
+  }
+
+  // Show empty state if no transactions
   if (transactions.length === 0) {
     return (
       <EmptyState
@@ -91,15 +102,15 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card variant="wood" padding="sm" className="text-center">
           <p className="text-xs text-desert-stone mb-1">Total Spent</p>
-          <p className="text-lg font-bold text-blood-red">-{formatGold(stats.totalSpent)}</p>
+          <p className="text-lg font-bold text-blood-red">-{formatDollars(stats.totalSpent)}</p>
         </Card>
         <Card variant="wood" padding="sm" className="text-center">
           <p className="text-xs text-desert-stone mb-1">Total Earned</p>
-          <p className="text-lg font-bold text-emerald-400">+{formatGold(stats.totalEarned)}</p>
+          <p className="text-lg font-bold text-emerald-400">+{formatDollars(stats.totalEarned)}</p>
         </Card>
         <Card variant="wood" padding="sm" className="text-center">
           <p className="text-xs text-desert-stone mb-1">Fees Paid</p>
-          <p className="text-lg font-bold text-desert-stone">-{formatGold(stats.totalFees)}</p>
+          <p className="text-lg font-bold text-desert-stone">-{formatDollars(stats.totalFees)}</p>
         </Card>
         <Card variant="wood" padding="sm" className="text-center">
           <p className="text-xs text-desert-stone mb-1">Net Profit</p>
@@ -109,7 +120,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
             }`}
           >
             {stats.netProfit >= 0 ? '+' : ''}
-            {formatGold(stats.netProfit)}
+            {formatDollars(stats.netProfit)}
           </p>
         </Card>
       </div>
@@ -165,7 +176,6 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
         ) : (
           filteredTransactions.map((transaction) => {
             const isPurchase = transaction.type === 'purchase';
-            const isBuyer = transaction.buyerId === currentCharacterId;
 
             return (
               <Card
@@ -230,11 +240,11 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
                       }`}
                     >
                       {isPurchase ? '-' : '+'}
-                      {formatGold(isPurchase ? transaction.price : transaction.price - transaction.fee)}
+                      {formatDollars(isPurchase ? transaction.price : transaction.price - transaction.fee)}
                     </p>
                     {!isPurchase && transaction.fee > 0 && (
                       <p className="text-xs text-desert-stone">
-                        Fee: -{formatGold(transaction.fee)}
+                        Fee: -{formatDollars(transaction.fee)}
                       </p>
                     )}
                   </div>

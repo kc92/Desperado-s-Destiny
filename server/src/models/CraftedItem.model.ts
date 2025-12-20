@@ -10,6 +10,7 @@ import {
   QualityRoll,
   CraftedItemData
 } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * CraftedItem document interface
@@ -247,7 +248,7 @@ CraftedItemSchema.methods.checkBreakage = function (): boolean {
   const durabilityPercentage = (this.durability.current / this.durability.max) * 100;
   const breakageChance = 5 + (100 - durabilityPercentage) / 10;
 
-  return Math.random() * 100 < breakageChance;
+  return SecureRNG.d100() < breakageChance;
 };
 
 /**

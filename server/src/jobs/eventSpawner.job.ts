@@ -10,7 +10,9 @@ import WorldEvent, { WorldEventType, EventStatus, IWorldEvent } from '../models/
 import WorldState, { IWorldState, TimeOfDay } from '../models/WorldState.model';
 import Location, { ILocation } from '../models/Location.model';
 import { broadcastEvent } from '../config/socket';
+import { withLock } from '../utils/distributedLock';
 import logger from '../utils/logger';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Event configuration for spawning
@@ -31,7 +33,7 @@ interface EventConfig {
     description: string;
   }>;
   participationRewards: Array<{
-    type: 'gold' | 'xp' | 'item' | 'reputation' | 'achievement';
+    type: 'dollars' | 'xp' | 'item' | 'reputation' | 'achievement';
     amount: number;
   }>;
   newsHeadline?: string;
@@ -55,7 +57,7 @@ const EVENT_CONFIGS: EventConfig[] = [
       { type: 'price_modifier', target: 'gold_earned', value: 1.2, description: '+20% gold from all sources' },
     ],
     participationRewards: [
-      { type: 'gold', amount: 50 },
+      { type: 'dollars', amount: 50 },
       { type: 'xp', amount: 25 },
     ],
     newsHeadline: 'Gold Strike! Fortune Seekers Flood the Mountains',
@@ -75,7 +77,7 @@ const EVENT_CONFIGS: EventConfig[] = [
       { type: 'price_modifier', target: 'shop_items', value: 0.85, description: '-15% shop prices' },
     ],
     participationRewards: [
-      { type: 'gold', amount: 25 },
+      { type: 'dollars', amount: 25 },
     ],
     newsHeadline: 'Trade Caravan Brings Prosperity to Town',
   },
@@ -125,7 +127,7 @@ const EVENT_CONFIGS: EventConfig[] = [
       { type: 'spawn_rate', target: 'loot', value: 1.5, description: '+50% loot quality' },
     ],
     participationRewards: [
-      { type: 'gold', amount: 75 },
+      { type: 'dollars', amount: 75 },
       { type: 'xp', amount: 50 },
     ],
     newsHeadline: 'Bandits Strike! Town Under Siege',
@@ -146,7 +148,7 @@ const EVENT_CONFIGS: EventConfig[] = [
       { type: 'spawn_rate', target: 'lawmen', value: 2.0, description: '+100% lawmen presence' },
     ],
     participationRewards: [
-      { type: 'gold', amount: 100 },
+      { type: 'dollars', amount: 100 },
       { type: 'reputation', amount: 50 },
     ],
     newsHeadline: 'Manhunt Underway! Outlaw at Large',
@@ -167,7 +169,7 @@ const EVENT_CONFIGS: EventConfig[] = [
       { type: 'danger_modifier', target: 'all', value: 2.0, description: '+100% danger level' },
     ],
     participationRewards: [
-      { type: 'gold', amount: 150 },
+      { type: 'dollars', amount: 150 },
       { type: 'xp', amount: 100 },
     ],
     newsHeadline: 'Gang War Erupts! Violence in the Streets',
@@ -188,7 +190,7 @@ const EVENT_CONFIGS: EventConfig[] = [
       { type: 'spawn_rate', target: 'legendary_npc', value: 1.0, description: 'Legendary NPC spawned' },
     ],
     participationRewards: [
-      { type: 'gold', amount: 500 },
+      { type: 'dollars', amount: 500 },
       { type: 'xp', amount: 250 },
       { type: 'reputation', amount: 100 },
     ],
@@ -285,7 +287,7 @@ const EVENT_CONFIGS: EventConfig[] = [
       { type: 'reputation_modifier', target: 'all', value: 1.1, description: '+10% XP gain' },
     ],
     participationRewards: [
-      { type: 'gold', amount: 30 },
+      { type: 'dollars', amount: 30 },
       { type: 'xp', amount: 40 },
     ],
     newsHeadline: 'Town Festival Brings Joy to Frontier',
@@ -338,7 +340,7 @@ const EVENT_CONFIGS: EventConfig[] = [
       { type: 'danger_modifier', target: 'disputed_territory', value: 1.5, description: '+50% danger in disputed areas' },
     ],
     participationRewards: [
-      { type: 'gold', amount: 100 },
+      { type: 'dollars', amount: 100 },
       { type: 'reputation', amount: 100 },
     ],
     newsHeadline: 'Territory Dispute Escalates!',
@@ -397,56 +399,60 @@ const EVENT_SPAWN_CHANCE = 0.6; // 60% chance to spawn event per cycle
  * Call this on an hourly schedule
  */
 export async function spawnEvents(): Promise<void> {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const lockKey = 'job:event-spawner';
 
   try {
-    console.log('[EventSpawner] Starting event spawn cycle...');
+    await withLock(lockKey, async () => {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        logger.info('[EventSpawner] Starting event spawn cycle...');
 
     // Get world state
     const worldState = await WorldState.findOne().session(session);
     if (!worldState) {
-      console.log('[EventSpawner] No world state found, skipping spawn cycle');
+      logger.warn('[EventSpawner] No world state found, skipping spawn cycle');
       await session.abortTransaction();
       return;
     }
 
     // Expire old events
     const expiredCount = await expireOldEvents(session);
-    console.log(`[EventSpawner] Expired ${expiredCount} old events`);
+    logger.info(`[EventSpawner] Expired ${expiredCount} old events`);
 
     // Get active events count
     const activeEvents = await WorldEvent.find({
       status: EventStatus.ACTIVE,
     }).session(session);
 
-    console.log(`[EventSpawner] Current active events: ${activeEvents.length}`);
+    logger.info(`[EventSpawner] Current active events: ${activeEvents.length}`);
 
     // Check if we should spawn new events
     if (activeEvents.length >= MAX_CONCURRENT_EVENTS) {
-      console.log('[EventSpawner] Max concurrent events reached, skipping spawn');
+      logger.info('[EventSpawner] Max concurrent events reached, skipping spawn');
       await session.commitTransaction();
       return;
     }
 
     // Determine how many events to spawn
     const availableSlots = MAX_CONCURRENT_EVENTS - activeEvents.length;
-    const shouldSpawn = Math.random() < EVENT_SPAWN_CHANCE;
+    const shouldSpawn = SecureRNG.chance(EVENT_SPAWN_CHANCE);
 
     if (!shouldSpawn && activeEvents.length >= MIN_CONCURRENT_EVENTS) {
-      console.log('[EventSpawner] Random chance failed, no new events spawned');
+      logger.debug('[EventSpawner] Random chance failed, no new events spawned');
       await session.commitTransaction();
       return;
     }
 
     // Spawn 1-2 events based on available slots
-    const eventsToSpawn = Math.min(Math.floor(Math.random() * 2) + 1, availableSlots);
-    console.log(`[EventSpawner] Attempting to spawn ${eventsToSpawn} event(s)`);
+    const eventsToSpawn = Math.min(SecureRNG.range(1, 2), availableSlots);
+    logger.info(`[EventSpawner] Attempting to spawn ${eventsToSpawn} event(s)`);
 
     for (let i = 0; i < eventsToSpawn; i++) {
       const event = await selectAndCreateEvent(worldState, session);
       if (event) {
-        console.log(`[EventSpawner] Created event: ${event.name} (${event.type})`);
+        logger.info(`[EventSpawner] Created event: ${event.name} (${event.type})`);
 
         // Emit socket event for new event
         try {
@@ -463,19 +469,33 @@ export async function spawnEvents(): Promise<void> {
             newsHeadline: event.newsHeadline,
           });
         } catch (socketError) {
-          console.log('[EventSpawner] Socket broadcast failed (this is normal if no clients connected)');
+          logger.debug('[EventSpawner] Socket broadcast failed (this is normal if no clients connected)');
         }
       }
     }
 
-    await session.commitTransaction();
-    console.log('[EventSpawner] Event spawn cycle completed successfully');
+        await session.commitTransaction();
+        logger.info('[EventSpawner] Event spawn cycle completed successfully');
+      } catch (error) {
+        await session.abortTransaction();
+        logger.error('[EventSpawner] Error during event spawn cycle', {
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      } finally {
+        session.endSession();
+      }
+    }, {
+      ttl: 3600, // 60 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
-    await session.abortTransaction();
-    console.error('[EventSpawner] Error during event spawn cycle:', error);
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('[EventSpawner] Event spawner already running on another instance, skipping');
+      return;
+    }
     throw error;
-  } finally {
-    session.endSession();
   }
 }
 
@@ -496,7 +516,7 @@ async function expireOldEvents(session: mongoose.ClientSession): Promise<number>
     event.actualEnd = now;
     await event.save({ session });
 
-    console.log(`[EventSpawner] Expired event: ${event.name}`);
+    logger.info(`[EventSpawner] Expired event: ${event.name}`);
 
     // Emit socket event for expired event
     try {
@@ -506,7 +526,7 @@ async function expireOldEvents(session: mongoose.ClientSession): Promise<number>
         type: event.type,
       });
     } catch (socketError) {
-      console.log('[EventSpawner] Socket broadcast failed (this is normal if no clients connected)');
+      logger.debug('[EventSpawner] Socket broadcast failed (this is normal if no clients connected)');
     }
   }
 
@@ -531,13 +551,13 @@ async function selectAndCreateEvent(
   });
 
   if (eligibleConfigs.length === 0) {
-    console.log('[EventSpawner] No eligible events for current world state');
+    logger.debug('[EventSpawner] No eligible events for current world state');
     return null;
   }
 
   // Weight selection by rarity (lower rarity = less likely)
   const totalWeight = eligibleConfigs.reduce((sum, config) => sum + config.rarity, 0);
-  let random = Math.random() * totalWeight;
+  let random = SecureRNG.range(1, totalWeight);
 
   let selectedConfig: EventConfig | null = null;
   for (const config of eligibleConfigs) {
@@ -617,10 +637,12 @@ async function selectRandomLocation(
       return null;
     }
 
-    const randomIndex = Math.floor(Math.random() * locations.length);
-    return locations[randomIndex];
+    return SecureRNG.select(locations);
   } catch (error) {
-    console.error('[EventSpawner] Error selecting random location:', error);
+    logger.error('[EventSpawner] Error selecting random location', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return null;
   }
 }
@@ -638,7 +660,10 @@ export async function manualExpireEvents(): Promise<number> {
     return count;
   } catch (error) {
     await session.abortTransaction();
-    console.error('[EventSpawner] Error during manual event expiration:', error);
+    logger.error('[EventSpawner] Error during manual event expiration', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     throw error;
   } finally {
     session.endSession();
@@ -679,13 +704,13 @@ export async function forceSpawnEvent(
   try {
     const config = EVENT_CONFIGS.find((c) => c.type === eventType);
     if (!config) {
-      console.error(`[EventSpawner] Unknown event type: ${eventType}`);
+      logger.error('[EventSpawner] Unknown event type', { eventType });
       return null;
     }
 
     const worldState = await WorldState.findOne().session(session);
     if (!worldState) {
-      console.error('[EventSpawner] No world state found');
+      logger.error('[EventSpawner] No world state found');
       await session.abortTransaction();
       return null;
     }
@@ -723,7 +748,7 @@ export async function forceSpawnEvent(
     await newEvent.save({ session });
     await session.commitTransaction();
 
-    console.log(`[EventSpawner] Force spawned event: ${newEvent.name}`);
+    logger.info(`[EventSpawner] Force spawned event: ${newEvent.name}`);
 
     // Emit socket event
     try {
@@ -740,13 +765,18 @@ export async function forceSpawnEvent(
         newsHeadline: newEvent.newsHeadline,
       });
     } catch (socketError) {
-      console.log('[EventSpawner] Socket broadcast failed (this is normal if no clients connected)');
+      logger.debug('[EventSpawner] Socket broadcast failed (this is normal if no clients connected)');
     }
 
     return newEvent;
   } catch (error) {
     await session.abortTransaction();
-    console.error('[EventSpawner] Error force spawning event:', error);
+    logger.error('[EventSpawner] Error force spawning event', {
+      eventType,
+      locationId,
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     throw error;
   } finally {
     session.endSession();

@@ -25,7 +25,7 @@ export async function seedTestUser(): Promise<void> {
     const testUser = await User.create({
       email: testEmail,
       passwordHash: hashedPassword,
-      isVerified: true, // Pre-verified for testing
+      emailVerified: true, // Pre-verified for testing
       verificationToken: undefined,
       isActive: true,
       createdAt: new Date(),

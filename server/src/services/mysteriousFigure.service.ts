@@ -17,6 +17,9 @@ import {
   SpawnConditions
 } from '../data/mysteriousFigures';
 import { AppError } from '../utils/errors';
+import { SecureRNG } from './base/SecureRNG';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
 
 /**
  * Time of day enum
@@ -80,7 +83,7 @@ export class MysteriousFigureService {
     for (const figure of potentialFigures) {
       if (await this.canSpawn(character, figure, locationId, timeOfDay, weather)) {
         // Random chance check
-        if (Math.random() <= figure.spawnConditions.randomChance) {
+        if (SecureRNG.chance(figure.spawnConditions.randomChance)) {
           return {
             figure,
             message: this.getSpawnMessage(figure),
@@ -217,7 +220,7 @@ export class MysteriousFigureService {
    */
   private static getRandomGreeting(figure: MysteriousFigure): string {
     const greetings = figure.dialogue.greeting;
-    return greetings[Math.floor(Math.random() * greetings.length)];
+    return SecureRNG.select(greetings);
   }
 
   /**
@@ -259,7 +262,7 @@ export class MysteriousFigureService {
     const hints = figure.dialogue.crypticHints.slice(0, 3); // Return 3 random hints
     const dialogue = [
       this.getRandomGreeting(figure),
-      ...hints.sort(() => Math.random() - 0.5).slice(0, 2)
+      ...SecureRNG.shuffle(hints).slice(0, 2)
     ];
 
     return {
@@ -338,10 +341,10 @@ export class MysteriousFigureService {
    */
   private static async getInformation(figure: MysteriousFigure): Promise<InteractionResult> {
     const infoTopics = Object.keys(figure.dialogue.information);
-    const randomTopic = infoTopics[Math.floor(Math.random() * infoTopics.length)];
+    const randomTopic = SecureRNG.select(infoTopics);
     const info = figure.dialogue.information[randomTopic];
 
-    const randomInfo = info[Math.floor(Math.random() * info.length)];
+    const randomInfo = SecureRNG.select(info);
 
     return {
       dialogue: [randomInfo],
@@ -546,7 +549,7 @@ export class MysteriousFigureService {
 
     for (const figureId of potentialFigureIds) {
       const figure = getMysteriousFigure(figureId);
-      if (figure && Math.random() < 0.5) { // 50% chance for event-triggered spawn
+      if (figure && SecureRNG.chance(0.5)) { // 50% chance for event-triggered spawn
         return {
           figure,
           message: this.getSpawnMessage(figure),
@@ -602,13 +605,18 @@ export class MysteriousFigureService {
 
     // Check if player can afford or has barter item
     if (item.price) {
-      if (character.gold < item.price) {
+      if (character.dollars < item.price) {
         return {
           success: false,
-          message: 'Not enough gold'
+          message: 'Not enough dollars'
         };
       }
-      character.gold -= item.price;
+      await DollarService.deductDollars(
+        character._id.toString(),
+        item.price,
+        TransactionSource.SHOP_PURCHASE,
+        { figureId, itemId, itemName: item.name }
+      );
     } else if (item.barterItem) {
       const hasBarterItem = character.inventory.find(inv => inv.itemId === item.barterItem);
       if (!hasBarterItem) {
@@ -626,19 +634,25 @@ export class MysteriousFigureService {
       }
     }
 
+    // Refetch character to get latest state after DollarService update
+    const updatedCharacter = await Character.findById(characterId);
+    if (!updatedCharacter) {
+      throw new AppError('Character not found after dollar deduction', 500);
+    }
+
     // Add item to inventory
-    const existingItem = character.inventory.find(inv => inv.itemId === itemId);
+    const existingItem = updatedCharacter.inventory.find(inv => inv.itemId === itemId);
     if (existingItem) {
       existingItem.quantity += 1;
     } else {
-      character.inventory.push({
+      updatedCharacter.inventory.push({
         itemId,
         quantity: 1,
         acquiredAt: new Date()
       });
     }
 
-    await character.save();
+    await updatedCharacter.save();
 
     return {
       success: true,

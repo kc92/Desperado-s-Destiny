@@ -3,10 +3,22 @@
  * Full page view of all notifications with filtering and actions
  */
 
-import React, { useState } from 'react';
-import { useNotifications, NotificationType } from '@/hooks/useNotifications';
+import React, { useState, useEffect } from 'react';
+import { useNotificationStore } from '@/store/useNotificationStore';
 import { NotificationItem } from '@/components/notifications';
 import { Card, Button, EmptyState } from '@/components/ui';
+import type { Notification } from '@desperados/shared';
+
+// Define notification types locally since we no longer use the hook
+type NotificationType =
+  | 'MAIL_RECEIVED'
+  | 'FRIEND_REQUEST'
+  | 'FRIEND_ACCEPTED'
+  | 'GANG_INVITATION'
+  | 'GANG_WAR_UPDATE'
+  | 'COMBAT_DEFEAT'
+  | 'JAIL_RELEASED'
+  | 'SKILL_TRAINED';
 
 type FilterType = 'all' | 'unread' | 'social' | 'combat' | 'gang';
 
@@ -29,24 +41,46 @@ const filterConfig: Record<FilterType, { label: string; types?: NotificationType
 
 export const Notifications: React.FC = () => {
   const [filter, setFilter] = useState<FilterType>('all');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Use the notification store
   const {
     notifications,
     unreadCount,
     isLoading,
     error,
+    fetchNotifications,
     markAsRead,
     markAllAsRead,
     deleteNotification,
-    hasMore,
-    loadMore,
-  } = useNotifications();
+    clearError,
+  } = useNotificationStore();
+
+  // Fetch notifications on mount
+  useEffect(() => {
+    fetchNotifications(20, 0);
+  }, [fetchNotifications]);
+
+  // Load more notifications
+  const loadMore = async () => {
+    const offset = page * 20;
+    await fetchNotifications(20, offset);
+    setPage(prev => prev + 1);
+
+    // Check if we have more notifications to load
+    // If we received less than 20, we've reached the end
+    if (notifications.length < offset + 20) {
+      setHasMore(false);
+    }
+  };
 
   // Filter notifications based on selected filter
   const filteredNotifications = notifications.filter((notification) => {
     if (filter === 'all') return true;
     if (filter === 'unread') return !notification.isRead;
     const types = filterConfig[filter].types;
-    return types ? types.includes(notification.type) : true;
+    return types ? types.includes(notification.type as NotificationType) : true;
   });
 
   return (

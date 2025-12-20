@@ -7,6 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { Character } from '../models/Character.model';
 import { Gang } from '../models/Gang.model';
+import { createExactMatchRegex } from '../utils/stringUtils';
 
 /**
  * Get public profile by character name
@@ -16,9 +17,9 @@ export const getPublicProfile = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { name } = req.params;
 
-    // Find character by name
+    // Find character by name (using safe regex to prevent injection)
     const character = await Character.findOne({
-      name: { $regex: new RegExp(`^${name}$`, 'i') },
+      name: createExactMatchRegex(name),
       isActive: true,
     });
 

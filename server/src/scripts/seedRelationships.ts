@@ -14,6 +14,7 @@ import {
   getClusterCount
 } from '../data/npcRelationships';
 import { config } from '../config';
+import logger from '../utils/logger';
 
 /**
  * Connect to database
@@ -23,7 +24,7 @@ async function connectDB() {
     await mongoose.connect(config.database.mongoUri);
     console.log('Connected to MongoDB');
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    logger.error('MongoDB connection error', { error: error instanceof Error ? error.message : error });
     process.exit(1);
   }
 }
@@ -59,7 +60,7 @@ async function seedRelationships() {
 
       successCount++;
     } catch (error) {
-      console.error(`Error creating relationship:`, error);
+      logger.error('Error creating relationship', { error: error instanceof Error ? error.message : error });
       errorCount++;
     }
   }
@@ -164,7 +165,7 @@ async function main() {
 
     console.log('\n=== Seed Complete ===\n');
   } catch (error) {
-    console.error('Seed script error:', error);
+    logger.error('Seed script error', { error: error instanceof Error ? error.message : error });
     process.exit(1);
   } finally {
     await mongoose.connection.close();

@@ -21,9 +21,11 @@ import { ScheduleService } from './schedule.service';
 import { Character, ICharacter } from '../models/Character.model';
 import { Item, IItem } from '../models/Item.model';
 import { GoldTransaction, TransactionSource } from '../models/GoldTransaction.model';
+import { CharacterMerchantDiscovery } from '../models/CharacterMerchantDiscovery.model';
 import { AppError } from '../utils/errors';
 import mongoose from 'mongoose';
 import { areTransactionsDisabled } from '../utils/transaction.helper';
+import { SecureRNG } from './base/SecureRNG';
 import logger from '../utils/logger';
 
 /**
@@ -46,12 +48,6 @@ export interface WanderingMerchantState extends NPCActivityState {
  * Wandering Merchant Service
  */
 export class WanderingMerchantService {
-  /**
-   * Cache for discovered merchants (per player)
-   * In production, this would be stored in database
-   */
-  private static discoveredMerchants: Map<string, Set<string>> = new Map();
-
   /**
    * Initialize the wandering merchant service
    * Registers all merchant schedules with the schedule service
@@ -218,29 +214,32 @@ export class WanderingMerchantService {
   /**
    * Check if player has discovered a hidden merchant
    */
-  static hasPlayerDiscovered(playerId: string, merchantId: string): boolean {
-    const playerDiscoveries = this.discoveredMerchants.get(playerId);
-    return playerDiscoveries?.has(merchantId) || false;
+  static async hasPlayerDiscovered(playerId: string, merchantId: string): Promise<boolean> {
+    return await CharacterMerchantDiscovery.hasDiscovered(playerId, merchantId);
   }
 
   /**
    * Mark merchant as discovered by player
    */
-  static discoverMerchant(playerId: string, merchantId: string): void {
-    if (!this.discoveredMerchants.has(playerId)) {
-      this.discoveredMerchants.set(playerId, new Set());
-    }
-    this.discoveredMerchants.get(playerId)!.add(merchantId);
-    logger.info(`Player ${playerId} discovered merchant ${merchantId}`);
+  static async discoverMerchant(playerId: string, merchantId: string, locationId?: string): Promise<void> {
+    // Get merchant's current location if not provided
+    const currentLocation = locationId || this.getMerchantLocation(merchantId)?.locationId || 'unknown';
+
+    await CharacterMerchantDiscovery.discoverMerchant(playerId, merchantId, currentLocation);
+    logger.info(`Player ${playerId} discovered merchant ${merchantId} at ${currentLocation}`);
   }
 
   /**
    * Get all merchants visible to a player (including discovered hidden ones)
    */
-  static getVisibleMerchantsForPlayer(playerId: string): WanderingMerchant[] {
+  static async getVisibleMerchantsForPlayer(playerId: string): Promise<WanderingMerchant[]> {
+    // Get all discovered merchant IDs for this player
+    const discoveredMerchantIds = await CharacterMerchantDiscovery.getDiscoveredMerchants(playerId);
+    const discoveredSet = new Set(discoveredMerchantIds);
+
     return WANDERING_MERCHANTS.filter(merchant => {
       if (!merchant.hidden) return true;
-      return this.hasPlayerDiscovered(playerId, merchant.id);
+      return discoveredSet.has(merchant.id);
     });
   }
 
@@ -273,19 +272,19 @@ export class WanderingMerchantService {
     if (context === 'greeting') {
       if (playerTrustLevel >= 4) {
         const options = merchant.dialogue.trust.high;
-        return options[Math.floor(Math.random() * options.length)];
+        return SecureRNG.select(options);
       } else if (playerTrustLevel >= 2) {
         const options = merchant.dialogue.trust.medium;
-        return options[Math.floor(Math.random() * options.length)];
+        return SecureRNG.select(options);
       } else {
         const options = merchant.dialogue.trust.low;
-        return options[Math.floor(Math.random() * options.length)];
+        return SecureRNG.select(options);
       }
     }
 
     // Handle other context types
     const options = merchant.dialogue[context];
-    return options[Math.floor(Math.random() * options.length)] || 'Hello.';
+    return SecureRNG.select(options) || 'Hello.';
   }
 
   /**
@@ -536,13 +535,13 @@ export class WanderingMerchantService {
         throw new AppError('Character not found', 404);
       }
 
-      // Check gold
-      if (character.gold < totalCost) {
-        throw new AppError(`Insufficient gold. Need ${totalCost}, have ${character.gold}`, 400);
+      // Check dollars
+      if (character.dollars < totalCost) {
+        throw new AppError(`Insufficient dollars. Need ${totalCost}, have ${character.dollars}`, 400);
       }
 
-      // Deduct gold atomically
-      await character.deductGold(totalCost, TransactionSource.SHOP_PURCHASE, {
+      // Deduct dollars atomically
+      await character.deductDollars(totalCost, TransactionSource.SHOP_PURCHASE, {
         merchantId,
         merchantName: merchant.name,
         itemId: merchantItem.itemId,
@@ -585,14 +584,17 @@ export class WanderingMerchantService {
 
       if (session) await session.commitTransaction();
 
-      logger.info(`Character ${characterId} bought ${quantity}x ${merchantItem.name} from ${merchant.name} for ${totalCost}g`);
+      // Record the trade in merchant discovery tracking
+      await CharacterMerchantDiscovery.recordTrade(characterId, merchantId, totalCost);
+
+      logger.info(`Character ${characterId} bought ${quantity}x ${merchantItem.name} from ${merchant.name} for ${totalCost} dollars`);
 
       return {
         character,
         item: merchantItem,
         totalCost,
         priceModifier,
-        message: `Purchased ${quantity}x ${merchantItem.name} for ${totalCost} gold`
+        message: `Purchased ${quantity}x ${merchantItem.name} for ${totalCost} dollars`
       };
     } catch (error) {
       if (session) await session.abortTransaction();

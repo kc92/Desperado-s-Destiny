@@ -1,0 +1,305 @@
+{
+  "timestamp": "2025-12-06T04:04:53.957Z",
+  "steps": [
+    {
+      "step": "Landing Page Load",
+      "status": "RUNNING",
+      "timestamp": "2025-12-06T04:04:53.983Z"
+    },
+    {
+      "step": "Landing Page Load",
+      "status": "PASS",
+      "timestamp": "2025-12-06T04:05:01.777Z",
+      "loadTime": 7218,
+      "hasGameName": true
+    },
+    {
+      "step": "Navigate to Registration",
+      "status": "RUNNING",
+      "timestamp": "2025-12-06T04:05:01.781Z"
+    },
+    {
+      "step": "Navigate to Registration",
+      "status": "PASS",
+      "timestamp": "2025-12-06T04:05:02.547Z"
+    },
+    {
+      "step": "Fill Registration Form",
+      "status": "RUNNING",
+      "timestamp": "2025-12-06T04:05:02.549Z"
+    },
+    {
+      "step": "Fill Registration Form",
+      "status": "PASS",
+      "timestamp": "2025-12-06T04:05:05.678Z",
+      "hasLabels": true,
+      "fieldsCount": 2
+    },
+    {
+      "step": "Submit Registration",
+      "status": "RUNNING",
+      "timestamp": "2025-12-06T04:05:05.679Z"
+    },
+    {
+      "step": "Submit Registration",
+      "status": "FAIL",
+      "timestamp": "2025-12-06T04:05:06.837Z",
+      "error": "🔥Server Error✕An error occurred"
+    },
+    {
+      "step": "Login Check",
+      "status": "RUNNING",
+      "timestamp": "2025-12-06T04:05:06.848Z"
+    },
+    {
+      "step": "Login Check",
+      "status": "PASS",
+      "timestamp": "2025-12-06T04:05:06.857Z",
+      "loginRequired": false
+    },
+    {
+      "step": "Character Creation Start",
+      "status": "RUNNING",
+      "timestamp": "2025-12-06T04:05:06.861Z"
+    },
+    {
+      "step": "Character Creation Start",
+      "status": "PASS",
+      "timestamp": "2025-12-06T04:05:10.569Z"
+    },
+    {
+      "step": "Complete Character Creation",
+      "status": "RUNNING",
+      "timestamp": "2025-12-06T04:05:10.571Z"
+    },
+    {
+      "step": "Complete Character Creation",
+      "status": "PASS",
+      "timestamp": "2025-12-06T04:05:11.577Z"
+    },
+    {
+      "step": "Verify Game Dashboard",
+      "status": "RUNNING",
+      "timestamp": "2025-12-06T04:05:11.579Z"
+    },
+    {
+      "step": "Verify Game Dashboard",
+      "status": "PASS",
+      "timestamp": "2025-12-06T04:05:14.853Z",
+      "url": "http://localhost:5174/register",
+      "uiElements": {
+        "hasEnergy": false,
+        "hasGold": false,
+        "hasLevel": false,
+        "hasHealth": false,
+        "hasNavigation": false
+      },
+      "hasTutorial": false
+    },
+    {
+      "step": "Test Navigation",
+      "status": "RUNNING",
+      "timestamp": "2025-12-06T04:05:14.856Z"
+    },
+    {
+      "step": "Test Navigation",
+      "status": "PASS",
+      "timestamp": "2025-12-06T04:05:14.864Z",
+      "navLinksCount": 0
+    },
+    {
+      "step": "Test Responsive Design",
+      "status": "RUNNING",
+      "timestamp": "2025-12-06T04:05:14.865Z"
+    },
+    {
+      "step": "Test Responsive Design",
+      "status": "PASS",
+      "timestamp": "2025-12-06T04:05:18.478Z"
+    }
+  ],
+  "issues": [
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "description": "Landing Page: Found 4 small-click-targets",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:01.740Z"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "description": "Landing Page: Found 2 potential-contrast-issues",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:01.754Z"
+    },
+    {
+      "severity": "medium",
+      "category": "performance",
+      "description": "Landing page took 7218ms to load (target: <3000ms)",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:01.764Z"
+    },
+    {
+      "severity": "critical",
+      "category": "functionality",
+      "description": "No visible registration button found on landing page",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:01.786Z"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "description": "Registration Page: Found 3 small-click-targets",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:02.540Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Registration error: 🔥Server Error✕An error occurred",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:06.828Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Expected character creation, got: http://localhost:5174/register",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:08.877Z"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "description": "Character Creation: Found 4 small-click-targets",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:09.148Z"
+    },
+    {
+      "severity": "critical",
+      "category": "functionality",
+      "description": "No faction selection options found",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:10.558Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "No \"Next\" or \"Continue\" button found",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:10.564Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "No final \"Create Character\" button found",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:11.573Z"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "description": "Game Dashboard: Found 3 small-click-targets",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:14.810Z"
+    },
+    {
+      "severity": "critical",
+      "category": "functionality",
+      "description": "Not on game page after character creation: http://localhost:5174/register",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:14.813Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Dashboard missing: hasEnergy",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:14.820Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Dashboard missing: hasGold",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:14.823Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Dashboard missing: hasLevel",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:14.827Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Dashboard missing: hasHealth",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:14.831Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Dashboard missing: hasNavigation",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:14.838Z"
+    },
+    {
+      "severity": "medium",
+      "category": "functionality",
+      "description": "No tutorial or welcome message for new players",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:14.845Z"
+    },
+    {
+      "severity": "critical",
+      "category": "functionality",
+      "description": "No navigation links found",
+      "screenshot": null,
+      "timestamp": "2025-12-06T04:05:14.860Z"
+    }
+  ],
+  "screenshots": [
+    {
+      "step": "landing",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\01-landing-page-2025-12-06T04-05-01-247Z.png"
+    },
+    {
+      "step": "register-page",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\02-register-page-2025-12-06T04-05-02-182Z.png"
+    },
+    {
+      "step": "register-filled",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\03-register-form-filled-2025-12-06T04-05-05-325Z.png"
+    },
+    {
+      "step": "register-submitted",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\04-register-submitted-2025-12-06T04-05-06-196Z.png"
+    },
+    {
+      "step": "character-start",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\06-character-creation-start-2025-12-06T04-05-08-881Z.png"
+    },
+    {
+      "step": "character-name",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\07-character-name-entered-2025-12-06T04-05-10-311Z.png"
+    },
+    {
+      "step": "dashboard",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\11-game-dashboard-2025-12-06T04-05-14-583Z.png"
+    },
+    {
+      "step": "responsive-mobile",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\13-responsive-mobile-2025-12-06T04-05-15-880Z.png"
+    },
+    {
+      "step": "responsive-tablet",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\13-responsive-tablet-2025-12-06T04-05-17-051Z.png"
+    },
+    {
+      "step": "responsive-desktop",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\13-responsive-desktop-2025-12-06T04-05-18-230Z.png"
+    }
+  ]
+}

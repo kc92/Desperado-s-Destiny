@@ -7,8 +7,12 @@
 
 import { calendarService } from '../services/calendar.service';
 import { seasonService } from '../services/season.service';
+import { CalendarEventService } from '../services/calendarEvent.service';
 import { GameCalendarModel } from '../models/GameCalendar.model';
 import { getRandomFlavorEvent } from '../data/monthlyThemes';
+import { withLock } from '../utils/distributedLock';
+import logger from '../utils/logger';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 export class CalendarTickJob {
   /**
@@ -16,32 +20,35 @@ export class CalendarTickJob {
    * Should be called once per real day (advances game time by 1 week)
    */
   async run(): Promise<void> {
-    console.log('[CalendarTick] Running calendar tick job');
+    const lockKey = 'job:calendar-tick';
 
     try {
-      // Sync calendar with real time
-      await calendarService.syncCalendar();
+      await withLock(lockKey, async () => {
+        logger.info('[CalendarTick] Running calendar tick job');
+
+        // Sync calendar with real time
+        await calendarService.syncCalendar();
 
       // Get current state
       const calendar = await GameCalendarModel.findOne();
       if (!calendar) {
-        console.error('[CalendarTick] Calendar not initialized!');
+        logger.error('[CalendarTick] Calendar not initialized!');
         return;
       }
 
       const currentDate = calendar.getCurrentDate();
 
-      console.log(
+      logger.info(
         `[CalendarTick] Current date: ${currentDate.month}/${currentDate.week}/${currentDate.day}/${currentDate.year}`
       );
-      console.log(`[CalendarTick] Season: ${currentDate.season}`);
-      console.log(`[CalendarTick] Moon Phase: ${currentDate.moonPhase}`);
+      logger.info(`[CalendarTick] Season: ${currentDate.season}`);
+      logger.info(`[CalendarTick] Moon Phase: ${currentDate.moonPhase}`);
 
       // Check for active holiday
       if (calendar.activeHolidayId) {
         const holiday = calendar.getActiveHoliday();
         if (holiday) {
-          console.log(`[CalendarTick] Active Holiday: ${holiday.name}`);
+          logger.info(`[CalendarTick] Active Holiday: ${holiday.name}`);
           await this.triggerHolidayEvent(holiday.id, holiday.name);
         }
       }
@@ -52,12 +59,23 @@ export class CalendarTickJob {
       // Check for season change
       await this.checkSeasonChange(currentDate.season);
 
-      // Check for moon phase events
-      await this.checkMoonPhaseEvents(currentDate.moonPhase);
+        // Check for moon phase events
+        await this.checkMoonPhaseEvents(currentDate.moonPhase);
 
-      console.log('[CalendarTick] Calendar tick completed successfully');
+        logger.info('[CalendarTick] Calendar tick completed successfully');
+      }, {
+        ttl: 1800, // 30 minute lock TTL
+        retries: 0 // Don't retry - skip if locked
+      });
     } catch (error) {
-      console.error('[CalendarTick] Error during calendar tick:', error);
+      if ((error as Error).message?.includes('lock')) {
+        logger.debug('[CalendarTick] Calendar tick already running on another instance, skipping');
+        return;
+      }
+      logger.error('[CalendarTick] Error during calendar tick', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       throw error;
     }
   }
@@ -67,12 +85,16 @@ export class CalendarTickJob {
    */
   private async generateFlavorEvents(month: number): Promise<void> {
     // 30% chance of a flavor event each day
-    if (Math.random() < 0.3) {
+    if (SecureRNG.chance(0.3)) {
       const flavorEvent = getRandomFlavorEvent(month);
-      console.log(`[CalendarTick] Flavor Event: ${flavorEvent}`);
+      logger.debug(`[CalendarTick] Flavor Event: ${flavorEvent}`);
 
-      // TODO: Store this in world events or broadcast to online players
-      // For now, just log it
+      // Get current day for event storage
+      const calendar = await GameCalendarModel.findOne();
+      const day = calendar?.currentDay ?? 1;
+
+      // Store in world events and broadcast to online players
+      await CalendarEventService.handleFlavorEvent(flavorEvent, month, day);
     }
   }
 
@@ -85,7 +107,7 @@ export class CalendarTickJob {
     // In the future, we can track season changes and trigger special events
 
     const seasonalEffects = await seasonService.getCurrentSeasonalEffects();
-    console.log(
+    logger.debug(
       `[CalendarTick] Seasonal effects - Travel: ${seasonalEffects.travelSpeedModifier}x, Energy: ${seasonalEffects.energyCostModifier}x`
     );
   }
@@ -96,20 +118,20 @@ export class CalendarTickJob {
   private async checkMoonPhaseEvents(moonPhase: string): Promise<void> {
     const moonEffects = await seasonService.getCurrentMoonPhaseEffects();
 
-    console.log(
+    logger.debug(
       `[CalendarTick] Moon Phase effects - Illumination: ${Math.round(moonEffects.illumination * 100)}%, Supernatural: ${moonEffects.supernaturalEncounterChance * 100}%`
     );
 
     // Full moon - high chance of supernatural events
     if (moonPhase === 'FULL_MOON') {
-      console.log('[CalendarTick] FULL MOON - Supernatural activity peaks!');
-      // TODO: Spawn werewolves, ghost sightings, etc.
+      logger.info('[CalendarTick] FULL MOON - Supernatural activity peaks!');
+      await CalendarEventService.handleFullMoon();
     }
 
     // New moon - best time for crime
     if (moonPhase === 'NEW_MOON') {
-      console.log('[CalendarTick] NEW MOON - Perfect cover for criminals!');
-      // TODO: Increase bandit activity, make crimes easier
+      logger.info('[CalendarTick] NEW MOON - Perfect cover for criminals!');
+      await CalendarEventService.handleNewMoon();
     }
   }
 
@@ -117,32 +139,32 @@ export class CalendarTickJob {
    * Trigger holiday-specific events
    */
   private async triggerHolidayEvent(holidayId: string, holidayName: string): Promise<void> {
-    console.log(`[CalendarTick] Triggering holiday events for ${holidayName}`);
+    logger.info(`[CalendarTick] Triggering holiday events for ${holidayName}`);
 
     // Different holidays trigger different events
     switch (holidayId) {
       case 'halloween':
-        console.log('[CalendarTick] Halloween: Supernatural encounters increased!');
-        // TODO: Spawn ghosts, increase weird west encounters
+        logger.info('[CalendarTick] Halloween: Supernatural encounters increased!');
+        await CalendarEventService.handleHalloween();
         break;
 
       case 'independence-day':
-        console.log('[CalendarTick] Independence Day: Fireworks and celebrations!');
-        // TODO: Town celebrations, shooting contests, patriotic quests
+        logger.info('[CalendarTick] Independence Day: Fireworks and celebrations!');
+        await CalendarEventService.handleIndependenceDay();
         break;
 
       case 'christmas':
-        console.log('[CalendarTick] Christmas: Peace on earth, goodwill to all!');
-        // TODO: Gang truces, charity events, gift exchanges
+        logger.info('[CalendarTick] Christmas: Peace on earth, goodwill to all!');
+        await CalendarEventService.handleChristmas();
         break;
 
       case 'dia-de-muertos':
-        console.log('[CalendarTick] Día de los Muertos: The veil is thin!');
-        // TODO: Spirit communication, altar building, special Coalition events
+        logger.info('[CalendarTick] Día de los Muertos: The veil is thin!');
+        await CalendarEventService.handleDiaDeMuertos();
         break;
 
       default:
-        console.log(`[CalendarTick] General holiday celebration for ${holidayName}`);
+        logger.info(`[CalendarTick] General holiday celebration for ${holidayName}`);
         break;
     }
   }
@@ -151,7 +173,7 @@ export class CalendarTickJob {
    * Force advance time (admin command)
    */
   async forceAdvance(days: number): Promise<void> {
-    console.log(`[CalendarTick] Force advancing ${days} days`);
+    logger.info(`[CalendarTick] Force advancing ${days} days`);
     await calendarService.forceAdvanceTime(days);
   }
 
@@ -188,41 +210,14 @@ export class CalendarTickJob {
 
 export const calendarTickJob = new CalendarTickJob();
 
-/**
- * Schedule the calendar tick to run daily
- */
-export function scheduleCalendarTick(): void {
-  // Run at midnight every day
-  const scheduleTime = new Date();
-  scheduleTime.setHours(0, 0, 0, 0);
-
-  const now = new Date();
-  let delay = scheduleTime.getTime() - now.getTime();
-
-  // If we've passed today's scheduled time, schedule for tomorrow
-  if (delay < 0) {
-    delay += 24 * 60 * 60 * 1000;
-  }
-
-  setTimeout(() => {
-    calendarTickJob.run();
-
-    // Schedule to run every 24 hours
-    setInterval(() => {
-      calendarTickJob.run();
-    }, 24 * 60 * 60 * 1000);
-  }, delay);
-
-  console.log(
-    `[CalendarTick] Scheduled to run daily at midnight (next run in ${Math.round(delay / 1000 / 60)} minutes)`
-  );
-}
+// NOTE: Scheduling is handled by Bull queues in queues.ts
+// Use calendarTickJob.run() for direct execution
 
 /**
  * Initialize calendar on server start
  */
 export async function initializeCalendar(): Promise<void> {
-  console.log('[CalendarTick] Initializing calendar system...');
+  logger.info('[CalendarTick] Initializing calendar system...');
 
   try {
     // Ensure calendar exists
@@ -231,15 +226,17 @@ export async function initializeCalendar(): Promise<void> {
     // Sync with real time
     await calendarService.syncCalendar();
 
-    console.log('[CalendarTick] Calendar system initialized');
+    logger.info('[CalendarTick] Calendar system initialized');
   } catch (error) {
-    console.error('[CalendarTick] Error initializing calendar:', error);
+    logger.error('[CalendarTick] Error initializing calendar', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     throw error;
   }
 }
 
 export default {
   calendarTickJob,
-  scheduleCalendarTick,
   initializeCalendar,
 };

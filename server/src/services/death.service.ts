@@ -7,7 +7,9 @@
 import mongoose from 'mongoose';
 import { Character, ICharacter } from '../models/Character.model';
 import { Location } from '../models/Location.model';
-import { GoldService, TransactionSource } from './gold.service';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import deityDreamService from './deityDream.service';
 import {
   DeathType,
   DeathPenalty,
@@ -16,6 +18,7 @@ import {
   DeathStats
 } from '@desperados/shared';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Death record stored in character metadata
@@ -105,8 +108,9 @@ export class DeathService {
   ): Promise<DeathPenalty> {
     const penalties = DEATH_PENALTIES[deathType];
 
-    // Calculate gold loss
-    const goldLost = Math.floor(character.gold * penalties.goldLoss);
+    // Calculate dollars loss
+    const characterBalance = character.dollars ?? character.gold ?? 0;
+    const goldLost = Math.floor(characterBalance * penalties.goldLoss);
 
     // Calculate XP loss
     const xpLost = Math.floor(character.experience * penalties.xpLoss);
@@ -115,12 +119,12 @@ export class DeathService {
     const itemsDropped: string[] = [];
     for (const item of character.inventory) {
       // Each item has a chance to be dropped
-      if (Math.random() < penalties.itemDropChance) {
+      if (SecureRNG.chance(penalties.itemDropChance)) {
         // Drop a percentage of the stack (1-3 items or 10-30% of stack)
         const dropCount = Math.max(
           1,
           Math.min(
-            Math.ceil(item.quantity * (0.1 + Math.random() * 0.2)),
+            Math.ceil(item.quantity * (0.1 + SecureRNG.float(0, 1) * 0.2)),
             3
           )
         );
@@ -159,15 +163,16 @@ export class DeathService {
     penalty: DeathPenalty,
     session?: mongoose.ClientSession
   ): Promise<void> {
-    // Deduct gold
+    // Deduct dollars
     if (penalty.goldLost > 0) {
-      await GoldService.deductGold(
+      await DollarService.deductDollars(
         character._id as string,
         penalty.goldLost,
         TransactionSource.COMBAT_DEATH,
         {
           deathType: penalty.deathType,
-          description: `Lost ${penalty.goldLost} gold from ${penalty.deathType} death`
+          description: `Lost ${penalty.goldLost} dollars from ${penalty.deathType} death`,
+          currencyType: CurrencyType.DOLLAR,
         },
         session
       );
@@ -284,11 +289,15 @@ export class DeathService {
   /**
    * Respawn player at specified location
    * This is called after respawn delay expires
+   *
+   * During the moment between death and life, the character may receive
+   * divine visions from The Gambler or Outlaw King - especially if they
+   * have drawn significant deity attention through their actions.
    */
   static async respawnPlayer(
     characterId: string | mongoose.Types.ObjectId,
     respawnLocation: string
-  ): Promise<ICharacter> {
+  ): Promise<{ character: ICharacter; dream: any | null }> {
     const character = await Character.findById(characterId);
     if (!character) {
       throw new Error('Character not found');
@@ -303,9 +312,26 @@ export class DeathService {
 
     await character.save();
 
+    // Check for divine dreams during the "between life and death" moment
+    // Death provides a heightened chance for divine visions
+    let dream = null;
+    try {
+      dream = await deityDreamService.checkForDream(
+        characterId.toString(),
+        'death' // Special rest type for death - higher dream chance
+      );
+
+      if (dream) {
+        logger.info(`Character ${character.name} received a death vision from ${dream.deity}`);
+      }
+    } catch (error) {
+      // Don't fail respawn if dream check fails
+      logger.error('Error checking for death dream:', error);
+    }
+
     logger.info(`Player ${character.name} respawned at ${respawnLocation}`);
 
-    return character;
+    return { character, dream };
   }
 
   /**
@@ -362,7 +388,7 @@ export class DeathService {
 
     // Add some randomness (±20%)
     const variance = baseSentence * 0.2;
-    const sentence = baseSentence + (Math.random() * variance * 2 - variance);
+    const sentence = baseSentence + (SecureRNG.float(0, 1) * variance * 2 - variance);
 
     return Math.max(5, Math.floor(sentence)); // Minimum 5 minutes
   }

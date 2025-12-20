@@ -19,6 +19,7 @@ import { NewsArticleModel } from '../models/NewsArticle.model';
 import { NewsSubscriptionModel } from '../models/NewsSubscription.model';
 import { headlineGeneratorService } from './headlineGenerator.service';
 import { getAllNewspapers, getNewspaperById, NEWSPAPERS } from '../data/newspapers';
+import logger from '../utils/logger';
 
 export class NewspaperService {
   /**
@@ -370,7 +371,7 @@ export class NewspaperService {
 
     // TODO: Implement notification and mail delivery
     // This will be integrated when mail and notification services are available
-    console.log(
+    logger.info(
       `[Newspaper] Article published: ${article.headline} - ${subscriptions.length} subscribers`
     );
   }
@@ -389,7 +390,7 @@ export class NewspaperService {
 
     // TODO: Implement mail delivery
     // This will be integrated when mail service is available
-    console.log(
+    logger.info(
       `[Newspaper] Edition #${edition.editionNumber} published to ${subscriptions.length} subscribers`
     );
   }

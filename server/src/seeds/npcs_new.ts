@@ -7,11 +7,13 @@ import logger from '../utils/logger';
 import { frontierNPCs } from '../data/npcs/frontier_npcs';
 import { nativeLandsNPCs } from '../data/npcs/native_lands_npcs';
 import { contestedLandsNPCs } from '../data/npcs/contested_lands_npcs';
+import { fronteraNPCs } from '../data/npcs/frontera_npcs';
 
 const allNewNPCs = [
     ...frontierNPCs,
     ...nativeLandsNPCs,
     ...contestedLandsNPCs,
+    ...fronteraNPCs,
 ];
 
 export async function seedNewNPCs(): Promise<void> {
@@ -25,7 +27,7 @@ export async function seedNewNPCs(): Promise<void> {
     await NPC.insertMany(allNewNPCs, { ordered: false });
     logger.info(`Seeded ${allNewNPCs.length} new NPCs.`);
 
-  } catch (error) {
+  } catch (error: any) {
     if (error.code === 11000) {
         logger.warn('Some new NPCs already existed, skipping duplicate entries.');
     } else {

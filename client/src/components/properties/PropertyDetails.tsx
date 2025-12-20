@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Card, Button, Modal } from '@/components/ui';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 import type {
   Property,
   PropertyType,
@@ -184,7 +184,7 @@ const TierProgression: React.FC<{
             <div className="text-right">
               <p className="text-xs text-desert-stone">Next tier cost:</p>
               <p className="text-gold-light font-western">
-                {formatGold(upgradeCost)}
+                {formatDollars(upgradeCost)}
               </p>
             </div>
           )}
@@ -415,7 +415,7 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({
         <Card variant="leather" className="p-3 text-center">
           <p className="text-xs text-desert-stone uppercase">Workers</p>
           <p className="font-western text-desert-sand">
-            {property.workers?.filter((w) => w.isActive).length || 0}/
+            {property.workers?.filter((w) => w.isAssigned).length || 0}/
             {property.maxWorkers}
           </p>
         </Card>
@@ -440,15 +440,15 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-desert-stone">Estimated Income:</span>
-            <span className="text-green-400">+{formatGold(weeklyIncome)}</span>
+            <span className="text-green-400">+{formatDollars(weeklyIncome)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-desert-stone">Taxes:</span>
-            <span className="text-red-400">-{formatGold(property.weeklyTaxes)}</span>
+            <span className="text-red-400">-{formatDollars(property.weeklyTaxes)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-desert-stone">Upkeep:</span>
-            <span className="text-red-400">-{formatGold(property.weeklyUpkeep)}</span>
+            <span className="text-red-400">-{formatDollars(property.weeklyUpkeep)}</span>
           </div>
           <div className="flex justify-between text-sm pt-2 border-t border-wood-dark/30">
             <span className="text-desert-sand font-semibold">Net Profit:</span>
@@ -458,14 +458,14 @@ export const PropertyDetails: React.FC<PropertyDetailsProps> = ({
               }`}
             >
               {weeklyProfit >= 0 ? '+' : ''}
-              {formatGold(weeklyProfit)}
+              {formatDollars(weeklyProfit)}
             </span>
           </div>
         </div>
         {property.taxDebt > 0 && (
           <div className="mt-3 p-2 bg-red-900/30 border border-red-500/30 rounded-lg">
             <p className="text-red-400 text-sm font-semibold">
-              Tax Debt: {formatGold(property.taxDebt)}
+              Tax Debt: {formatDollars(property.taxDebt)}
             </p>
             <p className="text-red-300 text-xs">
               Pay off your debt to avoid foreclosure!

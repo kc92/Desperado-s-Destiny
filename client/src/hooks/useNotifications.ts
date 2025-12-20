@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/services/api';
 import { socketService } from '@/services/socket.service';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 export type NotificationType =
   | 'MAIL_RECEIVED'
@@ -83,7 +84,7 @@ export const useNotifications = (): UseNotificationsReturn => {
       setTotalPages(data.pages);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch notifications');
-      console.error('[useNotifications] Fetch error:', err);
+      logger.error('Fetch error', err as Error, { context: 'useNotifications' });
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +106,7 @@ export const useNotifications = (): UseNotificationsReturn => {
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err: any) {
-      console.error('[useNotifications] Mark as read error:', err);
+      logger.error('Mark as read error', err as Error, { context: 'useNotifications' });
     }
   }, []);
 
@@ -116,7 +117,7 @@ export const useNotifications = (): UseNotificationsReturn => {
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch (err: any) {
-      console.error('[useNotifications] Mark all as read error:', err);
+      logger.error('Mark all as read error', err as Error, { context: 'useNotifications' });
     }
   }, []);
 
@@ -126,7 +127,7 @@ export const useNotifications = (): UseNotificationsReturn => {
       await api.delete(`/notifications/${id}`);
       setNotifications(prev => prev.filter(n => n._id !== id));
     } catch (err: any) {
-      console.error('[useNotifications] Delete error:', err);
+      logger.error('Delete error', err as Error, { context: 'useNotifications' });
     }
   }, []);
 
@@ -138,7 +139,7 @@ export const useNotifications = (): UseNotificationsReturn => {
       // Also fetch just the unread count
       api.get<{ data: { unreadCount: number } }>('/notifications/unread-count')
         .then(res => setUnreadCount(res.data.data.unreadCount))
-        .catch(err => console.error('[useNotifications] Unread count error:', err));
+        .catch(err => logger.error('Unread count error', err as Error, { context: 'useNotifications' }));
     }
   }, [currentCharacter, fetchNotifications]);
 

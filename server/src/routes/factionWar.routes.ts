@@ -9,6 +9,7 @@ import { Router } from 'express';
 import { FactionWarController } from '../controllers/factionWar.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
@@ -75,6 +76,7 @@ router.get(
  */
 router.post(
   '/',
+  requireCsrfToken,
   asyncHandler(FactionWarController.createWarEvent)
 );
 
@@ -90,6 +92,7 @@ router.post(
  */
 router.post(
   '/:warEventId/join',
+  requireCsrfToken,
   asyncHandler(FactionWarController.joinWarEvent)
 );
 
@@ -104,6 +107,7 @@ router.post(
  */
 router.post(
   '/update-phases',
+  requireCsrfToken,
   asyncHandler(FactionWarController.updateEventPhases)
 );
 
@@ -114,6 +118,7 @@ router.post(
  */
 router.post(
   '/:warEventId/resolve',
+  requireCsrfToken,
   asyncHandler(FactionWarController.resolveWarEvent)
 );
 

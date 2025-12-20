@@ -96,7 +96,7 @@ export const WesternButton: React.FC<WesternButtonProps> = ({
       aria-label={ariaLabel || (typeof children === 'string' ? children : undefined)}
       aria-busy={loading}
       style={{
-        focusRingColor: variant === 'primary' ? 'var(--color-gold)' : variant === 'danger' ? 'var(--color-blood)' : 'var(--color-border)',
+        // Focus ring color handled via Tailwind classes
       }}
     >
       {loading ? (

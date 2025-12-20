@@ -11,6 +11,7 @@
  */
 
 import { RewardItem, RewardType } from '../models/LoginReward.model';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Week multipliers for reward scaling
@@ -43,10 +44,10 @@ export interface DayRewardDefinition {
 export const BASE_DAILY_REWARDS: DayRewardDefinition[] = [
   {
     day: 1,
-    type: 'gold',
+    type: 'dollars',
     baseAmount: 50,
-    description: 'Daily gold bonus',
-    icon: 'gold'
+    description: 'Daily dollar bonus',
+    icon: 'dollars'
   },
   {
     day: 2,
@@ -56,10 +57,10 @@ export const BASE_DAILY_REWARDS: DayRewardDefinition[] = [
   },
   {
     day: 3,
-    type: 'gold',
+    type: 'dollars',
     baseAmount: 100,
-    description: 'Generous gold bonus',
-    icon: 'gold'
+    description: 'Generous dollar bonus',
+    icon: 'dollars'
   },
   {
     day: 4,
@@ -76,10 +77,10 @@ export const BASE_DAILY_REWARDS: DayRewardDefinition[] = [
   },
   {
     day: 6,
-    type: 'gold',
+    type: 'dollars',
     baseAmount: 200,
-    description: 'Substantial gold bonus',
-    icon: 'gold'
+    description: 'Substantial dollar bonus',
+    icon: 'dollars'
   },
   {
     day: 7,
@@ -386,7 +387,7 @@ export function getRewardForDay(absoluteDay: number): CalendarDay | null {
  */
 export function selectWeightedRandom<T extends { weight: number }>(pool: T[]): T {
   const totalWeight = pool.reduce((sum, item) => sum + item.weight, 0);
-  let random = Math.random() * totalWeight;
+  let random = SecureRNG.range(1, totalWeight);
 
   for (const item of pool) {
     random -= item.weight;
@@ -409,12 +410,12 @@ export function generateRewardItem(absoluteDay: number): RewardItem | null {
   const { baseReward, multiplier, week } = dayInfo;
 
   switch (baseReward.type) {
-    case 'gold': {
+    case 'dollars': {
       const amount = Math.floor((baseReward.baseAmount || 50) * multiplier);
       return {
-        type: 'gold',
+        type: 'dollars',
         amount,
-        description: `${amount} gold coins`
+        description: `$${amount}`
       };
     }
 
@@ -514,7 +515,7 @@ export function getWeekName(week: number): string {
  */
 export function getRewardTypeName(type: RewardType): string {
   const names: Record<RewardType, string> = {
-    gold: 'Gold',
+    dollars: 'Dollars',
     item: 'Item',
     energy: 'Energy',
     material: 'Material',

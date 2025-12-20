@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { CombatResult, NPCType } from '@desperados/shared'; // Import NPCType if needed for more complex checks
+import { CombatResult } from '@desperados/shared';
 import { Modal, Button } from '@/components/ui';
 import { useTutorialStore } from '@/store/useTutorialStore';
 import { completeTutorialAction } from '@/utils/tutorialActionHandlers';
@@ -80,7 +80,7 @@ export const CombatResultModal: React.FC<CombatResultModalProps> = ({
 
           <div className="mt-8 space-y-6">
             {/* Rewards Section */}
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-4" data-tutorial-target="combat-loot-summary">
               {/* XP Gained */}
               <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-lg p-4">
                 <div className="text-sm text-wood-medium font-serif mb-1">Experience Gained</div>

@@ -3,43 +3,10 @@
  * Public character profile view styled as a "Wanted Poster"
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '@/services/api';
 import { Card, Button } from '@/components/ui';
-
-interface ProfileData {
-  name: string;
-  faction: string;
-  level: number;
-  appearance: {
-    bodyType: string;
-    skinTone: number;
-    facePreset: number;
-    hairStyle: number;
-    hairColor: number;
-  };
-  stats: {
-    cunning: number;
-    spirit: number;
-    combat: number;
-    craft: number;
-  };
-  combatRecord: {
-    wins: number;
-    losses: number;
-  };
-  wantedLevel: number;
-  bountyAmount: number;
-  isJailed: boolean;
-  gang: {
-    id: string;
-    name: string;
-    tag: string;
-  } | null;
-  lastActive: string;
-  createdAt: string;
-}
+import { useProfileStore } from '@/store/useProfileStore';
 
 // Format date
 const formatDate = (dateString: string): string => {
@@ -50,47 +17,31 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-// Format last active
-const formatLastActive = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-
-  if (diffMins < 5) return 'Online now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
-  return `${Math.floor(diffMins / 1440)}d ago`;
-};
-
 export const Profile: React.FC = () => {
   const { name } = useParams<{ name: string }>();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // Get state and actions from profile store
+  const {
+    viewedProfile,
+    profileStats,
+    isLoading,
+    error,
+    fetchProfile,
+    clearProfile
+  } = useProfileStore();
 
   useEffect(() => {
     if (!name) return;
 
-    const fetchProfile = async () => {
-      setIsLoading(true);
-      setError(null);
+    // Fetch profile using store action
+    fetchProfile(name);
 
-      try {
-        const response = await api.get<{ data: { profile: ProfileData } }>(
-          `/profiles/${encodeURIComponent(name)}`
-        );
-        setProfile(response.data.data.profile);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load profile');
-      } finally {
-        setIsLoading(false);
-      }
+    // Cleanup when component unmounts
+    return () => {
+      clearProfile();
     };
-
-    fetchProfile();
-  }, [name]);
+  }, [name, fetchProfile, clearProfile]);
 
   if (isLoading) {
     return (
@@ -103,7 +54,7 @@ export const Profile: React.FC = () => {
     );
   }
 
-  if (error || !profile) {
+  if (error || !viewedProfile) {
     return (
       <div className="max-w-md mx-auto text-center py-12">
         <p className="text-4xl mb-4">🤠</p>
@@ -120,7 +71,7 @@ export const Profile: React.FC = () => {
       <div className="relative bg-gradient-to-b from-amber-100 to-amber-200 rounded-lg p-8 border-4 border-amber-900/30 shadow-xl">
         {/* Wanted/Citizen Banner */}
         <h1 className="text-center font-western text-4xl text-amber-900 tracking-wider mb-4">
-          {profile.wantedLevel > 0 ? '~ WANTED ~' : '~ CITIZEN ~'}
+          {viewedProfile.wantedLevel > 0 ? '~ WANTED ~' : '~ CITIZEN ~'}
         </h1>
 
         {/* Character Avatar Placeholder */}
@@ -132,24 +83,24 @@ export const Profile: React.FC = () => {
 
         {/* Character Name */}
         <h2 className="text-center font-western text-3xl text-amber-900 mb-1">
-          {profile.name}
+          {viewedProfile.name}
         </h2>
         <p className="text-center text-amber-800 font-serif">
-          Level {profile.level} • {profile.faction}
+          Level {viewedProfile.level} • {viewedProfile.faction}
         </p>
 
         {/* Bounty Amount */}
-        {profile.wantedLevel > 0 && (
+        {viewedProfile.wantedLevel > 0 && (
           <div className="text-center mt-4">
             <span className="text-2xl font-western text-red-800">
-              BOUNTY: {profile.bountyAmount.toLocaleString()} GOLD
+              BOUNTY: {viewedProfile.bountyAmount.toLocaleString()} GOLD
             </span>
             <div className="flex justify-center mt-2">
               {Array.from({ length: 5 }).map((_, i) => (
                 <span
                   key={i}
                   className={`text-xl ${
-                    i < profile.wantedLevel ? 'text-red-600' : 'text-amber-900/30'
+                    i < viewedProfile.wantedLevel ? 'text-red-600' : 'text-amber-900/30'
                   }`}
                 >
                   ★
@@ -160,7 +111,7 @@ export const Profile: React.FC = () => {
         )}
 
         {/* Jailed Status */}
-        {profile.isJailed && (
+        {viewedProfile.isJailed && (
           <div className="text-center mt-4">
             <span className="bg-red-600 text-white px-4 py-1 rounded font-bold text-sm">
               CURRENTLY JAILED
@@ -173,25 +124,25 @@ export const Profile: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
         <Card variant="leather" className="p-4 text-center">
           <div className="text-2xl font-bold text-gold-light">
-            {profile.combatRecord.wins}
+            {viewedProfile.combatRecord.wins}
           </div>
           <div className="text-xs text-desert-stone uppercase">Wins</div>
         </Card>
         <Card variant="leather" className="p-4 text-center">
           <div className="text-2xl font-bold text-gold-light">
-            {profile.combatRecord.losses}
+            {viewedProfile.combatRecord.losses}
           </div>
           <div className="text-xs text-desert-stone uppercase">Losses</div>
         </Card>
         <Card variant="leather" className="p-4 text-center">
           <div className="text-lg font-bold text-gold-light truncate">
-            {profile.gang?.name || 'None'}
+            {viewedProfile.gang?.name || 'None'}
           </div>
           <div className="text-xs text-desert-stone uppercase">Gang</div>
         </Card>
         <Card variant="leather" className="p-4 text-center">
           <div className="text-sm font-bold text-gold-light">
-            {formatDate(profile.createdAt)}
+            {formatDate(viewedProfile.createdAt)}
           </div>
           <div className="text-xs text-desert-stone uppercase">Joined</div>
         </Card>
@@ -203,27 +154,41 @@ export const Profile: React.FC = () => {
         <div className="grid grid-cols-4 gap-4 text-center">
           <div>
             <div className="text-xl font-bold text-gold-light">
-              {profile.stats.combat}
+              {viewedProfile.stats.strength}
             </div>
-            <div className="text-xs text-desert-stone">Combat</div>
+            <div className="text-xs text-desert-stone">Strength</div>
           </div>
           <div>
             <div className="text-xl font-bold text-gold-light">
-              {profile.stats.cunning}
+              {viewedProfile.stats.dexterity}
             </div>
-            <div className="text-xs text-desert-stone">Cunning</div>
+            <div className="text-xs text-desert-stone">Dexterity</div>
           </div>
           <div>
             <div className="text-xl font-bold text-gold-light">
-              {profile.stats.spirit}
+              {viewedProfile.stats.constitution}
             </div>
-            <div className="text-xs text-desert-stone">Spirit</div>
+            <div className="text-xs text-desert-stone">Constitution</div>
           </div>
           <div>
             <div className="text-xl font-bold text-gold-light">
-              {profile.stats.craft}
+              {viewedProfile.stats.intelligence}
             </div>
-            <div className="text-xs text-desert-stone">Craft</div>
+            <div className="text-xs text-desert-stone">Intelligence</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4 text-center mt-4">
+          <div>
+            <div className="text-xl font-bold text-gold-light">
+              {viewedProfile.stats.charisma}
+            </div>
+            <div className="text-xs text-desert-stone">Charisma</div>
+          </div>
+          <div>
+            <div className="text-xl font-bold text-gold-light">
+              {viewedProfile.stats.luck}
+            </div>
+            <div className="text-xs text-desert-stone">Luck</div>
           </div>
         </div>
       </Card>
@@ -231,19 +196,19 @@ export const Profile: React.FC = () => {
       {/* Activity & Actions */}
       <div className="mt-6 flex items-center justify-between">
         <p className="text-sm text-desert-stone">
-          Last active: {formatLastActive(profile.lastActive)}
+          Last active: {profileStats?.lastActiveDisplay || 'Unknown'}
         </p>
         <div className="flex gap-2">
           <Button
             size="sm"
-            onClick={() => navigate(`/game/combat?target=${profile.name}`)}
+            onClick={() => navigate(`/game/combat?target=${viewedProfile.name}`)}
           >
             Challenge
           </Button>
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => navigate(`/game/mail?to=${profile.name}`)}
+            onClick={() => navigate(`/game/mail?to=${viewedProfile.name}`)}
           >
             Send Mail
           </Button>

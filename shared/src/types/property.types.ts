@@ -6,9 +6,10 @@
  */
 
 // Import and re-export types from production.types to avoid duplication
-// Note: Not using 'import type' because PropertyType is used as a value in this file
-import { PropertyType, PropertyWorker, ProductionSlot } from './production.types';
-export { PropertyType, PropertyWorker, ProductionSlot };
+import type { PropertyWorker, ProductionSlot } from './production.types';
+import { PropertyType } from './production.types';
+export { PropertyType };
+export type { PropertyWorker, ProductionSlot };
 
 /**
  * Property size categories

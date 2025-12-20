@@ -4,15 +4,18 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useTutorialStore, TUTORIAL_SECTIONS } from '@/store/useTutorialStore';
+import { useTutorialStore } from '@/store/useTutorialStore';
 import {
   TUTORIAL_DIALOGUES,
   MENTOR,
   getMentorPortrait,
   type MentorExpression,
-  type DialogueLine,
 } from '@/data/tutorial/mentorDialogues';
 import { Button } from '@/components/ui';
+import { logger } from '@/services/logger.service';
+
+// Action waiting state enum
+type WaitingState = 'none' | 'waiting' | 'completed';
 
 // Typewriter timing constants
 const CHAR_DELAY = 35; // ms per character
@@ -41,9 +44,13 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
     nextDialogueLine,
     skipTutorial,
     skipSection,
+    pauseTutorial,
     getTotalProgress,
     getCurrentSection,
+    getCurrentStep,
+    canProceed,
     getAnalyticsSummary,
+    activePath,
   } = useTutorialStore();
 
   // Local state
@@ -51,10 +58,14 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [currentExpression, setCurrentExpression] = useState<MentorExpression>('neutral');
   const [showActionText, setShowActionText] = useState(false);
+  const [waitingForAction, setWaitingForAction] = useState<WaitingState>('none');
 
   // Refs for cleanup
   const typewriterRef = useRef<NodeJS.Timeout | null>(null);
   const charIndexRef = useRef(0);
+
+  // Get current step data for action requirements
+  const currentStepData = getCurrentStep();
 
   // Get current dialogue
   const dialogue = TUTORIAL_DIALOGUES.find(
@@ -63,12 +74,23 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
   const currentLine = dialogue?.lines[currentDialogueLine];
   const section = getCurrentSection();
 
-  // Process text with placeholders
+  // Escape HTML entities to prevent XSS
+  const escapeHtml = useCallback((str: string): string => {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }, []);
+
+  // Process text with placeholders (XSS-safe)
   const processText = useCallback((text: string): string => {
+    const safePlayerName = escapeHtml(playerName);
     return text
-      .replace(/\[player_name\]/g, playerName)
+      .replace(/\[player_name\]/g, safePlayerName)
       .replace(/\*\*(.*?)\*\*/g, '<strong class="text-gold-light">$1</strong>');
-  }, [playerName]);
+  }, [playerName, escapeHtml]);
 
   // Typewriter effect
   const startTypewriter = useCallback((text: string) => {
@@ -151,13 +173,62 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
       // More lines in this dialogue
       nextDialogueLine();
     } else {
-      // End of dialogue for this step
+      // End of dialogue for this step - check if action is required
+      const stepRequiresAction = currentStepData?.requiresAction;
+
+      if (stepRequiresAction && !canProceed()) {
+        // Step requires an action that hasn't been completed yet
+        // Enter waiting state - don't advance
+        setWaitingForAction('waiting');
+        return;
+      }
+
+      // Action complete or no action required - proceed
+      setWaitingForAction('none');
       if (onComplete) {
         onComplete();
       }
       nextStep();
     }
-  }, [isTyping, skipTypewriter, dialogue, currentDialogueLine, nextDialogueLine, nextStep, onComplete]);
+  }, [isTyping, skipTypewriter, dialogue, currentDialogueLine, nextDialogueLine, nextStep, onComplete, currentStepData, canProceed]);
+
+  // Effect to auto-advance when waiting and action is completed
+  useEffect(() => {
+    if (waitingForAction !== 'waiting') return;
+
+    // Check if action is now complete
+    if (canProceed()) {
+      setWaitingForAction('completed');
+      // Small delay to show completion before advancing
+      const timer = setTimeout(() => {
+        setWaitingForAction('none');
+        if (onComplete) {
+          onComplete();
+        }
+        nextStep();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [waitingForAction, canProceed, nextStep, onComplete]);
+
+  // Subscribe to store changes to detect action completion while waiting
+  useEffect(() => {
+    if (waitingForAction !== 'waiting') return;
+
+    let prevLength = useTutorialStore.getState().completedActions.length;
+
+    // Subscribe to full state changes and check for completedActions changes
+    const unsubscribe = useTutorialStore.subscribe((state) => {
+      const currentLength = state.completedActions.length;
+      if (currentLength !== prevLength) {
+        prevLength = currentLength;
+        // Force re-check of canProceed by triggering a state update
+        setWaitingForAction('waiting'); // Keep same state to trigger effect re-run
+      }
+    });
+
+    return unsubscribe;
+  }, [waitingForAction]);
 
   // Handle keyboard
   useEffect(() => {
@@ -182,7 +253,7 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
 
   const progress = getTotalProgress();
   const isLastLine = currentDialogueLine === dialogue.lines.length - 1;
-  const sectionIndex = TUTORIAL_SECTIONS.findIndex(s => s.id === currentSection);
+  const sectionIndex = activePath.findIndex(s => s.id === currentSection);
 
   // Determine positioning based on spotlight location
   const getPositionClasses = () => {
@@ -272,7 +343,7 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
           {/* Progress indicator */}
           <div className="px-4 pb-2">
             <div className="flex items-center gap-2">
-              {TUTORIAL_SECTIONS.map((s, i) => (
+              {activePath.map((s, i) => (
                 <div
                   key={s.id}
                   className={`w-3 h-3 rounded-full transition-colors ${
@@ -291,6 +362,37 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
             </div>
           </div>
 
+          {/* Action Prompt Panel - shown when waiting for player action */}
+          {waitingForAction === 'waiting' && currentStepData?.actionPrompt && (
+            <div className="px-4 pb-3">
+              <div className="bg-gold-dark/20 border border-gold-medium/50 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 rounded-full bg-gold-light animate-pulse" />
+                  <span className="text-xs font-semibold text-gold-light uppercase tracking-wide">
+                    Action Required
+                  </span>
+                </div>
+                <p className="text-desert-sand font-medium">
+                  {currentStepData.actionPrompt}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Action Completed Feedback */}
+          {waitingForAction === 'completed' && (
+            <div className="px-4 pb-3">
+              <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-400">&#10003;</span>
+                  <span className="text-green-300 font-medium">
+                    Action completed! Continuing...
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Footer with actions */}
           <div className="flex items-center justify-between px-4 py-3 bg-wood-dark/50 border-t border-gold-dark/30">
             <button
@@ -299,7 +401,7 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
                 // Log analytics in development
                 if (import.meta.env.DEV) {
                   const summary = getAnalyticsSummary();
-                  console.log('[Tutorial Analytics] Section skipped. Current summary:', summary);
+                  logger.info('[Tutorial Analytics] Section skipped. Current summary:', { context: 'MentorDialogue', summary });
                 }
               }}
               className="text-sm text-desert-stone hover:text-desert-sand transition-colors"
@@ -314,20 +416,39 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
                 </span>
               )}
 
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleContinue}
-              >
-                {isTyping ? 'Skip' : isLastLine ? 'Continue' : 'Next'}
-              </Button>
+              {waitingForAction === 'waiting' ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-desert-stone italic">
+                    Waiting for action...
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={pauseTutorial}
+                    title="Minimize tutorial to interact with the game"
+                  >
+                    Minimize
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleContinue}
+                  disabled={waitingForAction === 'completed'}
+                >
+                  {isTyping ? 'Skip' : isLastLine ? 'Continue' : 'Next'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
 
         {/* Click anywhere hint */}
         <p className="text-center text-xs text-desert-stone/70 mt-3">
-          Press Enter or click Continue to advance
+          {waitingForAction === 'waiting'
+            ? 'Complete the action above to continue'
+            : 'Press Enter or click Continue to advance'}
         </p>
       </div>
     </div>

@@ -5,10 +5,15 @@
  * Weekly publication job that publishes newspapers on their scheduled day
  */
 
+import mongoose from 'mongoose';
 import { newspaperService } from '../services/newspaper.service';
-import { getAllNewspapers } from '../data/newspapers';
+import { getAllNewspapers, getNewspaperById } from '../data/newspapers';
 import { ArticleGenerationParams } from '@desperados/shared';
 import { NewsSubscriptionModel } from '../models/NewsSubscription.model';
+import { Character } from '../models/Character.model';
+import { GoldService, TransactionSource } from '../services/gold.service';
+import { withLock } from '../utils/distributedLock';
+import logger from '../utils/logger';
 
 export class NewspaperPublisherJob {
   /**
@@ -16,36 +21,55 @@ export class NewspaperPublisherJob {
    * Should be called daily to check if any newspapers need publishing
    */
   async run(): Promise<void> {
-    console.log('[NewspaperPublisher] Running newspaper publisher job');
+    const lockKey = 'job:newspaper-publisher';
 
-    const today = this.getDayOfWeek();
-    const newspapers = getAllNewspapers();
+    try {
+      await withLock(lockKey, async () => {
+        logger.info('[NewspaperPublisher] Running newspaper publisher job');
 
-    for (const newspaper of newspapers) {
-      if (newspaper.publishDay === today) {
-        console.log(`[NewspaperPublisher] Publishing ${newspaper.name}`);
+        const today = this.getDayOfWeek();
+        const newspapers = getAllNewspapers();
 
-        try {
-          // Generate any scheduled articles
-          await this.generateScheduledArticles(newspaper.id);
+        for (const newspaper of newspapers) {
+          if (newspaper.publishDay === today) {
+            logger.info(`[NewspaperPublisher] Publishing ${newspaper.name}`);
 
-          // Publish the edition
-          const edition = await newspaperService.publishEdition(newspaper.id);
+            try {
+              // Generate any scheduled articles
+              await this.generateScheduledArticles(newspaper.id);
 
-          console.log(
-            `[NewspaperPublisher] Published ${newspaper.name} Edition #${edition.editionNumber} with ${edition.articles.length} articles`
-          );
-        } catch (error) {
-          console.error(`[NewspaperPublisher] Error publishing ${newspaper.name}:`, error);
+              // Publish the edition
+              const edition = await newspaperService.publishEdition(newspaper.id);
+
+              logger.info(
+                `[NewspaperPublisher] Published ${newspaper.name} Edition #${edition.editionNumber} with ${edition.articles.length} articles`
+              );
+            } catch (error) {
+              logger.error('[NewspaperPublisher] Error publishing newspaper', {
+                newspaperName: newspaper.name,
+                error: error instanceof Error ? error.message : error,
+                stack: error instanceof Error ? error.stack : undefined,
+              });
+            }
+          }
         }
+
+        // Handle subscription renewals
+        await this.handleSubscriptionRenewals();
+
+        // Clean up expired subscriptions
+        await this.cleanupExpiredSubscriptions();
+      }, {
+        ttl: 1800, // 30 minute lock TTL
+        retries: 0 // Don't retry - skip if locked
+      });
+    } catch (error) {
+      if ((error as Error).message?.includes('lock')) {
+        logger.debug('[NewspaperPublisher] Newspaper publisher already running on another instance, skipping');
+        return;
       }
+      throw error;
     }
-
-    // Handle subscription renewals
-    await this.handleSubscriptionRenewals();
-
-    // Clean up expired subscriptions
-    await this.cleanupExpiredSubscriptions();
   }
 
   /**
@@ -67,7 +91,10 @@ export class NewspaperPublisherJob {
       try {
         await newspaperService.createArticle(articleParams);
       } catch (error) {
-        console.error('[NewspaperPublisher] Error creating flavor article:', error);
+        logger.error('[NewspaperPublisher] Error creating flavor article', {
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
       }
     }
   }
@@ -174,6 +201,12 @@ export class NewspaperPublisherJob {
 
   /**
    * Handle subscription renewals
+   *
+   * SECURITY FIX: Now properly charges gold from character's account before renewing.
+   * If character cannot afford the renewal:
+   * - Auto-renew is disabled
+   * - Subscription expires naturally
+   * - Event is logged for monitoring
    */
   private async handleSubscriptionRenewals(): Promise<void> {
     const subscriptionsNeedingRenewal = await NewsSubscriptionModel.find({
@@ -186,23 +219,121 @@ export class NewspaperPublisherJob {
       },
     }).exec();
 
-    for (const subscription of subscriptionsNeedingRenewal) {
-      try {
-        // TODO: Charge the character's account
-        // For now, we'll just extend the subscription
+    let renewed = 0;
+    let failedInsufficient = 0;
+    let failedError = 0;
 
+    for (const subscription of subscriptionsNeedingRenewal) {
+      const session = await mongoose.startSession();
+
+      try {
+        await session.startTransaction();
+
+        // Get newspaper subscription price
+        const newspaper = getNewspaperById(subscription.newspaperId);
+        if (!newspaper) {
+          logger.warn('[NewspaperPublisher] Newspaper not found for subscription', {
+            subscriptionId: subscription._id,
+            newspaperId: subscription.newspaperId,
+          });
+          await session.abortTransaction();
+          failedError++;
+          continue;
+        }
+
+        const subscriptionCost = newspaper.subscriptionPrice;
+
+        // Get character and check if they can afford the renewal
+        const character = await Character.findById(subscription.characterId)
+          .select('gold name')
+          .session(session);
+
+        if (!character) {
+          logger.warn('[NewspaperPublisher] Character not found for subscription', {
+            subscriptionId: subscription._id,
+            characterId: subscription.characterId,
+          });
+          // Cancel auto-renew for orphaned subscriptions
+          subscription.autoRenew = false;
+          await subscription.save({ session });
+          await session.commitTransaction();
+          failedError++;
+          continue;
+        }
+
+        if (character.gold < subscriptionCost) {
+          // Character cannot afford renewal - cancel auto-renew
+          subscription.autoRenew = false;
+          await subscription.save({ session });
+
+          await session.commitTransaction();
+
+          logger.info('[NewspaperPublisher] Subscription renewal failed - insufficient funds', {
+            subscriptionId: subscription._id,
+            characterId: subscription.characterId,
+            characterName: character.name,
+            newspaperName: newspaper.name,
+            cost: subscriptionCost,
+            balance: character.gold,
+          });
+
+          failedInsufficient++;
+          continue;
+        }
+
+        // Charge the character's account
+        await GoldService.deductGold(
+          subscription.characterId.toString(),
+          subscriptionCost,
+          TransactionSource.SUBSCRIPTION_RENEWAL,
+          {
+            subscriptionId: subscription._id,
+            newspaperId: subscription.newspaperId,
+            newspaperName: newspaper.name,
+          },
+          session
+        );
+
+        // Extend subscription by 30 days
         const newEndDate = new Date(subscription.endDate!);
         newEndDate.setDate(newEndDate.getDate() + 30);
 
         subscription.endDate = newEndDate;
-        await subscription.save();
+        await subscription.save({ session });
 
-        console.log(
-          `[NewspaperPublisher] Renewed subscription ${subscription._id} for character ${subscription.characterId}`
-        );
+        await session.commitTransaction();
+
+        logger.info('[NewspaperPublisher] Successfully renewed subscription', {
+          subscriptionId: subscription._id,
+          characterId: subscription.characterId,
+          characterName: character.name,
+          newspaperName: newspaper.name,
+          cost: subscriptionCost,
+          newEndDate: newEndDate.toISOString(),
+        });
+
+        renewed++;
       } catch (error) {
-        console.error('[NewspaperPublisher] Error renewing subscription:', error);
+        await session.abortTransaction();
+        logger.error('[NewspaperPublisher] Error renewing subscription', {
+          subscriptionId: subscription._id,
+          characterId: subscription.characterId,
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        failedError++;
+      } finally {
+        session.endSession();
       }
+    }
+
+    if (subscriptionsNeedingRenewal.length > 0) {
+      logger.info('[NewspaperPublisher] Subscription renewal summary', {
+        total: subscriptionsNeedingRenewal.length,
+        renewed,
+        failedInsufficient,
+        failedError,
+      });
     }
   }
 
@@ -224,7 +355,7 @@ export class NewspaperPublisherJob {
     }
 
     if (expiredSubscriptions.length > 0) {
-      console.log(
+      logger.info(
         `[NewspaperPublisher] Cleaned up ${expiredSubscriptions.length} expired subscriptions`
       );
     }
@@ -248,11 +379,16 @@ export class NewspaperPublisherJob {
 
         await newspaperService.createArticle(articleParams);
 
-        console.log(
+        logger.info(
           `[NewspaperPublisher] Created article for ${newspaperId}: ${params.eventType}`
         );
       } catch (error) {
-        console.error(`[NewspaperPublisher] Error creating article for ${newspaperId}:`, error);
+        logger.error('[NewspaperPublisher] Error creating article for newspaper', {
+          newspaperId,
+          eventType: params.eventType,
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
       }
     }
   }
@@ -368,32 +504,5 @@ export class NewspaperPublisherJob {
 
 export const newspaperPublisherJob = new NewspaperPublisherJob();
 
-/**
- * Schedule the newspaper publisher to run daily
- */
-export function scheduleNewspaperPublisher(): void {
-  // Run every day at 6:00 AM
-  const scheduleTime = new Date();
-  scheduleTime.setHours(6, 0, 0, 0);
-
-  const now = new Date();
-  let delay = scheduleTime.getTime() - now.getTime();
-
-  // If we've passed today's scheduled time, schedule for tomorrow
-  if (delay < 0) {
-    delay += 24 * 60 * 60 * 1000;
-  }
-
-  setTimeout(() => {
-    newspaperPublisherJob.run();
-
-    // Schedule to run every 24 hours
-    setInterval(() => {
-      newspaperPublisherJob.run();
-    }, 24 * 60 * 60 * 1000);
-  }, delay);
-
-  console.log(
-    `[NewspaperPublisher] Scheduled to run daily at 6:00 AM (next run in ${Math.round(delay / 1000 / 60)} minutes)`
-  );
-}
+// NOTE: Scheduling is handled by Bull queues in queues.ts
+// Use newspaperPublisherJob.run() for direct execution

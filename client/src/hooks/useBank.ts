@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Vault tier types
 export type VaultTier = 'BASIC' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'LEGENDARY';
@@ -127,7 +128,7 @@ export const useBank = (): UseBankReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch vault info';
       setError(errorMessage);
-      console.error('[useBank] Fetch vault info error:', err);
+      logger.error('[useBank] Fetch vault info error:', err as Error, { context: { errorMessage } });
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +140,7 @@ export const useBank = (): UseBankReturn => {
       const response = await api.get<{ data: { tiers: VaultTierInfo[] } }>('/bank/tiers');
       setVaultTiers(response.data.data.tiers || []);
     } catch (err: any) {
-      console.error('[useBank] Fetch vault tiers error:', err);
+      logger.error('[useBank] Fetch vault tiers error:', err as Error, { context: {} });
     }
   }, []);
 
@@ -156,7 +157,7 @@ export const useBank = (): UseBankReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch transactions';
       setError(errorMessage);
-      console.error('[useBank] Fetch transactions error:', err);
+      logger.error('[useBank] Fetch transactions error:', err as Error, { context: { limit, errorMessage } });
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +169,7 @@ export const useBank = (): UseBankReturn => {
       const response = await api.get<{ data: { loan: Loan | null } }>('/bank/loan');
       setCurrentLoan(response.data.data.loan);
     } catch (err: any) {
-      console.error('[useBank] Fetch current loan error:', err);
+      logger.error('[useBank] Fetch current loan error:', err as Error, { context: {} });
     }
   }, []);
 
@@ -178,7 +179,7 @@ export const useBank = (): UseBankReturn => {
       const response = await api.get<{ data: { eligibility: LoanEligibility } }>('/bank/loan/eligibility');
       setLoanEligibility(response.data.data.eligibility);
     } catch (err: any) {
-      console.error('[useBank] Check loan eligibility error:', err);
+      logger.error('[useBank] Check loan eligibility error:', err as Error, { context: {} });
     }
   }, []);
 
@@ -202,7 +203,7 @@ export const useBank = (): UseBankReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to deposit gold';
       setError(errorMessage);
-      console.error('[useBank] Deposit error:', err);
+      logger.error('[useBank] Deposit error:', err as Error, { context: { amount, errorMessage } });
       return { success: false, message: errorMessage };
     }
   }, [refreshCharacter]);
@@ -227,7 +228,7 @@ export const useBank = (): UseBankReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to withdraw gold';
       setError(errorMessage);
-      console.error('[useBank] Withdraw error:', err);
+      logger.error('[useBank] Withdraw error:', err as Error, { context: { amount, errorMessage } });
       return { success: false, message: errorMessage };
     }
   }, [refreshCharacter]);
@@ -248,7 +249,7 @@ export const useBank = (): UseBankReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to upgrade vault';
       setError(errorMessage);
-      console.error('[useBank] Upgrade vault error:', err);
+      logger.error('[useBank] Upgrade vault error:', err as Error, { context: { errorMessage } });
       return { success: false, message: errorMessage };
     }
   }, [refreshCharacter]);
@@ -272,7 +273,7 @@ export const useBank = (): UseBankReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to apply for loan';
       setError(errorMessage);
-      console.error('[useBank] Apply for loan error:', err);
+      logger.error('[useBank] Apply for loan error:', err as Error, { context: { amount, errorMessage } });
       return { success: false, message: errorMessage };
     }
   }, [refreshCharacter]);
@@ -297,7 +298,7 @@ export const useBank = (): UseBankReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to repay loan';
       setError(errorMessage);
-      console.error('[useBank] Repay loan error:', err);
+      logger.error('[useBank] Repay loan error:', err as Error, { context: { amount, errorMessage } });
       return { success: false, message: errorMessage };
     }
   }, [refreshCharacter]);

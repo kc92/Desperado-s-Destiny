@@ -4,7 +4,7 @@
  */
 
 import { Response } from 'express';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import * as unlockService from '../services/permanentUnlock.service';
 import { asyncHandler } from '../middleware/asyncHandler';
 

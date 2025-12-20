@@ -193,7 +193,7 @@ export const BribeModal: React.FC<BribeModalProps> = ({
 
           {/* Gold status */}
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-sm text-desert-clay">Your Gold</span>
+            <span className="text-sm text-desert-clay">Your Dollars</span>
             <span className={`font-bold ${canAfford ? 'text-gold-medium' : 'text-blood-red'}`}>
               {characterGold} gold
             </span>

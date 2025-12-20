@@ -15,9 +15,10 @@ import {
 import { Character, ICharacter } from '../models/Character.model';
 import { CharacterQuest } from '../models/Quest.model';
 import { Achievement } from '../models/Achievement.model';
-import { TransactionSource } from '../models/GoldTransaction.model';
-import { GoldService } from './gold.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
 import { AppError } from '../utils/errors';
+import logger from '../utils/logger';
 
 /**
  * Result of checking if a character can unlock a secret
@@ -297,9 +298,9 @@ export class SecretsService {
   ): Promise<void> {
     for (const reward of rewards) {
       switch (reward.type) {
-        case 'gold':
+        case 'dollars':
           if (reward.amount) {
-            await GoldService.addGold(
+            await DollarService.addDollars(
               character._id.toString(),
               reward.amount,
               TransactionSource.SECRET_DISCOVERY,
@@ -363,7 +364,7 @@ export class SecretsService {
               // );
             } catch (error) {
               // Don't fail reward granting if achievement fails
-              console.error('Failed to grant achievement from secret:', error);
+              logger.error('Failed to grant achievement from secret', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
             }
           }
           break;

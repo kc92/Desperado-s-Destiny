@@ -2,7 +2,22 @@
  * Chat Types - Real-time Communication
  *
  * Types for the chat system including messages, rooms, and user presence
+ *
+ * Also includes socket event interfaces that extend to duel and gang systems
  */
+
+import type {
+  DuelClientState,
+  ChallengeNotification,
+  RoundResult,
+  PerceptionCheckResult,
+  AbilityResultEvent,
+  CheatDetectedEvent,
+  BettingAction,
+} from './duel.types';
+import type { Card } from './destinyDeck.types';
+import type { Gang, GangRole } from './gang.types';
+import type { GangWar } from './gangWar.types';
 
 /**
  * Chat room types
@@ -133,6 +148,10 @@ export interface WhisperConversation {
  * Socket.io Events - Client to Server
  */
 export interface ClientToServerEvents {
+  // ============================================================================
+  // CHAT EVENTS
+  // ============================================================================
+
   /** Join a chat room */
   'chat:join_room': (data: { roomType: RoomType; roomId: string }) => void;
 
@@ -170,12 +189,50 @@ export interface ClientToServerEvents {
 
   /** Mark messages as read */
   'chat:mark_read': (data: { roomType: RoomType; roomId: string }) => void;
+
+  // ============================================================================
+  // DUEL EVENTS
+  // ============================================================================
+
+  /** Join a duel room */
+  'duel:join_room': (data: { duelId: string }) => void;
+
+  /** Leave a duel room */
+  'duel:leave_room': (data: { duelId: string }) => void;
+
+  /** Player ready for duel */
+  'duel:ready': (data: { duelId: string }) => void;
+
+  /** Hold cards during draw phase */
+  'duel:hold_cards': (data: { duelId: string; cardIndices: number[] }) => void;
+
+  /** Draw new cards */
+  'duel:draw': (data: { duelId: string }) => void;
+
+  /** Place bet */
+  'duel:bet': (data: { duelId: string; action: BettingAction; amount?: number }) => void;
+
+  /** Use ability */
+  'duel:use_ability': (data: { duelId: string; ability: string; targetIndex?: number }) => void;
+
+  /** Forfeit duel */
+  'duel:forfeit': (data: { duelId: string }) => void;
+
+  /** Request rematch */
+  'duel:request_rematch': (data: { duelId: string }) => void;
+
+  /** Send emote */
+  'duel:emote': (data: { duelId: string; emote: string }) => void;
 }
 
 /**
  * Socket.io Events - Server to Client
  */
 export interface ServerToClientEvents {
+  // ============================================================================
+  // CHAT EVENTS
+  // ============================================================================
+
   /** New message received */
   'chat:message': (message: ChatMessage) => void;
 
@@ -231,6 +288,128 @@ export interface ServerToClientEvents {
 
   /** User muted */
   'chat:muted': (data: { mutedUntil: Date; reason: string }) => void;
+
+  // ============================================================================
+  // DUEL EVENTS
+  // ============================================================================
+
+  /** Duel state update */
+  'duel:state_update': (state: DuelClientState) => void;
+
+  /** Challenge received */
+  'duel:challenge_received': (challenge: ChallengeNotification) => void;
+
+  /** Opponent joined duel */
+  'duel:opponent_joined': (data: { name: string }) => void;
+
+  /** Opponent left duel */
+  'duel:opponent_left': (data: { name: string }) => void;
+
+  /** Opponent reconnected */
+  'duel:opponent_reconnected': (data: { name: string }) => void;
+
+  /** Game started */
+  'duel:game_start': (state: DuelClientState) => void;
+
+  /** Cards dealt */
+  'duel:cards_dealt': (data: { cards: Card[]; roundNumber: number }) => void;
+
+  /** Opponent action */
+  'duel:opponent_action': (data: { actionType: string; timestamp: number }) => void;
+
+  /** Reveal phase */
+  'duel:reveal_phase': (data: { hands: unknown }) => void;
+
+  /** Round result */
+  'duel:round_result': (result: RoundResult) => void;
+
+  /** Game complete */
+  'duel:game_complete': (data: {
+    winnerId: string;
+    winnerName: string;
+    finalScore: { challenger: number; challenged: number };
+    rewards: unknown;
+    isForfeit: boolean;
+  }) => void;
+
+  /** Time warning */
+  'duel:time_warning': (data: { secondsRemaining: number }) => void;
+
+  /** Perception result */
+  'duel:perception_result': (result: PerceptionCheckResult) => void;
+
+  /** Ability result */
+  'duel:ability_result': (result: AbilityResultEvent) => void;
+
+  /** Cheat detected */
+  'duel:cheat_detected': (data: CheatDetectedEvent) => void;
+
+  /** Emote received */
+  'duel:emote': (data: { playerId: string; emote: string }) => void;
+
+  /** Duel error */
+  'duel:error': (data: { message: string; code: string }) => void;
+
+  // ============================================================================
+  // GANG EVENTS
+  // ============================================================================
+
+  /** Gang member joined */
+  'gang:member_joined': (data: {
+    gangId: string;
+    member: {
+      characterId: string;
+      characterName: string;
+      level: number;
+      role: GangRole;
+      joinedAt: Date;
+      contribution: number;
+    };
+  }) => void;
+
+  /** Gang member left */
+  'gang:member_left': (data: { gangId: string; characterId: string }) => void;
+
+  /** Gang member promoted */
+  'gang:member_promoted': (data: {
+    gangId: string;
+    characterId: string;
+    newRole: GangRole;
+  }) => void;
+
+  /** Gang bank updated */
+  'gang:bank_updated': (data: { gangId: string; newBalance: number }) => void;
+
+  /** Gang upgrade purchased */
+  'gang:upgrade_purchased': (data: { gangId: string; gang: Gang }) => void;
+
+  // ============================================================================
+  // TERRITORY EVENTS
+  // ============================================================================
+
+  /** Territory war declared */
+  'territory:war_declared': (war: GangWar) => void;
+
+  /** Territory war contributed */
+  'territory:war_contributed': (data: {
+    warId: string;
+    capturePoints: number;
+    war: GangWar;
+  }) => void;
+
+  /** Territory war resolved */
+  'territory:war_resolved': (data: {
+    warId: string;
+    territoryId: string;
+    winnerGangId: string | null;
+  }) => void;
+
+  /** Territory conquered */
+  'territory:conquered': (data: {
+    territoryId: string;
+    newOwnerGangId: string;
+    newOwnerGangName: string;
+  }) => void;
 }
 
 /**

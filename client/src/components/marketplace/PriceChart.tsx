@@ -5,7 +5,7 @@
 
 import React, { useMemo } from 'react';
 import { PriceHistory, PriceDataPoint } from '@/hooks/useMarketplace';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 
 interface PriceChartProps {
   priceHistory: PriceHistory;
@@ -49,7 +49,6 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 
     // Chart dimensions
     const padding = { top: 20, right: 60, bottom: 40, left: 10 };
-    const chartWidth = 100; // Percentage-based
     const chartHeight = height - padding.top - padding.bottom;
     const volumeHeight = showVolume ? 40 : 0;
     const priceChartHeight = chartHeight - volumeHeight;
@@ -186,7 +185,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
               className="hover:r-4 transition-all cursor-pointer"
             >
               <title>
-                {formatChartDate(point.data.date)}: {formatGold(point.data.price)} ({point.data.volume} sold)
+                {formatChartDate(point.data.date)}: {formatDollars(point.data.price)} ({point.data.volume} sold)
               </title>
             </circle>
           </g>
@@ -218,7 +217,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
             className="text-xs"
             style={{ color: COLORS.textMuted }}
           >
-            {formatGold(Math.round(label.value))}
+            {formatDollars(Math.round(label.value))}
           </span>
         ))}
       </div>

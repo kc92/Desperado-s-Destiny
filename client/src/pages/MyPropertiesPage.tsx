@@ -19,23 +19,23 @@ import {
   LoanTracker,
   UpgradePanel,
 } from '@/components/properties';
-import { formatGold } from '@/utils/format';
-import type { Property, PropertyType, WorkerType } from '@desperados/shared';
+import { formatDollars } from '@/utils/format';
+import { WorkerType, type Property, type PropertyType } from '@desperados/shared';
 
 /**
  * Get available worker types for a property type
  */
 function getAvailableWorkerTypes(propertyType: PropertyType): WorkerType[] {
   const workerMap: Record<PropertyType, WorkerType[]> = {
-    ranch: ['farmhand', 'stable_hand', 'security', 'manager'],
-    shop: ['shopkeeper', 'security', 'manager'],
-    workshop: ['craftsman', 'security', 'manager'],
-    homestead: ['security', 'manager'],
-    mine: ['miner', 'security', 'manager'],
-    saloon: ['bartender', 'security', 'manager'],
-    stable: ['stable_hand', 'security', 'manager'],
+    ranch: [WorkerType.FARMHAND, WorkerType.STABLE_HAND, WorkerType.SECURITY, WorkerType.MANAGER],
+    shop: [WorkerType.SHOPKEEPER, WorkerType.SECURITY, WorkerType.MANAGER],
+    workshop: [WorkerType.CRAFTSMAN, WorkerType.SECURITY, WorkerType.MANAGER],
+    homestead: [WorkerType.SECURITY, WorkerType.MANAGER],
+    mine: [WorkerType.MINER, WorkerType.SECURITY, WorkerType.MANAGER],
+    saloon: [WorkerType.BARTENDER, WorkerType.SECURITY, WorkerType.MANAGER],
+    stable: [WorkerType.STABLE_HAND, WorkerType.SECURITY, WorkerType.MANAGER],
   };
-  return workerMap[propertyType] || ['manager'];
+  return workerMap[propertyType] || [WorkerType.MANAGER];
 }
 
 /**
@@ -275,9 +275,9 @@ export const MyPropertiesPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="text-sm text-desert-stone">Your Gold</p>
+            <p className="text-sm text-desert-stone">Your Dollars</p>
             <p className="text-2xl font-western text-gold-light">
-              {formatGold(currentCharacter.gold)}
+              {formatDollars(currentCharacter.gold)}
             </p>
           </div>
           <Button
@@ -310,13 +310,13 @@ export const MyPropertiesPage: React.FC = () => {
             <Card variant="leather" className="p-4 text-center">
               <p className="text-xs text-desert-stone uppercase">Weekly Income</p>
               <p className="text-2xl font-western text-green-400">
-                +{formatGold(totalWeeklyIncome)}
+                +{formatDollars(totalWeeklyIncome)}
               </p>
             </Card>
             <Card variant="leather" className="p-4 text-center">
               <p className="text-xs text-desert-stone uppercase">Weekly Expenses</p>
               <p className="text-2xl font-western text-red-400">
-                -{formatGold(totalWeeklyExpenses)}
+                -{formatDollars(totalWeeklyExpenses)}
               </p>
             </Card>
             <Card
@@ -326,7 +326,7 @@ export const MyPropertiesPage: React.FC = () => {
             >
               <p className="text-xs text-desert-stone uppercase">Loan Debt</p>
               <p className={`text-2xl font-western ${totalLoanDebt > 0 ? 'text-orange-400' : 'text-green-400'}`}>
-                {totalLoanDebt > 0 ? formatGold(totalLoanDebt) : 'None'}
+                {totalLoanDebt > 0 ? formatDollars(totalLoanDebt) : 'None'}
               </p>
             </Card>
           </div>
@@ -512,7 +512,7 @@ export const MyPropertiesPage: React.FC = () => {
               loadingText="Transferring..."
             >
               {transferPrice > 0
-                ? `Sell for ${formatGold(transferPrice)}`
+                ? `Sell for ${formatDollars(transferPrice)}`
                 : 'Gift Property'}
             </Button>
             <Button

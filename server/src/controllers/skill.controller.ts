@@ -7,6 +7,7 @@
 import { Response } from 'express';
 import { CharacterRequest } from '../middleware/characterOwnership.middleware';
 import { SkillService } from '../services/skill.service';
+import { Character } from '../models/Character.model';
 import { SKILLS } from '@desperados/shared';
 import logger from '../utils/logger';
 
@@ -26,13 +27,14 @@ export async function getSkills(req: CharacterRequest, res: Response): Promise<v
       return;
     }
 
-    // Check if training is complete and auto-complete
-    if (character.isTrainingComplete()) {
-      await SkillService.completeTraining((character._id as any).toString());
+    // Check if training is complete and auto-complete (handles offline completion)
+    let currentCharacter = character;
+    const autoCompleteResult = await SkillService.checkAndAutoComplete((character._id as any).toString());
+    if (autoCompleteResult.completed) {
       // Reload character to get updated data
-      const updatedChar = await character.collection.findOne({ _id: character._id });
-      if (updatedChar) {
-        Object.assign(character, updatedChar);
+      const refreshedCharacter = await Character.findById(character._id);
+      if (refreshedCharacter) {
+        currentCharacter = refreshedCharacter;
       }
     }
 
@@ -49,7 +51,7 @@ export async function getSkills(req: CharacterRequest, res: Response): Promise<v
     }));
 
     // Get character's skill progress
-    const characterSkills = character.skills.map(skill => {
+    const characterSkills = currentCharacter.skills.map(skill => {
       const xpToNextLevel = SkillService.calculateXPForNextLevel(skill.level);
       return {
         skillId: skill.skillId,
@@ -60,7 +62,7 @@ export async function getSkills(req: CharacterRequest, res: Response): Promise<v
     });
 
     // Get current training status
-    const currentTraining = character.getCurrentTraining();
+    const currentTraining = currentCharacter.getCurrentTraining();
     let trainingStatus = null;
 
     if (currentTraining && currentTraining.trainingStarted && currentTraining.trainingCompletes) {
@@ -74,7 +76,7 @@ export async function getSkills(req: CharacterRequest, res: Response): Promise<v
     }
 
     // Get suit bonuses
-    const bonuses = SkillService.calculateSuitBonuses(character);
+    const bonuses = SkillService.calculateSuitBonuses(currentCharacter);
 
     res.status(200).json({
       success: true,
@@ -215,12 +217,9 @@ export async function completeTraining(req: CharacterRequest, res: Response): Pr
       return;
     }
 
-    // Get updated bonuses - reload character
-    const updatedChar = await character.collection.findOne({ _id: character._id });
-    if (updatedChar) {
-      Object.assign(character, updatedChar);
-    }
-    const bonuses = SkillService.calculateSuitBonuses(character);
+    // Get updated bonuses - reload character using proper Mongoose query
+    const refreshedCharacter = await Character.findById(character._id);
+    const bonuses = SkillService.calculateSuitBonuses(refreshedCharacter || character);
 
     res.status(200).json({
       success: true,

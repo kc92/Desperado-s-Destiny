@@ -89,7 +89,7 @@ export const Tutorial: React.FC = () => {
 
                   <Button
                     variant={isCompleted ? 'secondary' : 'primary'}
-                    onClick={() => startTutorial(section.id)}
+                    onClick={() => startTutorial(section.id, 'core')}
                   >
                     {isCompleted ? 'Review' : 'Start'}
                   </Button>
@@ -127,7 +127,7 @@ export const Tutorial: React.FC = () => {
             </p>
             <Button
               variant="primary"
-              onClick={() => startTutorial('welcome')}
+              onClick={() => startTutorial('welcome', 'core')}
             >
               Start Welcome Tutorial
             </Button>

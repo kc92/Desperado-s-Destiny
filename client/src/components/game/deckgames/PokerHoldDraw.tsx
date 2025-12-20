@@ -4,7 +4,7 @@
  * Now with full deal/discard animations
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@desperados/shared';
 import { AnimatedCard, CardDeck, DiscardPile, calculateFanPositions } from '../card';
 import { useCardAnimations } from '../../../hooks/useCardAnimations';
@@ -52,6 +52,8 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
   characterSkillBonus = 0,
 }) => {
   const [cardsRevealed, setCardsRevealed] = useState(false);
+  // Track the last dealt hand to prevent infinite loops
+  const lastDealtHandRef = useRef<string>('');
 
   // Sound effects
   const { playSound } = useSoundEffects();
@@ -90,16 +92,24 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
   // Start deal animation when hand changes
   useEffect(() => {
     if (hand.length === 5) {
-      setCardsRevealed(false);
-      reset();
-      dealCards(hand);
+      // Create a stable key for the hand to detect actual changes
+      const handKey = hand.map(c => `${c.suit}-${c.rank}`).join(',');
+      if (handKey !== lastDealtHandRef.current) {
+        lastDealtHandRef.current = handKey;
+        setCardsRevealed(false);
+        reset();
+        dealCards(hand);
+      }
     }
-  }, [hand, dealCards, reset]);
+    // Only depend on hand - dealCards and reset are stable but ESLint doesn't know that
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hand]);
 
   const handleDraw = () => {
-    // Pass indices of held cards
+    console.log('[PokerHoldDraw] handleDraw called', { selectedCards, cardsRevealed, isLoading, isAnimating, canDraw: cardsRevealed && !isLoading && !isAnimating });
+    // Pass indices of held cards - server's 'draw' action keeps these and replaces the rest
     onAction({
-      type: 'hold',
+      type: 'draw',
       cardIndices: selectedCards,
     });
   };
@@ -131,6 +141,9 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
 
   const isFirstTurn = turnNumber === 1;
   const canDraw = cardsRevealed && !isLoading && !isAnimating;
+
+  // Debug logging
+  console.log('[PokerHoldDraw] State:', { cardsRevealed, isLoading, isAnimating, canDraw, isFirstTurn, turnNumber, phase });
 
   // Count cards matching relevant suit
   const suitCount = relevantSuit
@@ -204,23 +217,23 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
 
       {/* Main game area with deck, cards, and discard */}
       <div className="relative h-64 flex items-center justify-center">
-        {/* Card Deck (source) */}
+        {/* Card Deck (source) - positioned left of the hand */}
         <CardDeck
           isDealing={phase === 'dealing' || phase === 'drawing'}
-          position={{ x: 20, y: 20 }}
+          position={{ x: -280, y: 60 }}
           size="md"
         />
 
-        {/* Discard Pile (destination) */}
+        {/* Discard Pile (destination) - positioned right of the hand */}
         <DiscardPile
           discardedCards={[]}
           isReceiving={phase === 'discarding'}
-          position={{ x: 520, y: 20 }}
+          position={{ x: 280, y: 60 }}
           size="md"
         />
 
-        {/* Animated card hand */}
-        <div className="relative" style={{ width: 500, height: 200 }}>
+        {/* Animated card hand - centered origin for card positioning, offset by half card width (48px) and height (72px) */}
+        <div className="absolute left-1/2 top-1/2" style={{ width: 0, height: 0, marginLeft: -48, marginTop: -36 }}>
           {cardStates.map((cardData, index) => (
             <AnimatedCard
               key={`${cardData.card.suit}-${cardData.card.rank}-${index}`}
@@ -267,43 +280,47 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
         </div>
       )}
 
-      {/* Action buttons */}
-      {isFirstTurn && (
+      {/* Action buttons - show based on availableActions from backend */}
+      {availableActions && availableActions.length > 0 && (
         <div className="space-y-3">
-          {/* Main draw button */}
-          <div className="flex justify-center">
-            <button
-              onClick={handleDraw}
-              disabled={!canDraw}
-              className={`
-                px-8 py-3 rounded-lg font-western text-lg
-                transition-all duration-200
-                ${canDraw
-                  ? 'bg-leather-saddle hover:bg-leather-brown text-gold-light border-2 border-gold-dark hover:scale-105'
-                  : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                }
-              `}
-            >
-              {isLoading || isAnimating ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                  </svg>
-                  {isAnimating ? 'Dealing...' : 'Drawing...'}
-                </span>
-              ) : selectedCards.length === 5 ? (
-                'Stand Pat'
-              ) : (
-                `Draw ${5 - selectedCards.length} Card${5 - selectedCards.length !== 1 ? 's' : ''}`
-              )}
-            </button>
-          </div>
+          {/* Main draw button - show if draw action is available */}
+          {availableActions.includes('draw') && (
+            <div className="flex justify-center">
+              <button
+                onClick={handleDraw}
+                disabled={!canDraw}
+                className={`
+                  px-8 py-3 rounded-lg font-western text-lg
+                  transition-all duration-200
+                  ${canDraw
+                    ? 'bg-leather-saddle hover:bg-leather-brown text-gold-light border-2 border-gold-dark hover:scale-105'
+                    : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                  }
+                `}
+              >
+                {isLoading || isAnimating ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                    {isAnimating ? 'Dealing...' : 'Drawing...'}
+                  </span>
+                ) : selectedCards.length === 5 ? (
+                  'Stand Pat'
+                ) : isFirstTurn ? (
+                  `Draw ${5 - selectedCards.length} Card${5 - selectedCards.length !== 1 ? 's' : ''}`
+                ) : (
+                  `Redraw ${5 - selectedCards.length} Card${5 - selectedCards.length !== 1 ? 's' : ''}`
+                )}
+              </button>
+            </div>
+          )}
 
           {/* Phase 3: Strategic action buttons */}
-          {(canReroll || canPeek || canEarlyFinish) && (
+          {(availableActions.includes('reroll') || availableActions.includes('peek') || availableActions.includes('early_finish')) && (
             <div className="flex justify-center gap-3">
-              {canReroll && (
+              {availableActions.includes('reroll') && canReroll && (
                 <button
                   onClick={handleReroll}
                   disabled={!canDraw || selectedCards.length === 0}
@@ -320,7 +337,7 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
                   🔄 Reroll ({remainingRerolls})
                 </button>
               )}
-              {canPeek && (
+              {availableActions.includes('peek') && canPeek && (
                 <button
                   onClick={handlePeek}
                   disabled={!canDraw}
@@ -337,7 +354,7 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
                   👁️ Peek ({remainingPeeks})
                 </button>
               )}
-              {canEarlyFinish && (
+              {availableActions.includes('early_finish') && canEarlyFinish && (
                 <button
                   onClick={handleEarlyFinish}
                   disabled={!canDraw}

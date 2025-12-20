@@ -7,6 +7,7 @@
 import mongoose from 'mongoose';
 import { AnimalCompanion } from '../models/AnimalCompanion.model';
 import { Character, ICharacter } from '../models/Character.model';
+import { TamingAttempt, ITamingAttempt } from '../models/TamingAttempt.model';
 import { EnergyService } from './energy.service';
 import {
   CompanionSpecies,
@@ -18,17 +19,7 @@ import {
 import { getSpeciesDefinition, getTameableSpecies } from '../data/companionSpecies';
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
-
-/**
- * Taming attempt storage (in-memory for now, could be moved to Redis)
- */
-const tamingAttempts = new Map<string, {
-  characterId: string;
-  species: CompanionSpecies;
-  progress: number;
-  attempts: number;
-  startedAt: Date;
-}>();
+import { SecureRNG } from './base/SecureRNG';
 
 export class TamingService {
   /**
@@ -91,7 +82,7 @@ export class TamingService {
         legendary: 0.05
       };
 
-      if (Math.random() > rarityChance[speciesDef.rarity]) {
+      if (!SecureRNG.chance(rarityChance[speciesDef.rarity])) {
         continue;
       }
 
@@ -189,25 +180,35 @@ export class TamingService {
       }
 
       // Get or create taming attempt
-      const attemptKey = `${characterId}-${species}`;
-      let attempt = tamingAttempts.get(attemptKey);
+      let attempt = await TamingAttempt.findOne({
+        characterId: character._id,
+        species,
+        status: 'in_progress',
+        expiresAt: { $gt: new Date() }
+      }).session(session);
 
       if (!attempt) {
-        attempt = {
-          characterId,
+        attempt = new TamingAttempt({
+          characterId: character._id,
           species,
+          location,
           progress: 0,
           attempts: 0,
-          startedAt: new Date()
-        };
-        tamingAttempts.set(attemptKey, attempt);
+          maxAttempts: this.MAX_ATTEMPTS,
+          startedAt: new Date(),
+          lastAttemptAt: new Date(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          status: 'in_progress'
+        });
       }
 
       attempt.attempts += 1;
+      attempt.lastAttemptAt = new Date();
 
       // Check if too many attempts (animal fled)
       if (attempt.attempts > this.MAX_ATTEMPTS) {
-        tamingAttempts.delete(attemptKey);
+        attempt.status = 'failed';
+        await attempt.save({ session });
         await session.abortTransaction();
         session.endSession();
 
@@ -233,20 +234,22 @@ export class TamingService {
       const totalChance = Math.min(95, baseChance + spiritBonus + skillBonus + progressBonus);
 
       // Roll for success
-      const roll = Math.random() * 100;
+      const roll = SecureRNG.d100();
       const success = roll < totalChance;
 
       if (success) {
         // Successfully tamed!
-        tamingAttempts.delete(attemptKey);
+        attempt.status = 'success';
+        attempt.progress = 100;
+        await attempt.save({ session });
 
         // Create companion with low initial bond
         const companion = new AnimalCompanion({
           ownerId: character._id,
           name: `Wild ${speciesDef.name}`, // Default name, player can rename
           species,
-          gender: Math.random() > 0.5 ? 'male' : 'female',
-          age: Math.floor(Math.random() * 24) + 12, // 1-3 years old
+          gender: SecureRNG.chance(0.5) ? 'male' : 'female',
+          age: SecureRNG.range(12, 35), // 1-3 years old
           loyalty: speciesDef.baseStats.loyalty,
           intelligence: speciesDef.baseStats.intelligence,
           aggression: speciesDef.baseStats.aggression,
@@ -293,6 +296,9 @@ export class TamingService {
       } else {
         // Failed attempt, but can retry
         attempt.progress += (100 - speciesDef.tamingDifficulty * 10) / this.MAX_ATTEMPTS;
+        // Extend expiry on activity (24 hours from last attempt)
+        attempt.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await attempt.save({ session });
 
         await session.commitTransaction();
         session.endSession();
@@ -317,20 +323,32 @@ export class TamingService {
   /**
    * Abandon current taming attempt
    */
-  static abandonTaming(characterId: string, species: CompanionSpecies): void {
-    const attemptKey = `${characterId}-${species}`;
-    tamingAttempts.delete(attemptKey);
+  static async abandonTaming(characterId: string, species: CompanionSpecies): Promise<void> {
+    await TamingAttempt.updateOne(
+      {
+        characterId: new mongoose.Types.ObjectId(characterId),
+        species,
+        status: 'in_progress'
+      },
+      {
+        $set: { status: 'failed' }
+      }
+    );
   }
 
   /**
    * Get current taming progress
    */
-  static getTamingProgress(
+  static async getTamingProgress(
     characterId: string,
     species: CompanionSpecies
-  ): { progress: number; attempts: number } | null {
-    const attemptKey = `${characterId}-${species}`;
-    const attempt = tamingAttempts.get(attemptKey);
+  ): Promise<{ progress: number; attempts: number } | null> {
+    const attempt = await TamingAttempt.findOne({
+      characterId: new mongoose.Types.ObjectId(characterId),
+      species,
+      status: 'in_progress',
+      expiresAt: { $gt: new Date() }
+    });
 
     if (!attempt) {
       return null;
@@ -343,22 +361,22 @@ export class TamingService {
   }
 
   /**
-   * Clean up old taming attempts (24 hour timeout)
+   * Clean up expired taming attempts
+   * Note: MongoDB TTL index handles automatic deletion, this is for manual cleanup
    */
-  static cleanupOldAttempts(): void {
-    const now = Date.now();
-    const timeout = 24 * 60 * 60 * 1000; // 24 hours
-
-    for (const [key, attempt] of tamingAttempts.entries()) {
-      if (now - attempt.startedAt.getTime() > timeout) {
-        tamingAttempts.delete(key);
-        logger.info(`Cleaned up old taming attempt: ${key}`);
-      }
+  static async cleanupExpiredAttempts(): Promise<number> {
+    const count = await TamingAttempt.cleanupExpired();
+    if (count > 0) {
+      logger.info(`Cleaned up ${count} expired taming attempts`);
     }
+    return count;
   }
 }
 
 // Run cleanup every hour
+// Note: MongoDB TTL index also handles automatic deletion
 setInterval(() => {
-  TamingService.cleanupOldAttempts();
+  TamingService.cleanupExpiredAttempts().catch((error) => {
+    logger.error('Error cleaning up taming attempts:', error);
+  });
 }, 60 * 60 * 1000);

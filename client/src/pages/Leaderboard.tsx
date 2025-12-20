@@ -6,13 +6,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { useLeaderboardStore } from '@/store/useLeaderboardStore';
 import { Card, Button } from '@/components/ui';
 import { ListItemSkeleton } from '@/components/ui/Skeleton';
-// import { formatGold } from '@/utils/format';
-import { api } from '@/services/api';
-
-type LeaderboardType = 'level' | 'gold' | 'reputation' | 'combat' | 'gangs' | 'bounties';
-type TimeRange = 'all' | 'monthly' | 'weekly' | 'daily';
+import type {
+  LeaderboardType,
+  LeaderboardRange,
+  LeaderboardEntry,
+  GangLeaderboardEntry
+} from '@/services/leaderboard.service';
 
 interface PlayerEntry {
   rank: number;
@@ -46,65 +48,78 @@ export const Leaderboard: React.FC = () => {
   const navigate = useNavigate();
   const { currentCharacter } = useCharacterStore();
 
-  const [activeTab, setActiveTab] = useState<LeaderboardType>('level');
-  const [timeRange, setTimeRange] = useState<TimeRange>('all');
+  // Store state
+  const {
+    currentCategory,
+    timeRange,
+    isLoading,
+    error,
+    playerRank,
+    fetchLeaderboard,
+    setCategory,
+    setTimeRange: setStoreTimeRange,
+    fetchPlayerRank,
+    getLeaderboardEntries
+  } = useLeaderboardStore();
+
+  // Local UI state
   const [playerEntries, setPlayerEntries] = useState<PlayerEntry[]>([]);
   const [gangEntries, setGangEntries] = useState<GangEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentPlayerRank, setCurrentPlayerRank] = useState<number | null>(null);
 
   useEffect(() => {
     loadLeaderboard();
-  }, [activeTab, timeRange]);
+  }, [currentCategory, timeRange]);
 
   const loadLeaderboard = async () => {
-    setIsLoading(true);
-    try {
-      const response = await api.get(`/leaderboard/${activeTab}?range=${timeRange}`);
-      const data = response.data.data;
+    // Fetch from store
+    await fetchLeaderboard(currentCategory, timeRange);
 
-      if (activeTab === 'gangs') {
-        // Map backend response to GangEntry format
-        const gangs = (data.leaderboard || []).map((g: any) => ({
-          rank: g.rank,
-          id: g.gangId,
-          name: g.name,
-          tag: g.name.substring(0, 4).toUpperCase(),
-          faction: 'Frontera Collective', // Default since not in response
-          level: g.value,
-          memberCount: g.members,
-          reputation: g.value * 1000,
-          territories: g.territories,
-          leader: 'Unknown'
-        }));
-        setGangEntries(gangs);
-      } else {
-        // Map backend response to PlayerEntry format
-        const players = (data.leaderboard || []).map((p: any) => ({
-          rank: p.rank,
-          id: p.characterId,
-          name: p.name,
-          faction: p.faction || 'Unknown',
-          level: p.level || p.value,
-          value: p.value,
-          gang: undefined,
-          isOnline: false,
-          change: 0
-        }));
-        setPlayerEntries(players);
-        setCurrentPlayerRank(null);
+    // Get entries from store
+    const entries = getLeaderboardEntries();
+
+    // Map to local display format
+    if (currentCategory === 'gangs') {
+      const gangs = (entries as GangLeaderboardEntry[]).map((g) => ({
+        rank: g.rank,
+        id: g.gangId,
+        name: g.name,
+        tag: g.tag || g.name.substring(0, 4).toUpperCase(),
+        faction: g.faction || 'Frontera Collective',
+        level: g.level,
+        memberCount: g.memberCount,
+        reputation: g.value,
+        territories: 0, // Not provided by backend
+        leader: g.leader || 'Unknown'
+      }));
+      setGangEntries(gangs);
+    } else {
+      const players = (entries as LeaderboardEntry[]).map((p) => ({
+        rank: p.rank,
+        id: p.characterId,
+        name: p.name,
+        faction: p.faction || 'Unknown',
+        level: p.level || Math.floor(p.value / 1000),
+        value: p.value,
+        gang: p.gangName,
+        isOnline: false,
+        change: 0
+      }));
+      setPlayerEntries(players);
+
+      // Update player rank
+      if (currentCharacter) {
+        fetchPlayerRank(currentCharacter._id, currentCategory);
       }
-    } catch (error) {
-      console.error('Failed to load leaderboard:', error);
-      // Use mock data
+    }
+
+    // Fallback to mock data on error
+    if (error) {
       loadMockData();
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const loadMockData = () => {
-    if (activeTab === 'gangs') {
+    if (currentCategory === 'gangs') {
       setGangEntries([
         {
           rank: 1,
@@ -151,7 +166,7 @@ export const Leaderboard: React.FC = () => {
           name: 'Jesse "The Kid" McGraw',
           faction: 'Nahi Coalition',
           level: 42,
-          value: activeTab === 'gold' ? 1250000 : activeTab === 'combat' ? 523 : 42000,
+          value: currentCategory === 'gold' ? 1250000 : currentCategory === 'combat' ? 523 : 42000,
           gang: 'Black Rose',
           isOnline: true,
           change: 0
@@ -162,7 +177,7 @@ export const Leaderboard: React.FC = () => {
           name: 'Sarah "Quickdraw" Quinn',
           faction: 'Frontera Collective',
           level: 38,
-          value: activeTab === 'gold' ? 980000 : activeTab === 'combat' ? 412 : 35000,
+          value: currentCategory === 'gold' ? 980000 : currentCategory === 'combat' ? 412 : 35000,
           gang: 'Desert Wolves',
           isOnline: true,
           change: 1
@@ -173,7 +188,7 @@ export const Leaderboard: React.FC = () => {
           name: 'Marcus "Iron" Chen',
           faction: 'Settler Alliance',
           level: 35,
-          value: activeTab === 'gold' ? 750000 : activeTab === 'combat' ? 389 : 31000,
+          value: currentCategory === 'gold' ? 750000 : currentCategory === 'combat' ? 389 : 31000,
           gang: 'Gold Diggers',
           isOnline: false,
           change: -1
@@ -184,7 +199,7 @@ export const Leaderboard: React.FC = () => {
           name: 'Elena "Viper" Rodriguez',
           faction: 'Nahi Coalition',
           level: 33,
-          value: activeTab === 'gold' ? 620000 : activeTab === 'combat' ? 356 : 28500,
+          value: currentCategory === 'gold' ? 620000 : currentCategory === 'combat' ? 356 : 28500,
           isOnline: true,
           change: 2
         },
@@ -194,7 +209,7 @@ export const Leaderboard: React.FC = () => {
           name: 'Thomas "Doc" Mitchell',
           faction: 'Settler Alliance',
           level: 31,
-          value: activeTab === 'gold' ? 580000 : activeTab === 'combat' ? 298 : 26000,
+          value: currentCategory === 'gold' ? 580000 : currentCategory === 'combat' ? 298 : 26000,
           gang: 'Peacekeepers',
           isOnline: false,
           change: -1
@@ -209,19 +224,13 @@ export const Leaderboard: React.FC = () => {
           name: `Player ${i}`,
           faction: ['Settler Alliance', 'Frontera Collective', 'Nahi Coalition'][i % 3],
           level: 30 - Math.floor(i / 2),
-          value: activeTab === 'gold' ? 500000 - (i * 20000) : activeTab === 'combat' ? 250 - (i * 10) : 25000 - (i * 1000),
+          value: currentCategory === 'gold' ? 500000 - (i * 20000) : currentCategory === 'combat' ? 250 - (i * 10) : 25000 - (i * 1000),
           isOnline: Math.random() > 0.5,
           change: Math.floor(Math.random() * 5) - 2
         });
       }
 
       setPlayerEntries(mockPlayers);
-
-      // Find current player rank
-      if (currentCharacter) {
-        const playerRank = mockPlayers.findIndex(p => p.name === currentCharacter.name);
-        setCurrentPlayerRank(playerRank >= 0 ? playerRank + 1 : 999);
-      }
     }
   };
 
@@ -282,11 +291,11 @@ export const Leaderboard: React.FC = () => {
                 Top outlaws and gangs in Sangre Territory
               </p>
             </div>
-            {currentPlayerRank && activeTab !== 'gangs' && (
+            {playerRank && currentCategory !== 'gangs' && (
               <div className="text-right">
                 <div className="text-sm text-desert-stone">Your Rank</div>
                 <div className="text-2xl font-bold text-gold-light">
-                  #{currentPlayerRank}
+                  #{playerRank}
                 </div>
               </div>
             )}
@@ -297,10 +306,10 @@ export const Leaderboard: React.FC = () => {
             {(['level', 'gold', 'reputation', 'combat', 'bounties', 'gangs'] as LeaderboardType[]).map(tab => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => setCategory(tab)}
                 className={`
                   px-4 py-2 rounded font-serif capitalize transition-all
-                  ${activeTab === tab
+                  ${currentCategory === tab
                     ? 'bg-gold-light text-wood-dark'
                     : 'bg-wood-dark/50 text-desert-sand hover:bg-wood-dark/70'
                   }
@@ -313,10 +322,10 @@ export const Leaderboard: React.FC = () => {
 
           {/* Time Range Filter */}
           <div className="flex gap-2 mt-4">
-            {(['all', 'monthly', 'weekly', 'daily'] as TimeRange[]).map(range => (
+            {(['all', 'monthly', 'weekly', 'daily'] as LeaderboardRange[]).map(range => (
               <button
                 key={range}
-                onClick={() => setTimeRange(range)}
+                onClick={() => setStoreTimeRange(range)}
                 className={`
                   px-3 py-1 rounded text-sm font-serif capitalize
                   ${timeRange === range
@@ -341,7 +350,7 @@ export const Leaderboard: React.FC = () => {
                 <ListItemSkeleton count={10} />
               </div>
             </div>
-          ) : activeTab === 'gangs' ? (
+          ) : currentCategory === 'gangs' ? (
             /* Gang Leaderboard */
             <div className="space-y-3">
               {gangEntries.map((gang) => (
@@ -427,7 +436,7 @@ export const Leaderboard: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-wood-dark">
-                        {getValueDisplay(activeTab, player.value)}
+                        {getValueDisplay(currentCategory, player.value)}
                       </div>
                     </div>
                   </div>

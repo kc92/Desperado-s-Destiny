@@ -3,51 +3,27 @@
  * Track missions and objectives
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { api } from '@/services/api';
+import React, { useState, useEffect } from 'react';
 import { Card, Button, Modal } from '@/components/ui';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useQuestStore } from '@/store/useQuestStore';
+import type { Quest, QuestDefinition, QuestObjective } from '@/services/quest.service';
 
 type QuestTab = 'active' | 'available' | 'completed';
-type QuestType = 'main' | 'side' | 'daily' | 'weekly' | 'event';
-
-interface QuestObjective {
-  id: string;
-  description: string;
-  type: string;
-  target: string;
-  required: number;
-  current: number;
-}
+type QuestType = 'main' | 'side' | 'daily' | 'weekly' | 'event' | 'repeatable' | 'legendary' | 'faction';
 
 interface QuestReward {
-  type: 'gold' | 'xp' | 'item' | 'reputation';
-  amount?: number;
-  itemId?: string;
-}
-
-interface QuestDefinition {
-  questId: string;
-  name: string;
-  description: string;
-  type: QuestType;
-  levelRequired: number;
-  objectives: Omit<QuestObjective, 'current'>[];
-  rewards: QuestReward[];
-  timeLimit?: number;
-  repeatable: boolean;
-}
-
-interface CharacterQuest {
-  _id: string;
-  questId: string;
-  status: string;
-  objectives: QuestObjective[];
-  startedAt: string;
-  completedAt?: string;
-  expiresAt?: string;
-  definition?: QuestDefinition;
+  experience?: number;
+  gold?: number;
+  reputation?: number;
+  items?: {
+    itemId: string;
+    name: string;
+    quantity: number;
+  }[];
+  skillPoints?: number;
+  title?: string;
 }
 
 const QUEST_TYPE_COLORS: Record<QuestType, string> = {
@@ -55,7 +31,10 @@ const QUEST_TYPE_COLORS: Record<QuestType, string> = {
   side: 'text-blue-400 border-blue-400',
   daily: 'text-green-400 border-green-400',
   weekly: 'text-purple-400 border-purple-400',
-  event: 'text-red-400 border-red-400'
+  event: 'text-red-400 border-red-400',
+  repeatable: 'text-cyan-400 border-cyan-400',
+  legendary: 'text-orange-400 border-orange-400',
+  faction: 'text-indigo-400 border-indigo-400'
 };
 
 const QUEST_TYPE_LABELS: Record<QuestType, string> = {
@@ -63,81 +42,109 @@ const QUEST_TYPE_LABELS: Record<QuestType, string> = {
   side: 'Side Quest',
   daily: 'Daily',
   weekly: 'Weekly',
-  event: 'Event'
+  event: 'Event',
+  repeatable: 'Repeatable',
+  legendary: 'Legendary',
+  faction: 'Faction'
 };
 
 export const QuestLog: React.FC = () => {
+  // Store state
+  const {
+    quests: availableQuests,
+    activeQuests,
+    completedQuests,
+    isLoading,
+    error,
+    fetchQuests,
+    fetchActiveQuests,
+    fetchCompletedQuests,
+    acceptQuest,
+    abandonQuest,
+  } = useQuestStore();
+
+  // Local UI state
   const [activeTab, setActiveTab] = useState<QuestTab>('active');
-  const [activeQuests, setActiveQuests] = useState<CharacterQuest[]>([]);
-  const [availableQuests, setAvailableQuests] = useState<QuestDefinition[]>([]);
-  const [completedQuests, setCompletedQuests] = useState<CharacterQuest[]>([]);
-  const [selectedQuest, setSelectedQuest] = useState<CharacterQuest | QuestDefinition | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedQuest, setSelectedQuest] = useState<Quest | QuestDefinition | null>(null);
   const [message, setMessage] = useState<{ text: string; success: boolean } | null>(null);
 
-  const fetchQuests = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [activeRes, availableRes, completedRes] = await Promise.all([
-        api.get<{ data: { quests: CharacterQuest[] } }>('/quests/active'),
-        api.get<{ data: { quests: QuestDefinition[] } }>('/quests/available'),
-        api.get<{ data: { quests: CharacterQuest[] } }>('/quests/completed')
-      ]);
-      setActiveQuests(activeRes.data.data.quests);
-      setAvailableQuests(availableRes.data.data.quests);
-      setCompletedQuests(completedRes.data.data.quests);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch quests');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
+  // Fetch all quests on mount
   useEffect(() => {
-    fetchQuests();
-  }, [fetchQuests]);
+    const loadQuests = async () => {
+      await Promise.all([
+        fetchQuests(),
+        fetchActiveQuests(),
+        fetchCompletedQuests(),
+      ]);
+    };
+    loadQuests();
+  }, [fetchQuests, fetchActiveQuests, fetchCompletedQuests]);
 
   const handleAcceptQuest = async (questId: string) => {
     try {
-      await api.post('/quests/accept', { questId });
+      await acceptQuest(questId);
       setMessage({ text: 'Quest accepted!', success: true });
       setTimeout(() => setMessage(null), 3000);
       setSelectedQuest(null);
-      fetchQuests();
+      // Refresh available quests list
+      await fetchQuests();
     } catch (err: any) {
-      setMessage({ text: err.response?.data?.error || 'Failed to accept quest', success: false });
+      setMessage({ text: err.message || 'Failed to accept quest', success: false });
       setTimeout(() => setMessage(null), 3000);
     }
   };
 
   const handleAbandonQuest = async (questId: string) => {
     try {
-      await api.post('/quests/abandon', { questId });
+      await abandonQuest(questId);
       setMessage({ text: 'Quest abandoned', success: true });
       setTimeout(() => setMessage(null), 3000);
       setSelectedQuest(null);
-      fetchQuests();
     } catch (err: any) {
-      setMessage({ text: err.response?.data?.error || 'Failed to abandon quest', success: false });
+      setMessage({ text: err.message || 'Failed to abandon quest', success: false });
       setTimeout(() => setMessage(null), 3000);
     }
   };
 
-  const renderReward = (reward: QuestReward) => {
-    switch (reward.type) {
-      case 'gold':
-        return <span className="text-gold-light">{reward.amount} Gold</span>;
-      case 'xp':
-        return <span className="text-blue-400">{reward.amount} XP</span>;
-      case 'item':
-        return <span className="text-purple-400">Item: {reward.itemId}</span>;
-      case 'reputation':
-        return <span className="text-green-400">+{reward.amount} Rep</span>;
-      default:
-        return null;
+  const renderRewards = (rewards: QuestReward) => {
+    const rewardElements: JSX.Element[] = [];
+
+    if (rewards.gold) {
+      rewardElements.push(
+        <span key="gold" className="text-gold-light">{rewards.gold} Gold</span>
+      );
     }
+    if (rewards.experience) {
+      rewardElements.push(
+        <span key="xp" className="text-blue-400">{rewards.experience} XP</span>
+      );
+    }
+    if (rewards.reputation) {
+      rewardElements.push(
+        <span key="rep" className="text-green-400">+{rewards.reputation} Rep</span>
+      );
+    }
+    if (rewards.skillPoints) {
+      rewardElements.push(
+        <span key="skill" className="text-purple-400">{rewards.skillPoints} Skill Points</span>
+      );
+    }
+    if (rewards.items && rewards.items.length > 0) {
+      rewards.items.forEach((item, idx) => {
+        rewardElements.push(
+          <span key={`item-${idx}`} className="text-purple-400">
+            {item.name} x{item.quantity}
+          </span>
+        );
+      });
+    }
+    if (rewards.title) {
+      rewardElements.push(
+        <span key="title" className="text-orange-400">Title: {rewards.title}</span>
+      );
+    }
+
+    return rewardElements;
   };
 
   const isQuestDefinition = (quest: any): quest is QuestDefinition => {
@@ -199,7 +206,7 @@ export const QuestLog: React.FC = () => {
       {/* Loading */}
       {isLoading && (
         <div aria-busy="true" aria-live="polite">
-          <CardGridSkeleton count={3} columns={1} />
+          <CardGridSkeleton count={3} columns={2} />
         </div>
       )}
 
@@ -295,15 +302,15 @@ export const QuestLog: React.FC = () => {
                       {QUEST_TYPE_LABELS[quest.type]}
                     </span>
                   </div>
-                  {quest.levelRequired > 1 && (
-                    <span className="text-xs text-desert-stone">Lvl {quest.levelRequired}</span>
+                  {quest.level > 1 && (
+                    <span className="text-xs text-desert-stone">Lvl {quest.level}</span>
                   )}
                 </div>
                 <p className="text-sm text-desert-stone mb-3">{quest.description}</p>
                 <div className="flex flex-wrap gap-2">
-                  {quest.rewards.map((reward, i) => (
+                  {renderRewards(quest.rewards).map((rewardElement, i) => (
                     <span key={i} className="text-xs bg-wood-dark px-2 py-1 rounded">
-                      {renderReward(reward)}
+                      {rewardElement}
                     </span>
                   ))}
                 </div>
@@ -328,7 +335,9 @@ export const QuestLog: React.FC = () => {
               <Card key={quest._id} variant="wood" className="p-4 opacity-75">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="font-western text-desert-sand">{quest.questId}</h3>
+                    <h3 className="font-western text-desert-sand">
+                      {quest.definition?.name || quest.questId}
+                    </h3>
                     <span className="text-xs text-green-500">✓ Completed</span>
                   </div>
                   {quest.completedAt && (
@@ -388,9 +397,13 @@ export const QuestLog: React.FC = () => {
             <Card variant="wood" className="p-3">
               <h4 className="text-sm font-western text-desert-sand mb-2">Rewards</h4>
               <div className="flex flex-wrap gap-2">
-                {(isQuestDefinition(selectedQuest) ? selectedQuest.rewards : selectedQuest.definition?.rewards || []).map((reward, i) => (
+                {renderRewards(
+                  isQuestDefinition(selectedQuest)
+                    ? selectedQuest.rewards
+                    : selectedQuest.definition?.rewards || {}
+                ).map((rewardElement, i) => (
                   <span key={i} className="text-sm bg-wood-dark px-2 py-1 rounded">
-                    {renderReward(reward)}
+                    {rewardElement}
                   </span>
                 ))}
               </div>

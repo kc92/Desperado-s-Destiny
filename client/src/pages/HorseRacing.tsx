@@ -5,11 +5,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
-import { Card, Button, Modal, EmptyState, LoadingSpinner } from '@/components/ui';
+import { Card, Button, Modal, EmptyState } from '@/components/ui';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/store/useToastStore';
-import { formatGold, formatTimeAgo } from '@/utils/format';
+import { formatDollars, formatTimeAgo } from '@/utils/format';
 import api from '@/services/api';
+import { logger } from '@/services/logger.service';
 
 // Types
 interface Horse {
@@ -97,7 +98,7 @@ export const HorseRacing: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('races');
   const [races, setRaces] = useState<Race[]>([]);
   const [myHorses, setMyHorses] = useState<Horse[]>([]);
-  const [tracks, setTracks] = useState<RaceTrack[]>([]);
+  const [, setTracks] = useState<RaceTrack[]>([]);
   const [myBets, setMyBets] = useState<Bet[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,9 +151,8 @@ export const HorseRacing: React.FC = () => {
       const response = await api.get('/racing/races');
       setRaces(response.data.data?.races || []);
     } catch (err: any) {
-      console.error('Failed to load races:', err);
-      // Use mock data for demonstration
-      setRaces(getMockRaces());
+      logger.error('Failed to load races', err as Error, { context: 'HorseRacing.loadRaces' });
+      setRaces([]);
     }
   };
 
@@ -161,7 +161,7 @@ export const HorseRacing: React.FC = () => {
       const response = await api.get('/racing/tracks');
       setTracks(response.data.data?.tracks || []);
     } catch (err: any) {
-      console.error('Failed to load tracks:', err);
+      logger.error('Failed to load tracks', err as Error, { context: 'HorseRacing.loadTracks' });
     }
   };
 
@@ -170,9 +170,8 @@ export const HorseRacing: React.FC = () => {
       const response = await api.get('/racing/my-horses');
       setMyHorses(response.data.data?.horses || []);
     } catch (err: any) {
-      console.error('Failed to load horses:', err);
-      // Use mock data
-      setMyHorses(getMockHorses());
+      logger.error('Failed to load horses', err as Error, { context: 'HorseRacing.loadMyHorses' });
+      setMyHorses([]);
     }
   };
 
@@ -181,7 +180,7 @@ export const HorseRacing: React.FC = () => {
       const response = await api.get('/racing/bets');
       setMyBets(response.data.data?.bets || []);
     } catch (err: any) {
-      console.error('Failed to load bets:', err);
+      logger.error('Failed to load bets', err as Error, { context: 'HorseRacing.loadMyBets' });
     }
   };
 
@@ -190,9 +189,8 @@ export const HorseRacing: React.FC = () => {
       const response = await api.get('/racing/leaderboard');
       setLeaderboard(response.data.data?.leaderboard || []);
     } catch (err: any) {
-      console.error('Failed to load leaderboard:', err);
-      // Use mock data
-      setLeaderboard(getMockLeaderboard());
+      logger.error('Failed to load leaderboard', err as Error, { context: 'HorseRacing.loadLeaderboard' });
+      setLeaderboard([]);
     }
   };
 
@@ -225,7 +223,7 @@ export const HorseRacing: React.FC = () => {
         targetCharacterId: betTarget,
         amount: betAmount,
       });
-      success('Bet Placed', `Successfully bet ${formatGold(betAmount)}!`);
+      success('Bet Placed', `Successfully bet ${formatDollars(betAmount)}!`);
       setShowBetModal(false);
       setSelectedRace(null);
       setBetTarget(null);
@@ -318,9 +316,9 @@ export const HorseRacing: React.FC = () => {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-desert-stone">Your Gold</p>
+              <p className="text-sm text-desert-stone">Your Dollars</p>
               <p className="text-2xl font-western text-gold-light">
-                {formatGold(currentCharacter.gold)}
+                {formatDollars(currentCharacter.gold)}
               </p>
             </div>
           </div>
@@ -427,11 +425,11 @@ export const HorseRacing: React.FC = () => {
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 text-sm">
                       <div>
                         <span className="text-wood-grain">Entry Fee:</span>
-                        <p className="font-bold text-gold-dark">{formatGold(race.entryFee)}</p>
+                        <p className="font-bold text-gold-dark">{formatDollars(race.entryFee)}</p>
                       </div>
                       <div>
                         <span className="text-wood-grain">Prize Pool:</span>
-                        <p className="font-bold text-gold-dark">{formatGold(race.prizePool)}</p>
+                        <p className="font-bold text-gold-dark">{formatDollars(race.prizePool)}</p>
                       </div>
                       <div>
                         <span className="text-wood-grain">Entries:</span>
@@ -658,7 +656,7 @@ export const HorseRacing: React.FC = () => {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-gold-dark">{formatGold(bet.amount)}</p>
+                        <p className="font-bold text-gold-dark">{formatDollars(bet.amount)}</p>
                         <p className="text-sm text-wood-grain">Odds: {bet.odds.toFixed(1)}x</p>
                       </div>
                       <div className="text-right">
@@ -677,7 +675,7 @@ export const HorseRacing: React.FC = () => {
                         </span>
                         {bet.payout && (
                           <p className="text-sm text-green-400 mt-1">
-                            Won: {formatGold(bet.payout)}
+                            Won: {formatDollars(bet.payout)}
                           </p>
                         )}
                       </div>
@@ -735,7 +733,7 @@ export const HorseRacing: React.FC = () => {
                           {entry.wins}W / {entry.totalRaces}R ({(entry.winRate * 100).toFixed(1)}%)
                         </div>
                         <div className="text-sm text-gold-dark">
-                          Earnings: {formatGold(entry.earnings)}
+                          Earnings: {formatDollars(entry.earnings)}
                         </div>
                       </div>
                     </div>
@@ -766,11 +764,11 @@ export const HorseRacing: React.FC = () => {
               <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
                 <div>
                   <span className="text-wood-grain">Entry Fee:</span>
-                  <p className="font-bold text-gold-dark">{formatGold(selectedRace.entryFee)}</p>
+                  <p className="font-bold text-gold-dark">{formatDollars(selectedRace.entryFee)}</p>
                 </div>
                 <div>
                   <span className="text-wood-grain">Prize Pool:</span>
-                  <p className="font-bold text-gold-dark">{formatGold(selectedRace.prizePool)}</p>
+                  <p className="font-bold text-gold-dark">{formatDollars(selectedRace.prizePool)}</p>
                 </div>
               </div>
             </div>
@@ -819,7 +817,7 @@ export const HorseRacing: React.FC = () => {
             </div>
 
             {currentCharacter.gold < selectedRace.entryFee && (
-              <p className="text-red-500 text-sm">Insufficient gold for entry fee!</p>
+              <p className="text-red-500 text-sm">Insufficient dollars for entry fee!</p>
             )}
 
             <div className="flex gap-3">
@@ -846,7 +844,7 @@ export const HorseRacing: React.FC = () => {
                 isLoading={isSubmitting}
                 loadingText="Entering..."
               >
-                Enter ({formatGold(selectedRace.entryFee)})
+                Enter ({formatDollars(selectedRace.entryFee)})
               </Button>
             </div>
           </div>
@@ -932,17 +930,17 @@ export const HorseRacing: React.FC = () => {
                 </Button>
               </div>
               <p className="text-sm text-wood-grain mt-1">
-                Your Gold: {formatGold(currentCharacter.gold)}
+                Your Dollars: {formatDollars(currentCharacter.gold)}
               </p>
               {betTarget && (
                 <p className="text-sm text-gold-dark mt-1">
-                  Potential Win: {formatGold(Math.floor(betAmount * (selectedRace.entries.find(e => e.characterId === betTarget)?.odds || 1)))}
+                  Potential Win: {formatDollars(Math.floor(betAmount * (selectedRace.entries.find(e => e.characterId === betTarget)?.odds || 1)))}
                 </p>
               )}
             </div>
 
             {betAmount > currentCharacter.gold && (
-              <p className="text-red-500 text-sm">Insufficient gold!</p>
+              <p className="text-red-500 text-sm">Insufficient dollars!</p>
             )}
 
             <div className="flex gap-3">
@@ -971,7 +969,7 @@ export const HorseRacing: React.FC = () => {
                 isLoading={isSubmitting}
                 loadingText="Placing Bet..."
               >
-                Place Bet ({formatGold(betAmount)})
+                Place Bet ({formatDollars(betAmount)})
               </Button>
             </div>
           </div>
@@ -980,162 +978,5 @@ export const HorseRacing: React.FC = () => {
     </div>
   );
 };
-
-// Mock data functions for fallback
-function getMockRaces(): Race[] {
-  return [
-    {
-      _id: '1',
-      track: {
-        _id: 't1',
-        name: 'Dusty Trail Speedway',
-        length: 1000,
-        terrain: 'desert',
-        difficulty: 'medium',
-        description: 'A classic desert track with challenging turns',
-      },
-      status: 'registering',
-      entryFee: 500,
-      prizePool: 2500,
-      maxEntries: 8,
-      entries: [
-        { characterId: 'c1', characterName: 'Quick Pete', horseId: 'h1', horseName: 'Thunder', odds: 2.5 },
-        { characterId: 'c2', characterName: 'Dusty Dan', horseId: 'h2', horseName: 'Lightning', odds: 3.0 },
-      ],
-      startTime: new Date(Date.now() + 3600000).toISOString(),
-    },
-    {
-      _id: '2',
-      track: {
-        _id: 't2',
-        name: 'Canyon Run',
-        length: 1500,
-        terrain: 'rocky',
-        difficulty: 'hard',
-        description: 'A treacherous canyon path with steep drops',
-      },
-      status: 'upcoming',
-      entryFee: 1000,
-      prizePool: 5000,
-      maxEntries: 6,
-      entries: [],
-      startTime: new Date(Date.now() + 7200000).toISOString(),
-    },
-    {
-      _id: '3',
-      track: {
-        _id: 't1',
-        name: 'Dusty Trail Speedway',
-        length: 1000,
-        terrain: 'desert',
-        difficulty: 'medium',
-        description: 'A classic desert track with challenging turns',
-      },
-      status: 'finished',
-      entryFee: 500,
-      prizePool: 2500,
-      maxEntries: 8,
-      entries: [
-        { characterId: 'c1', characterName: 'Quick Pete', horseId: 'h1', horseName: 'Thunder', odds: 2.5, position: 1, time: 45.23 },
-        { characterId: 'c2', characterName: 'Dusty Dan', horseId: 'h2', horseName: 'Lightning', odds: 3.0, position: 2, time: 46.11 },
-      ],
-      startTime: new Date(Date.now() - 3600000).toISOString(),
-      winner: {
-        characterId: 'c1',
-        characterName: 'Quick Pete',
-        horseName: 'Thunder',
-        time: 45.23,
-      },
-    },
-  ];
-}
-
-function getMockHorses(): Horse[] {
-  return [
-    {
-      _id: 'h1',
-      name: 'Midnight Runner',
-      breed: 'Mustang',
-      speed: 75,
-      stamina: 80,
-      handling: 65,
-      level: 5,
-      experience: 450,
-      condition: 'excellent',
-      winRate: 0.6,
-      totalRaces: 10,
-      wins: 6,
-    },
-    {
-      _id: 'h2',
-      name: 'Desert Wind',
-      breed: 'Arabian',
-      speed: 85,
-      stamina: 60,
-      handling: 70,
-      level: 3,
-      experience: 220,
-      condition: 'good',
-      winRate: 0.4,
-      totalRaces: 5,
-      wins: 2,
-    },
-  ];
-}
-
-function getMockLeaderboard(): LeaderboardEntry[] {
-  return [
-    {
-      rank: 1,
-      characterId: 'c1',
-      characterName: 'Quick Pete',
-      horseName: 'Thunder',
-      wins: 25,
-      totalRaces: 30,
-      winRate: 0.833,
-      earnings: 50000,
-    },
-    {
-      rank: 2,
-      characterId: 'c2',
-      characterName: 'Dusty Dan',
-      horseName: 'Lightning',
-      wins: 20,
-      totalRaces: 28,
-      winRate: 0.714,
-      earnings: 35000,
-    },
-    {
-      rank: 3,
-      characterId: 'c3',
-      characterName: 'Sage Sarah',
-      horseName: 'Starlight',
-      wins: 18,
-      totalRaces: 25,
-      winRate: 0.72,
-      earnings: 28000,
-    },
-    {
-      rank: 4,
-      characterId: 'c4',
-      characterName: 'Iron Mike',
-      horseName: 'Bullet',
-      wins: 15,
-      totalRaces: 24,
-      winRate: 0.625,
-      earnings: 22000,
-    },
-    {
-      rank: 5,
-      characterId: 'c5',
-      characterName: 'Wild Will',
-      horseName: 'Storm',
-      wins: 12,
-      totalRaces: 20,
-      winRate: 0.6,
-      earnings: 18000,
-    },
-  ];
-}
 
 export default HorseRacing;

@@ -115,17 +115,18 @@ export class DeathController {
       // Use provided location or default respawn location
       const respawnLocation = locationId || 'perdition';
 
-      const character = await DeathService.respawnPlayer(characterId, respawnLocation);
+      const result = await DeathService.respawnPlayer(characterId, respawnLocation);
 
       res.json({
         success: true,
         data: {
           message: 'You have respawned.',
-          characterId: character._id,
-          name: character.name,
-          currentLocation: character.currentLocation,
-          energy: character.energy,
-          maxEnergy: character.maxEnergy
+          characterId: result.character._id,
+          name: result.character.name,
+          currentLocation: result.character.currentLocation,
+          energy: result.character.energy,
+          maxEnergy: result.character.maxEnergy,
+          dream: result.dream
         }
       });
     } catch (error) {

@@ -9,6 +9,7 @@ import { Character } from '../models/Character.model';
 import { HuntingTrip } from '../models/HuntingTrip.model';
 import { getAnimalDefinition } from '../data/huntableAnimals';
 import { HuntingService } from './hunting.service';
+import { EnergyService } from './energy.service';
 import {
   StalkingResult,
   ShotResult,
@@ -17,6 +18,7 @@ import {
   HuntingWeapon
 } from '@desperados/shared';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 export class StalkingAndShootingService {
   /**
@@ -102,21 +104,21 @@ export class StalkingAndShootingService {
       if (hasScentBlocker) stealth += HUNTING_CONSTANTS.SCENT_BLOCKER_BONUS;
 
       // Wind direction (random)
-      const windFavorable = Math.random() < HUNTING_CONSTANTS.WIND_FAVORABLE_CHANCE;
+      const windFavorable = SecureRNG.chance(HUNTING_CONSTANTS.WIND_FAVORABLE_CHANCE);
       if (!windFavorable) {
         stealth -= 20; // Wind carrying your scent
       }
 
       // Calculate noise level (random)
-      const noiseLevel = Math.random() * 50;
+      const noiseLevel = SecureRNG.float(0, 1) * 50;
       stealth -= noiseLevel;
 
       // Calculate detection chance based on animal alertness
       const detectionChance = animalDef.alertness * 10 - stealth;
-      const detected = Math.random() * 100 < detectionChance;
+      const detected = SecureRNG.d100() < detectionChance;
 
       // Spend energy
-      character.spendEnergy(HUNTING_CONSTANTS.STALKING_ENERGY);
+      await EnergyService.spendEnergy(character._id.toString(), HUNTING_CONSTANTS.STALKING_ENERGY, 'stalk_animal');
       trip.energySpent += HUNTING_CONSTANTS.STALKING_ENERGY;
 
       if (detected) {
@@ -308,7 +310,7 @@ export class StalkingAndShootingService {
 
       // Calculate shot difficulty based on distance
       const shotDistance = trip.stalkingResult?.shotDistance || 100;
-      let distanceMultiplier = HUNTING_CONSTANTS.SHOT_DIFFICULTY.MEDIUM;
+      let distanceMultiplier: number = HUNTING_CONSTANTS.SHOT_DIFFICULTY.MEDIUM;
       if (shotDistance < 75) distanceMultiplier = HUNTING_CONSTANTS.SHOT_DIFFICULTY.NEAR;
       else if (shotDistance > 150) distanceMultiplier = HUNTING_CONSTANTS.SHOT_DIFFICULTY.FAR;
 
@@ -328,11 +330,11 @@ export class StalkingAndShootingService {
       hitChance *= placementDifficulty[targetPlacement];
 
       // Spend energy
-      character.spendEnergy(HUNTING_CONSTANTS.SHOOTING_ENERGY);
+      await EnergyService.spendEnergy(character._id.toString(), HUNTING_CONSTANTS.SHOOTING_ENERGY, 'shoot_animal');
       trip.energySpent += HUNTING_CONSTANTS.SHOOTING_ENERGY;
 
       // Roll for hit
-      const hitRoll = Math.random() * 100;
+      const hitRoll = SecureRNG.d100();
       const hit = hitRoll < hitChance;
 
       if (!hit) {
@@ -381,7 +383,7 @@ export class StalkingAndShootingService {
 
       // Hit! Calculate actual placement (can be less accurate)
       let actualPlacement = targetPlacement;
-      const placementRoll = Math.random();
+      const placementRoll = SecureRNG.float(0, 1);
       if (placementRoll > 0.7) {
         // Shot landed lower than intended
         const placements = [ShotPlacement.HEAD, ShotPlacement.HEART, ShotPlacement.LUNGS, ShotPlacement.BODY];

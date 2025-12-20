@@ -6,44 +6,47 @@
 import React, { useEffect, useState } from 'react';
 import { useAdminStore } from '@/store/useAdminStore';
 import { Card } from '@/components/ui';
+import { useToast } from '@/store/useToastStore';
+import { logger } from '@/services/logger.service';
 
 export const EconomyMonitor: React.FC = () => {
   const { analytics, characters, fetchAnalytics, fetchCharacters, adjustGold, isLoading } = useAdminStore();
+  const { success, error: showError, warning } = useToast();
   const [selectedCharacterId, setSelectedCharacterId] = useState('');
   const [goldAmount, setGoldAmount] = useState(0);
   const [reason, setReason] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchAnalytics().catch(console.error);
-    fetchCharacters({ limit: 100 }).catch(console.error);
+    fetchAnalytics().catch((err) => logger.error('Failed to fetch analytics for economy monitor', err as Error, { context: 'EconomyMonitor.fetchAnalytics' }));
+    fetchCharacters({ limit: 100 }).catch((err) => logger.error('Failed to fetch characters for economy monitor', err as Error, { context: 'EconomyMonitor.fetchCharacters' }));
   }, []);
 
   const handleAdjustGold = async () => {
     if (!selectedCharacterId) {
-      alert('Please select a character');
+      warning('No Character Selected', 'Please select a character');
       return;
     }
 
     if (goldAmount === 0) {
-      alert('Gold amount cannot be zero');
+      warning('Invalid Amount', 'Gold amount cannot be zero');
       return;
     }
 
     if (!reason.trim()) {
-      alert('Please provide a reason');
+      warning('Reason Required', 'Please provide a reason');
       return;
     }
 
     try {
       await adjustGold(selectedCharacterId, goldAmount, reason);
-      alert('Gold adjusted successfully');
+      success('Gold Adjusted', 'Gold has been adjusted successfully');
       setSelectedCharacterId('');
       setGoldAmount(0);
       setReason('');
-      fetchCharacters({ limit: 100 }).catch(console.error);
+      fetchCharacters({ limit: 100 }).catch((err) => logger.error('Failed to fetch characters after gold adjustment', err as Error, { context: 'EconomyMonitor.handleAdjustGold.fetchCharacters' }));
     } catch (error: any) {
-      alert(`Failed to adjust gold: ${error.message}`);
+      showError('Adjustment Failed', error.message || 'Failed to adjust gold');
     }
   };
 

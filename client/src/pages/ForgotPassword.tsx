@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { Button, Card, Input } from '@/components/ui';
+import { logger } from '@/services/logger.service';
 
 interface ForgotPasswordFormValues {
   email: string;
@@ -56,8 +57,7 @@ export const ForgotPassword: React.FC = () => {
       await forgotPassword(formValues.email);
       setSubmitted(true);
     } catch (err) {
-      // Error is handled by the store
-      console.error('Forgot password failed:', err);
+      logger.error('Forgot password failed', err as Error, { context: 'ForgotPassword.onSubmit', email: formValues.email });
     }
   };
 

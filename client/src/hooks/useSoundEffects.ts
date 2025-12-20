@@ -51,11 +51,14 @@ export type SoundEffect =
   | 'item_pickup'   // Item obtained
   | 'energy_restore'; // Energy restored
 
-// Sound configuration
+// Sound configuration (used in store state)
 interface SoundConfig {
   volume: number;
   enabled: boolean;
 }
+
+// Export for external use
+export type { SoundConfig };
 
 // Sound file paths mapping
 // These are loaded from /public/sounds/

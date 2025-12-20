@@ -475,7 +475,7 @@ export interface FishingActionResult {
 
   // State changes
   energyUsed?: number;
-  goldGained?: number;
+  dollarsGained?: number;
   experienceGained?: number;
   itemsGained?: { itemId: string; quantity: number }[];
 

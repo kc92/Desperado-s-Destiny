@@ -21,8 +21,8 @@ import {
 } from '@desperados/shared';
 import { Character, ICharacter } from '../models/Character.model';
 import { StagecoachTicket, IStagecoachTicket } from '../models/StagecoachTicket.model';
-import { GoldService } from './gold.service';
-import { TransactionSource } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import {
   STAGECOACH_ROUTES,
   getRouteById,
@@ -31,16 +31,13 @@ import {
 } from '../data/stagecoachRoutes';
 import { WAY_STATIONS } from '../data/wayStations';
 import logger from '../utils/logger';
+import { stagecoachStateManager } from './base/StateManager';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Stagecoach Service
  */
 export class StagecoachService {
-  /**
-   * Active stagecoaches in the world (in-memory for now)
-   * In production, this would be stored in Redis or a separate collection
-   */
-  private static activeStagecoaches: Map<string, Stagecoach> = new Map();
 
   /**
    * Get all available routes
@@ -116,7 +113,7 @@ export class StagecoachService {
 
     // Count booked tickets for this departure (would be database query in production)
     // For now, return capacity minus random bookings
-    const bookedSeats = Math.floor(Math.random() * capacity * 0.3);
+    const bookedSeats = SecureRNG.range(0, Math.floor(capacity * 0.3));
     return capacity - bookedSeats;
   }
 
@@ -232,13 +229,13 @@ export class StagecoachService {
       // Calculate fare
       const fare = calculateFare(route, departureStop.stopOrder, destinationStop.stopOrder);
 
-      // Check character has enough gold
-      if (!character.hasGold(fare)) {
+      // Check character has enough dollars
+      if (character.dollars < fare) {
         await session.abortTransaction();
         session.endSession();
         return {
           success: false,
-          message: `Not enough gold. Ticket costs ${fare} gold`,
+          message: `Not enough dollars. Ticket costs $${fare}`,
           fare,
           departureTime: new Date(),
           estimatedArrival: new Date(),
@@ -281,10 +278,10 @@ export class StagecoachService {
       }
 
       // Assign seat number (simple assignment)
-      const seatNumber = Math.floor(Math.random() * this.getCapacityForRoute(route)) + 1;
+      const seatNumber = SecureRNG.range(1, this.getCapacityForRoute(route));
 
-      // Deduct gold
-      await GoldService.deductGold(
+      // Deduct dollars
+      await DollarService.deductDollars(
         character._id as any,
         fare,
         TransactionSource.STAGECOACH_TICKET,
@@ -294,6 +291,7 @@ export class StagecoachService {
           departure: request.departureLocationId,
           destination: request.destinationLocationId,
           description: `Stagecoach ticket from ${departureStop.locationName} to ${destinationStop.locationName}`,
+          currencyType: CurrencyType.DOLLAR,
         },
         session
       );
@@ -332,7 +330,7 @@ export class StagecoachService {
       session.endSession();
 
       logger.info(
-        `Character ${character.name} booked stagecoach ticket on route ${route.name} for ${fare} gold`
+        `Character ${character.name} booked stagecoach ticket on route ${route.name} for $${fare}`
       );
 
       return {
@@ -362,7 +360,7 @@ export class StagecoachService {
     estimatedArrival: Date
   ): Promise<Stagecoach> {
     // Check if stagecoach already exists
-    let stagecoach = this.activeStagecoaches.get(stagecoachId);
+    let stagecoach = await stagecoachStateManager.get<Stagecoach>(stagecoachId);
 
     if (!stagecoach) {
       // Create new stagecoach
@@ -388,7 +386,8 @@ export class StagecoachService {
         events: [],
       };
 
-      this.activeStagecoaches.set(stagecoachId, stagecoach);
+      // Store with 8-hour TTL (typical journey duration)
+      await stagecoachStateManager.set(stagecoachId, stagecoach, { ttl: 28800 });
     }
 
     return stagecoach;
@@ -400,7 +399,7 @@ export class StagecoachService {
   private static determineStagecoachType(route: StagecoachRoute): 'passenger' | 'mail' | 'treasure' | 'private' {
     if (route.fare.perMile > 2.0) return 'private';
     if (route.dangerLevel >= 7) return 'treasure';
-    if (Math.random() > 0.7) return 'mail';
+    if (SecureRNG.chance(0.3)) return 'mail';
     return 'passenger';
   }
 
@@ -418,10 +417,10 @@ export class StagecoachService {
     ];
 
     const skill = Math.min(10, 3 + Math.floor(route.dangerLevel / 2));
-    const experience = Math.floor(Math.random() * 20) + 5;
+    const experience = SecureRNG.range(5, 25);
 
     return {
-      name: names[Math.floor(Math.random() * names.length)],
+      name: SecureRNG.select(names),
       skill,
       experience,
       personality: skill > 7 ? 'Confident and experienced' : 'Nervous but capable',
@@ -446,9 +445,9 @@ export class StagecoachService {
 
     for (let i = 0; i < guardCount; i++) {
       guards.push({
-        name: guardNames[Math.floor(Math.random() * guardNames.length)],
-        level: Math.floor(route.dangerLevel / 2) + Math.floor(Math.random() * 5),
-        weapon: Math.random() > 0.5 ? 'Shotgun' : 'Rifle',
+        name: SecureRNG.select(guardNames),
+        level: Math.floor(route.dangerLevel / 2) + SecureRNG.range(0, 4),
+        weapon: SecureRNG.chance(0.5) ? 'Shotgun' : 'Rifle',
         accuracy: Math.min(10, 4 + Math.floor(route.dangerLevel / 2)),
         alertness: Math.min(10, 5 + Math.floor(route.dangerLevel / 3)),
       });
@@ -466,7 +465,7 @@ export class StagecoachService {
     let totalWeight = 0;
 
     // Mail is always present
-    const mailValue = Math.floor(Math.random() * 100) + 50;
+    const mailValue = SecureRNG.range(50, 150);
     items.push({
       type: 'mail' as const,
       description: 'US Mail sacks',
@@ -478,27 +477,28 @@ export class StagecoachService {
     totalWeight += 50;
 
     // Add parcels
-    const parcelCount = Math.floor(Math.random() * 3) + 1;
+    const parcelCount = SecureRNG.range(1, 4);
     for (let i = 0; i < parcelCount; i++) {
-      const parcelValue = Math.floor(Math.random() * 50) + 10;
+      const parcelValue = SecureRNG.range(10, 60);
+      const parcelWeight = SecureRNG.range(10, 30);
       items.push({
         type: 'parcel' as const,
         description: 'General goods and parcels',
         value: parcelValue,
-        weight: Math.floor(Math.random() * 20) + 10,
+        weight: parcelWeight,
         owner: 'Various',
         protected: false,
       });
       totalValue += parcelValue;
-      totalWeight += Math.floor(Math.random() * 20) + 10;
+      totalWeight += parcelWeight;
     }
 
     // High danger routes may have strongbox
-    const hasStrongbox = route.dangerLevel >= 6 && Math.random() > 0.5;
+    const hasStrongbox = route.dangerLevel >= 6 && SecureRNG.chance(0.5);
     let strongboxValue = 0;
 
     if (hasStrongbox) {
-      strongboxValue = Math.floor(Math.random() * 1000) + 500;
+      strongboxValue = SecureRNG.range(500, 1500);
       items.push({
         type: 'strongbox' as const,
         description: 'Wells Fargo Strongbox',
@@ -570,13 +570,14 @@ export class StagecoachService {
       // Issue refund
       const character = await Character.findById(characterId).session(session);
       if (character) {
-        await GoldService.addGold(
+        await DollarService.addDollars(
           character._id as any,
           refundAmount,
           TransactionSource.REFUND,
           {
             ticketId: ticket._id.toString(),
             description: `Stagecoach ticket refund (80%)`,
+            currencyType: CurrencyType.DOLLAR,
           },
           session
         );
@@ -594,7 +595,7 @@ export class StagecoachService {
       return {
         success: true,
         refundAmount,
-        message: `Ticket cancelled. Refunded ${refundAmount} gold (80% of fare)`,
+        message: `Ticket cancelled. Refunded $${refundAmount} (80% of fare)`,
       };
     } catch (error) {
       await session.abortTransaction();
@@ -613,7 +614,7 @@ export class StagecoachService {
       return null;
     }
 
-    const stagecoach = this.activeStagecoaches.get(ticket.stagecoachId);
+    const stagecoach = await stagecoachStateManager.get<Stagecoach>(ticket.stagecoachId);
     if (!stagecoach) {
       return null;
     }

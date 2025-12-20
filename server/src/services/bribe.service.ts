@@ -5,8 +5,11 @@
 
 import mongoose from 'mongoose';
 import { Character, ICharacter } from '../models/Character.model';
-import { TransactionSource } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
+import karmaService from './karma.service';
 
 export interface BribeResult {
   success: boolean;
@@ -38,25 +41,25 @@ export class BribeService {
         return { success: false, message: 'Character not found' };
       }
 
-      // Check if character has enough gold
-      if (!character.hasGold(bribeCost)) {
+      // Check if character has enough dollars
+      if (character.dollars < bribeCost) {
         await session.abortTransaction();
         session.endSession();
         return {
           success: false,
-          message: `Insufficient gold. Need ${bribeCost}, have ${character.gold}.`,
+          message: `Insufficient dollars. Need $${bribeCost}, have $${character.dollars}.`,
         };
       }
 
-      // Deduct gold
-      const { GoldService } = await import('./gold.service');
-      await GoldService.deductGold(
+      // Deduct dollars
+      await DollarService.deductDollars(
         characterId,
         bribeCost,
         TransactionSource.BRIBE,
         {
           buildingId,
           description: `Bribed guard for building access`,
+          currencyType: CurrencyType.DOLLAR,
         },
         session
       );
@@ -68,14 +71,27 @@ export class BribeService {
       await session.commitTransaction();
       session.endSession();
 
-      logger.info(`Character ${characterId} bribed guard for ${bribeCost} gold`);
+      // DEITY SYSTEM: Record karma for bribing official
+      // Bribery is corruption - affects justice and deception dimensions
+      try {
+        await karmaService.recordAction(
+          characterId,
+          'BRIBED_OFFICIAL',
+          `Bribed guard at ${buildingId} for $${bribeCost}`
+        );
+        logger.debug('Karma recorded for bribe: BRIBED_OFFICIAL');
+      } catch (karmaError) {
+        logger.warn('Failed to record karma for bribe:', karmaError);
+      }
+
+      logger.info(`Character ${characterId} bribed guard for $${bribeCost}`);
 
       return {
         success: true,
         goldSpent: bribeCost,
         accessGranted: true,
         duration: 30, // 30 minutes of access
-        message: `You slip ${bribeCost} gold to the guard. "I didn't see nothin'..."`,
+        message: `You slip $${bribeCost} to the guard. "I didn't see nothin'..."`,
         newCriminalRep: character.criminalReputation,
       };
     } catch (error) {
@@ -106,13 +122,13 @@ export class BribeService {
         return { success: false, message: 'Character not found' };
       }
 
-      // Check if character has enough gold
-      if (!character.hasGold(amount)) {
+      // Check if character has enough dollars
+      if (character.dollars < amount) {
         await session.abortTransaction();
         session.endSession();
         return {
           success: false,
-          message: `Insufficient gold. Need ${amount}, have ${character.gold}.`,
+          message: `Insufficient dollars. Need $${amount}, have $${character.dollars}.`,
         };
       }
 
@@ -122,19 +138,18 @@ export class BribeService {
       const cunningBonus = character.stats.cunning * 2;
       const successChance = basChance + amountBonus + cunningBonus;
 
-      const roll = Math.random() * 100;
-      const succeeded = roll < successChance;
+      const succeeded = SecureRNG.chance(successChance / 100);
 
       if (succeeded) {
-        // Deduct gold
-        const { GoldService } = await import('./gold.service');
-        await GoldService.deductGold(
+        // Deduct dollars
+        await DollarService.deductDollars(
           characterId,
           amount,
           TransactionSource.BRIBE,
           {
             npcId,
             description: `Bribed NPC for information`,
+            currencyType: CurrencyType.DOLLAR,
           },
           session
         );
@@ -146,6 +161,18 @@ export class BribeService {
         await session.commitTransaction();
         session.endSession();
 
+        // DEITY SYSTEM: Record karma for bribing NPC
+        try {
+          await karmaService.recordAction(
+            characterId,
+            'BRIBED_OFFICIAL',
+            `Bribed NPC ${npcId} for $${amount}`
+          );
+          logger.debug('Karma recorded for NPC bribe: BRIBED_OFFICIAL');
+        } catch (karmaError) {
+          logger.warn('Failed to record karma for NPC bribe:', karmaError);
+        }
+
         logger.info(`Character ${characterId} successfully bribed NPC ${npcId}`);
 
         return {
@@ -155,17 +182,17 @@ export class BribeService {
           newCriminalRep: character.criminalReputation,
         };
       } else {
-        // Failed bribe - still lose some gold
+        // Failed bribe - still lose some dollars
         const lostAmount = Math.floor(amount / 2);
         if (lostAmount > 0) {
-          const { GoldService } = await import('./gold.service');
-          await GoldService.deductGold(
+          await DollarService.deductDollars(
             characterId,
             lostAmount,
             TransactionSource.BRIBE,
             {
               npcId,
               description: `Failed bribe attempt`,
+              currencyType: CurrencyType.DOLLAR,
             },
             session
           );
@@ -177,7 +204,7 @@ export class BribeService {
         return {
           success: false,
           goldSpent: lostAmount,
-          message: `"How dare you! Get out of my sight!" You lost ${lostAmount} gold.`,
+          message: `"How dare you! Get out of my sight!" You lost $${lostAmount}.`,
         };
       }
     } catch (error) {

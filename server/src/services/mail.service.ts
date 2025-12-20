@@ -5,11 +5,14 @@
  */
 
 import mongoose from 'mongoose';
+import DOMPurify from 'isomorphic-dompurify';
 import { Mail, IMail } from '../models/Mail.model';
 import { Character } from '../models/Character.model';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import { NotificationType } from '../models/Notification.model';
 import { getSocketIO } from '../config/socket';
+import { filterProfanity } from '../utils/profanityFilter';
+import { acquireLockWithRetry, releaseLock } from '../utils/distributedLock';
 import logger from '../utils/logger';
 
 export class MailService {
@@ -42,6 +45,15 @@ export class MailService {
       throw new Error('Gold attachment must be non-negative');
     }
 
+    // SECURITY FIX: Sanitize HTML to prevent XSS attacks
+    // Strip ALL HTML tags - mail should be plain text only
+    const sanitizedSubject = DOMPurify.sanitize(subject, { ALLOWED_TAGS: [] });
+    const sanitizedBody = DOMPurify.sanitize(body, { ALLOWED_TAGS: [] });
+
+    // Filter profanity from subject and body
+    const filteredSubject = filterProfanity(sanitizedSubject);
+    const filteredBody = filterProfanity(sanitizedBody);
+
     const [sender, recipient] = await Promise.all([
       Character.findById(senderId),
       Character.findById(recipientId)
@@ -67,16 +79,17 @@ export class MailService {
       try {
         await session.startTransaction();
 
-        if (!sender.hasGold(goldAttachment)) {
-          throw new Error(`Insufficient gold. Have ${sender.gold}, need ${goldAttachment}`);
+        if (sender.dollars < goldAttachment) {
+          throw new Error(`Insufficient dollars. Have $${sender.dollars}, need $${goldAttachment}`);
         }
 
-        const { GoldService } = await import('./gold.service');
-        await GoldService.deductGold(
+        const { DollarService } = await import('./dollar.service');
+        const { CurrencyType } = await import('../models/GoldTransaction.model');
+        await DollarService.deductDollars(
           sender._id as mongoose.Types.ObjectId,
           goldAttachment,
           TransactionSource.MAIL_SENT,
-          { recipientId: recipient._id, recipientName: recipient.name },
+          { recipientId: recipient._id, recipientName: recipient.name, currencyType: CurrencyType.DOLLAR },
           session
         );
 
@@ -85,8 +98,8 @@ export class MailService {
           senderName: sender.name,
           recipientId: recipient._id,
           recipientName: recipient.name,
-          subject,
-          body,
+          subject: filteredSubject,
+          body: filteredBody,
           goldAttachment,
           goldClaimed: false,
           isRead: false,
@@ -99,8 +112,8 @@ export class MailService {
         await session.commitTransaction();
 
         logger.info(
-          `Mail sent with gold: ${sender.name} -> ${recipient.name}, ` +
-          `${goldAttachment} gold attached`
+          `Mail sent with dollars: ${sender.name} -> ${recipient.name}, ` +
+          `$${goldAttachment} attached`
         );
       } catch (error) {
         await session.abortTransaction();
@@ -115,8 +128,8 @@ export class MailService {
         senderName: sender.name,
         recipientId: recipient._id,
         recipientName: recipient.name,
-        subject,
-        body,
+        subject: filteredSubject,
+        body: filteredBody,
         goldAttachment: 0,
         goldClaimed: false,
         isRead: false,
@@ -135,8 +148,8 @@ export class MailService {
       NotificationType.MAIL_RECEIVED,
       `New Mail from ${sender.name}`,
       goldAttachment > 0
-        ? `You received mail with ${goldAttachment} gold attached`
-        : `You received mail: ${subject}`,
+        ? `You received mail with $${goldAttachment} attached`
+        : `You received mail: ${filteredSubject}`,
       `/mail/${mail._id}`
     );
 
@@ -272,7 +285,10 @@ export class MailService {
   }
 
   /**
-   * Claim gold attachment (transaction-safe)
+   * Claim gold attachment (transaction-safe with distributed locking)
+   *
+   * SECURITY FIX: Uses distributed lock + transaction to prevent race conditions
+   * where two concurrent requests could both claim the same gold attachment.
    *
    * @param mailId - Mail with gold attachment
    * @param characterId - Character claiming gold
@@ -282,26 +298,16 @@ export class MailService {
     mailId: string,
     characterId: string | mongoose.Types.ObjectId
   ): Promise<number> {
-    const mail = await Mail.findById(mailId);
-
-    if (!mail) {
-      throw new Error('Mail not found');
-    }
-
     const charObjectId = typeof characterId === 'string'
       ? new mongoose.Types.ObjectId(characterId)
       : characterId;
 
-    if (mail.recipientId.toString() !== charObjectId.toString()) {
-      throw new Error('Only the recipient can claim the gold attachment');
-    }
+    // SECURITY FIX: Acquire distributed lock to prevent race condition
+    const lockKey = `lock:mail-claim:${mailId}`;
+    const lockToken = await acquireLockWithRetry(lockKey, 10000, 10);
 
-    if (mail.goldAttachment <= 0) {
-      throw new Error('No gold attachment to claim');
-    }
-
-    if (mail.goldClaimed) {
-      throw new Error('Gold attachment already claimed');
+    if (!lockToken) {
+      throw new Error('Unable to process claim - please try again');
     }
 
     const session = await mongoose.startSession();
@@ -309,31 +315,59 @@ export class MailService {
     try {
       await session.startTransaction();
 
-      const goldAmount = await mail.claimGoldAttachment(charObjectId);
+      // SECURITY FIX: Re-fetch mail INSIDE transaction to get latest state
+      const mail = await Mail.findById(mailId).session(session);
 
-      const { GoldService } = await import('./gold.service');
-      await GoldService.addGold(
+      if (!mail) {
+        throw new Error('Mail not found');
+      }
+
+      if (mail.recipientId.toString() !== charObjectId.toString()) {
+        throw new Error('Only the recipient can claim the gold attachment');
+      }
+
+      if (mail.goldAttachment <= 0) {
+        throw new Error('No dollar attachment to claim');
+      }
+
+      // SECURITY FIX: Check goldClaimed INSIDE transaction
+      if (mail.goldClaimed) {
+        throw new Error('Dollar attachment already claimed');
+      }
+
+      // Mark as claimed atomically within transaction
+      mail.goldClaimed = true;
+      mail.claimedAt = new Date();
+      await mail.save({ session });
+
+      const dollarsAmount = mail.goldAttachment;
+
+      const { DollarService } = await import('./dollar.service');
+      const { CurrencyType } = await import('../models/GoldTransaction.model');
+      await DollarService.addDollars(
         charObjectId,
-        goldAmount,
+        dollarsAmount,
         TransactionSource.MAIL_ATTACHMENT_CLAIMED,
-        { mailId: mail._id, senderName: mail.senderName },
+        { mailId: mail._id, senderName: mail.senderName, currencyType: CurrencyType.DOLLAR },
         session
       );
 
       await session.commitTransaction();
 
       logger.info(
-        `Gold attachment claimed: ${mail.recipientName} claimed ${goldAmount} gold ` +
+        `Dollar attachment claimed: ${mail.recipientName} claimed $${dollarsAmount} ` +
         `from mail sent by ${mail.senderName}`
       );
 
-      return goldAmount;
+      return dollarsAmount;
     } catch (error) {
       await session.abortTransaction();
       logger.error('Error claiming gold attachment:', error);
       throw error;
     } finally {
       session.endSession();
+      // Always release the lock
+      await releaseLock(lockKey, lockToken);
     }
   }
 

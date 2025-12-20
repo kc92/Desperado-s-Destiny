@@ -1,0 +1,14 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "cd server && npm ci && npm run build"
+  },
+  "deploy": {
+    "startCommand": "cd server && node -e \"require('./dist/scripts/createIndexes').createIndexes().then(() => console.log('Indexes created')).catch(e => console.error('Index creation failed:', e))\" && npm start",
+    "healthcheckPath": "/api/health",
+    "healthcheckTimeout": 30,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
+}

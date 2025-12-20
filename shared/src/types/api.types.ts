@@ -8,7 +8,7 @@
  * Standard API response wrapper
  * @template T The type of data being returned
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   /** Whether the request was successful */
   success: boolean;
   /** The response data (only present on success) */
@@ -17,6 +17,11 @@ export interface ApiResponse<T = any> {
   error?: string;
   /** Optional message (can be present on success or failure) */
   message?: string;
+  /** Optional metadata (timestamps, request IDs, etc.) */
+  meta?: {
+    timestamp?: string;
+    requestId?: string;
+  };
 }
 
 /**

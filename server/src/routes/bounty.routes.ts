@@ -15,7 +15,9 @@ import {
   checkBountyHunter,
   cancelBounties,
 } from '../controllers/bounty.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -28,52 +30,52 @@ router.use(requireAuth);
  * GET /api/bounty/wanted
  * Get wanted level for current character
  */
-router.get('/wanted', getWantedLevel);
+router.get('/wanted', asyncHandler(getWantedLevel));
 
 /**
  * GET /api/bounty/board
  * Get bounty board (available bounties to hunt)
  * Query params: ?limit=50&location=red-gulch
  */
-router.get('/board', getBountyBoard);
+router.get('/board', asyncHandler(getBountyBoard));
 
 /**
  * GET /api/bounty/most-wanted
  * Get most wanted criminals leaderboard
  * Query params: ?limit=10
  */
-router.get('/most-wanted', getMostWanted);
+router.get('/most-wanted', asyncHandler(getMostWanted));
 
 /**
  * GET /api/bounty/hunter-check
  * Check if bounty hunter should spawn for current character
  */
-router.get('/hunter-check', checkBountyHunter);
+router.get('/hunter-check', asyncHandler(checkBountyHunter));
 
 /**
  * GET /api/bounty/:characterId
  * Get active bounties for a specific character
  */
-router.get('/:characterId', getCharacterBounties);
+router.get('/:characterId', asyncHandler(getCharacterBounties));
 
 /**
  * POST /api/bounty/place
  * Place a bounty on another player
  * Body: { targetId: string, amount: number, reason?: string }
  */
-router.post('/place', placeBounty);
+router.post('/place', requireCsrfToken, asyncHandler(placeBounty));
 
 /**
  * POST /api/bounty/collect
  * Collect a bounty by bringing in the target
  * Body: { bountyId: string }
  */
-router.post('/collect', collectBounty);
+router.post('/collect', requireCsrfToken, asyncHandler(collectBounty));
 
 /**
  * DELETE /api/bounty/cancel/:characterId
  * Admin: Cancel all bounties for a character
  */
-router.delete('/cancel/:characterId', cancelBounties);
+router.delete('/cancel/:characterId', requireCsrfToken, asyncHandler(cancelBounties));
 
 export default router;

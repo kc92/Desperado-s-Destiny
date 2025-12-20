@@ -5,6 +5,7 @@
 
 import type { PokerCard, PokerRank, PokerSuit, PokerHandRank } from '@desperados/shared';
 import { POKER_HAND_NAMES } from '@desperados/shared';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Rank values for comparison
@@ -329,7 +330,7 @@ export function shuffleDeck(deck: PokerCard[]): PokerCard[] {
   const shuffled = [...deck];
 
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = SecureRNG.range(0, i);
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 

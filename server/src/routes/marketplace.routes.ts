@@ -23,9 +23,13 @@ import {
   getCategories,
   searchListings
 } from '../controllers/marketplace.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
 import { marketplaceRateLimiter } from '../middleware/rateLimiter';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { validate, MarketplaceSchemas } from '../validation';
+import { preventTradingExploits, checkGoldDuplication } from '../middleware/antiExploit.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -50,7 +54,7 @@ const router = Router();
  * @query   {string} sortBy - Sort field (listedAt, price, endingSoon, bids)
  * @query   {string} sortOrder - Sort order (asc/desc)
  */
-router.get('/listings', getListings);
+router.get('/listings', asyncHandler(getListings));
 
 /**
  * @route   GET /api/market/listings/:id
@@ -58,21 +62,21 @@ router.get('/listings', getListings);
  * @access  Public
  * @param   {string} id - Listing ID
  */
-router.get('/listings/:id', getListingById);
+router.get('/listings/:id', asyncHandler(getListingById));
 
 /**
  * @route   GET /api/market/categories
  * @desc    Get all marketplace categories
  * @access  Public
  */
-router.get('/categories', getCategories);
+router.get('/categories', asyncHandler(getCategories));
 
 /**
  * @route   GET /api/market/stats
  * @desc    Get marketplace statistics
  * @access  Public
  */
-router.get('/stats', getMarketStats);
+router.get('/stats', asyncHandler(getMarketStats));
 
 /**
  * @route   GET /api/market/prices/:itemId
@@ -81,7 +85,7 @@ router.get('/stats', getMarketStats);
  * @param   {string} itemId - Item ID
  * @query   {number} days - Number of days of history (default: 30)
  */
-router.get('/prices/:itemId', getPriceHistory);
+router.get('/prices/:itemId', asyncHandler(getPriceHistory));
 
 /**
  * @route   GET /api/market/suggest/:itemId
@@ -89,7 +93,7 @@ router.get('/prices/:itemId', getPriceHistory);
  * @access  Public
  * @param   {string} itemId - Item ID
  */
-router.get('/suggest/:itemId', getSuggestedPrice);
+router.get('/suggest/:itemId', asyncHandler(getSuggestedPrice));
 
 /**
  * @route   GET /api/market/search
@@ -100,7 +104,7 @@ router.get('/suggest/:itemId', getSuggestedPrice);
  * @query   {string} subcategory - Filter by subcategory
  * @query   {string} rarity - Filter by rarity
  */
-router.get('/search', searchListings);
+router.get('/search', asyncHandler(searchListings));
 
 // ==========================================
 // PROTECTED ROUTES (authentication required)
@@ -122,7 +126,7 @@ router.use(requireCharacter);
  * @body    {string} subcategory - Item subcategory (optional)
  * @body    {boolean} featured - Featured listing (costs extra gold)
  */
-router.post('/listings', marketplaceRateLimiter, createListing);
+router.post('/listings', requireCsrfToken, marketplaceRateLimiter, preventTradingExploits(20), validate(MarketplaceSchemas.createListing), asyncHandler(createListing));
 
 /**
  * @route   PUT /api/market/listings/:id
@@ -132,7 +136,7 @@ router.post('/listings', marketplaceRateLimiter, createListing);
  * @body    {number} buyoutPrice - New buyout price
  * @body    {boolean} featured - Make listing featured
  */
-router.put('/listings/:id', marketplaceRateLimiter, updateListing);
+router.put('/listings/:id', requireCsrfToken, marketplaceRateLimiter, asyncHandler(updateListing));
 
 /**
  * @route   DELETE /api/market/listings/:id
@@ -140,7 +144,7 @@ router.put('/listings/:id', marketplaceRateLimiter, updateListing);
  * @access  Private (owner only, cannot cancel auctions with bids)
  * @param   {string} id - Listing ID
  */
-router.delete('/listings/:id', marketplaceRateLimiter, cancelListing);
+router.delete('/listings/:id', requireCsrfToken, marketplaceRateLimiter, asyncHandler(cancelListing));
 
 /**
  * @route   POST /api/market/listings/:id/bid
@@ -149,7 +153,7 @@ router.delete('/listings/:id', marketplaceRateLimiter, cancelListing);
  * @param   {string} id - Listing ID
  * @body    {number} amount - Bid amount
  */
-router.post('/listings/:id/bid', marketplaceRateLimiter, placeBid);
+router.post('/listings/:id/bid', requireCsrfToken, marketplaceRateLimiter, preventTradingExploits(50), validate(MarketplaceSchemas.placeBid), asyncHandler(placeBid));
 
 /**
  * @route   POST /api/market/listings/:id/buy
@@ -157,7 +161,7 @@ router.post('/listings/:id/bid', marketplaceRateLimiter, placeBid);
  * @access  Private
  * @param   {string} id - Listing ID
  */
-router.post('/listings/:id/buy', marketplaceRateLimiter, buyNow);
+router.post('/listings/:id/buy', requireCsrfToken, marketplaceRateLimiter, checkGoldDuplication(), asyncHandler(buyNow));
 
 /**
  * @route   GET /api/market/my/listings
@@ -165,14 +169,14 @@ router.post('/listings/:id/buy', marketplaceRateLimiter, buyNow);
  * @access  Private
  * @query   {string} status - Filter by status (active/sold/expired/cancelled)
  */
-router.get('/my/listings', getMyListings);
+router.get('/my/listings', asyncHandler(getMyListings));
 
 /**
  * @route   GET /api/market/my/bids
  * @desc    Get current player's active bids
  * @access  Private
  */
-router.get('/my/bids', getMyBids);
+router.get('/my/bids', asyncHandler(getMyBids));
 
 /**
  * @route   GET /api/market/my/purchases
@@ -181,7 +185,7 @@ router.get('/my/bids', getMyBids);
  * @query   {number} page - Page number
  * @query   {number} limit - Items per page
  */
-router.get('/my/purchases', getPurchaseHistory);
+router.get('/my/purchases', asyncHandler(getPurchaseHistory));
 
 /**
  * @route   GET /api/market/my/sales
@@ -190,6 +194,6 @@ router.get('/my/purchases', getPurchaseHistory);
  * @query   {number} page - Page number
  * @query   {number} limit - Items per page
  */
-router.get('/my/sales', getSalesHistory);
+router.get('/my/sales', asyncHandler(getSalesHistory));
 
 export default router;

@@ -89,6 +89,14 @@ export enum PersonalityType {
   VOLATILE = 'volatile',      // Mood swings rapidly based on events
   MELANCHOLIC = 'melancholic', // Base: sad, brief happy moments
   SUSPICIOUS = 'suspicious',  // Base: suspicious, distrustful
+  // Extended personality types for richer NPC variety
+  CUNNING = 'cunning',        // Calculating, strategic, self-interested
+  AGGRESSIVE = 'aggressive',  // Confrontational, quick to anger
+  WISE = 'wise',              // Thoughtful, experienced, gives advice
+  LOYAL = 'loyal',            // Devoted, trustworthy, protective
+  SCHOLARLY = 'scholarly',    // Intellectual, curious, bookish
+  FRIENDLY = 'friendly',      // Warm, approachable, helpful
+  CHARMING = 'charming',      // Charismatic, persuasive, likeable
 }
 
 /**

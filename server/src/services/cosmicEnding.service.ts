@@ -353,12 +353,12 @@ export class CosmicEndingService {
     const coalitionRelation = progress.npcRelationships.find(r => r.npcId === 'npc_cosmic_chief');
     const cultRelation = progress.npcRelationships.find(r => r.npcId === 'npc_cosmic_ezekiel');
 
-    if (coalitionRelation && coalitionRelation.relationship > 50) {
+    if (coalitionRelation && coalitionRelation.disposition > 50) {
       scores[CosmicEnding.BANISHMENT] += 2;
       factors.push('Strong Coalition relationship');
     }
 
-    if (cultRelation && cultRelation.relationship > 50) {
+    if (cultRelation && cultRelation.disposition > 50) {
       scores[CosmicEnding.AWAKENING] += 2;
       factors.push('Strong Cult relationship');
     }
@@ -401,7 +401,7 @@ export class CosmicEndingService {
         amount: 10000
       },
       {
-        type: 'gold',
+        type: 'dollars',
         amount: 5000
       }
     ];

@@ -23,7 +23,7 @@ npm run dev
 
 Wait 30-60 seconds for services to start, then visit:
 - **Frontend:** http://localhost:5173
-- **Backend:** http://localhost:5000/health
+- **Backend:** http://localhost:5001/health
 
 ---
 
@@ -38,7 +38,7 @@ Wait 30-60 seconds for services to start, then visit:
 ### Docker Services Started (`npm run dev`)
 - **MongoDB** - Database running on port 27017
 - **Redis** - Cache running on port 6379
-- **Backend** - Node.js API on port 5000
+- **Backend** - Node.js API on port 5001
 - **Frontend** - React app on port 5173
 
 ---
@@ -86,10 +86,10 @@ If you see "port already allocated" errors:
 1. Check what's using the port:
    ```bash
    # Windows
-   netstat -ano | findstr :5000
+   netstat -ano | findstr :5001
 
    # Mac/Linux
-   lsof -i :5000
+   lsof -i :5001
    ```
 
 2. Stop the conflicting service or change ports in `.env`

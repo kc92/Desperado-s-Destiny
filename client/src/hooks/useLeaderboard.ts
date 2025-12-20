@@ -5,6 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
+import { logger } from '@/services/logger.service';
 
 // Leaderboard categories
 export type LeaderboardCategory =
@@ -118,7 +119,7 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch leaderboard';
       setError(errorMessage);
-      console.error('[useLeaderboard] Fetch leaderboard error:', err);
+      logger.error('Fetch leaderboard error', err as Error, { context: 'useLeaderboard' });
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +147,7 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch gang leaderboard';
       setError(errorMessage);
-      console.error('[useLeaderboard] Fetch gang leaderboard error:', err);
+      logger.error('Fetch gang leaderboard error', err as Error, { context: 'useLeaderboard' });
     } finally {
       setIsLoading(false);
     }
@@ -167,7 +168,7 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
       setPlayerRank(rank);
       return rank;
     } catch (err: any) {
-      console.error('[useLeaderboard] Fetch player rank error:', err);
+      logger.error('Fetch player rank error', err as Error, { context: 'useLeaderboard' });
       return null;
     }
   }, []);

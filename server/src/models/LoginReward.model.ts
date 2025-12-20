@@ -10,7 +10,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 /**
  * Reward item types
  */
-export type RewardType = 'gold' | 'item' | 'energy' | 'material' | 'premium';
+export type RewardType = 'dollars' | 'item' | 'energy' | 'material' | 'premium';
 
 /**
  * Individual reward item

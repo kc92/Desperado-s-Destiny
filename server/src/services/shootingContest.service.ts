@@ -3,12 +3,16 @@
  * Manages shooting contests, registration, and progression
  */
 
+import mongoose from 'mongoose';
 import { ShootingContest, IShootingContest } from '../models/ShootingContest.model';
 import { ShootingRecord } from '../models/ShootingRecord.model';
 import { Character } from '../models/Character.model';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import { ShootingMechanicsService } from './shootingMechanics.service';
 import { CONTEST_TEMPLATES } from '../data/shootingContests';
 import { TARGET_SETS } from '../data/shootingTargets';
+import logger from '../utils/logger';
 import type {
   ContestTemplate,
   ContestType,
@@ -84,62 +88,93 @@ export class ShootingContestService {
     characterId: string,
     weapon: AllowedWeapon
   ): Promise<IShootingContest> {
-    const contest = await ShootingContest.findById(contestId);
-    if (!contest) {
-      throw new Error('Contest not found');
+    // PHASE 5 FIX: Use transaction to atomically deduct entry fee and register
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const contest = await ShootingContest.findById(contestId).session(session);
+      if (!contest) {
+        throw new Error('Contest not found');
+      }
+
+      // Check if can register
+      if (!contest.canRegister(characterId)) {
+        throw new Error('Cannot register for this contest');
+      }
+
+      // Check weapon is allowed
+      if (!contest.allowedWeapons.includes(weapon)) {
+        throw new Error(`Weapon ${weapon} not allowed in this contest`);
+      }
+
+      // Get character
+      const character = await Character.findById(characterId).session(session);
+      if (!character) {
+        throw new Error('Character not found');
+      }
+
+      // Check level requirement
+      if (character.level < contest.minLevel) {
+        throw new Error(`Character must be level ${contest.minLevel} or higher`);
+      }
+
+      // PHASE 5 FIX: Actually deduct entry fee from character's dollars
+      if (contest.entryFee > 0) {
+        if (character.dollars < contest.entryFee) {
+          throw new Error(`Insufficient dollars. Entry fee is ${contest.entryFee} dollars.`);
+        }
+
+        await DollarService.deductDollars(
+          characterId,
+          contest.entryFee,
+          TransactionSource.TOURNAMENT_ENTRY,
+          { contestId: contest._id, contestName: contest.name, entryFee: contest.entryFee },
+          session
+        );
+      }
+
+      // Get marksmanship skill (assuming it's in character.skills)
+      const marksmanshipSkill = (character as any).skills?.marksmanship || 50;
+
+      // Add to participants
+      contest.registeredShooters.push({
+        characterId: character._id as any,
+        characterName: character.name,
+        marksmanshipSkill,
+        weapon,
+        joinedAt: new Date(),
+        eliminated: false,
+        totalScore: 0
+      });
+
+      // Update prize pool (entry fees accumulate)
+      contest.prizePool += contest.entryFee;
+
+      // Check if ready to start
+      if (contest.registeredShooters.length >= contest.minParticipants) {
+        contest.status = 'ready';
+      }
+
+      await contest.save({ session });
+
+      // Record entry in shooting record
+      const record = await ShootingRecord.findOrCreate(characterId, character.name);
+      record.recordEntry();
+      await record.save({ session });
+
+      await session.commitTransaction();
+
+      logger.info(`Character ${character.name} registered for ${contest.name} (Entry fee: ${contest.entryFee} dollars)`);
+
+      return contest;
+    } catch (error) {
+      await session.abortTransaction();
+      logger.error('Error registering for shooting contest:', error);
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    // Check if can register
-    if (!contest.canRegister(characterId)) {
-      throw new Error('Cannot register for this contest');
-    }
-
-    // Check weapon is allowed
-    if (!contest.allowedWeapons.includes(weapon)) {
-      throw new Error(`Weapon ${weapon} not allowed in this contest`);
-    }
-
-    // Get character
-    const character = await Character.findById(characterId);
-    if (!character) {
-      throw new Error('Character not found');
-    }
-
-    // Check level requirement
-    if (character.level < contest.minLevel) {
-      throw new Error(`Character must be level ${contest.minLevel} or higher`);
-    }
-
-    // Get marksmanship skill (assuming it's in character.skills)
-    const marksmanshipSkill = (character as any).skills?.marksmanship || 50;
-
-    // Add to participants
-    contest.registeredShooters.push({
-      characterId: character._id as any,
-      characterName: character.name,
-      marksmanshipSkill,
-      weapon,
-      joinedAt: new Date(),
-      eliminated: false,
-      totalScore: 0
-    });
-
-    // Update prize pool (entry fees accumulate)
-    contest.prizePool += contest.entryFee;
-
-    // Check if ready to start
-    if (contest.registeredShooters.length >= contest.minParticipants) {
-      contest.status = 'ready';
-    }
-
-    await contest.save();
-
-    // Record entry in shooting record
-    const record = await ShootingRecord.findOrCreate(characterId, character.name);
-    record.recordEntry();
-    await record.save();
-
-    return contest;
   }
 
   /**
@@ -400,8 +435,19 @@ export class ShootingContestService {
     const character = await Character.findById(characterId);
     if (!character) return;
 
-    // Award gold (would integrate with gold service in real implementation)
-    // character.gold += prize.gold;
+    // Award dollars
+    if (prize.gold > 0) {
+      await DollarService.addDollars(
+        characterId,
+        prize.gold,
+        TransactionSource.SHOOTING_CONTEST_PRIZE,
+        {
+          contestId: contest._id.toString(),
+          contestName: contest.name,
+          placement,
+        }
+      );
+    }
 
     // Update shooting record
     const record = await ShootingRecord.findOrCreate(characterId, characterName);

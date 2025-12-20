@@ -29,13 +29,13 @@ export const NewsTicker: React.FC<NewsTickerProps> = ({
   const allNews = React.useMemo(() => {
     if (!worldState) return [];
 
-    const headlines = worldState.currentHeadlines.map(h => ({
+    const headlines = (worldState.currentHeadlines || []).map(h => ({
       text: h,
       type: 'headline' as const,
     }));
 
     const gossip = showGossip
-      ? worldState.recentGossip.map(g => ({
+      ? (worldState.recentGossip || []).map(g => ({
           text: g.text,
           type: 'gossip' as const,
           location: g.location,
@@ -179,12 +179,12 @@ export const NewsBoard: React.FC = () => {
       <div className="p-4 max-h-64 overflow-y-auto">
         {tab === 'headlines' ? (
           <div className="space-y-3">
-            {worldState.currentHeadlines.length === 0 ? (
+            {(worldState.currentHeadlines?.length || 0) === 0 ? (
               <p className="text-stone-500 text-sm text-center py-4">
                 No news today
               </p>
             ) : (
-              worldState.currentHeadlines.map((headline, idx) => (
+              (worldState.currentHeadlines || []).map((headline: string, idx: number) => (
                 <div
                   key={idx}
                   className="flex items-start gap-2 pb-3 border-b border-stone-700/50 last:border-0"
@@ -199,12 +199,12 @@ export const NewsBoard: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {worldState.recentGossip.length === 0 ? (
+            {(worldState.recentGossip?.length || 0) === 0 ? (
               <p className="text-stone-500 text-sm text-center py-4">
                 No gossip to report
               </p>
             ) : (
-              worldState.recentGossip.map((gossip, idx) => (
+              (worldState.recentGossip || []).map((gossip, idx: number) => (
                 <div
                   key={idx}
                   className="pb-3 border-b border-stone-700/50 last:border-0"
@@ -217,7 +217,7 @@ export const NewsBoard: React.FC = () => {
                       <span>📍 {gossip.location}</span>
                     )}
                     <span>
-                      {gossip.age === 0 ? 'Just now' : `${gossip.age}h ago`}
+                      {!gossip.age || gossip.age === '0' ? 'Just now' : `${gossip.age}h ago`}
                     </span>
                   </div>
                 </div>

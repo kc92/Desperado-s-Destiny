@@ -12,6 +12,7 @@ import { TIME_CONVERSION } from '../services/calendar.service';
 import { getAllHolidays } from '../data/holidays';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -219,6 +220,7 @@ router.post(
   '/admin/advance',
   requireAuth,
   requireAdmin,
+  requireCsrfToken,
   asyncHandler(async (req, res) => {
     const { days } = req.body;
 
@@ -251,6 +253,7 @@ router.post(
   '/admin/sync',
   requireAuth,
   requireAdmin,
+  requireCsrfToken,
   asyncHandler(async (req, res) => {
     await calendarService.syncCalendar();
     const currentDate = await calendarService.getCurrentDate();

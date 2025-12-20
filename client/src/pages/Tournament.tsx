@@ -262,7 +262,7 @@ export const Tournament: React.FC = () => {
             <div className="parchment p-4 space-y-2">
               <p>Entry Fee: <span className="font-bold text-gold-dark">{selectedTournament.entryFee} Gold</span></p>
               <p>Prize Pool: <span className="font-bold text-gold-dark">{selectedTournament.prizePool} Gold</span></p>
-              <p>Your Gold: <span className="font-bold">{currentCharacter.gold}</span></p>
+              <p>Your Dollars: <span className="font-bold">{currentCharacter.gold}</span></p>
             </div>
             {currentCharacter.gold < selectedTournament.entryFee && (
               <p className="text-red-600 text-sm">Insufficient gold!</p>

@@ -12,3 +12,9 @@ export * from './validation.constants';
 
 // Skill constants
 export * from './skills.constants';
+
+// Zone constants
+export * from './zones.constants';
+
+// Dialogue constants
+export * from './dialogue.constants';

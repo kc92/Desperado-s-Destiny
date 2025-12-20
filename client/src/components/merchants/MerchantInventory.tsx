@@ -8,7 +8,7 @@ import { Card, Button, Modal } from '@/components/ui';
 import type { MerchantItem, ItemRarity } from '@/hooks/useMerchants';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useToast } from '@/store/useToastStore';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 
 interface MerchantInventoryProps {
   inventory: MerchantItem[];
@@ -95,8 +95,8 @@ export const MerchantInventory: React.FC<MerchantInventoryProps> = ({
     <div className="space-y-4">
       {/* Player Gold Display */}
       <div className="flex justify-between items-center p-3 bg-wood-dark/50 rounded-lg">
-        <span className="text-desert-stone">Your Gold</span>
-        <span className="text-xl font-western text-gold-light">{formatGold(playerGold)}</span>
+        <span className="text-desert-stone">Your Dollars</span>
+        <span className="text-xl font-western text-gold-light">{formatDollars(playerGold)}</span>
       </div>
 
       {/* Type Filter */}

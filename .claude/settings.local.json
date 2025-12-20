@@ -8,7 +8,10 @@
       "Bash(cat:*)",
       "WebSearch",
       "Bash(find:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(dir \"C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\" /a /b)",
+      "Bash(while read f)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

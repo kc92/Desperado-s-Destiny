@@ -1,0 +1,125 @@
+# Staging Docker Compose Configuration
+# Used by GitHub Actions deploy workflow for staging environment
+# Pre-built images are pulled from GitHub Container Registry
+
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: desperados-mongodb-staging
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - desperados-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/desperados-destiny --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: desperados-redis-staging
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - desperados-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  # Backend API Server (pre-built image from GHCR)
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY:-desperados-destiny}/server:staging
+    container_name: desperados-backend-staging
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    environment:
+      NODE_ENV: staging
+      PORT: 5000
+      MONGODB_URI: ${MONGODB_URI}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRE: 1h
+      BCRYPT_ROUNDS: 12
+      FRONTEND_URL: ${FRONTEND_URL}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    networks:
+      - desperados-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+
+  # Frontend (pre-built Nginx image from GHCR)
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY:-desperados-destiny}/client:staging
+    container_name: desperados-frontend-staging
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - desperados-network
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  desperados-network:
+    driver: bridge

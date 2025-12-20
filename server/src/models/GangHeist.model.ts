@@ -12,6 +12,7 @@ import {
   HeistOutcome,
   HeistRoleAssignment,
 } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Gang Heist document interface
@@ -344,7 +345,7 @@ GangHeistSchema.methods.executeHeist = async function (
   await this.save();
 
   const successChance = this.calculateSuccessChance();
-  const roll = Math.random() * 100;
+  const roll = SecureRNG.d100();
 
   let outcome: HeistOutcome;
   let payout = 0;
@@ -354,20 +355,16 @@ GangHeistSchema.methods.executeHeist = async function (
   if (roll <= successChance) {
     // Success
     outcome = HeistOutcome.SUCCESS;
-    payout = Math.floor(
-      Math.random() * (this.potentialPayout.max - this.potentialPayout.min + 1) +
-        this.potentialPayout.min
-    );
+    payout = SecureRNG.range(this.potentialPayout.min, this.potentialPayout.max);
   } else if (roll <= successChance + 30) {
     // Partial success
     outcome = HeistOutcome.PARTIAL_SUCCESS;
     payout = Math.floor(this.potentialPayout.min * 0.5);
 
     // Some crew members get arrested
-    const arrestCount = Math.floor(Math.random() * Math.ceil(this.roles.length / 2)) + 1;
+    const arrestCount = SecureRNG.range(1, Math.ceil(this.roles.length / 2));
     for (let i = 0; i < arrestCount; i++) {
-      const randomIndex = Math.floor(Math.random() * this.roles.length);
-      const arrestedMember = this.roles[randomIndex];
+      const arrestedMember = SecureRNG.select(this.roles);
       if (!arrested.includes(arrestedMember.characterId)) {
         arrested.push(arrestedMember.characterId);
       }
@@ -380,19 +377,17 @@ GangHeistSchema.methods.executeHeist = async function (
     // Most crew members get arrested
     const arrestCount = Math.floor(this.roles.length * 0.6);
     for (let i = 0; i < arrestCount; i++) {
-      const randomIndex = Math.floor(Math.random() * this.roles.length);
-      const arrestedMember = this.roles[randomIndex];
+      const arrestedMember = SecureRNG.select(this.roles);
       if (!arrested.includes(arrestedMember.characterId)) {
         arrested.push(arrestedMember.characterId);
       }
     }
 
     // Possible casualties in major failures
-    if (this.riskLevel >= 70 && Math.random() < 0.2) {
-      const casualtyCount = Math.floor(Math.random() * 2) + 1;
+    if (this.riskLevel >= 70 && SecureRNG.chance(0.2)) {
+      const casualtyCount = SecureRNG.range(1, 2);
       for (let i = 0; i < casualtyCount; i++) {
-        const randomIndex = Math.floor(Math.random() * this.roles.length);
-        const casualty = this.roles[randomIndex];
+        const casualty = SecureRNG.select(this.roles);
         if (!casualties.includes(casualty.characterId)) {
           casualties.push(casualty.characterId);
         }

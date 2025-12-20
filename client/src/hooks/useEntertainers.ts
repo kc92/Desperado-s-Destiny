@@ -119,6 +119,9 @@ export interface Entertainer {
   imageUrl?: string;
 }
 
+// Type alias for backwards compatibility
+export type WanderingEntertainer = Entertainer;
+
 export interface PerformanceResult {
   success: boolean;
   message: string;

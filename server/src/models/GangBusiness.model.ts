@@ -11,6 +11,7 @@ import {
   RiskLevel,
   BusinessStatus,
 } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Gang Business document interface
@@ -156,7 +157,7 @@ GangBusinessSchema.index({ lastIncomeDate: 1 });
  */
 GangBusinessSchema.methods.calculateDailyIncome = function (this: IGangBusiness): number {
   const { min, max } = this.dailyIncome;
-  const income = Math.floor(Math.random() * (max - min + 1)) + min;
+  const income = SecureRNG.range(min, max);
   return income - this.operatingCost;
 };
 
@@ -200,19 +201,18 @@ GangBusinessSchema.methods.performRaid = function (this: IGangBusiness): { raide
   };
 
   const raidChance = raidChances[this.riskLevel] || 0;
-  const roll = Math.random();
 
-  if (roll < raidChance) {
+  if (SecureRNG.chance(raidChance)) {
     // Business was raided
     this.status = BusinessStatus.RAIDED;
     this.raidCount += 1;
 
     // Calculate fine (1-3x startup cost)
-    const fineMultiplier = 1 + Math.random() * 2;
+    const fineMultiplier = 1 + SecureRNG.float(0, 1) * 2;
     const fine = Math.floor(this.startupCost * fineMultiplier);
 
     // Business will be closed for 3-7 days
-    const closedDays = Math.floor(Math.random() * 5) + 3;
+    const closedDays = SecureRNG.range(3, 7);
     const nextRaidCheck = new Date();
     nextRaidCheck.setDate(nextRaidCheck.getDate() + closedDays);
     this.nextRaidCheck = nextRaidCheck;

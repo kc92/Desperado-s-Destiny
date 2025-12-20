@@ -6,7 +6,7 @@
 
 import { Response } from 'express';
 import { PropertyTaxService } from '../services/propertyTax.service';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import logger from '../utils/logger';
 
 export class PropertyTaxController {

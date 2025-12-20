@@ -46,7 +46,7 @@ export interface WorkshopFacility {
 // NPC TYPES
 // ============================================================================
 
-export type NPCRole = 'trainer' | 'merchant' | 'assistant' | 'quest_giver' | 'lore_keeper';
+export type WorkshopNPCRole = 'trainer' | 'merchant' | 'assistant' | 'quest_giver' | 'lore_keeper';
 
 export interface NPCDialogue {
   greeting: string[];
@@ -71,7 +71,7 @@ export interface NPCService {
 export interface WorkshopNPC {
   id: string;
   name: string;
-  role: NPCRole;
+  role: WorkshopNPCRole;
   title?: string;
   description: string;
   personality: string;

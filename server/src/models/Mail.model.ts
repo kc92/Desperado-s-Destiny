@@ -20,6 +20,8 @@ export interface IMail extends Document {
 
   goldAttachment: number;
   goldClaimed: boolean;
+  /** When the gold attachment was claimed */
+  claimedAt?: Date;
 
   isRead: boolean;
   readAt: Date | null;
@@ -83,6 +85,9 @@ const MailSchema = new Schema<IMail>(
     goldClaimed: {
       type: Boolean,
       default: false
+    },
+    claimedAt: {
+      type: Date
     },
 
     isRead: {

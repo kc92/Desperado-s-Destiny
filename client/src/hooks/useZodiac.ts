@@ -6,6 +6,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 import type {
   FrontierSign,
   ZodiacSignId,
@@ -180,7 +181,7 @@ export const useZodiac = (): UseZodiacReturn => {
     } catch (err: any) {
       // Use client-side calculation as fallback
       setCurrentSign(getCurrentSign());
-      console.warn('Using client-side zodiac calculation:', err.message);
+      logger.warn('Using client-side zodiac calculation', { context: 'useZodiac', error: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -206,7 +207,7 @@ export const useZodiac = (): UseZodiacReturn => {
       if (currentCharacter) {
         setCharacterProgress(generateDefaultProgress(currentCharacter._id));
       }
-      console.warn('Using default zodiac progress:', err.message);
+      logger.warn('Using default zodiac progress', { context: 'useZodiac', error: err.message });
     } finally {
       setIsLoading(false);
     }

@@ -19,8 +19,8 @@ import {
   getStreakBonus
 } from '../models/DailyContract.model';
 import { Character, ICharacter } from '../models/Character.model';
-import { TransactionSource } from '../models/GoldTransaction.model';
-import { GoldService } from './gold.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
 import { AppError, NotFoundError, ValidationError } from '../utils/errors';
 import {
   ALL_CONTRACT_TEMPLATES,
@@ -300,9 +300,9 @@ export class DailyContractService {
       // Grant rewards
       const rewards = contract.rewards;
 
-      // Gold
+      // Dollars
       if (rewards.gold > 0) {
-        await GoldService.addGold(
+        await DollarService.addDollars(
           characterId,
           rewards.gold,
           TransactionSource.CONTRACT_REWARD,
@@ -380,7 +380,7 @@ export class DailyContractService {
           };
 
           // Grant streak bonus rewards
-          await GoldService.addGold(
+          await DollarService.addDollars(
             characterId,
             streakBonus.gold,
             TransactionSource.STREAK_BONUS,
@@ -527,7 +527,7 @@ export class DailyContractService {
       }
 
       // Grant rewards
-      await GoldService.addGold(
+      await DollarService.addDollars(
         characterId,
         streakBonus.gold,
         TransactionSource.STREAK_BONUS,

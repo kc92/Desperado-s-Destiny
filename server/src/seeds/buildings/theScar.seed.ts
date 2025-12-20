@@ -14,6 +14,7 @@
  */
 
 import mongoose from 'mongoose';
+import logger from '../../utils/logger';
 import { Location } from '../../models/Location.model';
 import { LOCATION_IDS } from '../locations.seed';
 
@@ -188,7 +189,7 @@ export async function seedTheScarBuildings(): Promise<void> {
 
     console.log(`Successfully seeded ${theScarBuildings.length} The Scar buildings (HAUNTED PLACEHOLDER - Phase 14 expansion pending)`);
   } catch (error) {
-    console.error('Error seeding The Scar buildings:', error);
+    logger.error('Error seeding The Scar buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }

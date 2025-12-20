@@ -8,6 +8,7 @@ import skillRoutes from './skill.routes';
 import crimeRoutes from './crime.routes';
 import combatRoutes from './combat.routes';
 import goldRoutes from './gold.routes';
+import currencyRoutes from './currency.routes';
 import gangRoutes from './gang.routes';
 import gangEconomyRoutes from './gangEconomy.routes';
 import mailRoutes from './mail.routes';
@@ -88,6 +89,9 @@ import bossEncounterRoutes from './bossEncounter.routes';
 import propertyTaxRoutes from './propertyTax.routes';
 import foreclosureRoutes from './foreclosure.routes';
 import workerRoutes from './worker.routes';
+import tutorialRoutes from './tutorial.routes';
+import karmaRoutes from './karma.routes';
+import deityEncounterRoutes from './deityEncounter.routes';
 import { apiRateLimiter } from '../middleware';
 
 const router = Router();
@@ -121,8 +125,11 @@ router.use('/crimes', apiRateLimiter, crimeRoutes);
 // Combat routes (with API rate limiting)
 router.use('/combat', apiRateLimiter, combatRoutes);
 
-// Gold routes (with API rate limiting)
+// Gold routes (legacy - redirects to currency) (with API rate limiting)
 router.use('/gold', apiRateLimiter, goldRoutes);
+
+// Currency routes (with API rate limiting) - Primary currency system
+router.use('/currency', apiRateLimiter, currencyRoutes);
 
 // Gang routes (with API rate limiting)
 router.use('/gangs', apiRateLimiter, gangRoutes);
@@ -363,6 +370,15 @@ router.use('/foreclosure', apiRateLimiter, foreclosureRoutes);
 
 // Worker routes (with API rate limiting) - Advanced worker management (training, wages, strikes)
 router.use('/workers', apiRateLimiter, workerRoutes);
+
+// Tutorial routes (with API rate limiting) - Tutorial rewards and analytics
+router.use('/tutorial', apiRateLimiter, tutorialRoutes);
+
+// Karma routes (with API rate limiting) - Deity karma tracking, blessings, curses
+router.use('/karma', apiRateLimiter, karmaRoutes);
+
+// Deity Encounter routes (with API rate limiting) - Strangers, omens, dreams, manifestations
+router.use('/deity', apiRateLimiter, deityEncounterRoutes);
 
 export default router;
 

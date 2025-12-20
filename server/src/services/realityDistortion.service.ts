@@ -12,6 +12,7 @@ import {
 } from '@desperados/shared';
 import { Character } from '../models/Character.model';
 import { CorruptionService } from './corruption.service';
+import { SecureRNG } from './base/SecureRNG';
 import logger from '../utils/logger';
 
 /**
@@ -271,18 +272,18 @@ export class RealityDistortionService {
       ? COSMIC_HORROR_CONSTANTS.DISTORTION_HIGH_CORRUPTION_CHANCE
       : COSMIC_HORROR_CONSTANTS.DISTORTION_BASE_CHANCE;
 
-    if (Math.random() > baseChance) {
+    if (!SecureRNG.chance(baseChance)) {
       return { occurred: false, resisted: false };
     }
 
     // Select random distortion
-    const distortion = possibleDistortions[Math.floor(Math.random() * possibleDistortions.length)];
+    const distortion = SecureRNG.select(possibleDistortions);
 
     // Check resistance
     let resisted = false;
     if (distortion.resistible && distortion.resistCheck) {
       const stat = character.stats[distortion.resistCheck.stat as keyof typeof character.stats];
-      const roll = Math.random() * 20 + stat;
+      const roll = SecureRNG.range(1, 20) + stat;
 
       if (roll >= distortion.resistCheck.difficulty) {
         resisted = true;
@@ -394,7 +395,7 @@ export class RealityDistortionService {
       'The Scar - Echo Chamber'
     ];
 
-    const newLocation = scarLocations[Math.floor(Math.random() * scarLocations.length)];
+    const newLocation = SecureRNG.select(scarLocations);
     character.currentLocation = newLocation;
     await character.save();
 

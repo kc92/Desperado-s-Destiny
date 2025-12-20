@@ -9,7 +9,7 @@ import { useShop, ShopItem, ItemType, ItemRarity } from '@/hooks/useShop';
 import { Card, Button, Modal, EmptyState } from '@/components/ui';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/store/useToastStore';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 
 const rarityColors: Record<ItemRarity, string> = {
   common: 'text-gray-300',
@@ -68,9 +68,9 @@ export const Shop: React.FC = () => {
           <p className="text-desert-stone">Everything a frontier wanderer needs</p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-desert-stone">Your Gold</p>
+          <p className="text-sm text-desert-stone">Your Dollars</p>
           <p className="text-2xl font-western text-gold-light">
-            {formatGold(currentCharacter.gold)}
+            {formatDollars(currentCharacter.gold)}
           </p>
         </div>
       </div>

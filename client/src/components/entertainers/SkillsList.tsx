@@ -44,7 +44,6 @@ export const SkillsList: React.FC<SkillsListProps> = ({
   skills,
   playerTrustLevel,
   onLearn,
-  isLoading = false,
 }) => {
   const { currentCharacter } = useCharacterStore();
   const { success, error: showError } = useToast();

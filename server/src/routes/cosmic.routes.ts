@@ -5,8 +5,9 @@
 
 import { Router } from 'express';
 import { CosmicController } from '../controllers/cosmic.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -23,7 +24,7 @@ router.use(requireAuth);
  * POST /api/cosmic/start
  * Start the cosmic questline (requires level 25)
  */
-router.post('/start', asyncHandler(CosmicController.startStoryline));
+router.post('/start', requireCsrfToken, asyncHandler(CosmicController.startStoryline));
 
 /**
  * GET /api/cosmic/progress
@@ -43,6 +44,7 @@ router.get('/quests', asyncHandler(CosmicController.getAvailableQuests));
  */
 router.post(
   '/quests/:questId/objectives/:objectiveId/complete',
+  requireCsrfToken,
   asyncHandler(CosmicController.completeObjective)
 );
 
@@ -50,13 +52,13 @@ router.post(
  * POST /api/cosmic/quests/:questId/complete
  * Complete a cosmic quest
  */
-router.post('/quests/:questId/complete', asyncHandler(CosmicController.completeQuest));
+router.post('/quests/:questId/complete', requireCsrfToken, asyncHandler(CosmicController.completeQuest));
 
 /**
  * POST /api/cosmic/quests/:questId/choices/:choiceId
  * Make a major choice in the questline
  */
-router.post('/quests/:questId/choices/:choiceId', asyncHandler(CosmicController.makeChoice));
+router.post('/quests/:questId/choices/:choiceId', requireCsrfToken, asyncHandler(CosmicController.makeChoice));
 
 /**
  * GET /api/cosmic/corruption
@@ -91,7 +93,7 @@ router.get('/ending/predict', asyncHandler(CosmicController.predictEnding));
  * POST /api/cosmic/ending/trigger/:endingType
  * Trigger a specific ending (banishment, destruction, bargain, awakening)
  */
-router.post('/ending/trigger/:endingType', asyncHandler(CosmicController.triggerEnding));
+router.post('/ending/trigger/:endingType', requireCsrfToken, asyncHandler(CosmicController.triggerEnding));
 
 /**
  * GET /api/cosmic/ending/rewards/:endingType

@@ -1,12 +1,14 @@
 import React, { useEffect } from 'react';
-import { useTutorialStore, CORE_TUTORIAL_SECTIONS, DEEP_DIVE_TUTORIALS } from '@/store/useTutorialStore';
+import { useTutorialStore } from '@/store/useTutorialStore';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { MentorDialogue } from './MentorDialogue';
 import { TutorialSpotlight } from './TutorialSpotlight';
 import { TutorialAutoTrigger } from './TutorialAutoTrigger';
 import { HandQuiz } from './HandQuiz';
 import { Button, Modal } from '@/components/ui';
 import { useGlobalTutorialActionHandlers } from '@/utils/tutorialActionHandlers';
+import { logger } from '@/services/logger.service';
 
 // Skip confirmation modal
 interface SkipConfirmModalProps {
@@ -44,13 +46,13 @@ const SkipConfirmModal: React.FC<SkipConfirmModalProps> = ({
 
 // Tutorial progress indicator (top-right)
 const TutorialProgress: React.FC = () => {
-  const { currentSection, currentStep, getTotalProgress, getCurrentSection, tutorialType } = useTutorialStore();
+  const { currentSection, currentStep, getTotalProgress, getCurrentSection, tutorialType, activePath } = useTutorialStore();
   const section = getCurrentSection();
 
   if (!section || tutorialType !== 'core') return null; // Only show progress for core tutorial
 
   const progress = getTotalProgress();
-  const sectionIndex = CORE_TUTORIAL_SECTIONS.findIndex(s => s.id === currentSection);
+  const sectionIndex = activePath.findIndex(s => s.id === currentSection);
 
   return (
     <div className="fixed top-20 right-4 z-[9997] bg-leather-dark/95 border-2 border-gold-dark rounded-lg p-3 min-w-[200px] shadow-xl">
@@ -60,7 +62,7 @@ const TutorialProgress: React.FC = () => {
 
       {/* Section dots */}
       <div className="flex items-center gap-1 mb-2">
-        {CORE_TUTORIAL_SECTIONS.map((s, i) => (
+        {activePath.map((s, i) => (
           <React.Fragment key={s.id}>
             <div
               className={`w-3 h-3 rounded-full transition-all ${
@@ -72,7 +74,7 @@ const TutorialProgress: React.FC = () => {
               }`}
               title={s.name}
             />
-            {i < CORE_TUTORIAL_SECTIONS.length - 1 && (
+            {i < activePath.length - 1 && (
               <div className={`w-2 h-0.5 ${i < sectionIndex ? 'bg-gold-light/50' : 'bg-wood-grain/30'}`} />
             )}
           </React.Fragment>
@@ -106,6 +108,48 @@ const TutorialProgress: React.FC = () => {
   );
 };
 
+// Minimized tutorial indicator (floating button to resume)
+const MinimizedIndicator: React.FC = () => {
+  const { resumeTutorial, getCurrentStep, skipTutorial } = useTutorialStore();
+  const currentStepData = getCurrentStep();
+
+  return (
+    <div className="fixed bottom-4 right-4 z-[9997] flex flex-col gap-2 items-end">
+      {/* Action reminder */}
+      {currentStepData?.actionPrompt && (
+        <div className="bg-gold-dark/90 border border-gold-light rounded-lg p-3 max-w-xs shadow-lg">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full bg-gold-light animate-pulse" />
+            <span className="text-xs font-semibold text-leather-dark uppercase tracking-wide">
+              Action Required
+            </span>
+          </div>
+          <p className="text-leather-dark text-sm font-medium">
+            {currentStepData.actionPrompt}
+          </p>
+        </div>
+      )}
+
+      {/* Resume/Skip buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={skipTutorial}
+          className="bg-leather-dark/90 hover:bg-leather-brown text-desert-stone hover:text-desert-sand border border-wood-grain rounded-lg px-3 py-2 text-sm transition-colors shadow-lg"
+        >
+          Skip Tutorial
+        </button>
+        <button
+          onClick={resumeTutorial}
+          className="bg-gold-dark hover:bg-gold-medium text-leather-dark font-semibold rounded-lg px-4 py-2 text-sm transition-colors shadow-lg flex items-center gap-2"
+        >
+          <span>📚</span>
+          Resume Tutorial
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export const TutorialOverlay: React.FC = () => {
   const {
     isActive,
@@ -117,6 +161,7 @@ export const TutorialOverlay: React.FC = () => {
     tutorialType,
   } = useTutorialStore();
   const { currentCharacter } = useCharacterStore();
+  const { isAuthenticated } = useAuthStore();
 
   const [showSkipConfirm, setShowSkipConfirm] = React.useState(false);
   const [spotlightPosition, setSpotlightPosition] = React.useState<'top' | 'bottom' | 'center' | null>(null);
@@ -155,6 +200,11 @@ export const TutorialOverlay: React.FC = () => {
     return () => window.removeEventListener('resize', calculatePosition);
   }, [isActive, currentStepData?.target, currentStep]);
 
+  // Don't show tutorial if not authenticated
+  if (!isAuthenticated || !currentCharacter) {
+    return null;
+  }
+
   // Get player name for dialogue
   const playerName = currentCharacter?.name || 'partner';
 
@@ -170,7 +220,7 @@ export const TutorialOverlay: React.FC = () => {
     // Log analytics summary in development
     if (import.meta.env.DEV) {
       const summary = useTutorialStore.getState().getAnalyticsSummary();
-      console.log('[Tutorial Analytics] Summary at skip:', summary);
+      logger.info('[Tutorial Analytics] Summary at skip:', { context: 'TutorialOverlay', summary });
     }
   };
 
@@ -179,15 +229,25 @@ export const TutorialOverlay: React.FC = () => {
   };
 
   // Check if current step shows quiz
-  const showQuiz = currentSection === 'destiny_deck' &&
-    currentStepData?.requiresAction === 'complete-quiz';
+  const showQuiz = currentSection === 'destiny_deck_quiz' &&
+    currentStepData?.requiresAction === 'complete-hand-quiz';
 
   // Render auto-trigger (handles resume prompts)
   // This renders even when tutorial is not active
   const autoTrigger = <TutorialAutoTrigger />;
 
+  // Show minimized indicator when paused
+  if (isPaused && isActive && currentSection) {
+    return (
+      <>
+        {autoTrigger}
+        <MinimizedIndicator />
+      </>
+    );
+  }
+
   // Don't render main overlay if not active
-  if (!isActive || isPaused || !currentSection) {
+  if (!isActive || !currentSection) {
     return autoTrigger;
   }
 

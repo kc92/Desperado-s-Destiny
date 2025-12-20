@@ -7,7 +7,29 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { DuelService } from '../services/duel.service';
 import { DuelType } from '../models/Duel.model';
+import { Character } from '../models/Character.model';
 import { getAvailableActions } from '../services/deckGames';
+import { sanitizeErrorMessage } from '../utils/errors';
+import { DUEL_CONSTANTS } from '@desperados/shared';
+
+/**
+ * Calculate maximum wager for a character
+ * BALANCE FIX: Dynamic wager limits based on level and wealth
+ *
+ * @param level - Character level
+ * @param gold - Character gold
+ * @returns Maximum allowed wager
+ */
+function calculateMaxWager(level: number, gold: number): number {
+  const { WAGER_LIMITS, MAX_WAGER } = DUEL_CONSTANTS;
+
+  // Three constraints: level-based, wealth-based, and absolute cap
+  const levelCap = level * WAGER_LIMITS.PER_LEVEL_MULTIPLIER;
+  const goldCap = Math.floor(gold * WAGER_LIMITS.MAX_GOLD_PERCENT);
+  const absoluteCap = MAX_WAGER;
+
+  return Math.min(levelCap, goldCap, absoluteCap);
+}
 
 /**
  * Challenge another player to a duel
@@ -30,11 +52,65 @@ export const challengePlayer = asyncHandler(
     }
 
     try {
+      // BALANCE FIX: Validate wager limits before creating challenge
+      const wager = wagerAmount || 0;
+
+      if (wager > 0) {
+        // Get both characters for validation
+        const challenger = await Character.findById(characterId);
+        const target = await Character.findById(targetId);
+
+        if (!challenger || !target) {
+          res.status(400).json({ success: false, error: 'Character not found' });
+          return;
+        }
+
+        // Check level difference for wagered duels
+        const { WAGER_LIMITS } = DUEL_CONSTANTS;
+        const levelDiff = Math.abs(challenger.level - target.level);
+        if (levelDiff > WAGER_LIMITS.MAX_LEVEL_DIFFERENCE) {
+          res.status(400).json({
+            success: false,
+            error: `Wagered duels require characters within ${WAGER_LIMITS.MAX_LEVEL_DIFFERENCE} levels of each other. Level difference: ${levelDiff}`
+          });
+          return;
+        }
+
+        // Check minimum wager
+        if (wager < WAGER_LIMITS.ABSOLUTE_MIN) {
+          res.status(400).json({
+            success: false,
+            error: `Minimum wager is ${WAGER_LIMITS.ABSOLUTE_MIN} gold`
+          });
+          return;
+        }
+
+        // Check maximum wager based on challenger's level and gold
+        const maxWager = calculateMaxWager(challenger.level, challenger.gold);
+        if (wager > maxWager) {
+          res.status(400).json({
+            success: false,
+            error: `Maximum wager for your level and gold is ${maxWager}. Requested: ${wager}`
+          });
+          return;
+        }
+
+        // Also check if target can afford the wager
+        const targetMaxWager = calculateMaxWager(target.level, target.gold);
+        if (wager > targetMaxWager) {
+          res.status(400).json({
+            success: false,
+            error: `Target cannot afford this wager amount (their max: ${targetMaxWager})`
+          });
+          return;
+        }
+      }
+
       const duel = await DuelService.createChallenge(
         characterId,
         targetId,
         type || DuelType.CASUAL,
-        wagerAmount || 0
+        wager
       );
 
       res.status(201).json({
@@ -48,7 +124,7 @@ export const challengePlayer = asyncHandler(
         }
       });
     } catch (error: any) {
-      res.status(400).json({ success: false, error: error.message });
+      res.status(400).json({ success: false, error: sanitizeErrorMessage(error) });
     }
   }
 );
@@ -72,7 +148,7 @@ export const acceptDuel = asyncHandler(
 
       // Auto-start the game
       const gameState = await DuelService.startDuelGame(duelId);
-      const playerState = DuelService.getDuelGameState(duelId, characterId);
+      const playerState = await DuelService.getDuelGameState(duelId, characterId);
 
       res.json({
         success: true,
@@ -90,7 +166,7 @@ export const acceptDuel = asyncHandler(
         }
       });
     } catch (error: any) {
-      res.status(400).json({ success: false, error: error.message });
+      res.status(400).json({ success: false, error: sanitizeErrorMessage(error) });
     }
   }
 );
@@ -117,7 +193,7 @@ export const declineDuel = asyncHandler(
         data: { message: 'Challenge declined' }
       });
     } catch (error: any) {
-      res.status(400).json({ success: false, error: error.message });
+      res.status(400).json({ success: false, error: sanitizeErrorMessage(error) });
     }
   }
 );
@@ -144,7 +220,7 @@ export const cancelDuel = asyncHandler(
         data: { message: 'Challenge cancelled' }
       });
     } catch (error: any) {
-      res.status(400).json({ success: false, error: error.message });
+      res.status(400).json({ success: false, error: sanitizeErrorMessage(error) });
     }
   }
 );
@@ -163,7 +239,7 @@ export const getDuelGame = asyncHandler(
       return;
     }
 
-    const gameState = DuelService.getDuelGameState(duelId, characterId);
+    const gameState = await DuelService.getDuelGameState(duelId, characterId);
 
     if (!gameState) {
       res.status(404).json({ success: false, error: 'Duel game not found' });
@@ -241,7 +317,7 @@ export const playDuelAction = asyncHandler(
         });
       }
     } catch (error: any) {
-      res.status(400).json({ success: false, error: error.message });
+      res.status(400).json({ success: false, error: sanitizeErrorMessage(error) });
     }
   }
 );

@@ -11,6 +11,7 @@
  */
 
 import mongoose from 'mongoose';
+import logger from '../../utils/logger';
 import { Location } from '../../models/Location.model';
 import { LOCATION_IDS } from '../locations.seed';
 
@@ -446,7 +447,7 @@ export async function seedTheWastesBuildings(): Promise<void> {
 
     console.log(`Successfully seeded ${theWastesBuildings.length} The Wastes buildings (L25-35 WASTELAND CONTENT)`);
   } catch (error) {
-    console.error('Error seeding The Wastes buildings:', error);
+    logger.error('Error seeding The Wastes buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }

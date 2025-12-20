@@ -8,6 +8,7 @@ import * as unlockService from './permanentUnlock.service';
 import { User } from '../models/User.model';
 import { Character } from '../models/Character.model';
 import mongoose from 'mongoose';
+import logger from '../utils/logger';
 
 /**
  * Process unlock triggers when an achievement is earned
@@ -23,7 +24,7 @@ export async function processAchievementUnlock(
     try {
       await unlockService.grantUnlock(userId, unlockId, event);
     } catch (error) {
-      console.error(`Failed to grant unlock ${unlockId} for ${event}:`, error);
+      logger.error('Failed to grant unlock for achievement', { unlockId, event, error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     }
   }
 }
@@ -42,7 +43,7 @@ export async function processLegacyTierUnlock(
     try {
       await unlockService.grantUnlock(userId, unlockId, event);
     } catch (error) {
-      console.error(`Failed to grant unlock ${unlockId} for ${event}:`, error);
+      logger.error('Failed to grant unlock for legacy tier', { unlockId, event, error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     }
   }
 }
@@ -64,7 +65,7 @@ export async function processLevelMilestone(
       try {
         await unlockService.grantUnlock(userId, unlockId, event);
       } catch (error) {
-        console.error(`Failed to grant unlock ${unlockId} for ${event}:`, error);
+        logger.error('Failed to grant unlock for level milestone', { unlockId, event, error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
       }
     }
   }
@@ -88,7 +89,7 @@ export async function processDuelMilestone(
         try {
           await unlockService.grantUnlock(userId, unlockId, event);
         } catch (error) {
-          console.error(`Failed to grant unlock ${unlockId} for ${event}:`, error);
+          logger.error('Failed to grant unlock for duel milestone', { unlockId, event, error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
         }
       }
     }
@@ -113,7 +114,7 @@ export async function processCrimeMilestone(
         try {
           await unlockService.grantUnlock(userId, unlockId, event);
         } catch (error) {
-          console.error(`Failed to grant unlock ${unlockId} for ${event}:`, error);
+          logger.error('Failed to grant unlock for crime milestone', { unlockId, event, error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
         }
       }
     }
@@ -138,7 +139,7 @@ export async function processGoldMilestone(
         try {
           await unlockService.grantUnlock(userId, unlockId, event);
         } catch (error) {
-          console.error(`Failed to grant unlock ${unlockId} for ${event}:`, error);
+          logger.error('Failed to grant unlock for gold milestone', { unlockId, event, error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
         }
       }
     }
@@ -166,7 +167,7 @@ export async function processTimePlayedMilestone(
         try {
           await unlockService.grantUnlock(userId, unlockId, event);
         } catch (error) {
-          console.error(`Failed to grant unlock ${unlockId} for ${event}:`, error);
+          logger.error('Failed to grant unlock for time played milestone', { unlockId, event, error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
         }
       }
     }
@@ -188,7 +189,7 @@ export async function processGangLeaderUnlock(
       try {
         await unlockService.grantUnlock(userId, unlockId, event);
       } catch (error) {
-        console.error(`Failed to grant unlock ${unlockId} for ${event}:`, error);
+        logger.error('Failed to grant unlock for gang leader', { unlockId, event, error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
       }
     }
   }
@@ -201,7 +202,7 @@ export async function processGangLeaderUnlock(
       try {
         await unlockService.grantUnlock(userId, unlockId, event);
       } catch (error) {
-        console.error(`Failed to grant unlock ${unlockId} for ${event}:`, error);
+        logger.error('Failed to grant unlock for gang rank 3', { unlockId, event, error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
       }
     }
   }
@@ -221,7 +222,7 @@ export async function processEventUnlock(
     try {
       await unlockService.grantUnlock(userId, unlockId, event);
     } catch (error) {
-      console.error(`Failed to grant unlock ${unlockId} for ${event}:`, error);
+      logger.error('Failed to grant unlock for event', { unlockId, event, error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     }
   }
 }

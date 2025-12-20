@@ -23,6 +23,7 @@ import {
   ReputationModifier,
   LocationReputation
 } from '@desperados/shared';
+import { SecureRNG } from './base/SecureRNG';
 import logger from '../utils/logger';
 
 /**
@@ -225,7 +226,7 @@ export class ReputationSpreadingService {
     let sentiment = event.sentiment;
     if (source === KnowledgeSource.RUMOR) {
       // Rumors may exaggerate sentiment slightly
-      const exaggeration = Math.random() * 20 - 10; // -10 to +10
+      const exaggeration = SecureRNG.range(-10, 10);
       sentiment = Math.max(-100, Math.min(100, sentiment + exaggeration));
     }
 
@@ -319,7 +320,7 @@ export class ReputationSpreadingService {
           // Others share based on strength
           const shareChance = conn.isFamily ? 1.0 : (conn.strength / 10);
 
-          if (Math.random() < shareChance) {
+          if (SecureRNG.chance(shareChance)) {
             connected.add(conn.relatedNpcId);
           }
         }
@@ -514,33 +515,61 @@ export class ReputationSpreadingService {
 
   /**
    * Cleanup expired events (background job)
+   * H8 FIX: Use batch processing instead of loading all documents at once
    */
   static async cleanupExpiredEvents(): Promise<number> {
     try {
       // Delete expired events
       const deletedCount = await ReputationEventModel.cleanupExpiredEvents();
 
-      // Get all expired event IDs from knowledge records
-      const allKnowledge = await NPCKnowledgeModel.find({});
+      // H8 FIX: Process knowledge records in batches to prevent memory exhaustion
+      const BATCH_SIZE = 100;
+      let processedCount = 0;
+      let hasMore = true;
+      let lastId: any = null;
 
-      for (const knowledge of allKnowledge) {
-        let modified = false;
+      while (hasMore) {
+        // Use cursor-based pagination for consistent ordering
+        const query = lastId
+          ? { _id: { $gt: lastId } }
+          : {};
 
-        // Remove events that no longer exist
-        for (const event of knowledge.events) {
-          const exists = await ReputationEventModel.findById(event.eventId);
-          if (!exists) {
-            knowledge.removeEvent(event.eventId);
-            modified = true;
-          }
+        const batch = await NPCKnowledgeModel.find(query)
+          .sort({ _id: 1 })
+          .limit(BATCH_SIZE);
+
+        if (batch.length === 0) {
+          hasMore = false;
+          break;
         }
 
-        if (modified) {
-          await knowledge.save();
+        lastId = batch[batch.length - 1]._id;
+
+        for (const knowledge of batch) {
+          let modified = false;
+
+          // Remove events that no longer exist
+          for (const event of knowledge.events) {
+            const exists = await ReputationEventModel.findById(event.eventId);
+            if (!exists) {
+              knowledge.removeEvent(event.eventId);
+              modified = true;
+            }
+          }
+
+          if (modified) {
+            await knowledge.save();
+          }
+          processedCount++;
+        }
+
+        // Check if we've processed fewer than batch size (end of collection)
+        if (batch.length < BATCH_SIZE) {
+          hasMore = false;
         }
       }
 
-      logger.info(`Cleaned up ${deletedCount} expired reputation events`);
+      logger.info(`Cleaned up ${deletedCount} expired reputation events, processed ${processedCount} knowledge records`);
       return deletedCount;
     } catch (error) {
       logger.error('Error cleaning up expired events:', error);
@@ -550,38 +579,65 @@ export class ReputationSpreadingService {
 
   /**
    * Decay old events (reduce impact over time)
+   * H8 FIX: Use batch processing instead of loading all documents at once
    */
   static async decayOldEvents(): Promise<number> {
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-      const allKnowledge = await NPCKnowledgeModel.find({});
+      // H8 FIX: Process knowledge records in batches to prevent memory exhaustion
+      const BATCH_SIZE = 100;
       let decayedCount = 0;
+      let hasMore = true;
+      let lastId: any = null;
 
-      for (const knowledge of allKnowledge) {
-        let modified = false;
+      while (hasMore) {
+        // Use cursor-based pagination for consistent ordering
+        const query = lastId
+          ? { _id: { $gt: lastId } }
+          : {};
 
-        for (const event of knowledge.events) {
-          if (event.learnedAt < thirtyDaysAgo) {
-            // Reduce magnitude by 10%
-            const newMagnitude = Math.round(event.perceivedMagnitude * 0.9);
+        const batch = await NPCKnowledgeModel.find(query)
+          .sort({ _id: 1 })
+          .limit(BATCH_SIZE);
 
-            if (newMagnitude < 10) {
-              // Forget events with magnitude < 10
-              knowledge.removeEvent(event.eventId);
-              modified = true;
-              decayedCount++;
-            } else {
-              event.perceivedMagnitude = newMagnitude;
-              modified = true;
-              decayedCount++;
+        if (batch.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        lastId = batch[batch.length - 1]._id;
+
+        for (const knowledge of batch) {
+          let modified = false;
+
+          for (const event of knowledge.events) {
+            if (event.learnedAt < thirtyDaysAgo) {
+              // Reduce magnitude by 10%
+              const newMagnitude = Math.round(event.perceivedMagnitude * 0.9);
+
+              if (newMagnitude < 10) {
+                // Forget events with magnitude < 10
+                knowledge.removeEvent(event.eventId);
+                modified = true;
+                decayedCount++;
+              } else {
+                event.perceivedMagnitude = newMagnitude;
+                modified = true;
+                decayedCount++;
+              }
             }
+          }
+
+          if (modified) {
+            knowledge.recalculateOpinion();
+            await knowledge.save();
           }
         }
 
-        if (modified) {
-          knowledge.recalculateOpinion();
-          await knowledge.save();
+        // Check if we've processed fewer than batch size (end of collection)
+        if (batch.length < BATCH_SIZE) {
+          hasMore = false;
         }
       }
 

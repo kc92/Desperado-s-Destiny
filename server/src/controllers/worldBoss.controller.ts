@@ -6,7 +6,7 @@
 
 import { Response } from 'express';
 import { CharacterRequest } from '../middleware/characterOwnership.middleware';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import { Character } from '../models/Character.model';
 import { WorldBossService } from '../services/worldBoss.service';
 import { BossEncounterService } from '../services/bossEncounter.service';

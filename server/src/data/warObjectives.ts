@@ -10,6 +10,7 @@ import {
   ObjectivePriority,
   WarObjectiveTemplate,
 } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Combat objective templates
@@ -347,7 +348,7 @@ export function selectRandomObjectives(
   }
 
   // Shuffle and select
-  const shuffled = [...eligible].sort(() => Math.random() - 0.5);
+  const shuffled = SecureRNG.shuffle([...eligible]);
   return shuffled.slice(0, Math.min(count, shuffled.length));
 }
 

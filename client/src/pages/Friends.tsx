@@ -12,6 +12,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ListItemSkeleton } from '@/components/ui/Skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import { logger } from '@/services/logger.service';
 
 export const Friends: React.FC = () => {
   const {
@@ -42,14 +43,14 @@ export const Friends: React.FC = () => {
         await fetchFriends();
         await fetchRequests();
       } catch (error) {
-        console.error('[Friends] Failed to load friends:', error);
+        logger.error('[Friends] Failed to load friends', error as Error, { context: 'Friends.loadFriends' });
       }
     };
 
     loadFriends();
 
     const interval = setInterval(() => {
-      fetchFriends().catch(err => console.error('[Friends] Refresh failed:', err));
+      fetchFriends().catch(err => logger.error('[Friends] Refresh failed', err as Error, { context: 'Friends.refreshInterval' }));
     }, 30000);
 
     return () => clearInterval(interval);
@@ -63,7 +64,7 @@ export const Friends: React.FC = () => {
       setShowAddFriendModal(false);
       setFriendName('');
     } catch (err) {
-      console.error('Failed to send friend request:', err);
+      logger.error('Failed to send friend request', err as Error, { context: 'Friends.handleSendRequest', friendName });
     }
   };
 
@@ -71,7 +72,7 @@ export const Friends: React.FC = () => {
     try {
       await acceptRequest(requestId);
     } catch (err) {
-      console.error('Failed to accept request:', err);
+      logger.error('Failed to accept request', err as Error, { context: 'Friends.handleAcceptRequest', requestId });
     }
   };
 
@@ -79,7 +80,7 @@ export const Friends: React.FC = () => {
     try {
       await rejectRequest(requestId);
     } catch (err) {
-      console.error('Failed to reject request:', err);
+      logger.error('Failed to reject request', err as Error, { context: 'Friends.handleRejectRequest', requestId });
     }
   };
 
@@ -94,7 +95,7 @@ export const Friends: React.FC = () => {
       await removeFriend(removeFriendConfirm);
       setRemoveFriendConfirm(null);
     } catch (err) {
-      console.error('Failed to remove friend:', err);
+      logger.error('Failed to remove friend', err as Error, { context: 'Friends.confirmRemoveFriend', friendId: removeFriendConfirm });
     } finally {
       setIsRemoving(false);
     }

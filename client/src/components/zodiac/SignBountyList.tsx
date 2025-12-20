@@ -6,7 +6,6 @@
 import React from 'react';
 import type { PeakDayBounty, FrontierSign, ZodiacSignId } from '@/types/zodiac.types';
 import { SIGN_COLORS } from '@/constants/zodiac.constants';
-import { Card } from '@/components/ui';
 
 interface SignBountyListProps {
   sign: FrontierSign;

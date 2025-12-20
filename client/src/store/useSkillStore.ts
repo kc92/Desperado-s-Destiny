@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import type { Skill, SkillData, TrainingStatus, SuitBonuses } from '@desperados/shared';
 import { skillService } from '@/services/skill.service';
+import { logger } from '@/services/logger.service';
 
 interface SkillStore {
   // State
@@ -15,6 +16,7 @@ interface SkillStore {
   skillBonuses: SuitBonuses;
   isTrainingSkill: boolean;
   skillsPollingInterval: NodeJS.Timeout | null;
+  completionTimeoutId: NodeJS.Timeout | null;
   isLoading: boolean;
   error: string | null;
 
@@ -22,7 +24,7 @@ interface SkillStore {
   fetchSkills: () => Promise<void>;
   startTraining: (skillId: string) => Promise<void>;
   cancelTraining: () => Promise<void>;
-  completeTraining: () => Promise<void>;
+  completeTraining: () => Promise<{ result: any; bonuses: SuitBonuses } | undefined>;
   startSkillsPolling: () => void;
   stopSkillsPolling: () => void;
   clearSkillState: () => void;
@@ -36,6 +38,7 @@ export const useSkillStore = create<SkillStore>((set, get) => ({
   skillBonuses: { SPADES: 0, HEARTS: 0, CLUBS: 0, DIAMONDS: 0 },
   isTrainingSkill: false,
   skillsPollingInterval: null,
+  completionTimeoutId: null,
   isLoading: false,
   error: null,
 
@@ -59,7 +62,7 @@ export const useSkillStore = create<SkillStore>((set, get) => ({
         throw new Error(response.error || 'Failed to load skills');
       }
     } catch (error: any) {
-      console.error('Failed to fetch skills:', error);
+      logger.error('Failed to fetch skills', error as Error, { context: 'useSkillStore.fetchSkills' });
       set({
         isLoading: false,
         error: error.message || 'Failed to load skills',
@@ -84,7 +87,7 @@ export const useSkillStore = create<SkillStore>((set, get) => ({
         throw new Error(response.error || 'Failed to start training');
       }
     } catch (error: any) {
-      console.error('Failed to start training:', error);
+      logger.error('Failed to start training', error as Error, { context: 'useSkillStore.startTraining', skillId });
       set({
         isLoading: false,
         error: error.message || 'Failed to start training',
@@ -110,7 +113,7 @@ export const useSkillStore = create<SkillStore>((set, get) => ({
         throw new Error(response.error || 'Failed to cancel training');
       }
     } catch (error: any) {
-      console.error('Failed to cancel training:', error);
+      logger.error('Failed to cancel training', error as Error, { context: 'useSkillStore.cancelTraining' });
       set({
         isLoading: false,
         error: error.message || 'Failed to cancel training',
@@ -138,11 +141,14 @@ export const useSkillStore = create<SkillStore>((set, get) => ({
           isLoading: false,
           error: null,
         }));
+
+        // Return the result so callers can use the fresh data
+        return { result, bonuses };
       } else {
         throw new Error(response.error || 'Failed to complete training');
       }
     } catch (error: any) {
-      console.error('Failed to complete training:', error);
+      logger.error('Failed to complete training', error as Error, { context: 'useSkillStore.completeTraining' });
       set({
         isLoading: false,
         error: error.message || 'Failed to complete training',
@@ -152,7 +158,7 @@ export const useSkillStore = create<SkillStore>((set, get) => ({
   },
 
   startSkillsPolling: () => {
-    const { skillsPollingInterval, stopSkillsPolling } = get();
+    const { skillsPollingInterval, stopSkillsPolling, currentTraining } = get();
 
     if (skillsPollingInterval) {
       stopSkillsPolling();
@@ -160,20 +166,37 @@ export const useSkillStore = create<SkillStore>((set, get) => ({
 
     get().fetchSkills();
 
+    // Set up polling for general updates
     const interval = setInterval(() => {
       get().fetchSkills();
     }, 10000);
 
     set({ skillsPollingInterval: interval });
+
+    // If training, set precise completion timeout
+    if (currentTraining?.completesAt) {
+      const remainingMs = new Date(currentTraining.completesAt).getTime() - Date.now();
+      if (remainingMs > 0) {
+        const timeoutId = setTimeout(() => {
+          get().fetchSkills(); // Fetch immediately at completion time
+        }, remainingMs + 100); // Small buffer to ensure server has processed
+
+        set({ completionTimeoutId: timeoutId });
+      }
+    }
   },
 
   stopSkillsPolling: () => {
-    const { skillsPollingInterval } = get();
+    const { skillsPollingInterval, completionTimeoutId } = get();
 
     if (skillsPollingInterval) {
       clearInterval(skillsPollingInterval);
-      set({ skillsPollingInterval: null });
     }
+    if (completionTimeoutId) {
+      clearTimeout(completionTimeoutId);
+    }
+
+    set({ skillsPollingInterval: null, completionTimeoutId: null });
   },
 
   clearSkillState: () => {
@@ -185,6 +208,7 @@ export const useSkillStore = create<SkillStore>((set, get) => ({
       skillBonuses: { SPADES: 0, HEARTS: 0, CLUBS: 0, DIAMONDS: 0 },
       isTrainingSkill: false,
       skillsPollingInterval: null,
+      completionTimeoutId: null,
       isLoading: false,
       error: null,
     });

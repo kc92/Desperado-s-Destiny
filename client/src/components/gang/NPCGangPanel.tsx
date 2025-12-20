@@ -12,7 +12,8 @@ import npcGangService, {
   NPCGangRelationship,
   NPCGangMission,
 } from '@/services/npcGang.service';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
+import { logger } from '@/services/logger.service';
 
 interface NPCGangPanelProps {
   playerGangId: string;
@@ -114,7 +115,7 @@ const NPCGangCard: React.FC<{
           <span className="text-desert-stone">Strength:</span> {gang.strength}
         </div>
         <div className="text-desert-sand">
-          <span className="text-desert-stone">Tribute:</span> {formatGold(gang.tributeCost)}
+          <span className="text-desert-stone">Tribute:</span> {formatDollars(gang.tributeCost)}
         </div>
       </div>
 
@@ -337,7 +338,7 @@ const NPCGangDetailModal: React.FC<{
                 <div>
                   <p className="text-sm text-desert-sand">Pay Tribute</p>
                   <p className="text-xs text-desert-stone">
-                    Cost: {formatGold(gang.tributeCost)} | +15 reputation
+                    Cost: {formatDollars(gang.tributeCost)} | +15 reputation
                   </p>
                 </div>
                 <Button
@@ -501,7 +502,7 @@ export const NPCGangPanel: React.FC<NPCGangPanelProps> = ({
       });
       setRelationships(relMap);
     } catch (err: any) {
-      console.error('Failed to load NPC gang data:', err);
+      logger.error('Failed to load NPC gang data', err as Error, { context: 'NPCGangPanel.loadData' });
       setError(err.message || 'Failed to load NPC gang data');
     } finally {
       setIsLoading(false);
@@ -514,7 +515,7 @@ export const NPCGangPanel: React.FC<NPCGangPanelProps> = ({
       const overview = await npcGangService.getGangOverview(gangId);
       setSelectedGangOverview(overview);
     } catch (err: any) {
-      console.error('Failed to load gang overview:', err);
+      logger.error('Failed to load gang overview', err as Error, { context: 'NPCGangPanel.loadGangOverview', gangId });
     }
   }, []);
 

@@ -4,7 +4,7 @@
  * Handles game state, API calls, and renders appropriate game UI
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@desperados/shared';
 import { PokerHoldDraw } from './PokerHoldDraw';
 import { PressYourLuck } from './PressYourLuck';
@@ -12,6 +12,8 @@ import { BlackjackGame } from './BlackjackGame';
 import { DeckbuilderGame } from './DeckbuilderGame';
 import { GameResult } from './GameResult';
 import { api } from '../../../services/api';
+import { dispatchDeckDrawn } from '@/utils/tutorialEvents';
+import { logger } from '@/services/logger.service';
 
 export type GameType = 'pokerHoldDraw' | 'pressYourLuck' | 'blackjack' | 'deckbuilder' | 'combatDuel';
 
@@ -122,7 +124,9 @@ interface DeckGameProps {
   /** Callback when game is cancelled/forfeited */
   onForfeit?: () => void;
   /** Game context type */
-  context: 'action' | 'duel' | 'tournament' | 'raid';
+  context: 'action' | 'duel' | 'tournament' | 'raid' | 'job';
+  /** Job ID for job context */
+  jobId?: string;
 }
 
 /**
@@ -134,12 +138,20 @@ export const DeckGame: React.FC<DeckGameProps> = ({
   onComplete,
   onForfeit,
   context = 'action',
+  jobId,
 }) => {
   const [gameState, setGameState] = useState<GameState>(initialState);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ gameResult: DeckGameResult; actionResult?: ActionResult } | null>(null);
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
+
+  // Dispatch tutorial event when deck game initializes with a hand
+  useEffect(() => {
+    if (initialState.hand && initialState.hand.length > 0) {
+      dispatchDeckDrawn();
+    }
+  }, []);
 
   // Handle player action submission
   const handleAction = async (action: { type: string; cardIndices?: number[] }) => {
@@ -156,6 +168,10 @@ export const DeckGame: React.FC<DeckGameProps> = ({
           endpoint = '/actions/play';
           payload = { gameId: gameState.gameId, action };
           break;
+        case 'job':
+          endpoint = `/locations/current/jobs/${jobId}/play`;
+          payload = { gameId: gameState.gameId, action };
+          break;
         case 'duel':
           endpoint = `/duels/${gameState.gameId}/play`;
           break;
@@ -170,12 +186,15 @@ export const DeckGame: React.FC<DeckGameProps> = ({
       const response = await api.post(endpoint, payload);
       const data = response.data.data;
 
-      if (data.status === 'resolved' || data.status === 'completed' || data.status === 'busted') {
+      if (data.status === 'resolved' || data.status === 'completed' || data.status === 'busted' || data.completed === true) {
         // Game complete - show result screen (onComplete called when user dismisses)
         setResult({
           gameResult: data.gameResult,
           actionResult: data.actionResult,
         });
+      } else if (data.completed === false && data.gameState) {
+        // Job game continues - use gameState from response, merge availableActions if separate
+        setGameState({ ...data.gameState, availableActions: data.availableActions || data.gameState.availableActions });
       } else {
         // Game continues - include all Phase 3 and Phase 5 state updates
         setGameState(prev => ({
@@ -247,7 +266,7 @@ export const DeckGame: React.FC<DeckGameProps> = ({
       }
       onForfeit();
     } catch (err) {
-      console.error('Failed to forfeit:', err);
+      logger.error('Failed to forfeit', err as Error, { context: 'DeckGame.handleForfeit', gameId: gameState.gameId });
     }
   };
 

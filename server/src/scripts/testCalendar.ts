@@ -17,6 +17,7 @@ import {
   getItemCategoryName,
   getPriceTrendDescription,
 } from '../utils/calendarUtils';
+import logger from '../utils/logger';
 
 /**
  * Connect to MongoDB
@@ -209,7 +210,7 @@ async function main() {
 
     console.log('=== ALL TESTS COMPLETE ===\n');
   } catch (error) {
-    console.error('Test failed:', error);
+    logger.error('Test failed', { error: error instanceof Error ? error.message : error });
   } finally {
     await mongoose.connection.close();
     console.log('Database connection closed');

@@ -63,6 +63,7 @@ import {
 } from '../data/questTemplates';
 
 import { GossipCategory, MoodType } from '@desperados/shared';
+import { SecureRNG } from './base/SecureRNG';
 
 import logger from '../utils/logger';
 
@@ -219,13 +220,13 @@ export class TemplateResolverService {
     // Check gossip variable pools
     if (GOSSIP_VARIABLE_POOLS[variable as keyof typeof GOSSIP_VARIABLE_POOLS]) {
       const pool = GOSSIP_VARIABLE_POOLS[variable as keyof typeof GOSSIP_VARIABLE_POOLS];
-      return pool[Math.floor(Math.random() * pool.length)];
+      return SecureRNG.select(pool);
     }
 
     // Check quest variable pools
     if (QUEST_VARIABLE_POOLS[variable as keyof typeof QUEST_VARIABLE_POOLS]) {
       const pool = QUEST_VARIABLE_POOLS[variable as keyof typeof QUEST_VARIABLE_POOLS];
-      return pool[Math.floor(Math.random() * pool.length)];
+      return SecureRNG.select(pool);
     }
 
     // Database lookups for specific variables
@@ -268,7 +269,7 @@ export class TemplateResolverService {
       case 'CATTLE_COUNT':
       case 'GANG_COUNT':
       case 'GUARD_COUNT':
-        return String(Math.floor(Math.random() * 5) + 2);
+        return String(SecureRNG.range(2, 6));
 
       case 'WITNESS_OUTCOME':
         return getWitnessOutcome(false);
@@ -304,7 +305,7 @@ export class TemplateResolverService {
       const count = await NPC.countDocuments(query);
       if (count === 0) return null;
 
-      const random = Math.floor(Math.random() * count);
+      const random = SecureRNG.range(0, count - 1);
       const npc = await NPC.findOne(query).skip(random);
       return npc;
     } catch (error) {
@@ -326,7 +327,7 @@ export class TemplateResolverService {
       'Madame Rose', 'Black Jack', 'One-Eye Morgan', 'Ruby Heart',
       'Ezekiel Goldstein', 'Maria Santos', 'Old Bill', 'Fingers O\'Malley',
     ];
-    return fallbackNames[Math.floor(Math.random() * fallbackNames.length)];
+    return SecureRNG.select(fallbackNames);
   }
 
   /**
@@ -342,7 +343,7 @@ export class TemplateResolverService {
       const count = await Location.countDocuments(query);
       if (count === 0) return null;
 
-      const random = Math.floor(Math.random() * count);
+      const random = SecureRNG.range(0, count - 1);
       const location = await Location.findOne(query).skip(random);
       return location;
     } catch (error) {
@@ -364,7 +365,7 @@ export class TemplateResolverService {
       'the trading post', 'Ghost Canyon', 'the railroad depot', 'the church',
       'the cemetery', 'Coyote Pass', 'the river crossing', 'Devil\'s Butte',
     ];
-    return fallbackLocations[Math.floor(Math.random() * fallbackLocations.length)];
+    return SecureRNG.select(fallbackLocations);
   }
 
   /**
@@ -380,7 +381,7 @@ export class TemplateResolverService {
       const count = await Item.countDocuments(query);
       if (count === 0) return null;
 
-      const random = Math.floor(Math.random() * count);
+      const random = SecureRNG.range(0, count - 1);
       const item = await Item.findOne(query).skip(random);
       return item;
     } catch (error) {
@@ -396,7 +397,7 @@ export class TemplateResolverService {
     try {
       const count = await Gang.countDocuments({});
       if (count > 0) {
-        const random = Math.floor(Math.random() * count);
+        const random = SecureRNG.range(0, count - 1);
         const gang = await Gang.findOne({}).skip(random);
         if (gang) return gang.name;
       }
@@ -409,7 +410,7 @@ export class TemplateResolverService {
       'the Desperados', 'the Red River Gang', 'the Comancheros',
       'Black Jack\'s Boys', 'the Night Riders', 'the Border Bandits',
     ];
-    return fallbackGangs[Math.floor(Math.random() * fallbackGangs.length)];
+    return SecureRNG.select(fallbackGangs);
   }
 
   // =========================================================================
@@ -420,7 +421,7 @@ export class TemplateResolverService {
    * Generate a random gold amount in range
    */
   static generateGoldAmount(min: number, max: number): string {
-    return String(Math.floor(Math.random() * (max - min + 1)) + min);
+    return String(SecureRNG.range(min, max));
   }
 
   /**
@@ -431,7 +432,7 @@ export class TemplateResolverService {
       'last night', 'yesterday', 'two days ago', 'last week',
       'a few hours ago', 'this morning', 'just now',
     ];
-    return periods[Math.floor(Math.random() * periods.length)];
+    return SecureRNG.select(periods);
   }
 
   /**
@@ -440,7 +441,7 @@ export class TemplateResolverService {
   static parseGoldAmount(formula: string): number {
     if (formula.includes('-')) {
       const [min, max] = formula.split('-').map(Number);
-      return Math.floor(Math.random() * (max - min + 1)) + min;
+      return SecureRNG.range(min, max);
     }
     return parseInt(formula, 10) || 0;
   }
@@ -470,7 +471,7 @@ export class TemplateResolverService {
       return Array(weight).fill(t);
     });
 
-    const template = weightedTemplates[Math.floor(Math.random() * weightedTemplates.length)];
+    const template = SecureRNG.select(weightedTemplates);
 
     // Add witness outcome based on the crime outcome
     const witnessContext = {
@@ -563,7 +564,7 @@ export class TemplateResolverService {
       return null;
     }
 
-    const template = templates[Math.floor(Math.random() * templates.length)];
+    const template = SecureRNG.select(templates);
 
     // Track resolved variables
     const variables: Record<string, string> = {};
@@ -586,7 +587,7 @@ export class TemplateResolverService {
     }
 
     // Maybe add embellishment
-    const embellishment = Math.random() < 0.3 ? getRandomEmbellishment(template) : null;
+    const embellishment = SecureRNG.chance(0.3) ? getRandomEmbellishment(template) : null;
 
     return {
       template,
@@ -623,7 +624,7 @@ export class TemplateResolverService {
     }
 
     // Maybe add embellishment
-    const embellishment = Math.random() < 0.4 ? getRandomEmbellishment(originalGossip.template) : null;
+    const embellishment = SecureRNG.chance(0.4) ? getRandomEmbellishment(originalGossip.template) : null;
     if (embellishment && !originalGossip.embellishment) {
       const resolvedEmbellishment = await this.resolve(embellishment, originalGossip.variables);
       newText += ' ' + resolvedEmbellishment;
@@ -807,7 +808,7 @@ export class TemplateResolverService {
       return null;
     }
 
-    const template = templates[Math.floor(Math.random() * templates.length)];
+    const template = SecureRNG.select(templates);
 
     // Track resolved variables
     const variables: Record<string, string> = {};
@@ -908,7 +909,7 @@ export class TemplateResolverService {
 
       if (templates.length === 0) break;
 
-      const template = templates[Math.floor(Math.random() * templates.length)];
+      const template = SecureRNG.select(templates);
       usedTemplateIds.push(template.id);
 
       const quest = await this.generateQuest(

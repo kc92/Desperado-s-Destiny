@@ -9,6 +9,7 @@
 import { useEffect } from 'react';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { initNotificationSounds } from '@/store/useNotificationStore';
+import { logger } from '@/services/logger.service';
 
 /**
  * Global sound manager that listens for custom events
@@ -39,7 +40,7 @@ export const SoundEffectManager: React.FC = () => {
   // Listen for level-up events
   useEffect(() => {
     const handleLevelUp = (event: CustomEvent) => {
-      console.log('🎉 Level Up!', event.detail);
+      logger.info('Level Up!', { context: 'SoundEffectManager', detail: event.detail });
       playSound('level_up');
     };
 

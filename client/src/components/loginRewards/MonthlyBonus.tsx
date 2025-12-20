@@ -182,7 +182,7 @@ export const MonthlyBonus: React.FC<MonthlyBonusProps> = ({
 
               <div className="flex gap-3 justify-center">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setShowClaimModal(false)}
                 >
                   Later

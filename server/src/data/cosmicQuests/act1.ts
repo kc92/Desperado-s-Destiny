@@ -162,7 +162,7 @@ export const ACT_1_QUESTS: CosmicQuest[] = [
 
     baseRewards: [
       {
-        type: 'gold',
+        type: 'dollars',
         amount: 150
       },
       {
@@ -352,7 +352,7 @@ export const ACT_1_QUESTS: CosmicQuest[] = [
 
     baseRewards: [
       {
-        type: 'gold',
+        type: 'dollars',
         amount: 200
       },
       {
@@ -546,7 +546,7 @@ export const ACT_1_QUESTS: CosmicQuest[] = [
 
     baseRewards: [
       {
-        type: 'gold',
+        type: 'dollars',
         amount: 250
       },
       {
@@ -767,7 +767,7 @@ export const ACT_1_QUESTS: CosmicQuest[] = [
 
     baseRewards: [
       {
-        type: 'gold',
+        type: 'dollars',
         amount: 300
       },
       {
@@ -971,7 +971,7 @@ export const ACT_1_QUESTS: CosmicQuest[] = [
 
     baseRewards: [
       {
-        type: 'gold',
+        type: 'dollars',
         amount: 350
       },
       {

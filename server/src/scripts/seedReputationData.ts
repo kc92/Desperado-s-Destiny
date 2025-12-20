@@ -6,6 +6,7 @@
 import mongoose from 'mongoose';
 import { QuestDefinition } from '../models/Quest.model';
 import { config } from '../config';
+import logger from '../utils/logger';
 
 /**
  * Example quests with reputation rewards
@@ -204,7 +205,7 @@ async function seedReputationData() {
     console.log('- Higher standing = better prices at faction shops');
 
   } catch (error) {
-    console.error('Error seeding reputation data:', error);
+    logger.error('Error seeding reputation data', { error: error instanceof Error ? error.message : error });
     throw error;
   } finally {
     await mongoose.disconnect();
@@ -217,7 +218,7 @@ if (require.main === module) {
   seedReputationData()
     .then(() => process.exit(0))
     .catch((error) => {
-      console.error(error);
+      logger.error('Fatal error', { error: error instanceof Error ? error.message : error });
       process.exit(1);
     });
 }

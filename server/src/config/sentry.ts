@@ -14,6 +14,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { Application, Request, Response, NextFunction } from 'express';
+import logger from '../utils/logger';
 
 /**
  * Initialize Sentry error tracking for the Node.js application
@@ -24,7 +25,7 @@ export function initializeSentry(): void {
   const dsn = process.env.SENTRY_DSN;
 
   if (!dsn || dsn === 'YOUR_SERVER_DSN_HERE') {
-    console.warn('Sentry DSN not configured. Error tracking is disabled.');
+    logger.warn('Sentry DSN not configured. Error tracking is disabled.');
     return;
   }
 
@@ -90,7 +91,7 @@ export function initializeSentry(): void {
     attachStacktrace: true,
   });
 
-  console.info('Sentry initialized for environment:', environment);
+  logger.info('Sentry initialized', { environment });
 }
 
 /**
@@ -222,9 +223,9 @@ export async function closeSentry(timeout = 2000): Promise<void> {
 
   try {
     await Sentry.close(timeout);
-    console.info('Sentry closed successfully');
+    logger.info('Sentry closed successfully');
   } catch (error) {
-    console.error('Error closing Sentry:', error);
+    logger.error('Error closing Sentry', error as Error);
   }
 }
 

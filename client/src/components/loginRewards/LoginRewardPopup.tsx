@@ -7,7 +7,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, Button } from '@/components/ui';
-import { useLoginRewards, RewardType, CalendarDay } from '@/hooks/useLoginRewards';
+import { useLoginRewards, RewardType } from '@/hooks/useLoginRewards';
 
 interface LoginRewardPopupProps {
   onClose: () => void;
@@ -21,11 +21,11 @@ const RewardIcon: React.FC<{ type: RewardType }> = ({ type }) => {
   const iconClass = 'w-12 h-12';
 
   switch (type) {
-    case 'gold':
+    case 'dollars':
       return (
         <svg className={iconClass} viewBox="0 0 48 48" fill="none">
-          <circle cx="24" cy="24" r="20" fill="#FFD700" stroke="#B8860B" strokeWidth="3" />
-          <text x="24" y="32" textAnchor="middle" fontSize="24" fill="#5C4600" fontWeight="bold">$</text>
+          <circle cx="24" cy="24" r="20" fill="#22C55E" stroke="#166534" strokeWidth="3" />
+          <text x="24" y="32" textAnchor="middle" fontSize="24" fill="#052E16" fontWeight="bold">$</text>
         </svg>
       );
     case 'energy':

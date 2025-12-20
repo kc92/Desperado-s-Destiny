@@ -2,13 +2,15 @@
  * JWT Utilities - Token Generation and Verification
  *
  * Helper functions for JWT token management
+ * Supports key rotation via KeyRotationService
  */
 
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions, VerifyOptions } from 'jsonwebtoken';
 import { Request } from 'express';
 import { TokenPayload } from '@desperados/shared';
 import { config } from '../config';
 import logger from './logger';
+import { KeyRotationService } from '../services/keyRotation.service';
 
 /**
  * JWT token generation options
@@ -25,12 +27,13 @@ export function generateToken(
   options?: TokenOptions
 ): string {
   try {
-    // @ts-ignore - TypeScript has issues with jwt.sign overload matching
-    const token = jwt.sign(
-      payload,
-      config.jwt.secret,
-      { expiresIn: options?.expiresIn || config.jwt.expiresIn }
-    );
+    // C3 SECURITY FIX: Explicitly enforce HS256 algorithm to prevent algorithm confusion attacks
+    const expiresIn = options?.expiresIn || config.jwt.expiresIn;
+    const signOptions: SignOptions = {
+      algorithm: 'HS256',
+      expiresIn: expiresIn as SignOptions['expiresIn']
+    };
+    const token = jwt.sign(payload, config.jwt.secret, signOptions);
 
     return token;
   } catch (error) {
@@ -44,7 +47,10 @@ export function generateToken(
  */
 export function verifyToken(token: string): TokenPayload {
   try {
-    const decoded = jwt.verify(token, config.jwt.secret) as TokenPayload;
+    // C3 SECURITY FIX: Explicitly enforce HS256 algorithm to prevent algorithm confusion attacks
+    const decoded = jwt.verify(token, config.jwt.secret, {
+      algorithms: ['HS256']
+    }) as TokenPayload;
     return decoded;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
@@ -132,9 +138,77 @@ export function isTokenExpired(token: string): boolean {
   }
 }
 
+/**
+ * Generate a JWT token with key rotation support
+ * Uses the active key from KeyRotationService
+ */
+export async function generateTokenAsync(
+  payload: Omit<TokenPayload, 'iat' | 'exp'>,
+  options?: TokenOptions
+): Promise<string> {
+  try {
+    const { version, key } = await KeyRotationService.getActiveKey();
+    const expiresIn = options?.expiresIn || config.jwt.expiresIn;
+
+    // Include key version in payload for tracking
+    const tokenPayload = {
+      ...payload,
+      kv: version, // Key version for debugging/auditing
+    };
+
+    const signOptions: SignOptions = {
+      algorithm: 'HS256',
+      expiresIn: expiresIn as SignOptions['expiresIn']
+    };
+
+    const token = jwt.sign(tokenPayload, key, signOptions);
+    return token;
+  } catch (error) {
+    logger.error('Error generating JWT token with rotation:', error);
+    // Fallback to synchronous method
+    return generateToken(payload, options);
+  }
+}
+
+/**
+ * Verify and decode a JWT token with multi-key support
+ * Tries all valid keys from KeyRotationService
+ */
+export async function verifyTokenAsync(token: string): Promise<TokenPayload> {
+  try {
+    const validKeys = await KeyRotationService.getValidKeys();
+
+    for (const { version, key } of validKeys) {
+      try {
+        const decoded = jwt.verify(token, key, {
+          algorithms: ['HS256']
+        }) as TokenPayload;
+        return decoded;
+      } catch (error) {
+        // Try next key
+        continue;
+      }
+    }
+
+    // No valid key found
+    throw new Error('Invalid token');
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      throw new Error('Token has expired');
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      throw new Error('Invalid token');
+    } else {
+      logger.error('Error verifying JWT token with rotation:', error);
+      throw new Error('Token verification failed');
+    }
+  }
+}
+
 export default {
   generateToken,
+  generateTokenAsync,
   verifyToken,
+  verifyTokenAsync,
   extractTokenFromCookie,
   extractTokenFromHeader,
   extractToken,

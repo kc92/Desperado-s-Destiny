@@ -60,6 +60,8 @@ export interface SafeUser {
   lastLogin: Date;
   /** Active character ID (set when user selects a character) */
   characterId?: string;
+  /** Active character ID - alias for characterId for backwards compatibility */
+  activeCharacterId?: string;
 }
 
 /**
@@ -74,4 +76,8 @@ export interface TokenPayload {
   iat?: number;
   /** Token expiration timestamp */
   exp?: number;
+  /** Optional purpose for special tokens (e.g., '2fa-pending') */
+  purpose?: string;
+  /** JWT key version for rotation tracking */
+  kv?: number;
 }

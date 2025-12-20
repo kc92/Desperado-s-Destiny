@@ -30,7 +30,13 @@ export interface IHuntingTrip extends Document {
   completedAt?: Date;
 
   /** Trip status */
-  status: 'tracking' | 'stalking' | 'shooting' | 'harvesting' | 'complete' | 'failed';
+  status: 'tracking' | 'stalking' | 'aiming' | 'shooting' | 'harvesting' | 'complete' | 'failed';
+
+  /** Tracking progress (0-100%) */
+  trackingProgress?: number;
+
+  /** Top-level shot placement for quick access */
+  shotPlacement?: ShotPlacement;
 
   /** Target animal */
   targetAnimal?: AnimalSpecies;
@@ -138,10 +144,22 @@ const HuntingTripSchema = new Schema<IHuntingTrip>(
 
     status: {
       type: String,
-      enum: ['tracking', 'stalking', 'shooting', 'harvesting', 'complete', 'failed'],
+      enum: ['tracking', 'stalking', 'aiming', 'shooting', 'harvesting', 'complete', 'failed'],
       default: 'tracking',
       required: true,
       index: true
+    },
+
+    trackingProgress: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    },
+
+    shotPlacement: {
+      type: String,
+      enum: ['HEAD', 'HEART', 'LUNGS', 'BODY', 'MISS']
     },
 
     targetAnimal: {

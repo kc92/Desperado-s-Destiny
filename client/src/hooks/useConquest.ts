@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Faction type
 export type FactionId = 'settler' | 'nahi' | 'frontera' | 'outlaw' | 'neutral';
@@ -180,7 +181,7 @@ export const useConquest = (): UseConquestReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to check eligibility';
       setError(errorMessage);
-      console.error('[useConquest] Check eligibility error:', err);
+      logger.error('[useConquest] Check eligibility error:', err as Error, { context: { territoryId, attackingFaction, currentInfluence, errorMessage } });
       return null;
     } finally {
       setIsLoading(false);
@@ -211,7 +212,7 @@ export const useConquest = (): UseConquestReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to declare siege';
       setError(errorMessage);
-      console.error('[useConquest] Declare siege error:', err);
+      logger.error('[useConquest] Declare siege error:', err as Error, { context: { territoryId, request, errorMessage } });
       return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
@@ -238,7 +239,7 @@ export const useConquest = (): UseConquestReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to rally defense';
       setError(errorMessage);
-      console.error('[useConquest] Rally defense error:', err);
+      logger.error('[useConquest] Rally defense error:', err as Error, { context: { siegeAttemptId, request, errorMessage } });
       return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
@@ -259,7 +260,7 @@ export const useConquest = (): UseConquestReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to start assault';
       setError(errorMessage);
-      console.error('[useConquest] Start assault error:', err);
+      logger.error('[useConquest] Start assault error:', err as Error, { context: { siegeAttemptId, warEventId, errorMessage } });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -287,7 +288,7 @@ export const useConquest = (): UseConquestReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to complete conquest';
       setError(errorMessage);
-      console.error('[useConquest] Complete conquest error:', err);
+      logger.error('[useConquest] Complete conquest error:', err as Error, { context: { siegeAttemptId, attackerScore, defenderScore, errorMessage } });
       return { success: false, message: errorMessage };
     }
   }, [currentSiege]);
@@ -309,7 +310,7 @@ export const useConquest = (): UseConquestReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to cancel siege';
       setError(errorMessage);
-      console.error('[useConquest] Cancel siege error:', err);
+      logger.error('[useConquest] Cancel siege error:', err as Error, { context: { siegeAttemptId, errorMessage } });
       return { success: false, message: errorMessage };
     }
   }, [currentSiege]);
@@ -325,7 +326,7 @@ export const useConquest = (): UseConquestReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch active sieges';
       setError(errorMessage);
-      console.error('[useConquest] Fetch active sieges error:', err);
+      logger.error('[useConquest] Fetch active sieges error:', err as Error, { context: { errorMessage } });
     } finally {
       setIsLoading(false);
     }
@@ -339,7 +340,7 @@ export const useConquest = (): UseConquestReturn => {
       );
       return response.data.data.history || [];
     } catch (err: any) {
-      console.error('[useConquest] Fetch history error:', err);
+      logger.error('[useConquest] Fetch history error:', err as Error, { context: { territoryId } });
       return [];
     }
   }, []);
@@ -352,7 +353,7 @@ export const useConquest = (): UseConquestReturn => {
       );
       return response.data.data.statistics;
     } catch (err: any) {
-      console.error('[useConquest] Fetch faction stats error:', err);
+      logger.error('[useConquest] Fetch faction stats error:', err as Error, { context: { factionId } });
       return null;
     }
   }, []);

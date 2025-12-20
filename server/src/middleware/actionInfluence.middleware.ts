@@ -7,7 +7,7 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from './requireAuth';
+import { AuthRequest } from './auth.middleware';
 import { ActionCategory, ActionFactionId, TerritoryFactionId } from '@desperados/shared';
 import { actionFactionToTerritoryFaction } from '@desperados/shared';
 import { ActionEffectsService } from '../services/actionEffects.service';

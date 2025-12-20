@@ -20,6 +20,7 @@ import {
   RaceType,
   RACING_CONSTANTS
 } from '@desperados/shared';
+import { SecureRNG } from './base/SecureRNG';
 
 // ============================================================================
 // RACE SIMULATION
@@ -225,7 +226,7 @@ function updateHorsePosition(
   }
 
   // Jockey whip usage (final stretch)
-  if (raceProgress > 0.85 && horse.energyReserve > 20 && Math.random() < 0.1) {
+  if (raceProgress > 0.85 && horse.energyReserve > 20 && SecureRNG.chance(0.1)) {
     horse.whipUsed++;
     horse.currentSpeed *= 1.1;
     horse.energyReserve -= 10;
@@ -245,7 +246,7 @@ function checkForIncidents(
     // Low chance of incidents
     const incidentChance = 0.001; // 0.1% per time step
 
-    if (Math.random() < incidentChance) {
+    if (SecureRNG.chance(incidentChance)) {
       const incident = generateRandomIncident();
       horse.incidents.push(incident);
 
@@ -293,7 +294,7 @@ function checkObstacles(
         // Attempt to clear obstacle
         const clearanceChance = calculateObstacleClearanceChance(horse, obstacle);
 
-        if (Math.random() < clearanceChance) {
+        if (SecureRNG.chance(clearanceChance)) {
           // Success!
           horse.incidents.push(`CLEARED_${obstacle.id}` as any);
           simulation.events.push({
@@ -321,7 +322,7 @@ function checkObstacles(
           });
 
           // Check for injury
-          if (Math.random() * 100 < obstacle.injuryRisk) {
+          if (SecureRNG.d100() < obstacle.injuryRisk) {
             horse.currentStamina *= 0.5;
           }
         }
@@ -529,7 +530,7 @@ function generateRandomIncident(): RaceIncident {
     RaceIncident.BLOCKED
   ];
 
-  return incidents[Math.floor(Math.random() * incidents.length)];
+  return SecureRNG.select(incidents);
 }
 
 /**

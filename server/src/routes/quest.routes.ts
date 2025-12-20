@@ -12,8 +12,12 @@ import {
   abandonQuest,
   getQuestDetails
 } from '../controllers/quest.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { detectSuspiciousEarning } from '../middleware/antiExploit.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
+import { validate, QuestSchemas } from '../validation';
 
 const router = Router();
 
@@ -21,11 +25,11 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireCharacter);
 
-router.get('/available', getAvailableQuests);
-router.get('/active', getActiveQuests);
-router.get('/completed', getCompletedQuests);
-router.post('/accept', acceptQuest);
-router.post('/abandon', abandonQuest);
-router.get('/:questId', getQuestDetails);
+router.get('/available', asyncHandler(getAvailableQuests));
+router.get('/active', asyncHandler(getActiveQuests));
+router.get('/completed', asyncHandler(getCompletedQuests));
+router.post('/accept', requireCsrfToken, validate(QuestSchemas.accept), detectSuspiciousEarning(), asyncHandler(acceptQuest));
+router.post('/abandon', requireCsrfToken, validate(QuestSchemas.abandon), asyncHandler(abandonQuest));
+router.get('/:questId', asyncHandler(getQuestDetails));
 
 export default router;

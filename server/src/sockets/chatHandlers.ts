@@ -5,7 +5,7 @@
  */
 
 import { Socket } from 'socket.io';
-import { AuthenticatedSocket, requireSocketAuth } from '../middleware/socketAuth';
+import { AuthenticatedSocket, requireSocketAuth, verifyCharacterOwnership } from '../middleware/socketAuth';
 import { ChatService } from '../services/chat.service';
 import { PresenceService } from '../services/presence.service';
 import { ChatRateLimiter } from '../middleware/chatRateLimiter';
@@ -13,6 +13,7 @@ import { AdminCommands } from '../utils/adminCommands';
 import { RoomType, IMessage } from '../models/Message.model';
 import { isValidRoomType, getRoomDisplayName } from '../utils/chatAccess';
 import logger from '../utils/logger';
+import { createExactMatchRegex } from '../utils/stringUtils';
 
 /**
  * Chat event payload interfaces
@@ -102,6 +103,17 @@ async function handleJoinRoom(
   try {
     const { characterId, characterName, userId } = socket.data;
     const { roomType, roomId } = payload;
+
+    // H10 SECURITY FIX: Per-event character ownership verification
+    const isOwned = await verifyCharacterOwnership(socket);
+    if (!isOwned) {
+      socket.emit('chat:error', {
+        error: 'Character verification failed. Please reconnect.',
+        code: 'CHARACTER_VERIFICATION_FAILED'
+      });
+      socket.disconnect(true);
+      return;
+    }
 
     // Validate room type
     if (!isValidRoomType(roomType)) {
@@ -259,6 +271,18 @@ async function handleSendMessage(
     const { characterId, characterName, userId, userRole } = socket.data;
     const { roomType, roomId, content } = payload;
 
+    // H10 SECURITY FIX: Re-verify character ownership on message send
+    // This prevents actions if character was deleted/transferred since socket connected
+    const isOwned = await verifyCharacterOwnership(socket);
+    if (!isOwned) {
+      socket.emit('chat:error', {
+        error: 'Character verification failed. Please reconnect.',
+        code: 'CHARACTER_VERIFICATION_FAILED'
+      });
+      socket.disconnect(true);
+      return;
+    }
+
     // Validate inputs
     if (!isValidRoomType(roomType)) {
       socket.emit('chat:error', {
@@ -305,6 +329,16 @@ async function handleSendMessage(
 
     // Check if message is an admin command
     if (AdminCommands.isAdminCommand(content)) {
+      // SECURITY FIX: Verify admin role before executing admin commands
+      if (userRole !== 'admin') {
+        socket.emit('chat:error', {
+          error: 'Admin privileges required',
+          code: 'ADMIN_REQUIRED'
+        });
+        logger.warn(`Non-admin user ${userId} attempted admin command: ${content.split(' ')[0]}`);
+        return;
+      }
+
       const result = await AdminCommands.executeCommand(
         userId,
         content,
@@ -343,7 +377,7 @@ async function handleSendMessage(
           if (targetName) {
             const { Character } = await import('../models/Character.model');
             const targetChar = await Character.findOne({
-              name: new RegExp(`^${targetName}$`, 'i'),
+              name: createExactMatchRegex(targetName),
               isActive: true
             });
 
@@ -440,8 +474,29 @@ async function handleFetchHistory(
   payload: FetchHistoryPayload
 ): Promise<void> {
   try {
-    const { characterId } = socket.data;
+    const { characterId, userId } = socket.data;
     const { roomType, roomId, limit = 50, offset = 0 } = payload;
+
+    // H10 SECURITY FIX: Per-event character ownership verification
+    const isOwned = await verifyCharacterOwnership(socket);
+    if (!isOwned) {
+      socket.emit('chat:error', {
+        error: 'Character verification failed. Please reconnect.',
+        code: 'CHARACTER_VERIFICATION_FAILED'
+      });
+      socket.disconnect(true);
+      return;
+    }
+
+    // SECURITY FIX: Rate limit history fetch to prevent DoS
+    const historyLimitResult = await ChatRateLimiter.checkHistoryFetchLimit(userId);
+    if (!historyLimitResult.allowed) {
+      socket.emit('rate_limit_exceeded', {
+        event: 'fetch_history',
+        retryAfter: historyLimitResult.retryAfter || 60
+      });
+      return;
+    }
 
     // Validate room type
     if (!isValidRoomType(roomType)) {
@@ -499,8 +554,15 @@ async function handleTyping(
   payload: TypingPayload
 ): Promise<void> {
   try {
-    const { characterName } = socket.data;
+    const { characterName, userId } = socket.data;
     const { roomType, roomId } = payload;
+
+    // SECURITY FIX: Rate limit typing indicators to prevent spam
+    const typingLimitResult = await ChatRateLimiter.checkTypingLimit(userId);
+    if (!typingLimitResult.allowed) {
+      // Silently drop - don't notify client for typing rate limits
+      return;
+    }
 
     // Validate room type
     if (!isValidRoomType(roomType)) {

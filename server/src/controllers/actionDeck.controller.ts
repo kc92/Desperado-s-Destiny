@@ -85,7 +85,7 @@ export const playAction = asyncHandler(
     }
 
     // Verify ownership
-    const gameState = getGameState(gameId);
+    const gameState = await getGameState(gameId);
     if (!gameState) {
       res.status(404).json({ success: false, error: 'Game not found or expired' });
       return;
@@ -97,7 +97,7 @@ export const playAction = asyncHandler(
     }
 
     try {
-      const newState = processGameAction(gameId, action);
+      const newState = await processGameAction(gameId, action);
 
       // If game is resolved (or busted), auto-apply action results
       if (newState.status === 'resolved' || newState.status === 'busted') {
@@ -152,7 +152,7 @@ export const getActionGame = asyncHandler(
       return;
     }
 
-    const gameState = getGameState(gameId);
+    const gameState = await getGameState(gameId);
     if (!gameState) {
       res.status(404).json({ success: false, error: 'Game not found or expired' });
       return;
@@ -163,7 +163,7 @@ export const getActionGame = asyncHandler(
       return;
     }
 
-    const pendingAction = getPendingAction(gameId);
+    const pendingAction = await getPendingAction(gameId);
     const elapsed = (Date.now() - gameState.startedAt.getTime()) / 1000;
     const timeRemaining = Math.max(0, gameState.timeLimit - elapsed);
 
@@ -204,7 +204,7 @@ export const forfeitActionGame = asyncHandler(
       return;
     }
 
-    const gameState = getGameState(gameId);
+    const gameState = await getGameState(gameId);
     if (!gameState) {
       res.status(404).json({ success: false, error: 'Game not found or expired' });
       return;
@@ -215,7 +215,7 @@ export const forfeitActionGame = asyncHandler(
       return;
     }
 
-    cancelAction(gameId);
+    await cancelAction(gameId);
 
     res.json({
       success: true,

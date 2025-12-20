@@ -25,7 +25,7 @@ export interface QuestObjective {
  * Quest reward
  */
 export interface QuestReward {
-  type: 'gold' | 'xp' | 'item' | 'reputation';
+  type: 'dollars' | 'xp' | 'item' | 'reputation';
   amount?: number;
   itemId?: string;
   faction?: string; // For reputation rewards: 'settlerAlliance', 'nahiCoalition', 'frontera'
@@ -114,7 +114,7 @@ const QuestDefinitionSchema = new Schema<IQuestDefinition>(
     rewards: [{
       type: {
         type: String,
-        enum: ['gold', 'xp', 'item', 'reputation'],
+        enum: ['dollars', 'xp', 'item', 'reputation'],
         required: true
       },
       amount: Number,

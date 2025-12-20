@@ -24,6 +24,7 @@ import {
   EMPIRE_RATING_THRESHOLDS,
 } from '@desperados/shared';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 export class TerritoryControlService {
   /**
@@ -141,27 +142,27 @@ export class TerritoryControlService {
     let influenceGained = 0;
     switch (activityType) {
       case InfluenceActivityType.CRIME:
-        influenceGained = Math.floor(
-          Math.random() * (INFLUENCE_GAIN.CRIME_MAX - INFLUENCE_GAIN.CRIME_MIN + 1) +
-          INFLUENCE_GAIN.CRIME_MIN
+        influenceGained = SecureRNG.range(
+          INFLUENCE_GAIN.CRIME_MIN,
+          INFLUENCE_GAIN.CRIME_MAX
         );
         break;
       case InfluenceActivityType.FIGHT:
-        influenceGained = Math.floor(
-          Math.random() * (INFLUENCE_GAIN.FIGHT_MAX - INFLUENCE_GAIN.FIGHT_MIN + 1) +
-          INFLUENCE_GAIN.FIGHT_MIN
+        influenceGained = SecureRNG.range(
+          INFLUENCE_GAIN.FIGHT_MIN,
+          INFLUENCE_GAIN.FIGHT_MAX
         );
         break;
       case InfluenceActivityType.BRIBE:
-        influenceGained = Math.floor(
-          Math.random() * (INFLUENCE_GAIN.BRIBE_MAX - INFLUENCE_GAIN.BRIBE_MIN + 1) +
-          INFLUENCE_GAIN.BRIBE_MIN
+        influenceGained = SecureRNG.range(
+          INFLUENCE_GAIN.BRIBE_MIN,
+          INFLUENCE_GAIN.BRIBE_MAX
         );
         break;
       case InfluenceActivityType.BUSINESS:
-        influenceGained = Math.floor(
-          Math.random() * (INFLUENCE_GAIN.BUSINESS_MAX - INFLUENCE_GAIN.BUSINESS_MIN + 1) +
-          INFLUENCE_GAIN.BUSINESS_MIN
+        influenceGained = SecureRNG.range(
+          INFLUENCE_GAIN.BUSINESS_MIN,
+          INFLUENCE_GAIN.BUSINESS_MAX
         );
         break;
       case InfluenceActivityType.PASSIVE:
@@ -474,9 +475,9 @@ export class TerritoryControlService {
       throw new Error(`Zone not found: ${zoneId}`);
     }
 
-    const influenceLoss = Math.floor(
-      Math.random() * (INFLUENCE_LOSS.RIVAL_ACTIVITY_MAX - INFLUENCE_LOSS.RIVAL_ACTIVITY_MIN + 1) +
-      INFLUENCE_LOSS.RIVAL_ACTIVITY_MIN
+    const influenceLoss = SecureRNG.range(
+      INFLUENCE_LOSS.RIVAL_ACTIVITY_MIN,
+      INFLUENCE_LOSS.RIVAL_ACTIVITY_MAX
     );
 
     const wasControlled = zone.controlledBy?.equals(targetGangId);
@@ -512,9 +513,9 @@ export class TerritoryControlService {
       throw new Error(`Zone not found: ${zoneId}`);
     }
 
-    const influenceLoss = Math.floor(
-      Math.random() * (INFLUENCE_LOSS.LAW_ENFORCEMENT_MAX - INFLUENCE_LOSS.LAW_ENFORCEMENT_MIN + 1) +
-      INFLUENCE_LOSS.LAW_ENFORCEMENT_MIN
+    const influenceLoss = SecureRNG.range(
+      INFLUENCE_LOSS.LAW_ENFORCEMENT_MIN,
+      INFLUENCE_LOSS.LAW_ENFORCEMENT_MAX
     );
 
     const wasControlled = zone.controlledBy?.equals(gangId);

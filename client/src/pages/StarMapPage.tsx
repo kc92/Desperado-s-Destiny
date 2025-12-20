@@ -15,7 +15,7 @@ import {
 } from '@/components/zodiac';
 import { useZodiac } from '@/hooks/useZodiac';
 import { SIGN_COLORS, FRONTIER_SIGNS } from '@/constants/zodiac.constants';
-import type { FrontierSign, ZodiacSignId, Constellation } from '@/types/zodiac.types';
+import type { FrontierSign } from '@/types/zodiac.types';
 
 /**
  * Star Map Page component

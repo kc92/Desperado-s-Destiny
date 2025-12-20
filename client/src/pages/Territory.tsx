@@ -7,8 +7,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useActionStore } from '@/store/useActionStore';
+import { useTerritoryStore } from '@/store/useTerritoryStore';
 import { Card, Button } from '@/components/ui';
-import api from '@/services/api';
+import type { Territory } from '@desperados/shared';
 // import { formatDistanceToNow } from 'date-fns';
 
 interface TerritoryLocation {
@@ -37,40 +38,61 @@ export const Territory: React.FC = () => {
   } = useCharacterStore();
   const {
     fetchActions,
-    isLoading: isActionLoading
   } = useActionStore();
 
-  const _isLoading = isActionLoading;
+  // Use territory store instead of local state
+  const {
+    territories: storeData,
+    isLoading,
+    error: storeError,
+    fetchTerritories,
+  } = useTerritoryStore();
 
-  const [territories, setTerritories] = useState<TerritoryLocation[]>([]);
+  // Local UI state
   const [selectedTerritory, setSelectedTerritory] = useState<TerritoryLocation | null>(null);
   const [travelTime, setTravelTime] = useState<number>(0);
   const [isTraveling, setIsTraveling] = useState(false);
 
-  // Load territories on mount
+  // Convert Territory[] from store to TerritoryLocation[] for UI
+  // This is a temporary mapping layer until we fully migrate to Territory types
+  const territories: TerritoryLocation[] = storeData.length > 0
+    ? storeData.map(mapTerritoryToLocation)
+    : getMockTerritories();
+
+  // Load territories on mount and set current location as selected
   useEffect(() => {
-    loadTerritories();
-  }, []);
+    fetchTerritories();
+  }, [fetchTerritories]);
 
-  const loadTerritories = async () => {
-    try {
-      const response = await api.get('/territories');
-      const data = response.data;
-      setTerritories(data.territories || []);
-
-      // Set current location as selected
-      const current = data.territories?.find((t: TerritoryLocation) =>
-        t.name === currentLocation
-      );
+  // Set current location as selected when territories load
+  useEffect(() => {
+    if (territories.length > 0 && currentLocation && !selectedTerritory) {
+      const current = territories.find((t) => t.name === currentLocation);
       if (current) {
         setSelectedTerritory(current);
       }
-    } catch (error) {
-      console.error('Failed to load territories:', error);
-      // Use fallback data for now
-      setTerritories(getMockTerritories());
     }
-  };
+  }, [territories, currentLocation, selectedTerritory]);
+
+  /**
+   * Map Territory from store to TerritoryLocation for UI
+   * This is a temporary adapter until we fully migrate to Territory types
+   */
+  function mapTerritoryToLocation(territory: Territory): TerritoryLocation {
+    return {
+      id: territory.id,
+      name: territory.name,
+      type: 'town', // Default type - could be enhanced based on territory data
+      faction: territory.faction,
+      controlledBy: territory.controllingGangName || territory.faction,
+      population: 0, // Not available in Territory type
+      dangerLevel: territory.difficulty,
+      coordinates: territory.position || { x: 50, y: 50 },
+      description: territory.description,
+      availableActions: [], // Not available in Territory type
+      playerCount: undefined, // Not available in Territory type
+    };
+  }
 
   const getMockTerritories = (): TerritoryLocation[] => [
     {
@@ -178,6 +200,27 @@ export const Territory: React.FC = () => {
         <p className="text-desert-sand">No character selected</p>
         <Button onClick={() => navigate('/character-select')} className="mt-4">
           Select Character
+        </Button>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isLoading && territories.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-desert-sand">Loading territories...</p>
+      </div>
+    );
+  }
+
+  // Show error state if store error exists and no fallback data
+  if (storeError && territories.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600 mb-4">Error loading territories: {storeError}</p>
+        <Button onClick={() => fetchTerritories()} variant="primary">
+          Retry
         </Button>
       </div>
     );

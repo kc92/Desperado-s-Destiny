@@ -16,6 +16,7 @@ import {
   getCorruptionLevel
 } from '@desperados/shared';
 import { getCorruptionEffects } from '../data/corruptionEffects';
+import { SecureRNG } from './base/SecureRNG';
 import logger from '../utils/logger';
 
 export class CorruptionService {
@@ -186,7 +187,7 @@ export class CorruptionService {
     const finalChance = baseChance * (1 - resistance);
 
     // Roll
-    if (Math.random() > finalChance) {
+    if (!SecureRNG.chance(finalChance)) {
       return null;
     }
 
@@ -199,7 +200,7 @@ export class CorruptionService {
    */
   static generateRandomMadness(): MadnessEffect {
     const types = Object.values(MadnessType);
-    const type = types[Math.floor(Math.random() * types.length)];
+    const type = SecureRNG.select(types);
 
     const madnessTemplates: { [key in MadnessType]: Partial<MadnessEffect> } = {
       [MadnessType.PARANOIA]: {
@@ -282,7 +283,7 @@ export class CorruptionService {
     };
 
     const template = madnessTemplates[type];
-    const severity = Math.floor(Math.random() * 5) + 3; // 3-7
+    const severity = SecureRNG.range(3, 7);
     const duration = COSMIC_HORROR_CONSTANTS.MADNESS_DURATION_BASE * severity;
 
     return {
@@ -444,9 +445,8 @@ export class CorruptionService {
     }
 
     const risk = tracker.calculateTransformationRisk();
-    const roll = Math.random();
 
-    if (roll < risk) {
+    if (SecureRNG.chance(risk)) {
       // Transformation occurs
       logger.warn(`Character ${characterId} has transformed into something... else.`);
 

@@ -7,7 +7,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Gang, IGang } from '../models/Gang.model';
 import { GangPermission } from '@desperados/shared';
-import { AuthRequest } from './requireAuth';
+import { AuthRequest } from './auth.middleware';
 import logger from '../utils/logger';
 
 /**

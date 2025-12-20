@@ -7,6 +7,8 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import { attemptTracking } from '../controllers/tracking.controller';
 
 const router = Router();
@@ -32,6 +34,6 @@ const trackingLimiter = rateLimit({
  */
 
 // Attempt to track an animal during a hunting trip
-router.post('/attempt', requireAuth, requireCharacter, trackingLimiter, attemptTracking);
+router.post('/attempt', requireAuth, requireCharacter, requireCsrfToken, trackingLimiter, asyncHandler(attemptTracking));
 
 export default router;

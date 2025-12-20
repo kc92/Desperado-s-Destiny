@@ -9,6 +9,7 @@
  */
 
 import { MoodType } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 // ============================================================================
 // TYPES
@@ -1336,27 +1337,407 @@ export const BANKER_TEMPLATES: DialogueTemplate[] = [
   { npcRole: 'banker', mood: 'drunk', context: 'gossip', templates: ["You know who'sh broke? {GOSSIP} *hic*", "Shecret accountsh! Numbered! Shomewhere! {GOSSIP}", "The vault hash... wait, I shouldn't... {GOSSIP}"], variables: ['GOSSIP'] },
 ];
 
+// ============================================================================
+// SALOON GIRL DIALOGUE TEMPLATES - AAA QUALITY PASS
+// 60+ variations across 5 moods with cunning survivor characterization
+// These women are intelligence operatives, survivors, and agents of their own fate
+// ============================================================================
+
 export const SALOON_GIRL_TEMPLATES: DialogueTemplate[] = [
-  { npcRole: 'saloon_girl', mood: 'friendly', context: 'greeting', templates: ["Hey there, handsome! Buy a girl a drink?", "Well if it isn't my favorite cowboy! Come sit with me!", "{PLAYER}! I was hoping you'd walk through that door!"], variables: ['PLAYER'] },
-  { npcRole: 'saloon_girl', mood: 'neutral', context: 'greeting', templates: ["Looking for company? It'll cost you.", "Drinks first. Conversation later.", "What do you want?"], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'hostile', context: 'greeting', templates: ["I remember you. Keep walking.", "My time is valuable. Too valuable for you.", "The door's right there. Use it."], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'fearful', context: 'greeting', templates: ["Please, I'm just working... I don't want trouble...", "Whatever you want, just don't hurt me...", "I'll do whatever you say... just please..."], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'drunk', context: 'greeting', templates: ["*hic* You're cuuute! Come dance with me!", "I love everyooone tonight! Especially you!", "Shhh... I'm hiding from my boss... *giggles*"], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'friendly', context: 'trade', templates: ["For you, sugar? Special rates.", "Drinks are on the house... if you buy me one too!", "I know all the best stuff behind the bar!"], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'neutral', context: 'trade', templates: ["Standard prices. No negotiating.", "Drinks cost money. Company costs more.", "You want service? Pay for it."], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'hostile', context: 'trade', templates: ["Triple price. Don't like it? Leave.", "I don't serve your kind.", "Find someone else to hustle."], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'fearful', context: 'trade', templates: ["Take anything! The tips, all of it!", "Free drinks! On me! Just please...", "Here, my jewelry... it's all I have..."], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'drunk', context: 'trade', templates: ["Everything's freee! *hic* Or expensive! I forget!", "Buy me a drink and I'll give you a shcret!", "Sho thirsty... trade you anything for water... I mean whiskey!"], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'friendly', context: 'quest', templates: ["Honey, I need a favor. {NPC} has been bothering me...", "There's a gentleman upstairs who needs... persuading to leave.", "Would you escort me to {LOCATION}? It's dangerous alone."], variables: ['NPC', 'LOCATION'] },
-  { npcRole: 'saloon_girl', mood: 'neutral', context: 'quest', templates: ["Might have work for you. If the price is right.", "There's something needs doing. Interested?", "I hear things. Could be profitable for you."], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'hostile', context: 'quest', templates: ["Work for you? I'd rather drink lye.", "The only job is getting out of my sight.", "Maybe prove you're not garbage first."], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'fearful', context: 'quest', templates: ["{NPC} won't leave me alone! Make them stop!", "They threatened to sell me to {GANG}! Help me!", "Please, I need to escape this place! Get me to {LOCATION}!"], variables: ['NPC', 'GANG', 'LOCATION'] },
-  { npcRole: 'saloon_girl', mood: 'drunk', context: 'quest', templates: ["Find my shoe! I losht it shomewhere!", "That guy owes me money! Get it! Or don't!", "I need you to tell him... tell who? Never mind!"], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'friendly', context: 'gossip', templates: ["Men tell me everything after a few drinks. Like: {GOSSIP}", "The things I overhear... want to know? {GOSSIP}", "A girl hears things. {GOSSIP}"], variables: ['GOSSIP'] },
-  { npcRole: 'saloon_girl', mood: 'neutral', context: 'gossip', templates: ["Information costs extra.", "I hear things. Sharing costs money.", "Secrets are my currency. Pay up."], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'hostile', context: 'gossip', templates: ["My lips are sealed. Especially for you.", "I don't talk to people I don't like.", "Buy your gossip elsewhere."], variables: [] },
-  { npcRole: 'saloon_girl', mood: 'fearful', context: 'gossip', templates: ["I'll tell you everything! {GOSSIP}", "I overheard {GANG} talking about: {GOSSIP}", "Please, I know secrets! {GOSSIP}"], variables: ['GOSSIP', 'GANG'] },
-  { npcRole: 'saloon_girl', mood: 'drunk', context: 'gossip', templates: ["*giggling* Okay shho there's this thing... {GOSSIP}", "Shecrets! I have them! {GOSSIP}", "Everyone tellsh me everything! Like: {GOSSIP}"], variables: ['GOSSIP'] },
+  // ========== FRIENDLY GREETING (12 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'friendly',
+    context: 'greeting',
+    templates: [
+      "Well, well... if it ain't {PLAYER}. Pull up a chair, sugar. I've been savin' your spot.",
+      "Honey, you walked in just when things were gettin' dull. What's your poison tonight?",
+      "{PLAYER}! The only face in this town worth smilin' at. Come sit with me a spell.",
+      "Ain't you a sight for sore eyes! I heard you've been busy at {RECENT_LOCATION}. Tell me everythin'.",
+      "Darlin', you look like you could use some company that don't want nothin' from you. For once.",
+      "Well now, look what the desert wind blew in. My favorite trouble-maker.",
+      "*smiles genuinely* {PLAYER}. I was startin' to worry somethin' happened to you out there.",
+      "Hey you. *leans in conspiratorially* Got somethin' interestin' to tell you later. Buy me a drink first?",
+      "Lord have mercy, it's actually someone worth talkin' to. Come rescue me from these bores.",
+      "Fancy seein' you here! And by fancy, I mean I've been watchin' the door for an hour.",
+      "Sugar, you're like a cool breeze on a hot day. Sit down before someone else snatches you up.",
+      "Well ain't this my lucky night! The one person in this town who treats me like a human being.",
+    ],
+    variables: ['PLAYER', 'RECENT_LOCATION'],
+  },
+
+  // ========== NEUTRAL GREETING (12 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'neutral',
+    context: 'greeting',
+    templates: [
+      "Lookin' for company, stranger? That's a service, not a charity.",
+      "You buyin' drinks or just admirin' the scenery?",
+      "Evenin'. You know how this works. Gold talks, everything else walks.",
+      "Another one. *sighs* What'll it be?",
+      "I see you lookin'. Make up your mind, I ain't got all night.",
+      "Drinks are at the bar. Conversation's extra. What's it gonna be?",
+      "You're new. Or forgettin' the rules. Either way, money first.",
+      "Spare me the charm. Just tell me what you want and how much you're payin'.",
+      "I've seen a hundred like you today. Impress me or move along.",
+      "The smile's free. Everythin' else has a price. Clear?",
+      "You want the girlfriend experience? That requires actual gold, not pretty words.",
+      "Let's skip the dance. You want something, I want payment. Simple math.",
+    ],
+    variables: ['PLAYER'],
+  },
+
+  // ========== HOSTILE GREETING (12 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'hostile',
+    context: 'greeting',
+    templates: [
+      "You again. Last I checked, the door swings both ways. Use it.",
+      "*hand moves toward hidden garter knife* I remember what you did. Best keep walkin'.",
+      "My time's worth more than whatever's in your pocket. Much more.",
+      "The girls warned me about you. Don't make me prove them right about handlin' trouble myself.",
+      "I've got a derringer in places you can't imagine. Don't test whether it's loaded.",
+      "See this face? This is the last thing men like you see before I call the bouncer.",
+      "You must've confused me with someone who gives second chances. I don't.",
+      "Turn around, walk out, and pretend you never saw me. Best deal you'll get tonight.",
+      "I've buried better men than you with a smile on my face. Don't tempt me.",
+      "Honey, I've survived worse than whatever you're sellin'. Get out of my sight.",
+      "This ain't amnesia, I remember EXACTLY what happened. Now you've got three seconds.",
+      "The sheriff's sweet on me, and he don't ask questions when I say someone was 'forward'. Leave.",
+    ],
+    variables: ['PLAYER'],
+  },
+
+  // ========== FEARFUL GREETING (12 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'fearful',
+    context: 'greeting',
+    templates: [
+      "Please... I'm just tryin' to make a livin'. I ain't got nothin' worth takin'.",
+      "*backs against the wall* Whatever you want, I can get it. Just... please don't...",
+      "I heard what you did at {LOCATION}. I swear I won't say nothin' to nobody.",
+      "Look, I know people. Important people. Hurt me and they'll come for you. But... but we can make a deal instead.",
+      "The tips ain't worth much, but take 'em. My mama's ring too. Just please...",
+      "I've got information. Valuable information. That's gotta be worth my safety, right?",
+      "I seen you comin'. I could've run but... thought maybe we could work somethin' out?",
+      "There's a back room. Private. No one needs to know. Just... please be gentle with the place.",
+      "I ain't stupid enough to scream. But I ain't stupid enough to trust you neither. What do you want?",
+      "The bartender's got a scattergun under the bar. But I'd rather we keep this between us.",
+      "*voice shaking* I've survived this long by bein' useful. Tell me what you need.",
+      "I know when I'm outmatched. But I also know I'm more valuable alive than dead. Right?",
+    ],
+    variables: ['PLAYER', 'LOCATION'],
+  },
+
+  // ========== DRUNK GREETING (12 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'drunk',
+    context: 'greeting',
+    templates: [
+      "*hiccup* Heyyy gorgeous! You're... you're the prettiest thing I've seen since... since... what was I sayin'?",
+      "THERE you are! I've been waitin' for... *squints* ...who are you again? Don't matter, c'mere!",
+      "Shhhhh! *puts finger on your lips* The boss thinks I'm workin'. Let's sneak some whiskey!",
+      "*spins around* Whooo! The room's dancin' even when I'm standin' still! Dance with me!",
+      "You know what? You KNOW what? I like you. You got... you got honest eyes. Or four eyes. *giggles*",
+      "I'm s'posed to be charmin' but... *hiccup* ...you're charmin' ME! How'd that happen?",
+      "*drapes arm around you* My new best friend! You're gonna help me 'member where I left my shoe.",
+      "Listen... LISTEN... I got secrets. Sooo many secrets. Buy me one more drink and I'll tell ya everythin'.",
+      "Don't tell nobody but... *whispers loudly* ...I'm absolutely MAGNIFICENT at my job. Shhh!",
+      "*stumbles into you* Oops! *giggles* That wasn't on purpose. ...Okay maybe a little.",
+      "You look like someone who makes good decisions. I make TERRIBLE decisions! We should be friends!",
+      "Tonight I'm celebratin'! What'm I celebratin'? I forget! Don't matter! CELEBRATE WITH ME!",
+    ],
+    variables: ['PLAYER'],
+  },
+
+  // ========== FRIENDLY TRADE (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'friendly',
+    context: 'trade',
+    templates: [
+      "For you, sugar? I know where the good stuff's hidden. None of that watered-down swill.",
+      "Tell you what - you keep bein' decent to me, I keep your glass full. Fair?",
+      "The bartender owes me favors. Your money's no good here tonight.",
+      "*slides a bottle over* From my personal stash. You've earned somethin' nice.",
+      "I can get you things that ain't on the menu. Connections, introductions, information. What do you need?",
+      "See this locket? Been in my family three generations. I'd never sell it... except to you, I'd make exceptions.",
+      "I've got a friend who moves supplies. Quality goods, no questions. Want an introduction?",
+      "Forget the prices on the board. I'll talk to the owner. We go way back.",
+      "You want the real special? *winks* The bourbon that don't exist on paper? I know where it's kept.",
+    ],
+    variables: [],
+  },
+
+  // ========== NEUTRAL TRADE (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'neutral',
+    context: 'trade',
+    templates: [
+      "Drinks are those prices. Company's negotiable. What's your budget?",
+      "I ain't runnin' a charity. Gold first, service after.",
+      "Standard rates posted behind the bar. No haggling, no credit.",
+      "You want conversation, buy a bottle. You want more, that's a separate transaction.",
+      "My time ain't free. Neither's my attention. Pay up or move along.",
+      "Everything here's got a price. The trick is knowin' if you can afford it.",
+      "Look, I like honest business. Tell me what you want, I'll tell you what it costs.",
+      "The drink prices are fair. The information I've got? That costs more.",
+      "Cash talks. Everything else? Walks right out that door.",
+    ],
+    variables: [],
+  },
+
+  // ========== HOSTILE TRADE (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'hostile',
+    context: 'trade',
+    templates: [
+      "Triple price. And that's me bein' generous. Consider it a 'you disgust me' tax.",
+      "I could tell the bartender you tried somethin'. Think about what that costs.",
+      "My prices just went up. Don't like it? Find another girl. Oh wait, they won't serve you neither.",
+      "I'll take your money, but that's ALL I'm takin'. Don't expect a smile.",
+      "You want service? Beg for it. On your knees. Then maybe I'll consider it.",
+      "Every cent you give me is an apology for existing. Pay up.",
+      "I don't care if you're flush with gold. Some things ain't for sale. Not to you.",
+      "Here's the deal: you pay double, you don't talk to me, and you leave fast.",
+      "The girls talk. Your name's already mud. Quadruple price. Take it or get out.",
+    ],
+    variables: [],
+  },
+
+  // ========== FEARFUL TRADE (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'fearful',
+    context: 'trade',
+    templates: [
+      "Here... here's my tips. Tonight's earnings. It's all I have, I swear.",
+      "The jewelry's in my room. I'll get it. Just... please don't follow me up there.",
+      "Free drinks! On me! Forever! Just please don't...",
+      "I know where the owner keeps the REAL money. I'll tell you, just...",
+      "Take it. Take anything. The other girls have more. I'll help you find it.",
+      "There's a lockbox under the stage. I don't know what's in it. But it's yours.",
+      "My dress cost more than a month's wages. It's yours. Just let me go.",
+      "I can connect you with people who have real money. I'm just... I'm just a worker.",
+      "The bartender's safe combination? I can get it. I can be useful. Please.",
+    ],
+    variables: [],
+  },
+
+  // ========== DRUNK TRADE (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'drunk',
+    context: 'trade',
+    templates: [
+      "Everythin's on the house! *hiccup* Wait, I don't own the house... shhhh, don't tell nobody.",
+      "I'll trade you thish *holds up mystery object* for... for... what do you have?",
+      "Buy me a drink and I'm yours! Or his! Or... whose drink is this? *drinks it anyway*",
+      "SPECIAL SALE! Friends pay... *counts fingers* ...nothing! We're friends now!",
+      "Take my tips! I don't need money! Money's for sober people! *hiccup*",
+      "The prices are... they're written somewhere... *squints at menu upside down*",
+      "You want a deal? HERE'S a deal! *empties pockets on table* Whatever this is!",
+      "Free secrets! Buy me whiskey, get a secret! Buy me two, get ALL the secrets!",
+      "My professional rates are... *falls off chair* ...negotiable! Very negotiable!",
+    ],
+    variables: [],
+  },
+
+  // ========== FRIENDLY QUEST (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'friendly',
+    context: 'quest',
+    templates: [
+      "Sugar, I need a favor. {NPC}'s been causin' trouble, and I know you're the one to handle it discreet-like.",
+      "There's a man upstairs who don't understand 'no'. Normally I'd handle it myself, but... he's connected. Help me out?",
+      "I've got a delivery needs makin' to {LOCATION}. Contents are... private. The pay's worth your silence.",
+      "Someone's been spreadin' lies about me. Find out who, and I'll owe you somethin' better than gold.",
+      "My sister's stuck in {LOCATION}. Long story. Help me get her out, and I'll remember it forever.",
+      "There's a certain gentleman who owes me money AND respect. Care to remind him of his manners?",
+      "I need a package retrieved from {LOCATION}. It's personal. Old life kind of personal. You in?",
+      "{NPC} has letters of mine. Love letters. From someone I shouldn't have loved. Get them back for me.",
+      "The owner's been cheatin' the girls. I've got proof hidden at {LOCATION}. Help me get it to the sheriff.",
+    ],
+    variables: ['NPC', 'LOCATION'],
+  },
+
+  // ========== NEUTRAL QUEST (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'neutral',
+    context: 'quest',
+    templates: [
+      "I've got information that's worth money. Find me a buyer, we split the take.",
+      "Someone needs deliverin' a message to {LOCATION}. Dangerous road. Dangerous message. You interested?",
+      "There's work available. The kind that don't involve questions. Just results.",
+      "A man left without payin'. Track him down. I don't care how you collect.",
+      "I hear things in this job. Things people pay to know. Things people pay to keep quiet. Which are you?",
+      "Got a job that needs someone who don't mind gettin' their hands dirty. Details cost extra.",
+      "There's opportunity in {LOCATION}. The kind that could set us both up nice. Partners?",
+      "A certain item went missing. Help me find it, and there's a finder's fee. No questions either way.",
+      "I need eyes and ears in places I can't go. You report to me, I pay you. Simple arrangement.",
+    ],
+    variables: ['LOCATION'],
+  },
+
+  // ========== HOSTILE QUEST (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'hostile',
+    context: 'quest',
+    templates: [
+      "Work for you? Honey, I'd rather dance with a rattlesnake.",
+      "Maybe if you crawl through broken glass to {LOCATION} and bring back {NPC}'s head. Then we'll talk.",
+      "Want to prove you ain't worthless? There's a suicide run nobody else will take. Perfect for your type.",
+      "Here's a job: leave town, keep ridin', don't come back. I'll even pay you to do it.",
+      "The only work I'd give you is muckin' out the stable. And that's an insult to the horses.",
+      "You want to make amends? Fine. {GANG} took somethin' of mine. Get it back or die tryin'. Either's fine.",
+      "There's a man needs killin'. Probably. Someone like you would be perfect for it. Expendable, I mean.",
+      "Earn my trust back by doin' the job no one survives. If you make it, maybe I'll reconsider my opinion.",
+      "I've got work for you. Dangerous, thankless, probably fatal. Consider it a favor I'm even offering.",
+    ],
+    variables: ['NPC', 'LOCATION', 'GANG'],
+  },
+
+  // ========== FEARFUL QUEST (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'fearful',
+    context: 'quest',
+    templates: [
+      "{NPC} won't take no for an answer. He's connected, dangerous. Please, make him understand I ain't interested.",
+      "{GANG} says I belong to them now. That ain't true. That CAN'T be true. Help me, please!",
+      "I need to get to {LOCATION}. There's people there who can protect me. I'll pay everything I have.",
+      "Someone's been watchin' me. Followin' me home. I know you're dangerous, but... can you be dangerous for me?",
+      "They're gonna sell me. Tomorrow night. I heard 'em talkin'. You've gotta stop it. Please!",
+      "I've got evidence against {GANG}. If I disappear, it goes public. But I need someone to hold it. Someone they fear.",
+      "My daughter's at {LOCATION}. They said if I don't cooperate, they'll... Please, she's just a child!",
+      "The owner's got papers sayin' he owns me. They're fake. But no one'll believe a saloon girl. Get me proof.",
+      "I know you do terrible things. I'm begging you to do them to the people threatening me instead.",
+    ],
+    variables: ['NPC', 'GANG', 'LOCATION'],
+  },
+
+  // ========== DRUNK QUEST (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'drunk',
+    context: 'quest',
+    templates: [
+      "Find my other shoe! It's... *hiccup* ...somewhere! Very important shoe! Life or death!",
+      "That man! THAT man over there! He owes me... somethin'! Go get it! Whatever it is!",
+      "I need you to tell {NPC} that... *hiccup* ...that I... what was I gonna say? Somethin' mean!",
+      "Quest! I have a quest! Go to... *waves vaguely* ...THERE... and get the... the THING!",
+      "My heart is broken! Go punch whoever broke it! I'll remember who when I'm sober!",
+      "There's treasure! *whispers loudly* BURIED treasure! At the place with the... the trees and stuff!",
+      "I DEMAND satisfaction! Challenge him to a duel! For my honor! ...What's his name again?",
+      "Deliver this message to... *hands you napkin with illegible scrawl* ...it's very important!",
+      "Help me climb onto the bar! I gotta make an announcement! About... about JUSTICE or whatever!",
+    ],
+    variables: ['NPC'],
+  },
+
+  // ========== FRIENDLY GOSSIP (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'friendly',
+    context: 'gossip',
+    templates: [
+      "Honey, men tell me things they wouldn't tell their own mamas. Like this: {GOSSIP}",
+      "*leans in close* You ain't heard this from me, but... {GOSSIP}",
+      "I've got ears everywhere in this town. Here's what they been hearin': {GOSSIP}",
+      "A little bird told me... well, actually a drunk banker told me... {GOSSIP}",
+      "Keep this between us, sugar. Information like this is worth its weight in gold. {GOSSIP}",
+      "They think I'm just a pretty face. That's why they talk. And here's what they've said: {GOSSIP}",
+      "I owe you one, so here's somethin' valuable: {GOSSIP}",
+      "The things I overhear from that backroom... you wouldn't believe. Actually, here: {GOSSIP}",
+      "Trust goes both ways, darlin'. Here's me trustin' you: {GOSSIP}",
+    ],
+    variables: ['GOSSIP'],
+  },
+
+  // ========== NEUTRAL GOSSIP (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'neutral',
+    context: 'gossip',
+    templates: [
+      "Information's my second profession. And it ain't free.",
+      "I hear everything that happens in this town. What's it worth to you?",
+      "Secrets are currency around here. You got something to trade?",
+      "My ears are open, my mouth is shut... unless the price is right.",
+      "I could tell you things that'd curl your hair. For the right compensation.",
+      "Everyone underestimates the saloon girl. That's how I learn everything.",
+      "You want gossip? I want gold. Let's do business.",
+      "I know who's broke, who's cheating, who's lying. Which category interests you?",
+      "Knowledge is power, sugar. And power ain't cheap.",
+    ],
+    variables: [],
+  },
+
+  // ========== HOSTILE GOSSIP (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'hostile',
+    context: 'gossip',
+    templates: [
+      "I wouldn't tell you if your life depended on it. Actually, I hope it does.",
+      "My lips are sealed. Permanently. Especially for you.",
+      "Want information? Try the pigs. They've got better conversational standards.",
+      "The only thing I'll tell you is where the door is. And you already know that.",
+      "I know things about you, honey. And they ain't for sale - they're for leverage.",
+      "Ask someone who likes you. Oh wait, that list is empty.",
+      "Information flows one direction with me, and it ain't toward you.",
+      "I'd rather chew glass than tell you the time of day.",
+      "Every secret I know stays locked up tight. Especially the ones that'd help you.",
+    ],
+    variables: [],
+  },
+
+  // ========== FEARFUL GOSSIP (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'fearful',
+    context: 'gossip',
+    templates: [
+      "I'll tell you everything! Every secret I know! {GOSSIP}",
+      "Please, I hear things! Valuable things! Like... like... {GOSSIP}",
+      "{GANG} talks when they drink. They said... *voice shaking* ...they said: {GOSSIP}",
+      "You want information? It's yours! All of it! {GOSSIP}",
+      "Don't hurt me! I know things! Useful things! Like: {GOSSIP}",
+      "The sheriff, he... please don't tell him I said this but... {GOSSIP}",
+      "I can be useful! I know secrets! {GOSSIP} See? I'm valuable alive!",
+      "They made me swear not to tell but... but... {GOSSIP}",
+      "Information for my life? Deal! Here's everything: {GOSSIP}",
+    ],
+    variables: ['GOSSIP', 'GANG'],
+  },
+
+  // ========== DRUNK GOSSIP (9 variations) ==========
+  {
+    npcRole: 'saloon_girl',
+    mood: 'drunk',
+    context: 'gossip',
+    templates: [
+      "*giggling uncontrollably* Okay okay okay sho... *hiccup* ...there's this thing... {GOSSIP}",
+      "SHECRETS! I have SO many shecrets! Like... like... {GOSSIP}! Don't tell nobody!",
+      "You know what? You KNOW what? I'm gonna tell you shomething... {GOSSIP}! ...Was that a secret?",
+      "Everybody tells me everything 'cause I'm sho... sho... trustworthy! *hiccup* Like: {GOSSIP}",
+      "Lean in... LEAN IN... *whispers loudly* {GOSSIP}! Shhhh! It's a shecret!",
+      "I know stuff! Important stuff! *points dramatically* {GOSSIP}! Write that down!",
+      "Best gossip in town, right here! *hiccup* Today's special: {GOSSIP}!",
+      "Promise you won't tell? PROMISE? Okay... {GOSSIP}! *immediately yells it across the bar*",
+      "My discretion ish... *hic* ...legendary! Anyway, here's what I know: {GOSSIP}!",
+    ],
+    variables: ['GOSSIP'],
+  },
 ];
 
 export const RANCHER_TEMPLATES: DialogueTemplate[] = [
@@ -1480,7 +1861,7 @@ export function getDialogueTemplate(
  * Get random dialogue from a template
  */
 export function getRandomDialogue(template: DialogueTemplate): string {
-  return template.templates[Math.floor(Math.random() * template.templates.length)];
+  return SecureRNG.select(template.templates);
 }
 
 /**

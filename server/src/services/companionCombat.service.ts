@@ -17,6 +17,7 @@ import {
 import { getAbilityById } from '../data/companionAbilities';
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 export class CompanionCombatService {
   /**
@@ -251,7 +252,7 @@ export class CompanionCombatService {
     companion.encountersHelped += 1;
 
     // Small chance to find items after combat
-    if (Math.random() < 0.1) {
+    if (SecureRNG.chance(0.1)) {
       companion.itemsFound += 1;
     }
 

@@ -15,6 +15,7 @@ import {
   WeeklyChallengeType,
   ScarZone,
 } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * VOID-TOUCHED WEAPONS
@@ -639,12 +640,12 @@ export function getDailyChallengesByZone(zone: ScarZone): DailyChallenge[] {
  * Get random daily challenge
  */
 export function getRandomDailyChallenge(): DailyChallenge {
-  return DAILY_CHALLENGES[Math.floor(Math.random() * DAILY_CHALLENGES.length)];
+  return SecureRNG.select(DAILY_CHALLENGES);
 }
 
 /**
  * Get random weekly challenge
  */
 export function getRandomWeeklyChallenge(): WeeklyChallenge {
-  return WEEKLY_CHALLENGES[Math.floor(Math.random() * WEEKLY_CHALLENGES.length)];
+  return SecureRNG.select(WEEKLY_CHALLENGES);
 }

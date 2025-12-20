@@ -9,6 +9,7 @@ import { Character } from '../models/Character.model';
 import { ChatRateLimiter } from '../middleware/chatRateLimiter';
 import { RoomType } from '../models/Message.model';
 import logger from './logger';
+import { createExactMatchRegex } from './stringUtils';
 
 /**
  * Admin command result
@@ -175,7 +176,7 @@ export class AdminCommands {
 
     // Find character
     const character = await Character.findOne({
-      name: new RegExp(`^${characterName}$`, 'i'),
+      name: createExactMatchRegex(characterName),
       isActive: true
     });
 
@@ -220,7 +221,7 @@ export class AdminCommands {
 
     // Find character
     const character = await Character.findOne({
-      name: new RegExp(`^${characterName}$`, 'i'),
+      name: createExactMatchRegex(characterName),
       isActive: true
     });
 
@@ -261,7 +262,7 @@ export class AdminCommands {
 
     // Find character
     const character = await Character.findOne({
-      name: new RegExp(`^${characterName}$`, 'i'),
+      name: createExactMatchRegex(characterName),
       isActive: true
     });
 
@@ -301,7 +302,7 @@ export class AdminCommands {
 
     // Find character
     const character = await Character.findOne({
-      name: new RegExp(`^${characterName}$`, 'i'),
+      name: createExactMatchRegex(characterName),
       isActive: true
     });
 
@@ -341,7 +342,7 @@ export class AdminCommands {
 
     // Find character
     const character = await Character.findOne({
-      name: new RegExp(`^${characterName}$`, 'i'),
+      name: createExactMatchRegex(characterName),
       isActive: true
     });
 

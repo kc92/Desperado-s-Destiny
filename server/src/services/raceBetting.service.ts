@@ -14,6 +14,8 @@ import {
   RaceResult,
   RACING_CONSTANTS
 } from '@desperados/shared';
+import { DollarService, TransactionSource } from './dollar.service';
+import { withLock } from '../utils/distributedLock';
 
 // ============================================================================
 // PLACE BET
@@ -29,62 +31,72 @@ export async function placeBet(params: {
   amount: number;
   selections: ObjectId[];
 }): Promise<RaceBetDocument> {
-  // Validate bet amount
-  if (params.amount < RACING_CONSTANTS.MIN_BET) {
-    throw new Error(`Minimum bet is ${RACING_CONSTANTS.MIN_BET} gold`);
-  }
+  // PHASE 3 FIX: Add distributed lock to prevent race conditions on concurrent bets
+  return withLock(`lock:race:bet:${params.raceId}`, async () => {
+    // Validate bet amount
+    if (params.amount < RACING_CONSTANTS.MIN_BET) {
+      throw new Error(`Minimum bet is ${RACING_CONSTANTS.MIN_BET} dollars`);
+    }
 
-  if (params.amount > RACING_CONSTANTS.MAX_BET) {
-    throw new Error(`Maximum bet is ${RACING_CONSTANTS.MAX_BET} gold`);
-  }
+    if (params.amount > RACING_CONSTANTS.MAX_BET) {
+      throw new Error(`Maximum bet is ${RACING_CONSTANTS.MAX_BET} dollars`);
+    }
 
-  // Get race
-  const race = await HorseRace.findById(params.raceId);
-  if (!race) {
-    throw new Error('Race not found');
-  }
+    // Get race
+    const race = await HorseRace.findById(params.raceId);
+    if (!race) {
+      throw new Error('Race not found');
+    }
 
-  // Check if betting is still open
-  const now = new Date();
-  if (now >= race.postTime) {
-    throw new Error('Betting is closed for this race');
-  }
+    // Check if betting is still open
+    const now = new Date();
+    if (now >= race.postTime) {
+      throw new Error('Betting is closed for this race');
+    }
 
-  // Validate selections
-  validateBetSelections(params.betType, params.selections, race);
+    // Validate selections
+    validateBetSelections(params.betType, params.selections, race);
 
-  // Calculate odds and potential payout
-  const odds = calculateBetOdds(params.betType, params.selections, race);
-  const potentialPayout = calculatePotentialPayout(params.amount, odds, params.betType);
+    // Calculate odds and potential payout
+    const odds = calculateBetOdds(params.betType, params.selections, race);
+    const potentialPayout = calculatePotentialPayout(params.amount, odds, params.betType);
 
-  // Create bet
-  const bet = new RaceBet({
-    characterId: params.characterId,
-    raceId: params.raceId,
-    betType: params.betType,
-    amount: params.amount,
-    selections: params.selections,
-    odds,
-    potentialPayout,
-    status: 'PENDING'
-  });
-
-  await bet.save();
-
-  // Add to betting pool
-  for (const horseId of params.selections) {
-    race.addToBettingPool(
-      new Schema.Types.ObjectId(horseId.toString()),
-      params.betType,
-      params.amount
+    // Deduct dollars from character FIRST (before creating bet record)
+    // This ensures we fail fast if insufficient funds
+    await DollarService.deductDollars(
+      params.characterId.toString(),
+      params.amount,
+      TransactionSource.RACE_BET,
+      { raceId: params.raceId.toString(), betType: params.betType, currencyType: 'DOLLAR' }
     );
-  }
 
-  await race.save();
+    // Create bet (only after gold successfully deducted)
+    const bet = new RaceBet({
+      characterId: params.characterId,
+      raceId: params.raceId,
+      betType: params.betType,
+      amount: params.amount,
+      selections: params.selections,
+      odds,
+      potentialPayout,
+      status: 'PENDING'
+    });
 
-  // TODO: Deduct gold from character
+    await bet.save();
 
-  return bet;
+    // Add to betting pool
+    for (const horseId of params.selections) {
+      race.addToBettingPool(
+        new Schema.Types.ObjectId(horseId.toString()),
+        params.betType,
+        params.amount
+      );
+    }
+
+    await race.save();
+
+    return bet;
+  }, { ttl: 30, retries: 10 });
 }
 
 /**
@@ -237,10 +249,16 @@ export async function settleBets(raceId: ObjectId, results: RaceResult[]): Promi
 
     if (won) {
       // Calculate actual payout based on betting pool
-      const actualPayout = calculateActualPayout(bet, raceId, results);
+      const actualPayout = await calculateActualPayout(bet, raceId, results);
       (bet as any).settleAsWon(actualPayout);
 
-      // TODO: Credit character's gold
+      // Credit character's dollars
+      await DollarService.addDollars(
+        bet.characterId.toString(),
+        actualPayout,
+        TransactionSource.RACE_PAYOUT,
+        { raceId: raceId.toString(), betType: bet.betType, won: true, currencyType: 'DOLLAR' }
+      );
     } else {
       (bet as any).settleAsLost();
     }
@@ -489,7 +507,13 @@ export async function cancelBet(
   (bet as any).refund();
   await bet.save();
 
-  // TODO: Refund character's gold
+  // Refund character's dollars
+  await DollarService.addDollars(
+    bet.characterId.toString(),
+    bet.amount,
+    TransactionSource.RACE_REFUND,
+    { raceId: bet.raceId.toString(), betType: bet.betType, refund: true, currencyType: 'DOLLAR' }
+  );
 }
 
 // ============================================================================

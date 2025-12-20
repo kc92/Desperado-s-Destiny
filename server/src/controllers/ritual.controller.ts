@@ -80,7 +80,7 @@ export class RitualController {
         throw new AppError('Character not found', 404);
       }
 
-      const activeRitual = RitualService.getActiveRitual(characterId);
+      const activeRitual = await RitualService.getActiveRitual(characterId);
 
       res.json({
         success: true,

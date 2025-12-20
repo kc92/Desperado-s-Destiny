@@ -1,11 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Import UI Polish - Hybrid Western-Modern Design System */
 @import './theme.css';
 @import './animations.css';
 @import './mobile.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Global styles for Desperados Destiny */
 @layer base {
@@ -144,6 +144,47 @@
 
   .focus-visible-red:focus-visible {
     @apply outline-none ring-4 ring-blood-red ring-offset-2;
+  }
+
+  /* Global focus-visible styles for keyboard navigation */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    @apply outline-none ring-4 ring-gold-light ring-offset-2 ring-offset-wood-dark;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    body {
+      @apply bg-black text-white;
+    }
+
+    .wood-panel, .leather-panel {
+      @apply bg-gray-900 border-white;
+    }
+
+    a, button, [role="button"] {
+      @apply border-2 border-white;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    [role="button"]:focus-visible {
+      @apply ring-white ring-offset-black;
+    }
+  }
+
+  /* Reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   /* Text shadows */

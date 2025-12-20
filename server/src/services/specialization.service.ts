@@ -22,6 +22,8 @@ import {
   getSpecializationById,
   isValidSpecializationForProfession
 } from '../data/specializationPaths';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
 
 export class SpecializationService {
   /**
@@ -85,14 +87,14 @@ export class SpecializationService {
       const playerSpec = playerSpecializations.find(ps => ps.pathId === path.id);
       const isChosen = !!playerSpec;
       const meetsLevelReq = professionLevel >= path.requirements.professionLevel;
-      const hasGold = character.gold >= (path.requirements.goldCost || 0);
-      const canChoose = !isChosen && meetsLevelReq && hasGold;
+      const hasDollars = character.dollars >= (path.requirements.goldCost || 0);
+      const canChoose = !isChosen && meetsLevelReq && hasDollars;
 
       let reason: string | undefined;
       if (!meetsLevelReq) {
         reason = `Requires ${path.professionId} level ${path.requirements.professionLevel}`;
-      } else if (!hasGold) {
-        reason = `Requires ${path.requirements.goldCost} gold`;
+      } else if (!hasDollars) {
+        reason = `Requires ${path.requirements.goldCost} dollars`;
       } else if (isChosen) {
         reason = 'Already chosen';
       }
@@ -169,15 +171,21 @@ export class SpecializationService {
         );
       }
 
-      // Check gold requirement
-      const goldCost = path.requirements.goldCost || 0;
-      if (character.gold < goldCost) {
-        throw new AppError(`Requires ${goldCost} gold`, 400);
+      // Check dollar requirement
+      const dollarCost = path.requirements.goldCost || 0;
+      if (character.dollars < dollarCost) {
+        throw new AppError(`Requires ${dollarCost} dollars`, 400);
       }
 
-      // Deduct gold
-      if (goldCost > 0) {
-        character.gold -= goldCost;
+      // Deduct dollars
+      if (dollarCost > 0) {
+        await DollarService.deductDollars(
+          character._id.toString(),
+          dollarCost,
+          TransactionSource.SHOP_PURCHASE,
+          { specializationId, specializationName: path.name, professionId: path.professionId },
+          session
+        );
       }
 
       // Create new specialization
@@ -189,10 +197,22 @@ export class SpecializationService {
         uniqueRecipesUnlocked: []
       };
 
-      playerSpecializations.push(newSpecialization);
-      (character as any).specializations = playerSpecializations;
+      // Refetch character to get latest state after DollarService update
+      const updatedCharacter = await Character.findById(character._id).session(session);
+      if (!updatedCharacter) {
+        throw new AppError('Character not found after dollar deduction', 500);
+      }
 
-      await character.save({ session });
+      // Ensure specializations array exists
+      if (!(updatedCharacter as any).specializations) {
+        (updatedCharacter as any).specializations = [];
+      }
+
+      const updatedSpecializations: PlayerSpecialization[] = (updatedCharacter as any).specializations;
+      updatedSpecializations.push(newSpecialization);
+      (updatedCharacter as any).specializations = updatedSpecializations;
+
+      await updatedCharacter.save({ session });
       await session.commitTransaction();
 
       logger.info(

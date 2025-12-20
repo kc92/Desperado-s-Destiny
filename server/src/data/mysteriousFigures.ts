@@ -29,7 +29,7 @@ export interface SpawnConditions {
  * Quest reward
  */
 export interface QuestReward {
-  type: 'gold' | 'xp' | 'item' | 'reputation' | 'lore' | 'special';
+  type: 'dollars' | 'xp' | 'item' | 'reputation' | 'lore' | 'special';
   amount?: number;
   itemId?: string;
   faction?: string;
@@ -333,7 +333,7 @@ export const OLD_COYOTE: MysteriousFigure = {
         }
       ],
       rewards: [
-        { type: 'gold', amount: 0 }, // No gold reward
+        { type: 'dollars', amount: 0 }, // No gold reward
         { type: 'reputation', faction: 'NAHI_COALITION', amount: -50 }, // Lose rep
         { type: 'item', itemId: 'trickster_blessing' },
         { type: 'lore', loreId: 'coyote_trick_truth' }
@@ -626,7 +626,7 @@ export const DOC_PROMETHEUS: MysteriousFigure = {
         }
       ],
       rewards: [
-        { type: 'gold', amount: 200 },
+        { type: 'dollars', amount: 200 },
         { type: 'item', itemId: 'prometheus_device' },
         { type: 'xp', amount: 400 }
       ],
@@ -658,7 +658,7 @@ export const DOC_PROMETHEUS: MysteriousFigure = {
       ],
       rewards: [
         { type: 'special', specialEffect: 'prometheus_enhancement' },
-        { type: 'gold', amount: 150 },
+        { type: 'dollars', amount: 150 },
         { type: 'xp', amount: 300 }
       ],
       consequences: [
@@ -1038,7 +1038,7 @@ export const MAMA_LAVEAU: MysteriousFigure = {
         }
       ],
       rewards: [
-        { type: 'gold', amount: 300 },
+        { type: 'dollars', amount: 300 },
         { type: 'item', itemId: 'protection_gris_gris' },
         { type: 'xp', amount: 500 },
         { type: 'reputation', faction: 'FRONTERA', amount: 50 }
@@ -1199,7 +1199,7 @@ export const THE_COLLECTOR: MysteriousFigure = {
         }
       ],
       rewards: [
-        { type: 'gold', amount: 1000 },
+        { type: 'dollars', amount: 1000 },
         { type: 'item', itemId: 'collectors_token' },
         { type: 'xp', amount: 500 }
       ],

@@ -8,9 +8,11 @@
 
 import mongoose from 'mongoose';
 import { GangWar, IGangWar } from '../models/GangWar.model';
-import { GangWarStatus } from '@desperados/shared';
+import { GangWarStatus, SkillCategory } from '@desperados/shared';
 import { Gang } from '../models/Gang.model';
+import { UnlockEnforcementService } from './unlockEnforcement.service';
 import { Character } from '../models/Character.model';
+import { GangWarSession } from '../models/GangWarSession.model';
 import {
   initGame,
   processAction,
@@ -19,6 +21,7 @@ import {
   GameResult,
   PlayerAction
 } from './deckGames';
+import { EnergyService } from './energy.service';
 import logger from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { getSocketIO } from '../config/socket';
@@ -56,9 +59,7 @@ interface LeaderShowdown {
   defenderResult?: GameResult;
 }
 
-const activeRaids = new Map<string, WarRaidGame>();
-const championDuels = new Map<string, ChampionDuel>();
-const leaderShowdowns = new Map<string, LeaderShowdown>();
+// Removed in-memory Maps - now using GangWarSession model for persistence
 
 // Points awarded for raid wins
 const RAID_WIN_POINTS = 5;
@@ -106,9 +107,11 @@ export async function startRaid(
   }
 
   // Check raid cooldown (5 minute between raids per character)
-  const existingRaid = Array.from(activeRaids.values()).find(
-    r => r.characterId === characterId && r.warId === warId
-  );
+  const existingRaid = await GangWarSession.findOne({
+    type: 'raid',
+    characterId: new mongoose.Types.ObjectId(characterId),
+    warId: new mongoose.Types.ObjectId(warId)
+  });
   if (existingRaid) {
     throw new Error('You already have an active raid');
   }
@@ -124,12 +127,16 @@ export async function startRaid(
 
   const raidId = uuidv4();
 
-  activeRaids.set(raidId, {
-    warId,
-    characterId,
+  // Create database session
+  await GangWarSession.create({
+    sessionId: raidId,
+    warId: new mongoose.Types.ObjectId(warId),
+    type: 'raid',
+    characterId: new mongoose.Types.ObjectId(characterId),
     characterName: character.name,
     side,
-    gameState
+    gameState,
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
   });
 
   logger.info(`Raid started: ${character.name} (${side}) in war ${warId}`);
@@ -152,18 +159,19 @@ export async function processRaidAction(
     newCapturePoints: number;
   };
 }> {
-  const raid = activeRaids.get(raidId);
-  if (!raid) {
+  const session = await GangWarSession.findOne({ sessionId: raidId, type: 'raid' });
+  if (!session) {
     throw new Error('Raid not found');
   }
 
   // Process action
-  const newState = processAction(raid.gameState, action);
-  raid.gameState = newState;
+  const newState = processAction(session.gameState, action);
+  session.gameState = newState;
+  await session.save();
 
   if (newState.status === 'resolved') {
     const result = resolveGame(newState);
-    const raidResult = await resolveRaid(raidId, result);
+    const raidResult = await resolveRaid(session, result);
 
     return {
       gameState: newState,
@@ -182,30 +190,25 @@ export async function processRaidAction(
  * Resolve raid and award points
  */
 async function resolveRaid(
-  raidId: string,
+  session: any,
   result: GameResult
 ): Promise<{
   success: boolean;
   pointsEarned: number;
   newCapturePoints: number;
 }> {
-  const raid = activeRaids.get(raidId);
-  if (!raid) {
-    throw new Error('Raid not found');
-  }
-
-  const war = await GangWar.findById(raid.warId);
+  const war = await GangWar.findById(session.warId);
   if (!war) {
     throw new Error('War not found');
   }
 
-  const character = await Character.findById(raid.characterId);
+  const character = await Character.findById(session.characterId);
   if (!character) {
     throw new Error('Character not found');
   }
 
   // Deduct energy
-  character.spendEnergy(10);
+  await EnergyService.spendEnergy(character._id.toString(), 10, 'gang_war_raid');
   await character.save();
 
   // Calculate points
@@ -215,7 +218,7 @@ async function resolveRaid(
   pointsEarned = Math.round(pointsEarned * result.suitBonus.multiplier);
 
   // Award points based on side
-  if (raid.side === 'attacker') {
+  if (session.side === 'attacker') {
     war.capturePoints = Math.min(200, war.capturePoints + pointsEarned);
   } else {
     war.capturePoints = Math.max(0, war.capturePoints - pointsEarned);
@@ -226,8 +229,8 @@ async function resolveRaid(
     timestamp: new Date(),
     event: 'RAID_COMPLETED',
     data: {
-      character: raid.characterName,
-      side: raid.side,
+      character: session.characterName,
+      side: session.side,
       success: result.success,
       pointsEarned,
       newCapturePoints: war.capturePoints
@@ -236,20 +239,20 @@ async function resolveRaid(
 
   await war.save();
 
-  // Cleanup
-  activeRaids.delete(raidId);
+  // Cleanup - delete session from database
+  await GangWarSession.deleteOne({ _id: session._id });
 
   logger.info(
-    `Raid completed: ${raid.characterName} earned ${pointsEarned} points for ${raid.side}`
+    `Raid completed: ${session.characterName} earned ${pointsEarned} points for ${session.side}`
   );
 
   // Emit event
   const io = getSocketIO();
   if (io) {
     io.emit('territory:raid_completed', {
-      warId: raid.warId,
-      raider: raid.characterName,
-      side: raid.side,
+      warId: session.warId.toString(),
+      raider: session.characterName,
+      side: session.side,
       success: result.success,
       pointsEarned,
       newCapturePoints: war.capturePoints
@@ -298,7 +301,11 @@ export async function startChampionDuel(
   }
 
   // Check if duel already exists
-  if (championDuels.has(warId)) {
+  const existingDuel = await GangWarSession.findOne({
+    type: 'champion_duel',
+    warId: new mongoose.Types.ObjectId(warId)
+  });
+  if (existingDuel) {
     throw new Error('Champion duel already in progress for this war');
   }
 
@@ -319,17 +326,19 @@ export async function startChampionDuel(
     timeLimit: 60
   });
 
-  const duel: ChampionDuel = {
-    warId,
-    attackerChampionId,
-    defenderChampionId,
+  // Create database session
+  const session = await GangWarSession.create({
+    sessionId: uuidv4(),
+    warId: new mongoose.Types.ObjectId(warId),
+    type: 'champion_duel',
+    attackerChampionId: new mongoose.Types.ObjectId(attackerChampionId),
+    defenderChampionId: new mongoose.Types.ObjectId(defenderChampionId),
     attackerState,
     defenderState,
     attackerResolved: false,
-    defenderResolved: false
-  };
-
-  championDuels.set(warId, duel);
+    defenderResolved: false,
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000)
+  });
 
   // Log
   war.warLog.push({
@@ -343,6 +352,16 @@ export async function startChampionDuel(
   await war.save();
 
   logger.info(`Champion duel started: ${attacker.name} vs ${defender.name}`);
+
+  const duel: ChampionDuel = {
+    warId,
+    attackerChampionId,
+    defenderChampionId,
+    attackerState,
+    defenderState,
+    attackerResolved: false,
+    defenderResolved: false
+  };
 
   return duel;
 }
@@ -364,13 +383,16 @@ export async function processChampionAction(
     pointsAwarded: number;
   };
 }> {
-  const duel = championDuels.get(warId);
-  if (!duel) {
+  const session = await GangWarSession.findOne({
+    type: 'champion_duel',
+    warId: new mongoose.Types.ObjectId(warId)
+  });
+  if (!session) {
     throw new Error('Champion duel not found');
   }
 
-  const isAttacker = duel.attackerChampionId === characterId;
-  const isDefender = duel.defenderChampionId === characterId;
+  const isAttacker = session.attackerChampionId?.toString() === characterId;
+  const isDefender = session.defenderChampionId?.toString() === characterId;
 
   if (!isAttacker && !isDefender) {
     throw new Error('Not a participant in this duel');
@@ -379,34 +401,36 @@ export async function processChampionAction(
   // Process action
   let state: GameState;
   if (isAttacker) {
-    if (duel.attackerResolved) {
+    if (session.attackerResolved) {
       throw new Error('Already completed your turn');
     }
-    state = processAction(duel.attackerState, action);
-    duel.attackerState = state;
+    state = processAction(session.attackerState, action);
+    session.attackerState = state;
   } else {
-    if (duel.defenderResolved) {
+    if (session.defenderResolved) {
       throw new Error('Already completed your turn');
     }
-    state = processAction(duel.defenderState, action);
-    duel.defenderState = state;
+    state = processAction(session.defenderState, action);
+    session.defenderState = state;
   }
 
   // Check resolution
   if (state.status === 'resolved') {
     const result = resolveGame(state);
     if (isAttacker) {
-      duel.attackerResolved = true;
-      duel.attackerResult = result;
+      session.attackerResolved = true;
+      session.attackerResult = result;
     } else {
-      duel.defenderResolved = true;
-      duel.defenderResult = result;
+      session.defenderResolved = true;
+      session.defenderResult = result;
     }
   }
 
+  await session.save();
+
   // Check if both resolved
-  if (duel.attackerResolved && duel.defenderResolved) {
-    const result = await resolveChampionDuel(warId);
+  if (session.attackerResolved && session.defenderResolved) {
+    const result = await resolveChampionDuel(session);
     return {
       gameState: state,
       isResolved: true,
@@ -425,24 +449,23 @@ export async function processChampionAction(
 /**
  * Resolve champion duel
  */
-async function resolveChampionDuel(warId: string): Promise<{
+async function resolveChampionDuel(session: any): Promise<{
   winnerId: string;
   winnerName: string;
   pointsAwarded: number;
 }> {
-  const duel = championDuels.get(warId);
-  if (!duel || !duel.attackerResult || !duel.defenderResult) {
+  if (!session.attackerResult || !session.defenderResult) {
     throw new Error('Duel not properly resolved');
   }
 
-  const war = await GangWar.findById(warId);
+  const war = await GangWar.findById(session.warId);
   if (!war) {
     throw new Error('War not found');
   }
 
   const [attacker, defender] = await Promise.all([
-    Character.findById(duel.attackerChampionId),
-    Character.findById(duel.defenderChampionId)
+    Character.findById(session.attackerChampionId),
+    Character.findById(session.defenderChampionId)
   ]);
 
   if (!attacker || !defender) {
@@ -454,13 +477,13 @@ async function resolveChampionDuel(warId: string): Promise<{
   let winnerName: string;
   let winningSide: 'attacker' | 'defender';
 
-  if (duel.attackerResult.score >= duel.defenderResult.score) {
-    winnerId = duel.attackerChampionId;
+  if (session.attackerResult.score >= session.defenderResult.score) {
+    winnerId = session.attackerChampionId.toString();
     winnerName = attacker.name;
     winningSide = 'attacker';
     war.capturePoints = Math.min(200, war.capturePoints + CHAMPION_WIN_POINTS);
   } else {
-    winnerId = duel.defenderChampionId;
+    winnerId = session.defenderChampionId.toString();
     winnerName = defender.name;
     winningSide = 'defender';
     war.capturePoints = Math.max(0, war.capturePoints - CHAMPION_WIN_POINTS);
@@ -473,22 +496,24 @@ async function resolveChampionDuel(warId: string): Promise<{
     data: {
       winner: winnerName,
       winningSide,
-      attackerScore: duel.attackerResult.score,
-      defenderScore: duel.defenderResult.score,
+      attackerScore: session.attackerResult.score,
+      defenderScore: session.defenderResult.score,
       pointsAwarded: CHAMPION_WIN_POINTS,
       newCapturePoints: war.capturePoints
     }
   });
 
   await war.save();
-  championDuels.delete(warId);
+
+  // Cleanup - delete session from database
+  await GangWarSession.deleteOne({ _id: session._id });
 
   logger.info(`Champion duel resolved: ${winnerName} won for ${winningSide}`);
 
   const io = getSocketIO();
   if (io) {
     io.emit('territory:champion_duel_resolved', {
-      warId,
+      warId: session.warId.toString(),
       winner: winnerName,
       winningSide,
       pointsAwarded: CHAMPION_WIN_POINTS,
@@ -530,8 +555,40 @@ export async function startLeaderShowdown(warId: string): Promise<LeaderShowdown
     throw new Error('Gang not found');
   }
 
-  if (leaderShowdowns.has(warId)) {
+  const existingShowdown = await GangWarSession.findOne({
+    type: 'leader_showdown',
+    warId: new mongoose.Types.ObjectId(warId)
+  });
+  if (existingShowdown) {
     throw new Error('Leader showdown already in progress');
+  }
+
+  // Check COMBAT level 40 requirement for gang war leader showdown - both leaders must have it
+  const [attackerLeader, defenderLeader] = await Promise.all([
+    Character.findById(attackerGang.leaderId),
+    Character.findById(defenderGang.leaderId)
+  ]);
+
+  if (attackerLeader) {
+    const attackerCheck = UnlockEnforcementService.checkUnlockForCharacter(
+      attackerLeader,
+      SkillCategory.COMBAT,
+      'Gang War Leader'
+    );
+    if (!attackerCheck.allowed) {
+      throw new Error(`Your gang leader needs COMBAT level 40 for leader showdown (current: ${attackerCheck.currentLevel || 0})`);
+    }
+  }
+
+  if (defenderLeader) {
+    const defenderCheck = UnlockEnforcementService.checkUnlockForCharacter(
+      defenderLeader,
+      SkillCategory.COMBAT,
+      'Gang War Leader'
+    );
+    if (!defenderCheck.allowed) {
+      throw new Error(`Enemy gang leader has not unlocked leader showdown (requires COMBAT level 40)`);
+    }
   }
 
   const attackerState = initGame({
@@ -550,17 +607,19 @@ export async function startLeaderShowdown(warId: string): Promise<LeaderShowdown
     timeLimit: 90
   });
 
-  const showdown: LeaderShowdown = {
-    warId,
-    attackerLeaderId: attackerGang.leaderId.toString(),
-    defenderLeaderId: defenderGang.leaderId.toString(),
+  // Create database session
+  await GangWarSession.create({
+    sessionId: uuidv4(),
+    warId: new mongoose.Types.ObjectId(warId),
+    type: 'leader_showdown',
+    attackerChampionId: attackerGang.leaderId,
+    defenderChampionId: defenderGang.leaderId,
     attackerState,
     defenderState,
     attackerResolved: false,
-    defenderResolved: false
-  };
-
-  leaderShowdowns.set(warId, showdown);
+    defenderResolved: false,
+    expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours for showdown
+  });
 
   war.warLog.push({
     timestamp: new Date(),
@@ -573,6 +632,16 @@ export async function startLeaderShowdown(warId: string): Promise<LeaderShowdown
   await war.save();
 
   logger.info(`Leader showdown started for war ${warId}`);
+
+  const showdown: LeaderShowdown = {
+    warId,
+    attackerLeaderId: attackerGang.leaderId.toString(),
+    defenderLeaderId: defenderGang.leaderId.toString(),
+    attackerState,
+    defenderState,
+    attackerResolved: false,
+    defenderResolved: false
+  };
 
   return showdown;
 }
@@ -595,13 +664,16 @@ export async function processShowdownAction(
     warOutcome: 'attacker' | 'defender';
   };
 }> {
-  const showdown = leaderShowdowns.get(warId);
-  if (!showdown) {
+  const session = await GangWarSession.findOne({
+    type: 'leader_showdown',
+    warId: new mongoose.Types.ObjectId(warId)
+  });
+  if (!session) {
     throw new Error('Leader showdown not found');
   }
 
-  const isAttacker = showdown.attackerLeaderId === characterId;
-  const isDefender = showdown.defenderLeaderId === characterId;
+  const isAttacker = session.attackerChampionId?.toString() === characterId;
+  const isDefender = session.defenderChampionId?.toString() === characterId;
 
   if (!isAttacker && !isDefender) {
     throw new Error('Not a leader in this showdown');
@@ -609,32 +681,34 @@ export async function processShowdownAction(
 
   let state: GameState;
   if (isAttacker) {
-    if (showdown.attackerResolved) {
+    if (session.attackerResolved) {
       throw new Error('Already completed your turn');
     }
-    state = processAction(showdown.attackerState, action);
-    showdown.attackerState = state;
+    state = processAction(session.attackerState, action);
+    session.attackerState = state;
   } else {
-    if (showdown.defenderResolved) {
+    if (session.defenderResolved) {
       throw new Error('Already completed your turn');
     }
-    state = processAction(showdown.defenderState, action);
-    showdown.defenderState = state;
+    state = processAction(session.defenderState, action);
+    session.defenderState = state;
   }
 
   if (state.status === 'resolved') {
     const result = resolveGame(state);
     if (isAttacker) {
-      showdown.attackerResolved = true;
-      showdown.attackerResult = result;
+      session.attackerResolved = true;
+      session.attackerResult = result;
     } else {
-      showdown.defenderResolved = true;
-      showdown.defenderResult = result;
+      session.defenderResolved = true;
+      session.defenderResult = result;
     }
   }
 
-  if (showdown.attackerResolved && showdown.defenderResolved) {
-    const result = await resolveLeaderShowdown(warId);
+  await session.save();
+
+  if (session.attackerResolved && session.defenderResolved) {
+    const result = await resolveLeaderShowdown(session);
     return {
       gameState: state,
       isResolved: true,
@@ -653,18 +727,17 @@ export async function processShowdownAction(
 /**
  * Resolve leader showdown - this determines the war outcome
  */
-async function resolveLeaderShowdown(warId: string): Promise<{
+async function resolveLeaderShowdown(session: any): Promise<{
   winnerId: string;
   winnerGang: string;
   pointsAwarded: number;
   warOutcome: 'attacker' | 'defender';
 }> {
-  const showdown = leaderShowdowns.get(warId);
-  if (!showdown || !showdown.attackerResult || !showdown.defenderResult) {
+  if (!session.attackerResult || !session.defenderResult) {
     throw new Error('Showdown not properly resolved');
   }
 
-  const war = await GangWar.findById(warId);
+  const war = await GangWar.findById(session.warId);
   if (!war) {
     throw new Error('War not found');
   }
@@ -682,13 +755,13 @@ async function resolveLeaderShowdown(warId: string): Promise<{
   let winnerGang: string;
   let warOutcome: 'attacker' | 'defender';
 
-  if (showdown.attackerResult.score >= showdown.defenderResult.score) {
-    winnerId = showdown.attackerLeaderId;
+  if (session.attackerResult.score >= session.defenderResult.score) {
+    winnerId = session.attackerChampionId.toString();
     winnerGang = attackerGang.name;
     warOutcome = 'attacker';
     war.capturePoints = Math.min(200, war.capturePoints + SHOWDOWN_WIN_POINTS);
   } else {
-    winnerId = showdown.defenderLeaderId;
+    winnerId = session.defenderChampionId.toString();
     winnerGang = defenderGang.name;
     warOutcome = 'defender';
     war.capturePoints = Math.max(0, war.capturePoints - SHOWDOWN_WIN_POINTS);
@@ -700,22 +773,24 @@ async function resolveLeaderShowdown(warId: string): Promise<{
     data: {
       winner: winnerGang,
       warOutcome,
-      attackerScore: showdown.attackerResult.score,
-      defenderScore: showdown.defenderResult.score,
+      attackerScore: session.attackerResult.score,
+      defenderScore: session.defenderResult.score,
       pointsAwarded: SHOWDOWN_WIN_POINTS,
       finalCapturePoints: war.capturePoints
     }
   });
 
   await war.save();
-  leaderShowdowns.delete(warId);
+
+  // Cleanup - delete session from database
+  await GangWarSession.deleteOne({ _id: session._id });
 
   logger.info(`Leader showdown resolved: ${winnerGang} won`);
 
   const io = getSocketIO();
   if (io) {
     io.emit('territory:showdown_resolved', {
-      warId,
+      warId: session.warId.toString(),
       winner: winnerGang,
       warOutcome,
       pointsAwarded: SHOWDOWN_WIN_POINTS,
@@ -734,22 +809,63 @@ async function resolveLeaderShowdown(warId: string): Promise<{
 /**
  * Get raid game state
  */
-export function getRaidGameState(raidId: string): WarRaidGame | undefined {
-  return activeRaids.get(raidId);
+export async function getRaidGameState(raidId: string): Promise<WarRaidGame | null> {
+  const session = await GangWarSession.findOne({ sessionId: raidId, type: 'raid' });
+  if (!session) return null;
+
+  return {
+    warId: session.warId.toString(),
+    characterId: session.characterId!.toString(),
+    characterName: session.characterName!,
+    side: session.side!,
+    gameState: session.gameState
+  };
 }
 
 /**
  * Get champion duel state
  */
-export function getChampionDuelState(warId: string): ChampionDuel | undefined {
-  return championDuels.get(warId);
+export async function getChampionDuelState(warId: string): Promise<ChampionDuel | null> {
+  const session = await GangWarSession.findOne({
+    type: 'champion_duel',
+    warId: new mongoose.Types.ObjectId(warId)
+  });
+  if (!session) return null;
+
+  return {
+    warId,
+    attackerChampionId: session.attackerChampionId!.toString(),
+    defenderChampionId: session.defenderChampionId!.toString(),
+    attackerState: session.attackerState,
+    defenderState: session.defenderState,
+    attackerResolved: session.attackerResolved || false,
+    defenderResolved: session.defenderResolved || false,
+    attackerResult: session.attackerResult,
+    defenderResult: session.defenderResult
+  };
 }
 
 /**
  * Get leader showdown state
  */
-export function getLeaderShowdownState(warId: string): LeaderShowdown | undefined {
-  return leaderShowdowns.get(warId);
+export async function getLeaderShowdownState(warId: string): Promise<LeaderShowdown | null> {
+  const session = await GangWarSession.findOne({
+    type: 'leader_showdown',
+    warId: new mongoose.Types.ObjectId(warId)
+  });
+  if (!session) return null;
+
+  return {
+    warId,
+    attackerLeaderId: session.attackerChampionId!.toString(),
+    defenderLeaderId: session.defenderChampionId!.toString(),
+    attackerState: session.attackerState,
+    defenderState: session.defenderState,
+    attackerResolved: session.attackerResolved || false,
+    defenderResolved: session.defenderResolved || false,
+    attackerResult: session.attackerResult,
+    defenderResult: session.defenderResult
+  };
 }
 
 export const GangWarDeckService = {

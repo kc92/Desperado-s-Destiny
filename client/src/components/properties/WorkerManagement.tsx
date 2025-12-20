@@ -5,8 +5,8 @@
 
 import React, { useState } from 'react';
 import { Card, Button, Modal } from '@/components/ui';
-import { formatGold } from '@/utils/format';
-import type { PropertyWorker, WorkerType } from '@desperados/shared';
+import { formatDollars } from '@/utils/format';
+import type { PropertyWorker, WorkerType, WorkerSpecialization } from '@desperados/shared';
 import { BASE_WORKER_WAGES, WORKER_SKILL_TIERS } from '@desperados/shared';
 
 /**
@@ -38,6 +38,41 @@ const WORKER_TYPE_NAMES: Record<WorkerType, string> = {
 };
 
 /**
+ * Get display info for worker specialization
+ */
+function getWorkerDisplayInfo(specialization: WorkerSpecialization): { icon: string; name: string } {
+  // Map specializations to display info
+  const displayMap: Partial<Record<WorkerSpecialization, { icon: string; name: string }>> = {
+    rancher: { icon: '👨‍🌾', name: 'Rancher' },
+    horse_trainer: { icon: '🐴', name: 'Horse Trainer' },
+    farmer: { icon: '👨‍🌾', name: 'Farmer' },
+    shepherd: { icon: '🐑', name: 'Shepherd' },
+    merchant: { icon: '🧑‍💼', name: 'Merchant' },
+    clerk: { icon: '📋', name: 'Clerk' },
+    appraiser: { icon: '🔍', name: 'Appraiser' },
+    blacksmith: { icon: '⚒️', name: 'Blacksmith' },
+    carpenter: { icon: '🪚', name: 'Carpenter' },
+    leatherworker: { icon: '🧵', name: 'Leatherworker' },
+    gunsmith: { icon: '🔧', name: 'Gunsmith' },
+    miner: { icon: '⛏️', name: 'Miner' },
+    prospector: { icon: '🔍', name: 'Prospector' },
+    geologist: { icon: '🪨', name: 'Geologist' },
+    smelter: { icon: '🔥', name: 'Smelter' },
+    bartender: { icon: '🍸', name: 'Bartender' },
+    cook: { icon: '👨‍🍳', name: 'Cook' },
+    entertainer: { icon: '🎭', name: 'Entertainer' },
+    dealer: { icon: '🃏', name: 'Dealer' },
+    stable_hand: { icon: '🐴', name: 'Stable Hand' },
+    veterinarian: { icon: '🩺', name: 'Veterinarian' },
+    breeder: { icon: '🐎', name: 'Breeder' },
+    laborer: { icon: '💪', name: 'Laborer' },
+    foreman: { icon: '📋', name: 'Foreman' },
+  };
+
+  return displayMap[specialization] || { icon: '👤', name: specialization.replace(/_/g, ' ') };
+}
+
+/**
  * Get skill tier info
  */
 function getSkillTier(skill: number): { name: string; color: string } {
@@ -58,7 +93,7 @@ function getSkillTier(skill: number): { name: string; color: string } {
  */
 function calculateWage(workerType: WorkerType, skill: number): number {
   const baseWage = BASE_WORKER_WAGES[workerType] || 5;
-  let multiplier = WORKER_SKILL_TIERS.NOVICE.wageMultiplier;
+  let multiplier: number = WORKER_SKILL_TIERS.NOVICE.wageMultiplier;
 
   if (skill >= WORKER_SKILL_TIERS.MASTER.min) {
     multiplier = WORKER_SKILL_TIERS.MASTER.wageMultiplier;
@@ -95,9 +130,10 @@ const WorkerCard: React.FC<{
   isLoading: boolean;
 }> = ({ worker, onFire, isLoading }) => {
   const [showConfirm, setShowConfirm] = useState(false);
-  const icon = WORKER_TYPE_ICONS[worker.workerType] || '👤';
-  const typeName = WORKER_TYPE_NAMES[worker.workerType] || 'Worker';
-  const skillTier = getSkillTier(worker.skill);
+  const displayInfo = getWorkerDisplayInfo(worker.specialization);
+  const icon = displayInfo.icon;
+  const typeName = displayInfo.name;
+  const skillTier = getSkillTier(worker.skillLevel);
 
   const handleFire = () => {
     setShowConfirm(false);
@@ -109,7 +145,7 @@ const WorkerCard: React.FC<{
       <Card
         variant="leather"
         padding="none"
-        className={`overflow-hidden ${!worker.isActive ? 'opacity-50' : ''}`}
+        className={`overflow-hidden ${!worker.isAssigned ? 'opacity-50' : ''}`}
       >
         <div className="p-4">
           <div className="flex items-start justify-between">
@@ -122,7 +158,7 @@ const WorkerCard: React.FC<{
                 <p className="text-sm text-desert-stone">{typeName}</p>
               </div>
             </div>
-            {worker.isActive && (
+            {worker.isAssigned && (
               <span className="w-2 h-2 rounded-full bg-green-500" title="Active" />
             )}
           </div>
@@ -133,33 +169,33 @@ const WorkerCard: React.FC<{
               <div className="flex justify-between text-xs mb-1">
                 <span className="text-desert-stone">Skill</span>
                 <span className={skillTier.color}>
-                  {worker.skill} - {skillTier.name}
+                  {worker.skillLevel} - {skillTier.name}
                 </span>
               </div>
               <div className="h-2 bg-wood-dark rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gold-light transition-all duration-300"
-                  style={{ width: `${worker.skill}%` }}
+                  style={{ width: `${worker.skillLevel}%` }}
                 />
               </div>
             </div>
 
             {/* Wage */}
             <div className="flex justify-between text-sm">
-              <span className="text-desert-stone">Daily Wage:</span>
-              <span className="text-gold-light">{formatGold(worker.dailyWage)}</span>
+              <span className="text-desert-stone">Weekly Wage:</span>
+              <span className="text-gold-light">{formatDollars(worker.weeklyWage)}</span>
             </div>
 
             {/* Hired date */}
             <div className="flex justify-between text-xs text-desert-stone">
               <span>Hired:</span>
               <span>
-                {new Date(worker.hiredAt).toLocaleDateString()}
+                {new Date(worker.hiredDate).toLocaleDateString()}
               </span>
             </div>
           </div>
 
-          {worker.isActive && (
+          {worker.isAssigned && (
             <Button
               variant="danger"
               size="sm"
@@ -310,12 +346,12 @@ const HireWorkerForm: React.FC<{
         <div className="mb-4 p-3 bg-wood-dark/50 rounded-lg space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-desert-stone">Est. Daily Wage:</span>
-            <span className="text-gold-light">{formatGold(estimatedWage)}</span>
+            <span className="text-gold-light">{formatDollars(estimatedWage)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-desert-stone">Hiring Cost (1 week advance):</span>
             <span className={canAfford ? 'text-gold-light' : 'text-red-400'}>
-              {formatGold(hiringCost)}
+              {formatDollars(hiringCost)}
             </span>
           </div>
         </div>
@@ -357,14 +393,13 @@ export const WorkerManagement: React.FC<WorkerManagementProps> = ({
     success: boolean;
   } | null>(null);
 
-  const activeWorkers = workers.filter((w) => w.isActive);
+  const activeWorkers = workers.filter((w) => w.isAssigned);
   const canHireMore = activeWorkers.length < maxWorkers;
 
-  const totalDailyWages = activeWorkers.reduce(
-    (sum, w) => sum + w.dailyWage,
+  const totalWeeklyWages = activeWorkers.reduce(
+    (sum, w) => sum + w.weeklyWage,
     0
   );
-  const totalWeeklyWages = totalDailyWages * 7;
 
   const handleHireWorker = async (workerType: WorkerType, skill: number) => {
     setIsLoading(true);
@@ -433,7 +468,7 @@ export const WorkerManagement: React.FC<WorkerManagementProps> = ({
         <div className="flex justify-between items-center">
           <span className="text-desert-stone">Total Weekly Wages:</span>
           <span className="text-gold-light font-western">
-            {formatGold(totalWeeklyWages)}
+            {formatDollars(totalWeeklyWages)}
           </span>
         </div>
       </Card>

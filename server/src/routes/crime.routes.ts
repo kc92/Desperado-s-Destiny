@@ -7,6 +7,8 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.middleware';
 import { preventActionsWhileJailed } from '../middleware/jail.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import * as crimeController from '../controllers/crime.controller';
 
 const router = Router();
@@ -19,37 +21,37 @@ const router = Router();
  * POST /api/crimes/pay-bail
  * Pay bail to escape jail early
  */
-router.post('/pay-bail', requireAuth, crimeController.payBail);
+router.post('/pay-bail', requireAuth, requireCsrfToken, asyncHandler(crimeController.payBail));
 
 /**
  * GET /api/crimes/wanted
  * Get character's wanted status
  */
-router.get('/wanted', requireAuth, crimeController.getWantedStatus);
+router.get('/wanted', requireAuth, asyncHandler(crimeController.getWantedStatus));
 
 /**
  * POST /api/crimes/lay-low
  * Reduce wanted level by laying low
  * Note: Jail check applied - can't lay low while jailed
  */
-router.post('/lay-low', requireAuth, preventActionsWhileJailed, crimeController.layLow);
+router.post('/lay-low', requireAuth, requireCsrfToken, preventActionsWhileJailed, asyncHandler(crimeController.layLow));
 
 /**
  * POST /api/crimes/arrest/:targetCharacterId
  * Arrest another player (bounty hunting)
  */
-router.post('/arrest/:targetCharacterId', requireAuth, crimeController.arrestPlayer);
+router.post('/arrest/:targetCharacterId', requireAuth, requireCsrfToken, asyncHandler(crimeController.arrestPlayer));
 
 /**
  * GET /api/crimes/bounties
  * Get public bounty board (all wanted criminals)
  */
-router.get('/bounties', requireAuth, crimeController.getBountyBoard);
+router.get('/bounties', requireAuth, asyncHandler(crimeController.getBountyBoard));
 
 /**
  * GET /api/crimes/jail-status
  * Get character's jail status
  */
-router.get('/jail-status', requireAuth, crimeController.getJailStatus);
+router.get('/jail-status', requireAuth, asyncHandler(crimeController.getJailStatus));
 
 export default router;

@@ -12,6 +12,7 @@ import {
   getBountiesLeaderboard,
   getGangsLeaderboard
 } from '../controllers/leaderboard.controller';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
 
@@ -20,41 +21,41 @@ const router = Router();
  * Get level leaderboard
  * Query params: range (all|monthly|weekly|daily), limit
  */
-router.get('/level', getLevelLeaderboard);
+router.get('/level', asyncHandler(getLevelLeaderboard));
 
 /**
  * GET /api/leaderboard/gold
  * Get gold/wealth leaderboard
  * Query params: range, limit
  */
-router.get('/gold', getGoldLeaderboard);
+router.get('/gold', asyncHandler(getGoldLeaderboard));
 
 /**
  * GET /api/leaderboard/reputation
  * Get reputation leaderboard
  * Query params: range, limit
  */
-router.get('/reputation', getReputationLeaderboard);
+router.get('/reputation', asyncHandler(getReputationLeaderboard));
 
 /**
  * GET /api/leaderboard/combat
  * Get combat wins leaderboard
  * Query params: range, limit
  */
-router.get('/combat', getCombatLeaderboard);
+router.get('/combat', asyncHandler(getCombatLeaderboard));
 
 /**
  * GET /api/leaderboard/bounties
  * Get bounties/wanted leaderboard
  * Query params: range, limit
  */
-router.get('/bounties', getBountiesLeaderboard);
+router.get('/bounties', asyncHandler(getBountiesLeaderboard));
 
 /**
  * GET /api/leaderboard/gangs
  * Get gangs leaderboard
  * Query params: range, limit
  */
-router.get('/gangs', getGangsLeaderboard);
+router.get('/gangs', asyncHandler(getGangsLeaderboard));
 
 export default router;

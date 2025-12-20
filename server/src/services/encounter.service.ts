@@ -20,10 +20,11 @@ import {
   EncounterOutcome
 } from '../models/Encounter.model';
 import { calculateDangerChance, rollForEncounter } from '../middleware/accessRestriction.middleware';
-import { GoldService } from './gold.service';
-import { TransactionSource } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import { RegionType } from '@desperados/shared';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 export class EncounterService {
   /**
@@ -200,7 +201,7 @@ export class EncounterService {
     const totalWeight = pool.reduce((sum, enc) => sum + enc.weight, 0);
 
     // Roll random number
-    let roll = Math.random() * totalWeight;
+    let roll = SecureRNG.float(0, 1) * totalWeight;
 
     // Select encounter based on weight
     for (const encounter of pool) {
@@ -294,7 +295,7 @@ export class EncounterService {
       let effectsToApply: EncounterEffect;
 
       if (outcome.successChance !== undefined) {
-        const roll = Math.random() * 100;
+        const roll = SecureRNG.d100();
         success = roll < outcome.successChance;
         effectsToApply = success ? outcome.effects : (outcome.failureEffects || outcome.effects);
       } else {
@@ -378,12 +379,12 @@ export class EncounterService {
 
       // Flee chance: 50% + (level * 2) - (danger * 5), clamped 20-85%
       const fleeChance = Math.max(20, Math.min(85, 50 + (character.level * 2) - (dangerLevel * 5)));
-      const escaped = Math.random() * 100 < fleeChance;
+      const escaped = SecureRNG.d100() < fleeChance;
 
       let damage = 0;
       if (!escaped) {
         // Failed flee: take damage based on danger level
-        damage = Math.floor(dangerLevel * 5 * (0.1 + Math.random() * 0.2));
+        damage = Math.floor(dangerLevel * 5 * (0.1 + SecureRNG.float(0, 1) * 0.2));
         // Deduct energy as a damage proxy
         character.energy = Math.max(0, character.energy - Math.floor(damage / 2));
       }
@@ -490,11 +491,11 @@ export class EncounterService {
       }
     }
 
-    // Check gold
-    if (req.gold && !character.hasGold(req.gold)) {
+    // Check dollars
+    if (req.gold && !character.hasDollars(req.gold)) {
       return {
         success: false,
-        reason: `Requires ${req.gold} gold`
+        reason: `Requires ${req.gold} dollars`
       };
     }
 
@@ -537,26 +538,26 @@ export class EncounterService {
       logger.error('Failed to check world events for loot modifiers:', eventError);
     }
 
-    // Apply gold change (with loot modifier if positive)
+    // Apply dollars change (with loot modifier if positive)
     if (effects.gold) {
       if (effects.gold > 0) {
-        const modifiedGold = Math.floor(effects.gold * lootModifier);
-        await GoldService.addGold(
+        const modifiedDollars = Math.floor(effects.gold * lootModifier);
+        await DollarService.addDollars(
           character._id as any,
-          modifiedGold,
+          modifiedDollars,
           TransactionSource.ENCOUNTER,
-          { description: 'Random encounter reward' },
+          { description: 'Random encounter reward', currencyType: CurrencyType.DOLLAR },
           session
         );
       } else {
-        const goldLost = Math.abs(effects.gold);
-        const actualLoss = Math.min(goldLost, character.gold);
+        const dollarsLost = Math.abs(effects.gold);
+        const actualLoss = Math.min(dollarsLost, character.dollars);
         if (actualLoss > 0) {
-          await GoldService.deductGold(
+          await DollarService.deductDollars(
             character._id as any,
             actualLoss,
             TransactionSource.ENCOUNTER,
-            { description: 'Random encounter cost' },
+            { description: 'Random encounter cost', currencyType: CurrencyType.DOLLAR },
             session
           );
         }
@@ -670,8 +671,8 @@ export class EncounterService {
   static async getEncounterStats(characterId: string): Promise<{
     total: number;
     byType: Record<EncounterType, number>;
-    totalGoldEarned: number;
-    totalGoldLost: number;
+    totalDollarsEarned: number;
+    totalDollarsLost: number;
     totalXpEarned: number;
   }> {
     const encounters = await ActiveEncounter.find({
@@ -687,8 +688,8 @@ export class EncounterService {
         [EncounterType.DISCOVERY]: 0,
         [EncounterType.STORY]: 0
       },
-      totalGoldEarned: 0,
-      totalGoldLost: 0,
+      totalDollarsEarned: 0,
+      totalDollarsLost: 0,
       totalXpEarned: 0
     };
 
@@ -699,9 +700,9 @@ export class EncounterService {
         const effects = encounter.outcomeEffects;
         if (effects.gold) {
           if (effects.gold > 0) {
-            stats.totalGoldEarned += effects.gold;
+            stats.totalDollarsEarned += effects.gold;
           } else {
-            stats.totalGoldLost += Math.abs(effects.gold);
+            stats.totalDollarsLost += Math.abs(effects.gold);
           }
         }
         if (effects.xp && effects.xp > 0) {

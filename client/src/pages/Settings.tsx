@@ -4,17 +4,43 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useCharacterStore } from '@/store/useCharacterStore';
+import { useTutorialStore } from '@/store/useTutorialStore';
 import { Card, Button } from '@/components/ui';
 import { api } from '@/services/api';
+import { logger } from '@/services/logger.service';
+import twoFactorService, { TwoFactorStatusResponse } from '@/services/twoFactor.service';
 
-type SettingsSection = 'account' | 'notifications' | 'privacy' | 'display';
+type SettingsSection = 'account' | 'security' | 'notifications' | 'privacy' | 'display' | 'help';
+
+// Faction intro map for starting tutorial
+const FACTION_INTRO_MAP: Record<string, string> = {
+  'SETTLER_ALLIANCE': 'intro_settler',
+  'NAHI_COALITION': 'intro_nahi',
+  'FRONTERA': 'intro_frontera',
+};
 
 export const Settings: React.FC = () => {
+  const navigate = useNavigate();
   const { user, logout: _logout } = useAuthStore();
+  const { currentCharacter } = useCharacterStore();
+  const {
+    tutorialCompleted,
+    resetTutorial,
+    startTutorial,
+    getTotalProgress,
+    completedSections,
+  } = useTutorialStore();
   const [activeSection, setActiveSection] = useState<SettingsSection>('account');
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // 2FA state
+  const [twoFactorStatus, setTwoFactorStatus] = useState<TwoFactorStatusResponse | null>(null);
+  const [disablePassword, setDisablePassword] = useState('');
+  const [isDisabling2FA, setIsDisabling2FA] = useState(false);
 
   // Notification preferences state
   const [notifications, setNotifications] = useState({
@@ -34,7 +60,7 @@ export const Settings: React.FC = () => {
     allowChallenges: true,
   });
 
-  // Load preferences on mount
+  // Load preferences and 2FA status on mount
   useEffect(() => {
     const loadPreferences = async () => {
       try {
@@ -45,10 +71,21 @@ export const Settings: React.FC = () => {
           if (prefs.privacy) setPrivacy(prefs.privacy);
         }
       } catch (error) {
-        console.error('Failed to load preferences:', error);
+        logger.error('Failed to load preferences', error as Error, { context: 'Settings' });
       }
     };
+
+    const load2FAStatus = async () => {
+      try {
+        const status = await twoFactorService.getStatus();
+        setTwoFactorStatus(status);
+      } catch (error) {
+        logger.error('Failed to load 2FA status', error as Error, { context: 'Settings' });
+      }
+    };
+
     loadPreferences();
+    load2FAStatus();
   }, []);
 
   const handleSaveNotifications = async () => {
@@ -75,6 +112,27 @@ export const Settings: React.FC = () => {
       setMessage({ text: error.response?.data?.error || 'Failed to save settings', type: 'error' });
     } finally {
       setIsSaving(false);
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    if (!disablePassword) {
+      setMessage({ text: 'Please enter your password', type: 'error' });
+      return;
+    }
+
+    setIsDisabling2FA(true);
+    setMessage(null);
+    try {
+      await twoFactorService.disable(disablePassword);
+      setTwoFactorStatus({ enabled: false, pendingSetup: false });
+      setDisablePassword('');
+      setMessage({ text: 'Two-factor authentication disabled', type: 'success' });
+    } catch (error: any) {
+      setMessage({ text: error.message || 'Failed to disable 2FA', type: 'error' });
+    } finally {
+      setIsDisabling2FA(false);
       setTimeout(() => setMessage(null), 3000);
     }
   };
@@ -142,9 +200,11 @@ export const Settings: React.FC = () => {
         {/* Sidebar Navigation */}
         <aside className="w-48 flex-shrink-0 space-y-1">
           <NavItem section="account" icon="👤" label="Account" />
+          <NavItem section="security" icon="🛡️" label="Security" />
           <NavItem section="notifications" icon="🔔" label="Notifications" />
           <NavItem section="privacy" icon="🔒" label="Privacy" />
           <NavItem section="display" icon="🎨" label="Display" />
+          <NavItem section="help" icon="❓" label="Help & Tutorial" />
         </aside>
 
         {/* Main Content */}
@@ -198,6 +258,81 @@ export const Settings: React.FC = () => {
                     Account deletion coming soon
                   </p>
                 </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Security Settings */}
+          {activeSection === 'security' && (
+            <Card variant="leather" className="p-6">
+              <h2 className="text-xl font-western text-gold-light mb-6">
+                Security Settings
+              </h2>
+
+              {/* Two-Factor Authentication */}
+              <div className="mb-8">
+                <h3 className="text-lg font-western text-desert-sand mb-4">
+                  Two-Factor Authentication
+                </h3>
+
+                {twoFactorStatus === null ? (
+                  <div className="animate-pulse bg-wood-dark/30 h-20 rounded" />
+                ) : twoFactorStatus.enabled ? (
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-3 h-3 rounded-full bg-green-500" />
+                      <span className="text-green-400">2FA is enabled</span>
+                    </div>
+                    <p className="text-sm text-desert-stone mb-4">
+                      Your account is protected with two-factor authentication.
+                      To disable it, enter your password below.
+                    </p>
+                    <div className="flex gap-3">
+                      <input
+                        type="password"
+                        value={disablePassword}
+                        onChange={(e) => setDisablePassword(e.target.value)}
+                        placeholder="Enter password to disable"
+                        className="flex-1 bg-wood-dark/50 border border-wood-grain rounded px-3 py-2 text-desert-sand"
+                      />
+                      <Button
+                        variant="danger"
+                        onClick={handleDisable2FA}
+                        disabled={!disablePassword || isDisabling2FA}
+                        isLoading={isDisabling2FA}
+                      >
+                        Disable 2FA
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                      <span className="text-yellow-400">2FA is not enabled</span>
+                    </div>
+                    <p className="text-sm text-desert-stone mb-4">
+                      Add an extra layer of security to your account by enabling
+                      two-factor authentication with an authenticator app.
+                    </p>
+                    <Button onClick={() => navigate('/game/settings/2fa-setup')}>
+                      Enable Two-Factor Authentication
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Active Sessions - Future Feature */}
+              <div className="pt-6 border-t border-wood-grain/30">
+                <h3 className="text-lg font-western text-desert-sand mb-4">
+                  Active Sessions
+                </h3>
+                <p className="text-sm text-desert-stone">
+                  View and manage your active login sessions.
+                </p>
+                <p className="text-xs text-desert-stone mt-2 italic">
+                  Coming soon
+                </p>
               </div>
             </Card>
           )}
@@ -334,6 +469,109 @@ export const Settings: React.FC = () => {
                 <p className="text-xs text-desert-stone">
                   Additional display options coming soon
                 </p>
+              </div>
+            </Card>
+          )}
+
+          {/* Help & Tutorial Settings */}
+          {activeSection === 'help' && (
+            <Card variant="leather" className="p-6">
+              <h2 className="text-xl font-western text-gold-light mb-6">
+                Help & Tutorial
+              </h2>
+
+              <div className="space-y-6">
+                {/* Tutorial Section */}
+                <div>
+                  <h3 className="text-lg font-western text-desert-sand mb-4">
+                    Tutorial
+                  </h3>
+
+                  <div className="bg-wood-dark/50 rounded-lg p-4 mb-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      {tutorialCompleted ? (
+                        <>
+                          <div className="w-3 h-3 rounded-full bg-green-500" />
+                          <span className="text-green-400">Tutorial Completed</span>
+                        </>
+                      ) : completedSections.length > 0 ? (
+                        <>
+                          <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                          <span className="text-yellow-400">Tutorial In Progress ({getTotalProgress()}%)</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-3 h-3 rounded-full bg-gray-500" />
+                          <span className="text-desert-stone">Tutorial Not Started</span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-sm text-desert-stone">
+                      Learn the basics of the frontier with Hawk, your mentor.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        resetTutorial();
+                        const factionId = currentCharacter?.faction || 'SETTLER_ALLIANCE';
+                        const section = FACTION_INTRO_MAP[factionId] || 'intro_settler';
+                        startTutorial(section, 'core', factionId);
+                        navigate('/game/dashboard');
+                      }}
+                    >
+                      {tutorialCompleted ? 'Replay Tutorial' : 'Start Tutorial'}
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      onClick={() => navigate('/game/tutorial')}
+                    >
+                      View Tutorial Page
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Help Links */}
+                <div className="pt-6 border-t border-wood-grain/30">
+                  <h3 className="text-lg font-western text-desert-sand mb-4">
+                    Help Resources
+                  </h3>
+
+                  <div className="space-y-3">
+                    <Button
+                      variant="secondary"
+                      fullWidth
+                      onClick={() => navigate('/game/help')}
+                      className="justify-start"
+                    >
+                      <span className="mr-3">📖</span>
+                      Game Guide
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      fullWidth
+                      onClick={() => navigate('/game/deck-guide')}
+                      className="justify-start"
+                    >
+                      <span className="mr-3">🃏</span>
+                      Destiny Deck Guide
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Keyboard Shortcuts - Future */}
+                <div className="pt-6 border-t border-wood-grain/30">
+                  <h3 className="text-lg font-western text-desert-sand mb-4">
+                    Keyboard Shortcuts
+                  </h3>
+                  <p className="text-sm text-desert-stone italic">
+                    Coming soon
+                  </p>
+                </div>
               </div>
             </Card>
           )}

@@ -23,7 +23,7 @@ cp .env.development .env
 npm install
 npm run dev
 ```
-🎯 Backend runs on **http://localhost:5000**
+🎯 Backend runs on **http://localhost:5001**
 
 ### 3️⃣ Start Frontend (Terminal 2)
 ```bash
@@ -72,7 +72,7 @@ docker-compose -f docker-compose.dev.simple.yml down -v
 | Service | Port | URL | Notes |
 |---------|------|-----|-------|
 | **Frontend** | 5173 | http://localhost:5173 | React + Vite |
-| **Backend API** | 5000 | http://localhost:5000/api | Express + Socket.io |
+| **Backend API** | 5001 | http://localhost:5001/api | Express + Socket.io |
 | **MongoDB** | 27017 | mongodb://localhost:27017 | Single node, NO auth |
 | **Redis** | 6379 | redis://localhost:6379 | NO password |
 
@@ -110,7 +110,7 @@ docker exec -it desperados-redis-dev redis-cli
 # Check what's using ports
 netstat -ano | findstr :27017  # MongoDB
 netstat -ano | findstr :6379   # Redis
-netstat -ano | findstr :5000   # Backend
+netstat -ano | findstr :5001   # Backend
 netstat -ano | findstr :5173   # Frontend
 ```
 
@@ -120,9 +120,9 @@ netstat -ano | findstr :5173   # Frontend
 3. No auth needed for dev!
 
 ### Frontend Can't Reach Backend?
-1. Check backend is running on port 5000
+1. Check backend is running on port 5001
 2. Open DevTools Console → Check for CORS errors
-3. Backend should show `Server running on port 5000` message
+3. Backend should show `Server running on port 5001` message
 
 ---
 

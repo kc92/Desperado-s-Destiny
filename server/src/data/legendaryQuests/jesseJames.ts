@@ -223,7 +223,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
 
       questRewards: [
         { type: 'experience', amount: 8000 },
-        { type: 'gold', amount: 500 },
+        { type: 'dollars', amount: 500 },
         { type: 'item', itemId: 'item_jesse_letter_decoded', quantity: 1 },
       ],
 
@@ -423,7 +423,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
 
       questRewards: [
         { type: 'experience', amount: 10000 },
-        { type: 'gold', amount: 750 },
+        { type: 'dollars', amount: 750 },
         { type: 'item', itemId: 'item_war_diary', quantity: 1 },
         { type: 'item', itemId: 'item_jesse_bible', quantity: 1, unique: true },
       ],
@@ -670,7 +670,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
                   description: 'Robert Ford is arrested',
                 },
               ],
-              rewards: [{ type: 'gold', amount: 1000 }],
+              rewards: [{ type: 'dollars', amount: 1000 }],
               moralAlignment: 'lawful',
             },
             {
@@ -703,7 +703,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
 
       questRewards: [
         { type: 'experience', amount: 12000 },
-        { type: 'gold', amount: 2500 },
+        { type: 'dollars', amount: 2500 },
         { type: 'item', itemId: 'item_guerrilla_gold', quantity: 1 },
       ],
 
@@ -941,7 +941,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
                 },
               ],
               rewards: [
-                { type: 'gold', amount: 10000 },
+                { type: 'dollars', amount: 10000 },
                 { type: 'property', propertyId: 'prop_railroad_depot' },
               ],
               moralAlignment: 'neutral',
@@ -970,7 +970,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
 
       questRewards: [
         { type: 'experience', amount: 15000 },
-        { type: 'gold', amount: 1500 },
+        { type: 'dollars', amount: 1500 },
         { type: 'item', itemId: 'item_railroad_evidence', quantity: 1, unique: true },
       ],
 
@@ -1233,7 +1233,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
 
       questRewards: [
         { type: 'experience', amount: 18000 },
-        { type: 'gold', amount: 5000 },
+        { type: 'dollars', amount: 5000 },
         { type: 'item', itemId: 'item_jesse_treasure_cache', quantity: 1, unique: true },
         { type: 'item', itemId: 'item_railroad_documents', quantity: 1, unique: true },
       ],
@@ -1414,7 +1414,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
                   titleId: 'title_legend_truth',
                   titleName: 'Legend of the West',
                 },
-                { type: 'gold', amount: 10000 },
+                { type: 'dollars', amount: 10000 },
                 {
                   type: 'item',
                   itemId: 'item_jesse_revolver_legendary',
@@ -1448,7 +1448,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
                   titleId: 'title_keeper_legends',
                   titleName: 'Keeper of Legends',
                 },
-                { type: 'gold', amount: 20000 },
+                { type: 'dollars', amount: 20000 },
                 {
                   type: 'item',
                   itemId: 'item_outlaw_mask_legendary',
@@ -1471,7 +1471,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
                 },
               ],
               rewards: [
-                { type: 'gold', amount: 50000 },
+                { type: 'dollars', amount: 50000 },
                 {
                   type: 'item',
                   itemId: 'item_james_gang_revolver',
@@ -1557,7 +1557,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
       milestone: 2,
       description: 'Survived the Pinkerton assault',
       rewards: [
-        { type: 'gold', amount: 1000 },
+        { type: 'dollars', amount: 1000 },
         { type: 'item', itemId: 'item_pinkerton_duster', quantity: 1 },
       ],
     },
@@ -1573,7 +1573,7 @@ export const jesseJamesChain: LegendaryQuestChain = {
       milestone: 6,
       description: 'Completed Jesse James legendary chain',
       rewards: [
-        { type: 'gold', amount: 5000 },
+        { type: 'dollars', amount: 5000 },
         { type: 'skill_points', amount: 10 },
       ],
     },

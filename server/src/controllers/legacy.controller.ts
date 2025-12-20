@@ -5,6 +5,8 @@
 
 import { Request, Response } from 'express';
 import { legacyService } from '../services/legacy.service';
+import logger from '../utils/logger';
+import { sanitizeErrorMessage } from '../utils/errors';
 import {
   ClaimLegacyRewardRequest,
   LegacyProfileResponse,
@@ -35,10 +37,10 @@ export const getLegacyProfile = async (
 
     res.status(200).json(response);
   } catch (error) {
-    console.error('Error fetching legacy profile:', error);
+    logger.error('[LegacyController] Error fetching legacy profile:', error);
     res.status(500).json({
       error: 'Failed to fetch legacy profile',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: sanitizeErrorMessage(error),
     });
   }
 };
@@ -87,10 +89,10 @@ export const getMilestones = async (
 
     res.status(200).json(response);
   } catch (error) {
-    console.error('Error fetching milestones:', error);
+    logger.error('[LegacyController] Error fetching milestones:', error);
     res.status(500).json({
       error: 'Failed to fetch milestones',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: sanitizeErrorMessage(error),
     });
   }
 };
@@ -110,10 +112,10 @@ export const getActiveBonuses = async (
 
     res.status(200).json(bonuses);
   } catch (error) {
-    console.error('Error fetching active bonuses:', error);
+    logger.error('[LegacyController] Error fetching active bonuses:', error);
     res.status(500).json({
       error: 'Failed to fetch active bonuses',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: sanitizeErrorMessage(error),
     });
   }
 };
@@ -133,10 +135,10 @@ export const getNewCharacterBonuses = async (
 
     res.status(200).json(bonuses);
   } catch (error) {
-    console.error('Error fetching new character bonuses:', error);
+    logger.error('[LegacyController] Error fetching new character bonuses:', error);
     res.status(500).json({
       error: 'Failed to fetch new character bonuses',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: sanitizeErrorMessage(error),
     });
   }
 };
@@ -170,10 +172,10 @@ export const claimReward = async (
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('Error claiming reward:', error);
+    logger.error('[LegacyController] Error claiming reward:', error);
     res.status(400).json({
       error: 'Failed to claim reward',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: sanitizeErrorMessage(error),
     });
   }
 };
@@ -193,10 +195,10 @@ export const getAvailableRewards = async (
 
     res.status(200).json(rewards);
   } catch (error) {
-    console.error('Error fetching available rewards:', error);
+    logger.error('[LegacyController] Error fetching available rewards:', error);
     res.status(500).json({
       error: 'Failed to fetch available rewards',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: sanitizeErrorMessage(error),
     });
   }
 };
@@ -216,10 +218,10 @@ export const getLifetimeStats = async (
 
     res.status(200).json(profile.lifetimeStats);
   } catch (error) {
-    console.error('Error fetching lifetime stats:', error);
+    logger.error('[LegacyController] Error fetching lifetime stats:', error);
     res.status(500).json({
       error: 'Failed to fetch lifetime stats',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: sanitizeErrorMessage(error),
     });
   }
 };
@@ -239,10 +241,10 @@ export const getCharacterContributions = async (
 
     res.status(200).json(profile.characterContributions);
   } catch (error) {
-    console.error('Error fetching character contributions:', error);
+    logger.error('[LegacyController] Error fetching character contributions:', error);
     res.status(500).json({
       error: 'Failed to fetch character contributions',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: sanitizeErrorMessage(error),
     });
   }
 };
@@ -276,10 +278,10 @@ export const updateStat = async (
 
     res.status(200).json(profile);
   } catch (error) {
-    console.error('Error updating stat:', error);
+    logger.error('[LegacyController] Error updating stat:', error);
     res.status(500).json({
       error: 'Failed to update stat',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      message: sanitizeErrorMessage(error),
     });
   }
 };

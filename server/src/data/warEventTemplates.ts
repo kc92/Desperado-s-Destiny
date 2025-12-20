@@ -6,6 +6,7 @@
  */
 
 import { WarEventType, WarEventTemplate } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Skirmish templates (small, frequent)
@@ -398,5 +399,5 @@ export function getTemplateById(templateId: string): WarEventTemplate | undefine
 export function getRandomTemplate(eventType: WarEventType): WarEventTemplate | undefined {
   const templates = getTemplatesByType(eventType);
   if (templates.length === 0) return undefined;
-  return templates[Math.floor(Math.random() * templates.length)];
+  return SecureRNG.select(templates);
 }

@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Duel status types
 export type DuelStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'DECLINED' | 'CANCELLED' | 'EXPIRED';
@@ -156,7 +157,7 @@ export const useDuels = (): UseDuelsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch pending challenges';
       setError(errorMessage);
-      console.error('[useDuels] Fetch pending challenges error:', err);
+      logger.error('Fetch pending challenges error', err as Error, { context: 'useDuels' });
     } finally {
       setIsLoading(false);
     }
@@ -173,7 +174,7 @@ export const useDuels = (): UseDuelsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch active duels';
       setError(errorMessage);
-      console.error('[useDuels] Fetch active duels error:', err);
+      logger.error('Fetch active duels error', err as Error, { context: 'useDuels' });
     } finally {
       setIsLoading(false);
     }
@@ -192,7 +193,7 @@ export const useDuels = (): UseDuelsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch duel history';
       setError(errorMessage);
-      console.error('[useDuels] Fetch duel history error:', err);
+      logger.error('Fetch duel history error', err as Error, { context: 'useDuels' });
     } finally {
       setIsLoading(false);
     }
@@ -204,7 +205,7 @@ export const useDuels = (): UseDuelsReturn => {
       const response = await api.get<{ data: { stats: DuelStats } }>('/duels/stats');
       setDuelStats(response.data.data.stats);
     } catch (err: any) {
-      console.error('[useDuels] Fetch duel stats error:', err);
+      logger.error('Fetch duel stats error', err as Error, { context: 'useDuels' });
     }
   }, []);
 
@@ -216,7 +217,7 @@ export const useDuels = (): UseDuelsReturn => {
       setCurrentDuel(duel);
       return duel;
     } catch (err: any) {
-      console.error('[useDuels] Get duel game error:', err);
+      logger.error('Get duel game error', err as Error, { context: 'useDuels' });
       return null;
     }
   }, []);
@@ -238,7 +239,7 @@ export const useDuels = (): UseDuelsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to challenge player';
       setError(errorMessage);
-      console.error('[useDuels] Challenge player error:', err);
+      logger.error('Challenge player error', err as Error, { context: 'useDuels' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -260,7 +261,7 @@ export const useDuels = (): UseDuelsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to accept duel';
       setError(errorMessage);
-      console.error('[useDuels] Accept duel error:', err);
+      logger.error('Accept duel error', err as Error, { context: 'useDuels' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -279,7 +280,7 @@ export const useDuels = (): UseDuelsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to decline duel';
       setError(errorMessage);
-      console.error('[useDuels] Decline duel error:', err);
+      logger.error('Decline duel error', err as Error, { context: 'useDuels' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -298,7 +299,7 @@ export const useDuels = (): UseDuelsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to cancel duel';
       setError(errorMessage);
-      console.error('[useDuels] Cancel duel error:', err);
+      logger.error('Cancel duel error', err as Error, { context: 'useDuels' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -330,7 +331,7 @@ export const useDuels = (): UseDuelsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to play action';
       setError(errorMessage);
-      console.error('[useDuels] Play action error:', err);
+      logger.error('Play action error', err as Error, { context: 'useDuels' });
       return { success: false, message: errorMessage };
     }
   }, [refreshCharacter, fetchDuelHistory]);

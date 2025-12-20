@@ -1,11 +1,15 @@
 /**
  * useEnergy Hook
  * Manages energy status, spending, and regeneration
+ *
+ * IMPORTANT: Server is authoritative for energy values.
+ * This hook syncs with the server and prevents race conditions.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Energy status interface
 export interface EnergyStatus {
@@ -76,6 +80,10 @@ export const useEnergy = (): UseEnergyReturn => {
   const [error, setError] = useState<string | null>(null);
   const { refreshCharacter } = useCharacterStore();
 
+  // Request lock to prevent concurrent spend operations
+  const spendingRef = useRef(false);
+  const syncInProgressRef = useRef(false);
+
   // Fetch current energy status
   const fetchStatus = useCallback(async () => {
     setIsLoading(true);
@@ -87,7 +95,7 @@ export const useEnergy = (): UseEnergyReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch energy status';
       setError(errorMessage);
-      console.error('[useEnergy] Fetch status error:', err);
+      logger.error('Fetch status error', err as Error, { context: 'useEnergy' });
     } finally {
       setIsLoading(false);
     }
@@ -101,13 +109,26 @@ export const useEnergy = (): UseEnergyReturn => {
       );
       return response.data.data.canAfford;
     } catch (err: any) {
-      console.error('[useEnergy] Can afford check error:', err);
+      logger.error('Can afford check error', err as Error, { context: 'useEnergy' });
       return false;
     }
   }, []);
 
-  // Spend energy for an action
+  // Spend energy for an action (with request deduplication)
   const spend = useCallback(async (amount: number): Promise<EnergySpendResult> => {
+    // Prevent concurrent spend operations
+    if (spendingRef.current) {
+      return {
+        success: false,
+        message: 'Energy operation already in progress',
+        energySpent: 0,
+        currentEnergy: energyStatus?.current || 0,
+        maxEnergy: energyStatus?.max || 100,
+      };
+    }
+
+    spendingRef.current = true;
+
     try {
       const response = await api.post<{ data: EnergySpendResult }>(
         '/energy/spend',
@@ -115,14 +136,15 @@ export const useEnergy = (): UseEnergyReturn => {
       );
       const result = response.data.data;
 
-      // Update local status
-      if (energyStatus) {
-        setEnergyStatus({
-          ...energyStatus,
+      // Update local status with server's authoritative values
+      setEnergyStatus((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
           current: result.currentEnergy,
           max: result.maxEnergy,
-        });
-      }
+        };
+      });
 
       // Refresh character
       await refreshCharacter();
@@ -131,14 +153,33 @@ export const useEnergy = (): UseEnergyReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to spend energy';
       setError(errorMessage);
-      console.error('[useEnergy] Spend error:', err);
-      return {
-        success: false,
-        message: errorMessage,
-        energySpent: 0,
-        currentEnergy: energyStatus?.current || 0,
-        maxEnergy: energyStatus?.max || 100,
-      };
+      logger.error('Spend error', err as Error, { context: 'useEnergy' });
+
+      // On error, fetch fresh state from server to avoid stale values
+      try {
+        const freshResponse = await api.get<{ data: { energy: EnergyStatus } }>('/energy/status');
+        const freshEnergy = freshResponse.data.data.energy;
+        setEnergyStatus(freshEnergy);
+
+        return {
+          success: false,
+          message: errorMessage,
+          energySpent: 0,
+          currentEnergy: freshEnergy.current,
+          maxEnergy: freshEnergy.max,
+        };
+      } catch {
+        // If fetch also fails, return best known values
+        return {
+          success: false,
+          message: errorMessage,
+          energySpent: 0,
+          currentEnergy: energyStatus?.current || 0,
+          maxEnergy: energyStatus?.max || 100,
+        };
+      }
+    } finally {
+      spendingRef.current = false;
     }
   }, [energyStatus, refreshCharacter]);
 
@@ -166,7 +207,7 @@ export const useEnergy = (): UseEnergyReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to grant energy';
       setError(errorMessage);
-      console.error('[useEnergy] Grant error:', err);
+      logger.error('Grant error', err as Error, { context: 'useEnergy' });
       return {
         success: false,
         message: errorMessage,
@@ -195,7 +236,7 @@ export const useEnergy = (): UseEnergyReturn => {
 
       return result;
     } catch (err: any) {
-      console.error('[useEnergy] Regenerate error:', err);
+      logger.error('Regenerate error', err as Error, { context: 'useEnergy' });
       return null;
     }
   }, [energyStatus]);
@@ -218,13 +259,22 @@ export const useEnergy = (): UseEnergyReturn => {
     return regenPerSecond > 0 ? Math.ceil(missing / regenPerSecond) : 0;
   })();
 
-  // Auto-refresh energy status periodically
+  // Auto-refresh energy status periodically (every 30 seconds for better sync)
   useEffect(() => {
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
+      // Skip if another sync is in progress
+      if (syncInProgressRef.current) return;
+
+      // Only sync if we have energy state and aren't at max
       if (energyStatus && energyStatus.current < energyStatus.max) {
-        regenerate();
+        syncInProgressRef.current = true;
+        try {
+          await regenerate();
+        } finally {
+          syncInProgressRef.current = false;
+        }
       }
-    }, 60000); // Check every minute
+    }, 30000); // Sync every 30 seconds for better accuracy
 
     return () => clearInterval(interval);
   }, [energyStatus, regenerate]);

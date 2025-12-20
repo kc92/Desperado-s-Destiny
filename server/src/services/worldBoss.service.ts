@@ -14,6 +14,9 @@ import {
   JoinWorldBossResponse,
   SCAR_CONSTANTS,
 } from '@desperados/shared';
+import { worldBossStateManager } from './base/StateManager';
+import logger from '../utils/logger';
+import { withLock } from '../utils/distributedLock';
 
 /**
  * Active world boss session
@@ -24,7 +27,7 @@ interface WorldBossSession {
   currentHealth: number;
   maxHealth: number;
   currentPhase: number;
-  participants: Map<string, ParticipantData>;
+  participants: Record<string, ParticipantData>;
   startedAt: Date;
   endsAt: Date;
   status: 'active' | 'completed' | 'failed';
@@ -46,14 +49,12 @@ interface ParticipantData {
  * World Boss Service
  */
 export class WorldBossService {
-  private static activeSessions: Map<WorldBossType, WorldBossSession> = new Map();
-
   /**
    * Check if boss is currently spawned
    */
-  static isBossActive(bossId: WorldBossType): boolean {
-    const session = this.activeSessions.get(bossId);
-    return session !== undefined && session.status === 'active';
+  static async isBossActive(bossId: WorldBossType): Promise<boolean> {
+    const session = await worldBossStateManager.get<WorldBossSession>(bossId);
+    return session !== null && session.status === 'active';
   }
 
   /**
@@ -66,7 +67,7 @@ export class WorldBossService {
     }
 
     // Check if already active
-    if (this.isBossActive(bossId)) {
+    if (await this.isBossActive(bossId)) {
       throw new Error('Boss already active');
     }
 
@@ -79,15 +80,15 @@ export class WorldBossService {
       currentHealth: boss.health,
       maxHealth: boss.health,
       currentPhase: 1,
-      participants: new Map(),
+      participants: {},
       startedAt: now,
       endsAt,
       status: 'active',
     };
 
-    this.activeSessions.set(bossId, session);
+    await worldBossStateManager.set(bossId, session, { ttl: 7200 });
 
-    console.log(`World Boss spawned: ${boss.name} in ${boss.zone}`);
+    logger.info(`World Boss spawned: ${boss.name} in ${boss.zone}`);
 
     return session;
   }
@@ -95,8 +96,8 @@ export class WorldBossService {
   /**
    * Get active boss session
    */
-  static getActiveSession(bossId: WorldBossType): WorldBossSession | undefined {
-    return this.activeSessions.get(bossId);
+  static async getActiveSession(bossId: WorldBossType): Promise<WorldBossSession | null> {
+    return await worldBossStateManager.get<WorldBossSession>(bossId);
   }
 
   /**
@@ -107,7 +108,7 @@ export class WorldBossService {
     characterName: string,
     request: JoinWorldBossRequest
   ): Promise<JoinWorldBossResponse> {
-    const session = this.activeSessions.get(request.bossId);
+    const session = await worldBossStateManager.get<WorldBossSession>(request.bossId);
 
     if (!session) {
       return {
@@ -124,9 +125,10 @@ export class WorldBossService {
     }
 
     // Check max participants
+    const participantCount = Object.keys(session.participants).length;
     if (
       session.boss.maxParticipants &&
-      session.participants.size >= session.boss.maxParticipants
+      participantCount >= session.boss.maxParticipants
     ) {
       return {
         success: false,
@@ -135,15 +137,18 @@ export class WorldBossService {
     }
 
     // Add participant
-    if (!session.participants.has(characterId)) {
-      session.participants.set(characterId, {
+    if (!session.participants[characterId]) {
+      session.participants[characterId] = {
         characterId,
         characterName,
         damageDealt: 0,
         healingDone: 0,
         damageTaken: 0,
         joinedAt: new Date(),
-      });
+      };
+
+      // Update session in Redis
+      await worldBossStateManager.set(request.bossId, session, { ttl: 7200 });
     }
 
     return {
@@ -153,7 +158,7 @@ export class WorldBossService {
         boss: session.boss,
         currentHealth: session.currentHealth,
         maxHealth: session.maxHealth,
-        participants: session.participants.size,
+        participants: Object.keys(session.participants).length,
         startedAt: session.startedAt,
       },
       message: `Joined fight against ${session.boss.name}`,
@@ -175,71 +180,78 @@ export class WorldBossService {
     defeated?: boolean;
     message: string;
   }> {
-    const session = this.activeSessions.get(bossId);
+    // PHASE 3 FIX: Add distributed lock to prevent race conditions on concurrent attacks
+    return withLock(`lock:worldboss:${bossId}`, async () => {
+      const session = await worldBossStateManager.get<WorldBossSession>(bossId);
 
-    if (!session || session.status !== 'active') {
-      return {
-        success: false,
-        damageDealt: 0,
-        bossHealth: 0,
-        message: 'Boss is not active',
-      };
-    }
+      if (!session || session.status !== 'active') {
+        return {
+          success: false,
+          damageDealt: 0,
+          bossHealth: 0,
+          message: 'Boss is not active',
+        };
+      }
 
-    const participant = session.participants.get(characterId);
-    if (!participant) {
-      return {
-        success: false,
-        damageDealt: 0,
-        bossHealth: session.currentHealth,
-        message: 'Not participating in this fight',
-      };
-    }
+      const participant = session.participants[characterId];
+      if (!participant) {
+        return {
+          success: false,
+          damageDealt: 0,
+          bossHealth: session.currentHealth,
+          message: 'Not participating in this fight',
+        };
+      }
 
-    // Apply damage
-    const actualDamage = Math.min(damage, session.currentHealth);
-    session.currentHealth -= actualDamage;
-    participant.damageDealt += actualDamage;
+      // Apply damage
+      const actualDamage = Math.min(damage, session.currentHealth);
+      session.currentHealth -= actualDamage;
+      participant.damageDealt += actualDamage;
 
-    // Check for phase change
-    const healthPercent = (session.currentHealth / session.maxHealth) * 100;
-    const currentPhaseData = session.boss.phases.find(p => p.phase === session.currentPhase);
-    const nextPhase = session.boss.phases.find(
-      p => p.phase === session.currentPhase + 1 && healthPercent <= p.healthThreshold
-    );
-
-    let phaseChange: number | undefined;
-    if (nextPhase) {
-      session.currentPhase = nextPhase.phase;
-      phaseChange = nextPhase.phase;
-      console.log(
-        `${session.boss.name} entered phase ${nextPhase.phase}: ${nextPhase.name}`
+      // Check for phase change
+      const healthPercent = (session.currentHealth / session.maxHealth) * 100;
+      const currentPhaseData = session.boss.phases.find(p => p.phase === session.currentPhase);
+      const nextPhase = session.boss.phases.find(
+        p => p.phase === session.currentPhase + 1 && healthPercent <= p.healthThreshold
       );
-    }
 
-    // Check for defeat
-    if (session.currentHealth <= 0) {
-      session.status = 'completed';
-      await this.completeBossFight(bossId, true);
+      let phaseChange: number | undefined;
+      if (nextPhase) {
+        session.currentPhase = nextPhase.phase;
+        phaseChange = nextPhase.phase;
+        logger.info(
+          `${session.boss.name} entered phase ${nextPhase.phase}: ${nextPhase.name}`
+        );
+      }
+
+      // Check for defeat
+      if (session.currentHealth <= 0) {
+        session.status = 'completed';
+        await worldBossStateManager.set(bossId, session, { ttl: 7200 });
+        await this.completeBossFight(bossId, true);
+
+        return {
+          success: true,
+          damageDealt: actualDamage,
+          bossHealth: 0,
+          defeated: true,
+          message: `${session.boss.name} has been defeated!`,
+        };
+      }
+
+      // Update session in Redis
+      await worldBossStateManager.set(bossId, session, { ttl: 7200 });
 
       return {
         success: true,
         damageDealt: actualDamage,
-        bossHealth: 0,
-        defeated: true,
-        message: `${session.boss.name} has been defeated!`,
+        bossHealth: session.currentHealth,
+        phaseChange,
+        message: phaseChange
+          ? `Phase ${phaseChange}: ${nextPhase?.name}`
+          : 'Attack successful',
       };
-    }
-
-    return {
-      success: true,
-      damageDealt: actualDamage,
-      bossHealth: session.currentHealth,
-      phaseChange,
-      message: phaseChange
-        ? `Phase ${phaseChange}: ${nextPhase?.name}`
-        : 'Attack successful',
-    };
+    }, { ttl: 30, retries: 10 });
   }
 
   /**
@@ -249,10 +261,11 @@ export class WorldBossService {
     bossId: WorldBossType,
     victory: boolean
   ): Promise<void> {
-    const session = this.activeSessions.get(bossId);
+    const session = await worldBossStateManager.get<WorldBossSession>(bossId);
     if (!session) return;
 
     session.status = victory ? 'completed' : 'failed';
+    await worldBossStateManager.set(bossId, session, { ttl: 7200 });
 
     if (victory) {
       // Distribute rewards to participants
@@ -260,8 +273,8 @@ export class WorldBossService {
     }
 
     // Clean up after 5 minutes
-    setTimeout(() => {
-      this.activeSessions.delete(bossId);
+    setTimeout(async () => {
+      await worldBossStateManager.delete(bossId);
     }, 5 * 60 * 1000);
   }
 
@@ -272,7 +285,7 @@ export class WorldBossService {
     const { boss, participants } = session;
 
     // Sort participants by contribution
-    const sortedParticipants = Array.from(participants.values()).sort(
+    const sortedParticipants = Object.values(participants).sort(
       (a, b) => b.damageDealt - a.damageDealt
     );
 
@@ -294,7 +307,7 @@ export class WorldBossService {
       await progress.recordWorldBossDefeat(session.bossId, participant.damageDealt);
 
       // Award loot (simplified - would integrate with inventory system)
-      console.log(
+      logger.info(
         `Awarded rewards to ${participant.characterName} for defeating ${boss.name}`
       );
     }
@@ -316,7 +329,7 @@ export class WorldBossService {
             progress.titles.push(boss.firstKillBonus.title);
             await progress.save();
           }
-          console.log(
+          logger.info(
             `First kill bonus awarded to ${topParticipant.characterName}!`
           );
         }
@@ -328,12 +341,12 @@ export class WorldBossService {
    * Check for enrage timer
    */
   static async checkEnrageTimer(bossId: WorldBossType): Promise<void> {
-    const session = this.activeSessions.get(bossId);
+    const session = await worldBossStateManager.get<WorldBossSession>(bossId);
     if (!session || session.status !== 'active') return;
 
     const now = new Date();
     if (now >= session.endsAt) {
-      console.log(`${session.boss.name} enraged! Encounter failed.`);
+      logger.info(`${session.boss.name} enraged! Encounter failed.`);
       await this.completeBossFight(bossId, false);
     }
   }
@@ -348,42 +361,45 @@ export class WorldBossService {
   /**
    * Get all scheduled boss spawns
    */
-  static getAllScheduledSpawns(): Array<{
+  static async getAllScheduledSpawns(): Promise<Array<{
     bossId: WorldBossType;
     bossName: string;
     nextSpawn: Date | null;
     isActive: boolean;
-  }> {
-    return Object.values(WorldBossType).map(bossId => {
-      const boss = getWorldBoss(bossId);
-      return {
-        bossId,
-        bossName: boss?.name || 'Unknown',
-        nextSpawn: this.getNextSpawnTime(bossId),
-        isActive: this.isBossActive(bossId),
-      };
-    });
+  }>> {
+    const spawns = await Promise.all(
+      Object.values(WorldBossType).map(async bossId => {
+        const boss = getWorldBoss(bossId);
+        return {
+          bossId,
+          bossName: boss?.name || 'Unknown',
+          nextSpawn: this.getNextSpawnTime(bossId),
+          isActive: await this.isBossActive(bossId),
+        };
+      })
+    );
+    return spawns;
   }
 
   /**
    * Get session participant data
    */
-  static getParticipantData(
+  static async getParticipantData(
     bossId: WorldBossType,
     characterId: string
-  ): ParticipantData | undefined {
-    const session = this.activeSessions.get(bossId);
-    return session?.participants.get(characterId);
+  ): Promise<ParticipantData | undefined> {
+    const session = await worldBossStateManager.get<WorldBossSession>(bossId);
+    return session?.participants[characterId];
   }
 
   /**
    * Get session leaderboard
    */
-  static getSessionLeaderboard(bossId: WorldBossType): ParticipantData[] {
-    const session = this.activeSessions.get(bossId);
+  static async getSessionLeaderboard(bossId: WorldBossType): Promise<ParticipantData[]> {
+    const session = await worldBossStateManager.get<WorldBossSession>(bossId);
     if (!session) return [];
 
-    return Array.from(session.participants.values()).sort(
+    return Object.values(session.participants).sort(
       (a, b) => b.damageDealt - a.damageDealt
     );
   }
@@ -398,14 +414,14 @@ export class WorldBossService {
   /**
    * Get boss status
    */
-  static getBossStatus(bossId: WorldBossType): {
+  static async getBossStatus(bossId: WorldBossType): Promise<{
     isActive: boolean;
     session?: WorldBossSession;
     nextSpawn?: Date | null;
-  } {
-    const session = this.activeSessions.get(bossId);
+  }> {
+    const session = await worldBossStateManager.get<WorldBossSession>(bossId);
     return {
-      isActive: this.isBossActive(bossId),
+      isActive: await this.isBossActive(bossId),
       session: session?.status === 'active' ? session : undefined,
       nextSpawn: !session ? this.getNextSpawnTime(bossId) : undefined,
     };

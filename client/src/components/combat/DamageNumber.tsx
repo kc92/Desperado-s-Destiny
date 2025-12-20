@@ -30,7 +30,7 @@ export const DamageNumber: React.FC<DamageNumberProps> = ({
   isHealing = false,
   position = { x: 0, y: 0 },
   onComplete,
-  id,
+  id: _id,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
 

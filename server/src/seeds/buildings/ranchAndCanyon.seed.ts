@@ -7,6 +7,7 @@
  */
 
 import mongoose from 'mongoose';
+import logger from '../../utils/logger';
 import { Location } from '../../models/Location.model';
 import { LOCATION_IDS } from '../locations.seed';
 
@@ -1125,7 +1126,7 @@ export async function seedLonghornRanchBuildings(): Promise<void> {
 
     console.log(`Successfully seeded ${longhornRanchBuildings.length} Longhorn Ranch buildings`);
   } catch (error) {
-    console.error('Error seeding Longhorn Ranch buildings:', error);
+    logger.error('Error seeding Longhorn Ranch buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }
@@ -1149,7 +1150,7 @@ export async function seedSangreCanyonBuildings(): Promise<void> {
 
     console.log(`Successfully seeded ${sangreCanyonBuildings.length} Sangre Canyon buildings`);
   } catch (error) {
-    console.error('Error seeding Sangre Canyon buildings:', error);
+    logger.error('Error seeding Sangre Canyon buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }

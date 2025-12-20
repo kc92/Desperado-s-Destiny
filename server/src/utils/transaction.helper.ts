@@ -237,6 +237,43 @@ export async function withGoldTransaction<T>(
   }
 }
 
+/**
+ * Execute function with distributed lock AND transaction
+ * For operations that need both concurrency control and atomicity
+ *
+ * This is the safest option for financial operations where you need:
+ * 1. No concurrent modifications (lock)
+ * 2. All-or-nothing semantics (transaction)
+ *
+ * @param lockKey - Redis lock key (e.g., "lock:gold:characterId")
+ * @param operation - Function to execute while holding lock
+ * @param options - Lock TTL and transaction options
+ * @returns Result of the operation
+ *
+ * @example
+ * await withLockAndTransaction(
+ *   `lock:gold:${characterId}`,
+ *   async (session) => {
+ *     const char = await Character.findById(characterId).session(session);
+ *     char.gold -= amount;
+ *     await char.save({ session });
+ *   },
+ *   { lockTtl: 10000 }
+ * );
+ */
+export async function withLockAndTransaction<T>(
+  lockKey: string,
+  operation: (session: ClientSession) => Promise<T>,
+  options: { lockTtl?: number } & TransactionOptions = {}
+): Promise<T> {
+  const { withLock } = await import('./distributedLock');
+  const { lockTtl = 10000, ...transactionOptions } = options;
+
+  return withLock(lockKey, async () => {
+    return withTransaction(operation, undefined, transactionOptions);
+  }, { ttl: lockTtl / 1000 });
+}
+
 export default {
   areTransactionsDisabled,
   startSession,
@@ -244,4 +281,5 @@ export default {
   withSession,
   withTransactionBatch,
   withGoldTransaction,
+  withLockAndTransaction,
 };

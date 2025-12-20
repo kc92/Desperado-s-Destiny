@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { Card, Button, Badge } from '@/components/ui';
+import { Card, Button } from '@/components/ui';
 import { Contract, ContractType, ContractDifficulty, ContractStatus } from '@/hooks/useDailyContracts';
 import { ContractRewards } from './ContractRewards';
 
@@ -159,7 +159,7 @@ export const ContractCard: React.FC<ContractCardProps> = ({
           <Button
             onClick={() => onComplete(contract.id)}
             disabled={isLoading}
-            variant="success"
+            variant="primary"
             fullWidth
           >
             Complete & Claim Rewards

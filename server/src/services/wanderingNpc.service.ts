@@ -7,8 +7,8 @@
 
 import {
   WanderingServiceProvider,
-  ServiceProviderRelationship,
-  ServiceUsageRecord,
+  ServiceProviderRelationship as IServiceProviderRelationshipType,
+  ServiceUsageRecord as IServiceUsageRecordType,
   UseServiceRequest,
   UseServiceResponse,
   GetServiceProvidersAtLocationResponse,
@@ -22,6 +22,8 @@ import {
   getServiceProviderById,
   getServiceProvidersAtLocation,
 } from '../data/wanderingServiceProviders';
+import { ServiceProviderRelationship } from '../models/ServiceProviderRelationship.model';
+import { ServiceUsageRecord } from '../models/ServiceUsageRecord.model';
 
 /**
  * Get current game time (day of week and hour)
@@ -41,7 +43,7 @@ function getCurrentGameTime(): { dayOfWeek: number; hour: number } {
  * Calculate trust level based on relationship
  */
 function calculateTrustLevel(
-  relationship?: ServiceProviderRelationship
+  relationship?: IServiceProviderRelationshipType | { trustLevel: number; servicesUsed: number; totalSpent: number; favorsDone?: number; providerId: string }
 ): number {
   if (!relationship) return 1; // Base trust for new relationships
 
@@ -180,12 +182,8 @@ function isServiceAvailable(
  * Wandering NPC Service Class
  */
 export class WanderingNPCService {
-  private relationships: Map<string, ServiceProviderRelationship>;
-  private usageRecords: Map<string, ServiceUsageRecord>;
-
   constructor() {
-    this.relationships = new Map();
-    this.usageRecords = new Map();
+    // MongoDB models are now used instead of in-memory Maps
   }
 
   /**
@@ -198,45 +196,47 @@ export class WanderingNPCService {
     const { dayOfWeek, hour } = getCurrentGameTime();
     const providers = getServiceProvidersAtLocation(locationId, dayOfWeek, hour);
 
-    const providersWithDetails = providers.map((provider) => {
-      // Find current schedule entry
-      const scheduleEntry = provider.schedule.find(
-        (entry) =>
-          entry.dayOfWeek === dayOfWeek &&
-          hour >= entry.hour &&
-          hour < entry.endHour &&
-          entry.locationId === locationId
-      );
+    const providersWithDetails = await Promise.all(
+      providers.map(async (provider) => {
+        // Find current schedule entry
+        const scheduleEntry = provider.schedule.find(
+          (entry) =>
+            entry.dayOfWeek === dayOfWeek &&
+            hour >= entry.hour &&
+            hour < entry.endHour &&
+            entry.locationId === locationId
+        );
 
-      // Get relationship if character provided
-      let trustLevel: number | undefined;
-      if (characterId) {
-        const relationship = this.getRelationship(provider.id, characterId);
-        trustLevel = calculateTrustLevel(relationship);
-      }
+        // Get relationship if character provided
+        let trustLevel: number | undefined;
+        if (characterId) {
+          const relationship = await this.getRelationship(provider.id, characterId);
+          trustLevel = calculateTrustLevel(relationship);
+        }
 
-      // Calculate when provider is departing
-      const routeStop = provider.route.find(
-        (stop) => stop.locationId === locationId
-      );
-      let departingIn: number | undefined;
-      if (routeStop) {
-        // Calculate hours until departure
-        const currentTime = dayOfWeek * 24 + hour;
-        const departureTime =
-          routeStop.departureDay * 24 + routeStop.departureHour;
-        departingIn = departureTime - currentTime;
-        if (departingIn < 0) departingIn += 7 * 24; // Wrap around week
-      }
+        // Calculate when provider is departing
+        const routeStop = provider.route.find(
+          (stop) => stop.locationId === locationId
+        );
+        let departingIn: number | undefined;
+        if (routeStop) {
+          // Calculate hours until departure
+          const currentTime = dayOfWeek * 24 + hour;
+          const departureTime =
+            routeStop.departureDay * 24 + routeStop.departureHour;
+          departingIn = departureTime - currentTime;
+          if (departingIn < 0) departingIn += 7 * 24; // Wrap around week
+        }
 
-      return {
-        provider,
-        currentActivity: scheduleEntry?.activity || NPCActivity.RESTING,
-        servicesAvailable: scheduleEntry?.servicesAvailable || false,
-        departingIn,
-        trustLevel,
-      };
-    });
+        return {
+          provider,
+          currentActivity: scheduleEntry?.activity || NPCActivity.RESTING,
+          servicesAvailable: scheduleEntry?.servicesAvailable || false,
+          departingIn,
+          trustLevel,
+        };
+      })
+    );
 
     return {
       success: true,
@@ -353,11 +353,11 @@ export class WanderingNPCService {
     }
 
     // Get relationship and trust
-    const relationship = this.getRelationship(
+    const relationshipData = await this.getRelationship(
       request.providerId,
       request.characterId
     );
-    const trustLevel = calculateTrustLevel(relationship);
+    const trustLevel = calculateTrustLevel(relationshipData);
 
     // Check if service is unlocked
     if (!isServiceAvailable(service, provider, trustLevel)) {
@@ -382,21 +382,17 @@ export class WanderingNPCService {
       };
     }
 
-    // Check cooldown
-    const lastUsage = this.getLastServiceUsage(
-      request.serviceId,
-      request.characterId
+    // Check cooldown using MongoDB model
+    const cooldownCheck = await ServiceUsageRecord.isOnCooldown(
+      request.characterId,
+      request.serviceId
     );
-    if (lastUsage && service.cooldown) {
-      const cooldownEnds = new Date(lastUsage.usedAt);
-      cooldownEnds.setMinutes(cooldownEnds.getMinutes() + service.cooldown);
-      if (new Date() < cooldownEnds) {
-        return {
-          success: false,
-          message: `This service is on cooldown until ${cooldownEnds.toLocaleTimeString()}`,
-          cooldownUntil: cooldownEnds,
-        };
-      }
+    if (cooldownCheck.onCooldown && cooldownCheck.expiresAt) {
+      return {
+        success: false,
+        message: `This service is on cooldown until ${cooldownCheck.expiresAt.toLocaleTimeString()}`,
+        cooldownUntil: cooldownCheck.expiresAt,
+      };
     }
 
     // Calculate cost
@@ -406,34 +402,37 @@ export class WanderingNPCService {
     // TODO: Actually deduct payment (gold or barter items)
     // This would integrate with your inventory/gold systems
 
-    // Record usage
-    const usageRecord: ServiceUsageRecord = {
-      serviceId: service.id,
-      providerId: provider.id,
-      characterId: request.characterId,
-      usedAt: new Date(),
-      costPaid: cost,
-      effectsApplied: service.effects,
-      availableAgainAt: service.cooldown
-        ? new Date(Date.now() + service.cooldown * 60000)
-        : undefined,
-    };
-
-    this.recordServiceUsage(usageRecord);
+    // Record usage in MongoDB
+    await this.recordServiceUsage(
+      service.id,
+      provider.id,
+      request.characterId,
+      {
+        goldPaid: cost.gold || 0,
+        effectsApplied: service.effects,
+        cooldownSeconds: service.cooldown ? service.cooldown * 60 : undefined,
+        isEmergency,
+        locationId: scheduleEntry?.locationId,
+      }
+    );
 
     // Update relationship
-    this.updateRelationship(
+    await this.updateRelationship(
       provider.id,
       request.characterId,
       cost.gold || 0
     );
 
-    const newTrustLevel = calculateTrustLevel(
-      this.getRelationship(provider.id, request.characterId)
-    );
+    const relationship = await this.getRelationship(provider.id, request.characterId);
+    const newTrustLevel = calculateTrustLevel(relationship);
 
     // TODO: Actually apply service effects to character
     // This would integrate with your character/combat/buff systems
+
+    // Calculate cooldown expiration
+    const cooldownUntil = service.cooldown
+      ? new Date(Date.now() + service.cooldown * 60000)
+      : undefined;
 
     return {
       success: true,
@@ -441,21 +440,21 @@ export class WanderingNPCService {
       effectsApplied: service.effects,
       costPaid: cost,
       newTrustLevel,
-      cooldownUntil: usageRecord.availableAgainAt,
+      cooldownUntil,
     };
   }
 
   /**
    * Get available services for a character from a provider
    */
-  getAvailableServices(
+  async getAvailableServices(
     providerId: string,
     characterId: string
-  ): Service[] {
+  ): Promise<Service[]> {
     const provider = getServiceProviderById(providerId);
     if (!provider) return [];
 
-    const relationship = this.getRelationship(providerId, characterId);
+    const relationship = await this.getRelationship(providerId, characterId);
     const trustLevel = calculateTrustLevel(relationship);
 
     return provider.services.filter((service) =>
@@ -466,67 +465,97 @@ export class WanderingNPCService {
   /**
    * Get relationship between character and provider
    */
-  private getRelationship(
+  private async getRelationship(
     providerId: string,
     characterId: string
-  ): ServiceProviderRelationship | undefined {
-    const key = `${providerId}_${characterId}`;
-    return this.relationships.get(key);
+  ): Promise<{ trustLevel: number; servicesUsed: number; totalSpent: number; favorsDone?: number; providerId: string } | null> {
+    const relationship = await ServiceProviderRelationship.findOne({
+      characterId,
+      providerId
+    });
+
+    if (!relationship) return null;
+
+    return {
+      trustLevel: relationship.trustLevel,
+      servicesUsed: relationship.servicesUsed,
+      totalSpent: relationship.totalSpent,
+      favorsDone: relationship.favorsDone,
+      providerId: relationship.providerId,
+    };
   }
 
   /**
    * Update relationship after service use
    */
-  private updateRelationship(
+  private async updateRelationship(
     providerId: string,
     characterId: string,
     goldSpent: number
-  ): void {
-    const key = `${providerId}_${characterId}`;
-    const existing = this.relationships.get(key);
+  ): Promise<void> {
+    // Record the service usage using the static method
+    const relationship = await ServiceProviderRelationship.recordServiceUsage(
+      characterId,
+      providerId,
+      goldSpent
+    );
 
-    if (existing) {
-      existing.servicesUsed++;
-      existing.totalSpent += goldSpent;
-      existing.lastInteraction = new Date();
-
-      // Increase trust based on usage
-      if (existing.servicesUsed % 5 === 0) {
-        existing.trustLevel = Math.min(
-          existing.trustLevel + 0.5,
-          5 // Max trust
-        );
-      }
-    } else {
-      const newRelationship: ServiceProviderRelationship = {
-        providerId,
+    // Increase trust based on usage (every 5 services)
+    if (relationship.servicesUsed % 5 === 0) {
+      const provider = getServiceProviderById(providerId);
+      const maxTrust = provider?.maxTrust || 5;
+      await ServiceProviderRelationship.increaseTrust(
         characterId,
-        trustLevel: 1,
-        lastInteraction: new Date(),
-        servicesUsed: 1,
-        totalSpent: goldSpent,
-      };
-      this.relationships.set(key, newRelationship);
+        providerId,
+        0.5,
+        maxTrust
+      );
     }
   }
 
   /**
    * Record service usage
    */
-  private recordServiceUsage(record: ServiceUsageRecord): void {
-    const key = `${record.serviceId}_${record.characterId}`;
-    this.usageRecords.set(key, record);
+  private async recordServiceUsage(
+    serviceId: string,
+    providerId: string,
+    characterId: string,
+    options: {
+      goldPaid?: number;
+      barterItems?: Array<{ itemId: string; quantity: number }>;
+      effectsApplied?: Array<{
+        type: ServiceEffectType;
+        value: number;
+        duration?: number;
+      }>;
+      cooldownSeconds?: number;
+      isEmergency?: boolean;
+      locationId?: string;
+    }
+  ): Promise<void> {
+    await ServiceUsageRecord.recordUsage(
+      characterId,
+      providerId,
+      serviceId,
+      options
+    );
   }
 
   /**
    * Get last usage of a service by a character
    */
-  private getLastServiceUsage(
+  private async getLastServiceUsage(
     serviceId: string,
     characterId: string
-  ): ServiceUsageRecord | undefined {
-    const key = `${serviceId}_${characterId}`;
-    return this.usageRecords.get(key);
+  ): Promise<{ usedAt: Date; availableAgainAt?: Date } | null> {
+    const record = await ServiceUsageRecord.getLastUsage(characterId, serviceId);
+
+    if (!record) return null;
+
+    return {
+      usedAt: record.usedAt,
+      availableAgainAt: record.cooldownExpiresAt,
+    };
   }
 }
 

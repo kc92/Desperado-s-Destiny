@@ -1,7 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import fs from 'fs';
 import { visualizer } from 'rollup-plugin-visualizer';
+
+// Handle monorepo structure difference between local (sibling) and Docker (nested)
+const sharedPath = fs.existsSync(path.resolve(__dirname, '../shared'))
+  ? path.resolve(__dirname, '../shared')
+  : path.resolve(__dirname, './shared');
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -20,6 +26,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@desperados/shared': sharedPath,
+      '@shared': path.resolve(sharedPath, 'src'),
     },
   },
   build: {
@@ -27,7 +35,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['framer-motion', 'react-hot-toast'],
+          'vendor-ui': ['framer-motion'],
           'vendor-state': ['zustand'],
           'game-pages': [
             './src/pages/Actions.tsx',
@@ -57,10 +65,10 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3001,
+    port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001',
         changeOrigin: true,
         secure: false,
         cookieDomainRewrite: 'localhost', // Rewrite cookie domain
@@ -86,7 +94,7 @@ export default defineConfig({
         },
       },
       '/socket.io': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001',
         ws: true,
         changeOrigin: true,
       },

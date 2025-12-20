@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { crimeService, type Bounty } from '@/services/crime.service';
+import { logger } from '@/services/logger.service';
 
 interface CrimeState {
   isJailed: boolean;
@@ -71,7 +72,7 @@ export const useCrimeStore = create<CrimeStore>((set, get) => ({
         get().startJailTimer();
       }
     } catch (error: any) {
-      console.error('Failed to check jail status:', error);
+      logger.error('Failed to check jail status', error as Error, { context: 'useCrimeStore.checkJailStatus' });
     }
   },
 
@@ -88,7 +89,7 @@ export const useCrimeStore = create<CrimeStore>((set, get) => ({
         },
       }));
     } catch (error: any) {
-      console.error('Failed to check wanted status:', error);
+      logger.error('Failed to check wanted status', error as Error, { context: 'useCrimeStore.checkWantedStatus' });
     }
   },
 
@@ -115,7 +116,7 @@ export const useCrimeStore = create<CrimeStore>((set, get) => ({
         throw new Error('Failed to pay bail');
       }
     } catch (error: any) {
-      console.error('Failed to pay bail:', error);
+      logger.error('Failed to pay bail', error as Error, { context: 'useCrimeStore.payBail' });
       set({
         isLoading: false,
         error: error.message || 'Failed to pay bail',
@@ -145,7 +146,7 @@ export const useCrimeStore = create<CrimeStore>((set, get) => ({
         throw new Error('Failed to lay low');
       }
     } catch (error: any) {
-      console.error('Failed to lay low:', error);
+      logger.error('Failed to lay low', error as Error, { context: 'useCrimeStore.layLow' });
       set({
         isLoading: false,
         error: error.message || 'Failed to lay low',
@@ -172,7 +173,7 @@ export const useCrimeStore = create<CrimeStore>((set, get) => ({
 
       throw new Error('Failed to arrest player');
     } catch (error: any) {
-      console.error('Failed to arrest player:', error);
+      logger.error('Failed to arrest player', error as Error, { context: 'useCrimeStore.arrestPlayer' });
       set({
         isLoading: false,
         error: error.message || 'Failed to arrest player',
@@ -192,7 +193,7 @@ export const useCrimeStore = create<CrimeStore>((set, get) => ({
         },
       }));
     } catch (error: any) {
-      console.error('Failed to fetch bounties:', error);
+      logger.error('Failed to fetch bounties', error as Error, { context: 'useCrimeStore.fetchBounties' });
     }
   },
 

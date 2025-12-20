@@ -4,6 +4,7 @@
  * Multi-phase boss fight mechanics for legendary animal encounters
  */
 
+import { SecureRNG } from './base/SecureRNG';
 import mongoose from 'mongoose';
 import {
   LegendaryHuntSession,
@@ -15,11 +16,10 @@ import {
 } from '@desperados/shared';
 import { Character } from '../models/Character.model';
 import { LegendaryHunt } from '../models/LegendaryHunt.model';
+import { LegendaryCombatSession } from '../models/LegendaryCombatSession.model';
 import { getLegendaryById } from '../data/legendaryAnimals';
 import { awardLegendaryRewards } from './legendaryHunt.service';
-
-// Active sessions stored in memory (would use Redis in production)
-const activeSessions = new Map<string, LegendaryHuntSession>();
+import logger from '../utils/logger';
 
 /**
  * Execute turn in legendary hunt
@@ -28,8 +28,8 @@ export async function executeHuntTurn(
   request: LegendaryHuntAttackRequest
 ): Promise<LegendaryHuntAttackResponse> {
   try {
-    const session = activeSessions.get(request.sessionId);
-    if (!session) {
+    const sessionDoc = await LegendaryCombatSession.findOne({ sessionId: request.sessionId });
+    if (!sessionDoc) {
       return {
         success: false,
         turnResult: {
@@ -41,6 +41,24 @@ export async function executeHuntTurn(
         error: 'Hunt session not found',
       };
     }
+
+    // Convert DB document to session object
+    const session: LegendaryHuntSession = {
+      sessionId: sessionDoc.sessionId,
+      characterId: sessionDoc.characterId.toString(),
+      legendaryId: sessionDoc.legendaryId,
+      legendary: sessionDoc.legendary,
+      currentPhase: sessionDoc.currentPhase,
+      legendaryHealth: sessionDoc.legendaryHealth,
+      legendaryMaxHealth: sessionDoc.legendaryMaxHealth,
+      turnCount: sessionDoc.turnCount,
+      totalDamageDone: sessionDoc.totalDamageDone,
+      abilitiesUsed: sessionDoc.abilitiesUsed,
+      currentCooldowns: sessionDoc.currentCooldowns,
+      activeMinions: sessionDoc.activeMinions,
+      startedAt: sessionDoc.startedAt,
+      location: sessionDoc.location,
+    };
 
     const legendary = session.legendary;
     const character = await Character.findById(session.characterId);
@@ -79,8 +97,20 @@ export async function executeHuntTurn(
       });
     }
 
-    // Update session
-    activeSessions.set(request.sessionId, session);
+    // Update session in database
+    await LegendaryCombatSession.findOneAndUpdate(
+      { sessionId: request.sessionId },
+      {
+        currentPhase: session.currentPhase,
+        legendaryHealth: session.legendaryHealth,
+        turnCount: session.turnCount,
+        totalDamageDone: session.totalDamageDone,
+        abilitiesUsed: session.abilitiesUsed,
+        currentCooldowns: session.currentCooldowns,
+        activeMinions: session.activeMinions,
+      },
+      { new: true }
+    );
 
     // Build turn result
     const turnResult = {
@@ -102,7 +132,7 @@ export async function executeHuntTurn(
       message: buildTurnMessage(turnResult),
     };
   } catch (error) {
-    console.error('Error executing hunt turn:', error);
+    logger.error('Error executing hunt turn', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     return {
       success: false,
       turnResult: {
@@ -139,7 +169,7 @@ async function handlePlayerAction(
     case 'attack':
       // Calculate damage
       const baseDamage = character.stats.combat * 10;
-      const critRoll = Math.random();
+      const critRoll = SecureRNG.float(0, 1);
       const isCrit = critRoll <= (character.criticalChance || 0.1);
       damage = Math.floor(baseDamage * (isCrit ? 2 : 1));
 
@@ -304,7 +334,7 @@ async function handleLegendaryTurn(
   // Handle minions if any
   if (session.activeMinions && session.activeMinions.length > 0) {
     session.activeMinions.forEach(minion => {
-      const minionDamage = Math.floor(Math.random() * 50 + 20);
+      const minionDamage = SecureRNG.range(20, 70);
       minionActions.push(`${minion.type} attacks for ${minionDamage} damage!`);
       damage += minionDamage;
     });
@@ -347,7 +377,7 @@ function chooseLegendaryAbility(
 
   // Weight abilities by priority
   const totalPriority = availableAbilities.reduce((sum, a) => sum + a.priority, 0);
-  let roll = Math.random() * totalPriority;
+  let roll = SecureRNG.float(0, 1) * totalPriority;
 
   for (const ability of availableAbilities) {
     roll -= ability.priority;
@@ -456,8 +486,8 @@ async function completeLegendaryHunt(
 
   await hunt.save();
 
-  // Remove session
-  activeSessions.delete(session.sessionId);
+  // Remove session from database
+  await LegendaryCombatSession.deleteOne({ sessionId: session.sessionId });
 
   const completeResponse: LegendaryHuntCompleteResponse = {
     success: true,
@@ -505,22 +535,62 @@ function buildTurnMessage(turnResult: any): string {
 /**
  * Store session for retrieval
  */
-export function storeSession(session: LegendaryHuntSession): void {
-  activeSessions.set(session.sessionId, session);
+export async function storeSession(session: LegendaryHuntSession): Promise<void> {
+  await LegendaryCombatSession.findOneAndUpdate(
+    { sessionId: session.sessionId },
+    {
+      sessionId: session.sessionId,
+      characterId: new mongoose.Types.ObjectId(session.characterId),
+      legendaryId: session.legendaryId,
+      legendary: session.legendary,
+      currentPhase: session.currentPhase,
+      legendaryHealth: session.legendaryHealth,
+      legendaryMaxHealth: session.legendaryMaxHealth,
+      turnCount: session.turnCount,
+      totalDamageDone: session.totalDamageDone,
+      abilitiesUsed: session.abilitiesUsed,
+      currentCooldowns: session.currentCooldowns,
+      activeMinions: session.activeMinions,
+      startedAt: session.startedAt,
+      location: session.location,
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+    },
+    { upsert: true, new: true }
+  );
 }
 
 /**
  * Get session
  */
-export function getSession(sessionId: string): LegendaryHuntSession | undefined {
-  return activeSessions.get(sessionId);
+export async function getSession(sessionId: string): Promise<LegendaryHuntSession | null> {
+  const sessionDoc = await LegendaryCombatSession.findOne({ sessionId });
+  if (!sessionDoc) {
+    return null;
+  }
+
+  return {
+    sessionId: sessionDoc.sessionId,
+    characterId: sessionDoc.characterId.toString(),
+    legendaryId: sessionDoc.legendaryId,
+    legendary: sessionDoc.legendary,
+    currentPhase: sessionDoc.currentPhase,
+    legendaryHealth: sessionDoc.legendaryHealth,
+    legendaryMaxHealth: sessionDoc.legendaryMaxHealth,
+    turnCount: sessionDoc.turnCount,
+    totalDamageDone: sessionDoc.totalDamageDone,
+    abilitiesUsed: sessionDoc.abilitiesUsed,
+    currentCooldowns: sessionDoc.currentCooldowns,
+    activeMinions: sessionDoc.activeMinions,
+    startedAt: sessionDoc.startedAt,
+    location: sessionDoc.location,
+  };
 }
 
 /**
  * Remove session
  */
-export function removeSession(sessionId: string): void {
-  activeSessions.delete(sessionId);
+export async function removeSession(sessionId: string): Promise<void> {
+  await LegendaryCombatSession.deleteOne({ sessionId });
 }
 
 /**

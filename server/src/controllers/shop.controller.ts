@@ -103,7 +103,7 @@ export const sellItem = asyncHandler(
         message: `Sold ${quantity}x ${result.item.name}`,
         item: result.item,
         quantity,
-        goldEarned: result.goldEarned,
+        dollarsEarned: result.dollarsEarned,
         newGold: result.character.gold,
         inventory: result.character.inventory
       }

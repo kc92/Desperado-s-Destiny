@@ -11,6 +11,8 @@ import {
   SearchArticlesRequest,
   GetEditionRequest,
 } from '@desperados/shared';
+import logger from '../utils/logger';
+import { sanitizeErrorMessage } from '../utils/errors';
 
 export const newspaperController = {
   /**
@@ -22,7 +24,7 @@ export const newspaperController = {
       const newspapers = newspaperService.getAllNewspapers();
       res.json({ success: true, newspapers });
     } catch (error) {
-      console.error('[NewspaperController] Error getting newspapers:', error);
+      logger.error('[NewspaperController] Error getting newspapers:', error);
       res.status(500).json({ success: false, message: 'Failed to get newspapers' });
     }
   },
@@ -43,7 +45,7 @@ export const newspaperController = {
 
       res.json({ success: true, edition });
     } catch (error) {
-      console.error('[NewspaperController] Error getting current edition:', error);
+      logger.error('[NewspaperController] Error getting current edition:', error);
       res.status(500).json({ success: false, message: 'Failed to get edition' });
     }
   },
@@ -70,7 +72,7 @@ export const newspaperController = {
 
       res.json({ success: true, edition });
     } catch (error) {
-      console.error('[NewspaperController] Error getting edition:', error);
+      logger.error('[NewspaperController] Error getting edition:', error);
       res.status(500).json({ success: false, message: 'Failed to get edition' });
     }
   },
@@ -96,7 +98,7 @@ export const newspaperController = {
 
       res.json({ success: true, article });
     } catch (error) {
-      console.error('[NewspaperController] Error getting article:', error);
+      logger.error('[NewspaperController] Error getting article:', error);
       res.status(500).json({ success: false, message: 'Failed to get article' });
     }
   },
@@ -112,7 +114,7 @@ export const newspaperController = {
 
       res.json({ success: true, articles, count: articles.length });
     } catch (error) {
-      console.error('[NewspaperController] Error searching articles:', error);
+      logger.error('[NewspaperController] Error searching articles:', error);
       res.status(500).json({ success: false, message: 'Failed to search articles' });
     }
   },
@@ -140,8 +142,8 @@ export const newspaperController = {
 
       res.json({ success: true, subscription });
     } catch (error: any) {
-      console.error('[NewspaperController] Error subscribing:', error);
-      res.status(400).json({ success: false, message: error.message || 'Failed to subscribe' });
+      logger.error('[NewspaperController] Error subscribing:', error);
+      res.status(400).json({ success: false, message: sanitizeErrorMessage(error) });
     }
   },
 
@@ -164,8 +166,8 @@ export const newspaperController = {
 
       res.json({ success: true, subscription });
     } catch (error: any) {
-      console.error('[NewspaperController] Error buying newspaper:', error);
-      res.status(400).json({ success: false, message: error.message || 'Failed to buy newspaper' });
+      logger.error('[NewspaperController] Error buying newspaper:', error);
+      res.status(400).json({ success: false, message: sanitizeErrorMessage(error) });
     }
   },
 
@@ -180,7 +182,7 @@ export const newspaperController = {
 
       res.json({ success: true, message: 'Subscription cancelled' });
     } catch (error) {
-      console.error('[NewspaperController] Error cancelling subscription:', error);
+      logger.error('[NewspaperController] Error cancelling subscription:', error);
       res.status(400).json({ success: false, message: 'Failed to cancel subscription' });
     }
   },
@@ -202,7 +204,7 @@ export const newspaperController = {
 
       res.json({ success: true, subscriptions });
     } catch (error) {
-      console.error('[NewspaperController] Error getting subscriptions:', error);
+      logger.error('[NewspaperController] Error getting subscriptions:', error);
       res.status(500).json({ success: false, message: 'Failed to get subscriptions' });
     }
   },
@@ -218,7 +220,7 @@ export const newspaperController = {
 
       res.json({ success: true, articles });
     } catch (error) {
-      console.error('[NewspaperController] Error getting breaking news:', error);
+      logger.error('[NewspaperController] Error getting breaking news:', error);
       res.status(500).json({ success: false, message: 'Failed to get breaking news' });
     }
   },
@@ -234,7 +236,7 @@ export const newspaperController = {
 
       res.json({ success: true, articles });
     } catch (error) {
-      console.error('[NewspaperController] Error getting character mentions:', error);
+      logger.error('[NewspaperController] Error getting character mentions:', error);
       res.status(500).json({ success: false, message: 'Failed to get mentions' });
     }
   },
@@ -250,7 +252,7 @@ export const newspaperController = {
 
       res.json({ success: true, stats });
     } catch (error) {
-      console.error('[NewspaperController] Error getting stats:', error);
+      logger.error('[NewspaperController] Error getting stats:', error);
       res.status(500).json({ success: false, message: 'Failed to get stats' });
     }
   },
@@ -267,7 +269,7 @@ export const newspaperController = {
 
       res.json({ success: true, article });
     } catch (error) {
-      console.error('[NewspaperController] Error creating article:', error);
+      logger.error('[NewspaperController] Error creating article:', error);
       res.status(500).json({ success: false, message: 'Failed to create article' });
     }
   },
@@ -284,7 +286,7 @@ export const newspaperController = {
 
       res.json({ success: true, edition });
     } catch (error) {
-      console.error('[NewspaperController] Error publishing newspaper:', error);
+      logger.error('[NewspaperController] Error publishing newspaper:', error);
       res.status(500).json({ success: false, message: 'Failed to publish newspaper' });
     }
   },
@@ -300,7 +302,7 @@ export const newspaperController = {
 
       res.json({ success: true, message: 'World event processed' });
     } catch (error) {
-      console.error('[NewspaperController] Error handling world event:', error);
+      logger.error('[NewspaperController] Error handling world event:', error);
       res.status(500).json({ success: false, message: 'Failed to handle world event' });
     }
   },

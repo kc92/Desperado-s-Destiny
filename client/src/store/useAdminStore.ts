@@ -4,7 +4,8 @@
  */
 
 import { create } from 'zustand';
-import api from '@/services/api';
+import adminService from '@/services/admin.service';
+import { logger } from '@/services/logger.service';
 
 // Types
 export interface AdminUser {
@@ -139,22 +140,17 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const queryParams = new URLSearchParams();
-      if (params.search) queryParams.append('search', params.search);
-      if (params.role) queryParams.append('role', params.role);
-      if (params.isActive !== undefined) queryParams.append('isActive', String(params.isActive));
-      if (params.page) queryParams.append('page', String(params.page));
-      if (params.limit) queryParams.append('limit', String(params.limit));
-
-      const response = await api.get(`/admin/users?${queryParams.toString()}`);
+      const response = await adminService.getUsers(params);
 
       set({
-        users: response.data.users,
+        users: response.users,
         isLoading: false
       });
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to fetch users';
+      logger.error('Failed to fetch users', error, { params });
       set({
-        error: error.response?.data?.error || 'Failed to fetch users',
+        error: errorMessage,
         isLoading: false
       });
       throw error;
@@ -168,12 +164,14 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await api.get(`/admin/users/${userId}`);
+      const response = await adminService.getUserDetails(userId);
       set({ isLoading: false });
-      return response.data;
+      return response;
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to fetch user details';
+      logger.error('Failed to fetch user details', error, { userId });
       set({
-        error: error.response?.data?.error || 'Failed to fetch user details',
+        error: errorMessage,
         isLoading: false
       });
       throw error;
@@ -187,7 +185,7 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.post(`/admin/users/${userId}/ban`, { reason });
+      await adminService.banUser(userId, reason ? { reason } : undefined);
 
       // Update local state
       set((state) => ({
@@ -197,8 +195,10 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
         isLoading: false
       }));
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to ban user';
+      logger.error('Failed to ban user', error, { userId, reason });
       set({
-        error: error.response?.data?.error || 'Failed to ban user',
+        error: errorMessage,
         isLoading: false
       });
       throw error;
@@ -212,7 +212,7 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.post(`/admin/users/${userId}/unban`);
+      await adminService.unbanUser(userId);
 
       // Update local state
       set((state) => ({
@@ -222,8 +222,10 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
         isLoading: false
       }));
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to unban user';
+      logger.error('Failed to unban user', error, { userId });
       set({
-        error: error.response?.data?.error || 'Failed to unban user',
+        error: errorMessage,
         isLoading: false
       });
       throw error;
@@ -237,23 +239,17 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const queryParams = new URLSearchParams();
-      if (params.search) queryParams.append('search', params.search);
-      if (params.faction) queryParams.append('faction', params.faction);
-      if (params.minLevel) queryParams.append('minLevel', String(params.minLevel));
-      if (params.maxLevel) queryParams.append('maxLevel', String(params.maxLevel));
-      if (params.page) queryParams.append('page', String(params.page));
-      if (params.limit) queryParams.append('limit', String(params.limit));
-
-      const response = await api.get(`/admin/characters?${queryParams.toString()}`);
+      const response = await adminService.getCharacters(params);
 
       set({
-        characters: response.data.characters,
+        characters: response.characters,
         isLoading: false
       });
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to fetch characters';
+      logger.error('Failed to fetch characters', error, { params });
       set({
-        error: error.response?.data?.error || 'Failed to fetch characters',
+        error: errorMessage,
         isLoading: false
       });
       throw error;
@@ -267,18 +263,20 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await api.put(`/admin/characters/${characterId}`, updates);
+      const response = await adminService.updateCharacter(characterId, updates);
 
       // Update local state
       set((state) => ({
         characters: state.characters.map(char =>
-          char._id === characterId ? response.data.character : char
+          char._id === characterId ? response.character : char
         ),
         isLoading: false
       }));
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to update character';
+      logger.error('Failed to update character', error, { characterId, updates });
       set({
-        error: error.response?.data?.error || 'Failed to update character',
+        error: errorMessage,
         isLoading: false
       });
       throw error;
@@ -292,7 +290,7 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.delete(`/admin/characters/${characterId}`);
+      await adminService.deleteCharacter(characterId);
 
       // Update local state
       set((state) => ({
@@ -300,8 +298,10 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
         isLoading: false
       }));
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to delete character';
+      logger.error('Failed to delete character', error, { characterId });
       set({
-        error: error.response?.data?.error || 'Failed to delete character',
+        error: errorMessage,
         isLoading: false
       });
       throw error;
@@ -315,15 +315,17 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.post('/admin/gold/adjust', { characterId, amount, reason });
+      await adminService.adjustGold({ characterId, amount, reason });
 
       // Refresh characters to get updated gold
       await get().fetchCharacters();
 
       set({ isLoading: false });
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to adjust gold';
+      logger.error('Failed to adjust gold', error, { characterId, amount, reason });
       set({
-        error: error.response?.data?.error || 'Failed to adjust gold',
+        error: errorMessage,
         isLoading: false
       });
       throw error;
@@ -337,15 +339,17 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await api.get('/admin/analytics');
+      const analytics = await adminService.getAnalytics();
 
       set({
-        analytics: response.data,
+        analytics,
         isLoading: false
       });
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to fetch analytics';
+      logger.error('Failed to fetch analytics', error);
       set({
-        error: error.response?.data?.error || 'Failed to fetch analytics',
+        error: errorMessage,
         isLoading: false
       });
       throw error;
@@ -359,19 +363,17 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const queryParams = new URLSearchParams();
-      if (params.page) queryParams.append('page', String(params.page));
-      if (params.limit) queryParams.append('limit', String(params.limit));
-
-      const response = await api.get(`/admin/gangs?${queryParams.toString()}`);
+      const response = await adminService.getGangs(params);
 
       set({
-        gangs: response.data.gangs,
+        gangs: response.gangs,
         isLoading: false
       });
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to fetch gangs';
+      logger.error('Failed to fetch gangs', error, { params });
       set({
-        error: error.response?.data?.error || 'Failed to fetch gangs',
+        error: errorMessage,
         isLoading: false
       });
       throw error;
@@ -385,7 +387,7 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.delete(`/admin/gangs/${gangId}`);
+      await adminService.disbandGang(gangId);
 
       // Update local state
       set((state) => ({
@@ -393,8 +395,10 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
         isLoading: false
       }));
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to disband gang';
+      logger.error('Failed to disband gang', error, { gangId });
       set({
-        error: error.response?.data?.error || 'Failed to disband gang',
+        error: errorMessage,
         isLoading: false
       });
       throw error;
@@ -408,15 +412,17 @@ export const useAdminStore = create<AdminStore>()((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await api.get('/admin/server/health');
+      const serverHealth = await adminService.getServerHealth();
 
       set({
-        serverHealth: response.data,
+        serverHealth,
         isLoading: false
       });
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to fetch server health';
+      logger.error('Failed to fetch server health', error);
       set({
-        error: error.response?.data?.error || 'Failed to fetch server health',
+        error: errorMessage,
         isLoading: false
       });
       throw error;

@@ -22,8 +22,11 @@ import {
   getRecommendedPerformances,
   checkAffordPerformance
 } from '../controllers/entertainer.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { checkGoldDuplication } from '../middleware/antiExploit.middleware';
 
 const router = Router();
 
@@ -33,19 +36,19 @@ const router = Router();
  */
 
 // Get all entertainers
-router.get('/', getAllEntertainers);
+router.get('/', asyncHandler(getAllEntertainers));
 
 // Search entertainers by name
-router.get('/search', searchEntertainers);
+router.get('/search', asyncHandler(searchEntertainers));
 
 // Get entertainers by performance type
-router.get('/type/:type', getEntertainersByPerformanceType);
+router.get('/type/:type', asyncHandler(getEntertainersByPerformanceType));
 
 // Get entertainers at a specific location
-router.get('/location/:locationId', getEntertainersAtLocation);
+router.get('/location/:locationId', asyncHandler(getEntertainersAtLocation));
 
 // Get available performances at a location
-router.get('/performances/location/:locationId', getLocationPerformances);
+router.get('/performances/location/:locationId', asyncHandler(getLocationPerformances));
 
 /**
  * Protected routes (require authentication and active character)
@@ -53,37 +56,37 @@ router.get('/performances/location/:locationId', getLocationPerformances);
  */
 
 // Get recommended performances for the character
-router.get('/recommendations', requireAuth, requireCharacter, getRecommendedPerformances);
+router.get('/recommendations', requireAuth, requireCharacter, asyncHandler(getRecommendedPerformances));
 
 /**
  * Public routes with entertainer ID parameter
  */
 
 // Get entertainer details
-router.get('/:entertainerId', getEntertainerDetails);
+router.get('/:entertainerId', asyncHandler(getEntertainerDetails));
 
 // Get entertainer's current location
-router.get('/:entertainerId/location', getEntertainerLocation);
+router.get('/:entertainerId/location', asyncHandler(getEntertainerLocation));
 
 // Get entertainer schedule
-router.get('/:entertainerId/schedule', getEntertainerSchedule);
+router.get('/:entertainerId/schedule', asyncHandler(getEntertainerSchedule));
 
 // Check if entertainer is currently performing
-router.get('/:entertainerId/performing', isEntertainerPerforming);
+router.get('/:entertainerId/performing', asyncHandler(isEntertainerPerforming));
 
 /**
  * Protected routes with entertainer ID parameter
  */
 
 // Get gossip from an entertainer (requires trust)
-router.get('/:entertainerId/gossip', requireAuth, requireCharacter, getGossipFromEntertainer);
+router.get('/:entertainerId/gossip', requireAuth, requireCharacter, asyncHandler(getGossipFromEntertainer));
 
 // Check if character can afford a performance
 router.get(
   '/:entertainerId/performances/:performanceId/check-afford',
   requireAuth,
   requireCharacter,
-  checkAffordPerformance
+  asyncHandler(checkAffordPerformance)
 );
 
 // Watch a performance (costs energy, gives rewards)
@@ -91,7 +94,8 @@ router.post(
   '/:entertainerId/performances/:performanceId/watch',
   requireAuth,
   requireCharacter,
-  watchPerformance
+  requireCsrfToken,
+  asyncHandler(watchPerformance)
 );
 
 // Learn a skill from an entertainer (costs energy and gold, requires trust)
@@ -99,7 +103,9 @@ router.post(
   '/:entertainerId/skills/:skillId/learn',
   requireAuth,
   requireCharacter,
-  learnSkill
+  requireCsrfToken,
+  checkGoldDuplication(),
+  asyncHandler(learnSkill)
 );
 
 export default router;

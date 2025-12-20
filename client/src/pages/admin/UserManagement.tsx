@@ -5,15 +5,23 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAdminStore } from '@/store/useAdminStore';
-import { Card } from '@/components/ui';
+import { Card, Button } from '@/components/ui';
+import { useToast } from '@/store/useToastStore';
+import { logger } from '@/services/logger.service';
 
 export const UserManagement: React.FC = () => {
   const { users, fetchUsers, banUser, unbanUser, fetchUserDetails, isLoading } = useAdminStore();
+  const { success, error: showError } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'user' | 'admin'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userDetails, setUserDetails] = useState<any>(null);
+
+  // Ban modal state
+  const [banModalOpen, setBanModalOpen] = useState(false);
+  const [banTargetUserId, setBanTargetUserId] = useState<string | null>(null);
+  const [banReason, setBanReason] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -26,31 +34,41 @@ export const UserManagement: React.FC = () => {
     if (roleFilter !== 'all') params.role = roleFilter;
     if (statusFilter !== 'all') params.isActive = statusFilter === 'active';
 
-    fetchUsers(params).catch(console.error);
+    fetchUsers(params).catch((err) => logger.error('Failed to fetch users for user management', err as Error, { context: 'UserManagement.loadUsers', params }));
   };
 
   const handleSearch = () => {
     loadUsers();
   };
 
-  const handleBan = async (userId: string) => {
-    const reason = prompt('Reason for ban:');
-    if (!reason) return;
+  const handleBan = (userId: string) => {
+    setBanTargetUserId(userId);
+    setBanReason('');
+    setBanModalOpen(true);
+  };
+
+  const confirmBan = async () => {
+    if (!banTargetUserId || !banReason.trim()) return;
 
     try {
-      await banUser(userId, reason);
-      alert('User banned successfully');
+      await banUser(banTargetUserId, banReason);
+      success('User Banned', 'User has been banned successfully');
+      setBanModalOpen(false);
+      setBanTargetUserId(null);
+      setBanReason('');
+      loadUsers();
     } catch (error: any) {
-      alert(`Failed to ban user: ${error.message}`);
+      showError('Ban Failed', error.message || 'Failed to ban user');
     }
   };
 
   const handleUnban = async (userId: string) => {
     try {
       await unbanUser(userId);
-      alert('User unbanned successfully');
+      success('User Unbanned', 'User has been unbanned successfully');
+      loadUsers();
     } catch (error: any) {
-      alert(`Failed to unban user: ${error.message}`);
+      showError('Unban Failed', error.message || 'Failed to unban user');
     }
   };
 
@@ -60,7 +78,7 @@ export const UserManagement: React.FC = () => {
       setUserDetails(details);
       setSelectedUserId(userId);
     } catch (error) {
-      console.error('Failed to fetch user details:', error);
+      logger.error('Failed to fetch user details', error as Error, { context: 'UserManagement.handleViewDetails', userId });
     }
   };
 
@@ -265,6 +283,45 @@ export const UserManagement: React.FC = () => {
             </div>
           </div>
         </Card>
+      )}
+
+      {/* Ban Reason Modal */}
+      {banModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="p-6 w-full max-w-md">
+            <h3 className="text-xl font-western text-frontier-gold mb-4">Ban User</h3>
+            <p className="text-frontier-silver-dark mb-4">
+              Please provide a reason for banning this user:
+            </p>
+            <textarea
+              value={banReason}
+              onChange={(e) => setBanReason(e.target.value)}
+              placeholder="Enter ban reason..."
+              rows={3}
+              className="w-full px-4 py-2 bg-frontier-dark border border-frontier-wood rounded-lg text-frontier-silver mb-4"
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setBanModalOpen(false);
+                  setBanTargetUserId(null);
+                  setBanReason('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={confirmBan}
+                disabled={!banReason.trim()}
+              >
+                Ban User
+              </Button>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   );

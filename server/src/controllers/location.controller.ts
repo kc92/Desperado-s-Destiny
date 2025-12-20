@@ -11,6 +11,8 @@ import { LocationService } from '../services/location.service';
 import { TimeService } from '../services/time.service';
 import { CrowdService } from '../services/crowd.service';
 import { ScheduleService } from '../services/schedule.service';
+import { processGameAction, resolveActionGame } from '../services/actionDeck.service';
+import { PlayerAction, getAvailableActions } from '../services/deckGames';
 
 /**
  * Get all locations
@@ -418,6 +420,122 @@ export const performJob = asyncHandler(
 );
 
 /**
+ * Start a job with deck game
+ * POST /api/locations/current/jobs/:jobId/start
+ */
+export const startJob = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { jobId } = req.params;
+    const character = req.character;
+
+    if (!character) {
+      return res.status(401).json({
+        success: false,
+        message: 'No character selected',
+      });
+    }
+
+    const result = await LocationService.startJobWithDeck(
+      character._id.toString(),
+      character.currentLocation,
+      jobId
+    );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        gameState: result.gameState,
+        availableActions: getAvailableActions(result.gameState),
+        jobInfo: result.jobInfo,
+      },
+    });
+  }
+);
+
+/**
+ * Play a job deck game (process game action)
+ * POST /api/locations/current/jobs/:jobId/play
+ */
+export const playJob = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { gameId, action } = req.body as { gameId: string; action: PlayerAction };
+    const character = req.character;
+
+    if (!character) {
+      return res.status(401).json({
+        success: false,
+        message: 'No character selected',
+      });
+    }
+
+    if (!gameId || !action) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing gameId or action',
+      });
+    }
+
+    // Check if game should be resolved immediately (forfeit/submit)
+    if (action.type === 'forfeit' || action.type === 'submit') {
+      // Resolve the game and apply job rewards
+      const result = await resolveActionGame(gameId);
+
+      // Refresh character data
+      const updatedCharacter = await Character.findById(character._id);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          completed: true,
+          gameResult: result.gameResult,
+          actionResult: result.actionResult,
+          character: updatedCharacter?.toSafeObject(),
+        },
+      });
+    }
+
+    // Process game action
+    const newState = await processGameAction(gameId, action);
+
+    // Check if game is now complete (status set by game logic)
+    if (newState.status === 'resolved' || newState.status === 'busted') {
+      // Resolve the game and apply job rewards
+      const result = await resolveActionGame(gameId);
+
+      // Refresh character data
+      const updatedCharacter = await Character.findById(character._id);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          completed: true,
+          gameResult: result.gameResult,
+          actionResult: result.actionResult,
+          character: updatedCharacter?.toSafeObject(),
+        },
+      });
+    }
+
+    // Game continues
+    res.status(200).json({
+      success: true,
+      data: {
+        completed: false,
+        gameState: newState,
+        availableActions: getAvailableActions(newState),
+      },
+    });
+  }
+);
+
+/**
  * Get shops at current location
  * GET /api/locations/current/shops
  */
@@ -819,6 +937,32 @@ export const getBuildingDetails = asyncHandler(
   }
 );
 
+/**
+ * Get zone-aware travel options for current location
+ * GET /api/locations/current/travel-options
+ */
+export const getZoneAwareTravel = asyncHandler(
+  async (req: Request, res: Response) => {
+    const character = req.character;
+
+    if (!character) {
+      return res.status(401).json({
+        success: false,
+        message: 'No character selected',
+      });
+    }
+
+    const travelOptions = await LocationService.getConnectedLocationsWithZones(
+      character.currentLocation
+    );
+
+    res.status(200).json({
+      success: true,
+      data: travelOptions,
+    });
+  }
+);
+
 export default {
   getAllLocations,
   getLocationById,
@@ -829,6 +973,8 @@ export default {
   getCurrentLocationActions,
   getCurrentLocationJobs,
   performJob,
+  startJob,
+  playJob,
   getCurrentLocationShops,
   purchaseItem,
   getTerritoryMap,
@@ -836,4 +982,5 @@ export default {
   enterBuilding,
   exitBuilding,
   getBuildingDetails,
+  getZoneAwareTravel,
 };

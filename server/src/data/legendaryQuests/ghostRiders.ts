@@ -91,7 +91,7 @@ export const ghostRidersChain: LegendaryQuestChain = {
       milestone: 5,
       description: 'Resolved the Ghost Riders\' curse',
       rewards: [
-        { type: 'gold', amount: 15000 },
+        { type: 'dollars', amount: 15000 },
         { type: 'skill_points', amount: 15 },
       ],
     },

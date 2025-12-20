@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { MarketListing, ItemRarity } from '@/hooks/useMarketplace';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 
 interface MarketListingCardProps {
   listing: MarketListing;
@@ -124,9 +124,9 @@ export const MarketListingCard: React.FC<MarketListingCardProps> = ({
     !timeRemaining.isExpired;
 
   // Memoize price display
-  const priceDisplay = useMemo(() => formatGold(displayPrice || 0), [displayPrice]);
+  const priceDisplay = useMemo(() => formatDollars(displayPrice || 0), [displayPrice]);
   const buyoutDisplay = useMemo(
-    () => (listing.buyoutPrice ? formatGold(listing.buyoutPrice) : null),
+    () => (listing.buyoutPrice ? formatDollars(listing.buyoutPrice) : null),
     [listing.buyoutPrice]
   );
 

@@ -75,7 +75,7 @@ export interface SpawnConditions {
  * Quest reward types
  */
 export interface MysteryQuestReward {
-  type: 'gold' | 'xp' | 'item' | 'reputation' | 'lore' | 'special';
+  type: 'dollars' | 'xp' | 'item' | 'reputation' | 'lore' | 'special';
   amount?: number;
   itemId?: string;
   faction?: string;

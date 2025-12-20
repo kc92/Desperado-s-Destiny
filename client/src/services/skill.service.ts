@@ -11,6 +11,7 @@ import type {
   CompleteTrainingResponse,
   SuitBonuses,
 } from '@desperados/shared';
+import { logger } from '@/services/logger.service';
 
 /**
  * Skill service for managing skill training
@@ -24,7 +25,7 @@ export const skillService = {
       const response = await apiClient.get<ApiResponse<SkillsResponse>>('/skills');
       return response.data;
     } catch (error: any) {
-      console.error('Failed to get skills:', error);
+      logger.error('Failed to get skills', error as Error, { context: 'skillService.getSkills' });
       return {
         success: false,
         error: error.message || 'Failed to get skills',
@@ -43,7 +44,7 @@ export const skillService = {
       );
       return response.data;
     } catch (error: any) {
-      console.error('Failed to start training:', error);
+      logger.error('Failed to start training', error as Error, { context: 'skillService.startTraining', skillId });
       return {
         success: false,
         error: error.message || 'Failed to start training',
@@ -59,7 +60,7 @@ export const skillService = {
       const response = await apiClient.post<ApiResponse<void>>('/skills/cancel');
       return response.data;
     } catch (error: any) {
-      console.error('Failed to cancel training:', error);
+      logger.error('Failed to cancel training', error as Error, { context: 'skillService.cancelTraining' });
       return {
         success: false,
         error: error.message || 'Failed to cancel training',
@@ -77,7 +78,7 @@ export const skillService = {
       );
       return response.data;
     } catch (error: any) {
-      console.error('Failed to complete training:', error);
+      logger.error('Failed to complete training', error as Error, { context: 'skillService.completeTraining' });
       return {
         success: false,
         error: error.message || 'Failed to complete training',
@@ -93,7 +94,7 @@ export const skillService = {
       const response = await apiClient.get<ApiResponse<SuitBonuses>>('/skills/bonuses');
       return response.data;
     } catch (error: any) {
-      console.error('Failed to get bonuses:', error);
+      logger.error('Failed to get bonuses', error as Error, { context: 'skillService.getBonuses' });
       return {
         success: false,
         error: error.message || 'Failed to get bonuses',

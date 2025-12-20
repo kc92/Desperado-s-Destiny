@@ -6,6 +6,7 @@
  */
 
 import { Month, MonthlyTheme, Season } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Monthly themes with flavor content
@@ -339,7 +340,7 @@ export function getFlavorEvents(month: Month): string[] {
  */
 export function getRandomFlavorEvent(month: Month): string {
   const events = MONTHLY_THEMES[month].flavorEvents;
-  return events[Math.floor(Math.random() * events.length)];
+  return SecureRNG.select(events);
 }
 
 /**

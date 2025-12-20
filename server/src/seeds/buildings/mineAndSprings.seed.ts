@@ -7,6 +7,7 @@
  */
 
 import mongoose from 'mongoose';
+import logger from '../../utils/logger';
 import { Location } from '../../models/Location.model';
 import { LOCATION_IDS } from '../locations.seed';
 
@@ -1974,7 +1975,7 @@ export async function seedGoldfingersMineBulidings(): Promise<void> {
 
     console.log(`Successfully seeded ${goldfingersMineBuildings.length} Goldfinger's Mine buildings`);
   } catch (error) {
-    console.error('Error seeding Goldfinger\'s Mine buildings:', error);
+    logger.error('Error seeding Goldfinger\'s Mine buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }
@@ -1998,7 +1999,7 @@ export async function seedSpiritSpringsBuildings(): Promise<void> {
 
     console.log(`Successfully seeded ${spiritSpringsBuildings.length} Spirit Springs buildings`);
   } catch (error) {
-    console.error('Error seeding Spirit Springs buildings:', error);
+    logger.error('Error seeding Spirit Springs buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }
@@ -2012,7 +2013,7 @@ export async function seedMineAndSpringsBuildings(): Promise<void> {
     await seedSpiritSpringsBuildings();
     console.log('Successfully seeded all Mine and Springs buildings');
   } catch (error) {
-    console.error('Error seeding Mine and Springs buildings:', error);
+    logger.error('Error seeding Mine and Springs buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }

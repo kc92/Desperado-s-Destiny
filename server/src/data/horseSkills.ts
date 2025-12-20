@@ -2,6 +2,7 @@ import {
   HorseSkill,
   HorseSkillDefinition
 } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 // ============================================================================
 // HORSE SKILL DEFINITIONS
@@ -343,7 +344,7 @@ export function simulateTrainingSession(
   const skillDef = HORSE_SKILLS[skill];
 
   // Base progress (10-20 per session)
-  let progressGain = 10 + Math.random() * 10;
+  let progressGain = 10 + (SecureRNG.chance(0.5) ? 10 : 0);
 
   // Horse's relevant stat affects training speed
   const relevantStat = skillDef.requirements?.minStat?.stat;

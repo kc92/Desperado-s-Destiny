@@ -7,6 +7,7 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
 import {
   getRecipes,
   getRecipesByCategory,
@@ -14,6 +15,8 @@ import {
   craftItem,
   getCraftingStations
 } from '../controllers/crafting.controller';
+import { preventItemDuplication } from '../middleware/antiExploit.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -38,18 +41,18 @@ const craftLimiter = rateLimit({
  */
 
 // Get all available recipes for character
-router.get('/recipes', requireAuth, requireCharacter, getRecipes);
+router.get('/recipes', requireAuth, requireCharacter, asyncHandler(getRecipes));
 
 // Get recipes by category
-router.get('/recipes/:category', requireAuth, getRecipesByCategory);
+router.get('/recipes/:category', requireAuth, asyncHandler(getRecipesByCategory));
 
 // Check if character can craft a specific recipe
-router.get('/can-craft/:recipeId', requireAuth, requireCharacter, checkCanCraft);
+router.get('/can-craft/:recipeId', requireAuth, requireCharacter, asyncHandler(checkCanCraft));
 
-// Craft an item
-router.post('/craft', requireAuth, requireCharacter, craftLimiter, craftItem);
+// Craft an item - prevent item duplication exploits
+router.post('/craft', requireAuth, requireCsrfToken, requireCharacter, craftLimiter, preventItemDuplication(), asyncHandler(craftItem));
 
 // Get crafting stations at current location
-router.get('/stations', requireAuth, requireCharacter, getCraftingStations);
+router.get('/stations', requireAuth, requireCharacter, asyncHandler(getCraftingStations));
 
 export default router;

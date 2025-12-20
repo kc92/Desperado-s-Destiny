@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotificationStore } from '@/store/useNotificationStore';
 import { NotificationItem } from './NotificationItem';
 
 export const NotificationBell: React.FC = React.memo(() => {
@@ -18,7 +18,7 @@ export const NotificationBell: React.FC = React.memo(() => {
     markAsRead,
     markAllAsRead,
     fetchNotifications,
-  } = useNotifications();
+  } = useNotificationStore();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -38,7 +38,7 @@ export const NotificationBell: React.FC = React.memo(() => {
   // Refresh notifications when dropdown opens
   useEffect(() => {
     if (isOpen) {
-      fetchNotifications(1);
+      fetchNotifications(20, 0); // limit: 20, offset: 0
     }
   }, [isOpen, fetchNotifications]);
 

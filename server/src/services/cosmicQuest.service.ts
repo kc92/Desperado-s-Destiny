@@ -6,7 +6,7 @@
 
 import mongoose from 'mongoose';
 import {
-  CosmicProgress,
+  CosmicProgress as CosmicProgressType,
   CosmicQuest,
   CosmicObjective,
   CosmicAct,
@@ -20,71 +20,75 @@ import {
   WorldEffect
 } from '@desperados/shared';
 import { Character } from '../models/Character.model';
+import { CosmicProgress as CosmicProgressModel, ICosmicProgress } from '../models/CosmicProgress.model';
 import { AppError } from '../utils/errors';
 import { COSMIC_QUESTS, getCosmicQuest, getNextQuest } from '../data/cosmicQuests';
 import { COSMIC_ARTIFACTS, COSMIC_POWERS } from '../data/cosmicLore';
-
-// Temporary in-memory storage for cosmic progress
-// In production, this would be a MongoDB model
-const cosmicProgressMap = new Map<string, CosmicProgress>();
 
 export class CosmicQuestService {
   /**
    * Start the cosmic questline for a character
    */
   static async startCosmicStoryline(characterId: string): Promise<{
-    progress: CosmicProgress;
+    progress: ICosmicProgress;
     firstQuest: CosmicQuest;
   }> {
-    const character = await Character.findById(characterId);
-    if (!character) {
-      throw new AppError('Character not found', 404);
+    try {
+      const character = await Character.findById(characterId);
+      if (!character) {
+        throw new AppError('Character not found', 404);
+      }
+
+      if (character.level < 25) {
+        throw new AppError('Character must be level 25 to start this questline', 400);
+      }
+
+      // Check if already started
+      const existing = await CosmicProgressModel.findByCharacter(characterId);
+      if (existing) {
+        throw new AppError('Cosmic questline already started', 400);
+      }
+
+      // Create initial progress
+      const progress = await CosmicProgressModel.create({
+        characterId: new mongoose.Types.ObjectId(characterId),
+        currentQuest: 'cosmic_01_strange_happenings',
+        completedQuests: [],
+        currentAct: CosmicAct.WHISPERS,
+        corruption: {
+          level: 0,
+          threshold: 100,
+          effects: [],
+          gainedAt: new Date(),
+          lastUpdate: new Date()
+        },
+        discoveredLore: [],
+        experiencedVisions: [],
+        journalEntries: [],
+        majorChoices: [],
+        npcRelationships: [],
+        startedAt: new Date(),
+        lastProgressAt: new Date()
+      });
+
+      const firstQuest = getCosmicQuest('cosmic_01_strange_happenings')!;
+
+      return { progress, firstQuest };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('Failed to start cosmic storyline', 500);
     }
-
-    if (character.level < 25) {
-      throw new AppError('Character must be level 25 to start this questline', 400);
-    }
-
-    // Check if already started
-    const existing = cosmicProgressMap.get(characterId);
-    if (existing) {
-      throw new AppError('Cosmic questline already started', 400);
-    }
-
-    // Create initial progress
-    const progress: CosmicProgress = {
-      characterId,
-      currentQuest: 'cosmic_01_strange_happenings',
-      completedQuests: [],
-      currentAct: CosmicAct.WHISPERS,
-      corruption: {
-        level: 0,
-        threshold: 100,
-        effects: [],
-        gainedAt: new Date(),
-        lastUpdate: new Date()
-      },
-      discoveredLore: [],
-      experiencedVisions: [],
-      journalEntries: [],
-      majorChoices: [],
-      npcRelationships: [],
-      startedAt: new Date(),
-      lastProgressAt: new Date()
-    };
-
-    cosmicProgressMap.set(characterId, progress);
-
-    const firstQuest = getCosmicQuest('cosmic_01_strange_happenings')!;
-
-    return { progress, firstQuest };
   }
 
   /**
    * Get character's cosmic progress
    */
-  static async getCosmicProgress(characterId: string): Promise<CosmicProgress | null> {
-    return cosmicProgressMap.get(characterId) || null;
+  static async getCosmicProgress(characterId: string): Promise<ICosmicProgress | null> {
+    try {
+      return await CosmicProgressModel.findByCharacter(characterId);
+    } catch (error) {
+      throw new AppError('Failed to retrieve cosmic progress', 500);
+    }
   }
 
   /**
@@ -95,25 +99,30 @@ export class CosmicQuestService {
     amount: number,
     source: string
   ): Promise<CorruptionState> {
-    const progress = cosmicProgressMap.get(characterId);
-    if (!progress) {
-      throw new AppError('Cosmic questline not started', 400);
-    }
-
-    progress.corruption.level = Math.min(100, progress.corruption.level + amount);
-    progress.corruption.lastUpdate = new Date();
-
-    // Check for new corruption effects
-    const newEffects = this.checkCorruptionEffects(progress.corruption.level);
-    for (const effect of newEffects) {
-      if (!progress.corruption.effects.find(e => e.id === effect.id)) {
-        progress.corruption.effects.push(effect);
+    try {
+      const progress = await CosmicProgressModel.findByCharacter(characterId);
+      if (!progress) {
+        throw new AppError('Cosmic questline not started', 400);
       }
+
+      progress.corruption.level = Math.min(100, progress.corruption.level + amount);
+      progress.corruption.lastUpdate = new Date();
+
+      // Check for new corruption effects
+      const newEffects = this.checkCorruptionEffects(progress.corruption.level);
+      for (const effect of newEffects) {
+        if (!progress.corruption.effects.find(e => e.id === effect.id)) {
+          progress.corruption.effects.push(effect);
+        }
+      }
+
+      await progress.save();
+
+      return progress.corruption;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('Failed to add corruption', 500);
     }
-
-    cosmicProgressMap.set(characterId, progress);
-
-    return progress.corruption;
   }
 
   /**
@@ -185,46 +194,62 @@ export class CosmicQuestService {
    * Add a vision to character's experience
    */
   static async addVision(characterId: string, vision: Vision): Promise<void> {
-    const progress = cosmicProgressMap.get(characterId);
-    if (!progress) {
-      throw new AppError('Cosmic questline not started', 400);
-    }
-
-    vision.timestamp = new Date();
-    progress.experiencedVisions.push(vision);
-
-    // Unlock related lore
-    if (vision.revealsLore) {
-      for (const loreId of vision.revealsLore) {
-        // Find lore in quest data and add to discovered
-        // This is simplified - in production, would fetch from lore database
-        const lore: LoreEntry = {
-          id: loreId,
-          category: 'entity_dreams' as any,
-          title: 'Revealed Knowledge',
-          content: 'Content revealed through vision',
-          source: 'Vision',
-          discoveredAt: new Date()
-        };
-        progress.discoveredLore.push(lore);
+    try {
+      const progress = await CosmicProgressModel.findByCharacter(characterId);
+      if (!progress) {
+        throw new AppError('Cosmic questline not started', 400);
       }
-    }
 
-    cosmicProgressMap.set(characterId, progress);
+      // Store vision ID (model stores IDs, not full objects)
+      if (!progress.experiencedVisions.includes(vision.id)) {
+        progress.experiencedVisions.push(vision.id);
+      }
+
+      // Unlock related lore
+      if (vision.revealsLore) {
+        for (const loreId of vision.revealsLore) {
+          if (!progress.discoveredLore.includes(loreId)) {
+            progress.discoveredLore.push(loreId);
+          }
+        }
+      }
+
+      await progress.save();
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('Failed to add vision', 500);
+    }
   }
 
   /**
    * Add journal entry
    */
   static async addJournalEntry(characterId: string, entry: JournalEntry): Promise<void> {
-    const progress = cosmicProgressMap.get(characterId);
-    if (!progress) {
-      throw new AppError('Cosmic questline not started', 400);
-    }
+    try {
+      const progress = await CosmicProgressModel.findByCharacter(characterId);
+      if (!progress) {
+        throw new AppError('Cosmic questline not started', 400);
+      }
 
-    entry.timestamp = new Date();
-    progress.journalEntries.push(entry);
-    cosmicProgressMap.set(characterId, progress);
+      // Convert from shared JournalEntry to model IJournalEntry format
+      const modelEntry = {
+        entryId: entry.id,
+        title: entry.title,
+        content: entry.content,
+        category: entry.category as 'lore' | 'vision' | 'discovery' | 'choice',
+        unlockedAt: entry.timestamp || new Date()
+      };
+
+      // Check if entry already exists
+      const exists = progress.journalEntries.some(e => e.entryId === modelEntry.entryId);
+      if (!exists) {
+        progress.journalEntries.push(modelEntry);
+        await progress.save();
+      }
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('Failed to add journal entry', 500);
+    }
   }
 
   /**
@@ -240,48 +265,53 @@ export class CosmicQuestService {
     visionTriggered?: Vision;
     corruptionGained: number;
   }> {
-    const progress = cosmicProgressMap.get(characterId);
-    if (!progress) {
-      throw new AppError('Cosmic questline not started', 400);
+    try {
+      const progress = await CosmicProgressModel.findByCharacter(characterId);
+      if (!progress) {
+        throw new AppError('Cosmic questline not started', 400);
+      }
+
+      const quest = getCosmicQuest(questId);
+      if (!quest) {
+        throw new AppError('Quest not found', 404);
+      }
+
+      const objective = quest.objectives.find(obj => obj.id === objectiveId);
+      if (!objective) {
+        throw new AppError('Objective not found', 404);
+      }
+
+      // Mark objective as complete
+      objective.current = objective.required;
+
+      // Add corruption if applicable
+      let corruptionGained = 0;
+      if (objective.corruptionOnComplete) {
+        await this.addCorruption(characterId, objective.corruptionOnComplete, `Objective: ${objectiveId}`);
+        corruptionGained = objective.corruptionOnComplete;
+      }
+
+      // Check if all objectives complete
+      const allComplete = quest.objectives.every(obj => obj.current >= obj.required);
+
+      let visionTriggered: Vision | undefined;
+
+      // If quest complete, handle completion
+      if (allComplete) {
+        const result = await this.completeQuest(characterId, questId);
+        visionTriggered = result.visionTriggered;
+      }
+
+      return {
+        objective,
+        questCompleted: allComplete,
+        visionTriggered,
+        corruptionGained
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('Failed to complete objective', 500);
     }
-
-    const quest = getCosmicQuest(questId);
-    if (!quest) {
-      throw new AppError('Quest not found', 404);
-    }
-
-    const objective = quest.objectives.find(obj => obj.id === objectiveId);
-    if (!objective) {
-      throw new AppError('Objective not found', 404);
-    }
-
-    // Mark objective as complete
-    objective.current = objective.required;
-
-    // Add corruption if applicable
-    let corruptionGained = 0;
-    if (objective.corruptionOnComplete) {
-      await this.addCorruption(characterId, objective.corruptionOnComplete, `Objective: ${objectiveId}`);
-      corruptionGained = objective.corruptionOnComplete;
-    }
-
-    // Check if all objectives complete
-    const allComplete = quest.objectives.every(obj => obj.current >= obj.required);
-
-    let visionTriggered: Vision | undefined;
-
-    // If quest complete, handle completion
-    if (allComplete) {
-      const result = await this.completeQuest(characterId, questId);
-      visionTriggered = result.visionTriggered;
-    }
-
-    return {
-      objective,
-      questCompleted: allComplete,
-      visionTriggered,
-      corruptionGained
-    };
   }
 
   /**
@@ -296,70 +326,75 @@ export class CosmicQuestService {
     visionTriggered?: Vision;
     corruptionGained: number;
   }> {
-    const progress = cosmicProgressMap.get(characterId);
-    if (!progress) {
-      throw new AppError('Cosmic questline not started', 400);
-    }
-
-    const quest = getCosmicQuest(questId);
-    if (!quest) {
-      throw new AppError('Quest not found', 404);
-    }
-
-    // Add to completed quests
-    if (!progress.completedQuests.includes(questId)) {
-      progress.completedQuests.push(questId);
-    }
-
-    // Add base corruption
-    await this.addCorruption(characterId, quest.corruptionGain, `Quest: ${questId}`);
-
-    // Add lore
-    for (const lore of quest.lore) {
-      lore.discoveredAt = new Date();
-      lore.discoveredBy = characterId;
-      progress.discoveredLore.push(lore);
-    }
-
-    // Add journal entries
-    for (const journal of quest.journals) {
-      await this.addJournalEntry(characterId, journal);
-    }
-
-    // Get next quest
-    const nextQuest = getNextQuest(questId);
-    if (nextQuest) {
-      progress.currentQuest = nextQuest.id;
-      progress.currentAct = nextQuest.act;
-    } else {
-      progress.currentQuest = undefined;
-    }
-
-    progress.lastProgressAt = new Date();
-    cosmicProgressMap.set(characterId, progress);
-
-    // Grant rewards (simplified - in production would update character model)
-    const rewards = quest.baseRewards;
-
-    // Check for triggered visions
-    let visionTriggered: Vision | undefined;
-    if (quest.visions.length > 0) {
-      // Find first vision character is eligible for
-      visionTriggered = quest.visions.find(v =>
-        !v.corruptionRequired || progress.corruption.level >= v.corruptionRequired
-      );
-
-      if (visionTriggered) {
-        await this.addVision(characterId, visionTriggered);
+    try {
+      const progress = await CosmicProgressModel.findByCharacter(characterId);
+      if (!progress) {
+        throw new AppError('Cosmic questline not started', 400);
       }
-    }
 
-    return {
-      rewards,
-      nextQuest,
-      visionTriggered,
-      corruptionGained: quest.corruptionGain
-    };
+      const quest = getCosmicQuest(questId);
+      if (!quest) {
+        throw new AppError('Quest not found', 404);
+      }
+
+      // Add to completed quests
+      if (!progress.completedQuests.includes(questId)) {
+        progress.completedQuests.push(questId);
+      }
+
+      // Add base corruption
+      await this.addCorruption(characterId, quest.corruptionGain, `Quest: ${questId}`);
+
+      // Add lore (store IDs only)
+      for (const lore of quest.lore) {
+        if (!progress.discoveredLore.includes(lore.id)) {
+          progress.discoveredLore.push(lore.id);
+        }
+      }
+
+      // Add journal entries
+      for (const journal of quest.journals) {
+        await this.addJournalEntry(characterId, journal);
+      }
+
+      // Get next quest
+      const nextQuest = getNextQuest(questId);
+      if (nextQuest) {
+        progress.currentQuest = nextQuest.id;
+        progress.currentAct = nextQuest.act;
+      } else {
+        progress.currentQuest = '';
+      }
+
+      progress.lastProgressAt = new Date();
+      await progress.save();
+
+      // Grant rewards (simplified - in production would update character model)
+      const rewards = quest.baseRewards;
+
+      // Check for triggered visions
+      let visionTriggered: Vision | undefined;
+      if (quest.visions.length > 0) {
+        // Find first vision character is eligible for
+        visionTriggered = quest.visions.find(v =>
+          !v.corruptionRequired || progress.corruption.level >= v.corruptionRequired
+        );
+
+        if (visionTriggered) {
+          await this.addVision(characterId, visionTriggered);
+        }
+      }
+
+      return {
+        rewards,
+        nextQuest,
+        visionTriggered,
+        corruptionGained: quest.corruptionGain
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('Failed to complete quest', 500);
+    }
   }
 
   /**
@@ -373,83 +408,92 @@ export class CosmicQuestService {
     corruptionChange: number;
     endingPath?: string;
   }> {
-    const progress = cosmicProgressMap.get(characterId);
-    if (!progress) {
-      throw new AppError('Cosmic questline not started', 400);
-    }
-
-    const quest = getCosmicQuest(questId);
-    if (!quest) {
-      throw new AppError('Quest not found', 404);
-    }
-
-    // Record the choice
-    progress.majorChoices.push({
-      questId,
-      choiceId,
-      timestamp: new Date()
-    });
-
-    // Find choice reward
-    const choiceReward = quest.choiceRewards?.find(cr => cr.choiceId === choiceId);
-
-    let corruptionChange = 0;
-
-    if (choiceReward) {
-      // Update ending path
-      if (choiceReward.endingPath) {
-        progress.endingPath = choiceReward.endingPath;
+    try {
+      const progress = await CosmicProgressModel.findByCharacter(characterId);
+      if (!progress) {
+        throw new AppError('Cosmic questline not started', 400);
       }
 
-      // Apply corruption changes (if any)
-      // This is simplified - would need to look at choice details
+      const quest = getCosmicQuest(questId);
+      if (!quest) {
+        throw new AppError('Quest not found', 404);
+      }
+
+      // Record the choice
+      progress.majorChoices.push({
+        questId,
+        choiceId,
+        chosenAt: new Date()
+      });
+
+      // Find choice reward
+      const choiceReward = quest.choiceRewards?.find(cr => cr.choiceId === choiceId);
+
+      let corruptionChange = 0;
+
+      if (choiceReward) {
+        // Update ending path
+        if (choiceReward.endingPath) {
+          progress.ending = choiceReward.endingPath;
+        }
+
+        // Apply corruption changes (if any)
+        // This is simplified - would need to look at choice details
+      }
+
+      await progress.save();
+
+      return {
+        corruptionChange,
+        endingPath: progress.ending
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('Failed to make choice', 500);
     }
-
-    cosmicProgressMap.set(characterId, progress);
-
-    return {
-      corruptionChange,
-      endingPath: progress.endingPath
-    };
   }
 
   /**
    * Get available cosmic quests for character
    */
   static async getAvailableQuests(characterId: string): Promise<CosmicQuest[]> {
-    const progress = cosmicProgressMap.get(characterId);
-    if (!progress) {
-      return [];
+    try {
+      const progress = await CosmicProgressModel.findByCharacter(characterId);
+      if (!progress) {
+        return [];
+      }
+
+      const character = await Character.findById(characterId);
+      if (!character) {
+        return [];
+      }
+
+      return COSMIC_QUESTS.filter(quest => {
+        // Level requirement
+        if (character.level < quest.levelRequirement) {
+          return false;
+        }
+
+        // Already completed
+        if (progress.completedQuests.includes(quest.id)) {
+          return false;
+        }
+
+        // Previous quest requirement
+        if (quest.previousQuest && !progress.completedQuests.includes(quest.previousQuest)) {
+          return false;
+        }
+
+        // Corruption maximum (some quests lock if too corrupted)
+        if (quest.corruptionMaximum && progress.corruption.level > quest.corruptionMaximum) {
+          return false;
+        }
+
+        return true;
+      });
+    } catch (error) {
+      throw new AppError('Failed to get available quests', 500);
     }
-
-    const character = await Character.findById(characterId);
-    if (!character) {
-      return [];
-    }
-
-    return COSMIC_QUESTS.filter(quest => {
-      // Level requirement
-      if (character.level < quest.levelRequirement) {
-        return false;
-      }
-
-      // Already completed
-      if (progress.completedQuests.includes(quest.id)) {
-        return false;
-      }
-
-      // Previous quest requirement
-      if (quest.previousQuest && !progress.completedQuests.includes(quest.previousQuest)) {
-        return false;
-      }
-
-      // Corruption maximum (some quests lock if too corrupted)
-      if (quest.corruptionMaximum && progress.corruption.level > quest.corruptionMaximum) {
-        return false;
-      }
-
-      return true;
-    });
   }
 
   /**
@@ -459,30 +503,62 @@ export class CosmicQuestService {
     characterId: string,
     category?: string
   ): Promise<LoreEntry[]> {
-    const progress = cosmicProgressMap.get(characterId);
-    if (!progress) {
-      return [];
+    try {
+      const progress = await CosmicProgressModel.findByCharacter(characterId);
+      if (!progress) {
+        return [];
+      }
+
+      // Model stores lore IDs, need to fetch full lore from quest data
+      const lore: LoreEntry[] = [];
+      for (const loreId of progress.discoveredLore) {
+        // Search through all quests to find the lore entry
+        for (const quest of COSMIC_QUESTS) {
+          const loreEntry = quest.lore.find(l => l.id === loreId);
+          if (loreEntry) {
+            lore.push(loreEntry);
+            break;
+          }
+        }
+      }
+
+      if (category) {
+        return lore.filter(l => l.category === category);
+      }
+
+      return lore;
+    } catch (error) {
+      throw new AppError('Failed to get discovered lore', 500);
     }
-
-    let lore = progress.discoveredLore;
-
-    if (category) {
-      lore = lore.filter(l => l.category === category);
-    }
-
-    return lore;
   }
 
   /**
    * Get experienced visions
    */
   static async getExperiencedVisions(characterId: string): Promise<Vision[]> {
-    const progress = cosmicProgressMap.get(characterId);
-    if (!progress) {
-      return [];
-    }
+    try {
+      const progress = await CosmicProgressModel.findByCharacter(characterId);
+      if (!progress) {
+        return [];
+      }
 
-    return progress.experiencedVisions;
+      // Model stores vision IDs, need to fetch full visions from quest data
+      const visions: Vision[] = [];
+      for (const visionId of progress.experiencedVisions) {
+        // Search through all quests to find the vision
+        for (const quest of COSMIC_QUESTS) {
+          const vision = quest.visions.find(v => v.id === visionId);
+          if (vision) {
+            visions.push(vision);
+            break;
+          }
+        }
+      }
+
+      return visions;
+    } catch (error) {
+      throw new AppError('Failed to get experienced visions', 500);
+    }
   }
 
   /**
@@ -493,31 +569,36 @@ export class CosmicQuestService {
     warningLevel: 'safe' | 'warning' | 'danger' | 'critical';
     canBeReversed: boolean;
   }> {
-    const progress = cosmicProgressMap.get(characterId);
-    if (!progress) {
-      throw new AppError('Cosmic questline not started', 400);
+    try {
+      const progress = await CosmicProgressModel.findByCharacter(characterId);
+      if (!progress) {
+        throw new AppError('Cosmic questline not started', 400);
+      }
+
+      const level = progress.corruption.level;
+
+      let warningLevel: 'safe' | 'warning' | 'danger' | 'critical';
+      if (level < 20) {
+        warningLevel = 'safe';
+      } else if (level < 40) {
+        warningLevel = 'warning';
+      } else if (level < 60) {
+        warningLevel = 'danger';
+      } else {
+        warningLevel = 'critical';
+      }
+
+      const canBeReversed = level < 60; // Stage 3 is the point of no return
+
+      return {
+        corruption: progress.corruption,
+        warningLevel,
+        canBeReversed
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('Failed to get corruption state', 500);
     }
-
-    const level = progress.corruption.level;
-
-    let warningLevel: 'safe' | 'warning' | 'danger' | 'critical';
-    if (level < 20) {
-      warningLevel = 'safe';
-    } else if (level < 40) {
-      warningLevel = 'warning';
-    } else if (level < 60) {
-      warningLevel = 'danger';
-    } else {
-      warningLevel = 'critical';
-    }
-
-    const canBeReversed = level < 60; // Stage 3 is the point of no return
-
-    return {
-      corruption: progress.corruption,
-      warningLevel,
-      canBeReversed
-    };
   }
 
   /**
@@ -530,27 +611,32 @@ export class CosmicQuestService {
     corruptionGained: number;
     visionTriggered?: Vision;
   }> {
-    // Add corruption from event
-    await this.addCorruption(characterId, event.corruptionGain, `Sanity Event: ${event.id}`);
+    try {
+      // Add corruption from event
+      await this.addCorruption(characterId, event.corruptionGain, `Sanity Event: ${event.id}`);
 
-    let visionTriggered: Vision | undefined;
+      let visionTriggered: Vision | undefined;
 
-    // Trigger vision if specified
-    if (event.visionTriggered) {
-      // Find vision in quests
-      for (const quest of COSMIC_QUESTS) {
-        const vision = quest.visions.find(v => v.id === event.visionTriggered);
-        if (vision) {
-          await this.addVision(characterId, vision);
-          visionTriggered = vision;
-          break;
+      // Trigger vision if specified
+      if (event.visionTriggered) {
+        // Find vision in quests
+        for (const quest of COSMIC_QUESTS) {
+          const vision = quest.visions.find(v => v.id === event.visionTriggered);
+          if (vision) {
+            await this.addVision(characterId, vision);
+            visionTriggered = vision;
+            break;
+          }
         }
       }
-    }
 
-    return {
-      corruptionGained: event.corruptionGain,
-      visionTriggered
-    };
+      return {
+        corruptionGained: event.corruptionGain,
+        visionTriggered
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError('Failed to trigger sanity event', 500);
+    }
   }
 }

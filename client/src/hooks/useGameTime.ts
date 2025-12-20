@@ -6,6 +6,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useWorldStore } from '@/store/useWorldStore';
 
+// ============================================================================
+// GLOBAL POLLING MANAGEMENT (prevents duplicate polling across hook instances)
+// ============================================================================
+
+let globalPollingInterval: ReturnType<typeof setInterval> | null = null;
+let pollingInstanceCount = 0;
+
 export interface GameTimeState {
   hour: number;           // 0-23
   period: string;         // "Dawn", "Morning", etc.
@@ -102,7 +109,7 @@ function getMinutesUntilNextPeriod(currentHour: number, nextPeriodHour: number):
  * Hook to access current game time
  */
 export function useGameTime(): GameTimeState {
-  const { worldState, fetchWorldState } = useWorldStore();
+  const { worldState } = useWorldStore();
   const [gameTime, setGameTime] = useState<GameTimeState>({
     hour: 12,
     period: 'Noon',
@@ -113,18 +120,31 @@ export function useGameTime(): GameTimeState {
     icon: '☀️',
   });
 
-  // Fetch world state on mount and periodically
+  // Fetch world state on mount and set up shared polling
   useEffect(() => {
-    // Initial fetch
-    fetchWorldState();
+    // Increment instance count
+    pollingInstanceCount++;
 
-    // Poll every 30 seconds
-    const interval = setInterval(() => {
-      fetchWorldState();
-    }, 30000);
+    // Only set up polling if this is the first instance
+    if (pollingInstanceCount === 1) {
+      // Initial fetch
+      useWorldStore.getState().fetchWorldState();
 
-    return () => clearInterval(interval);
-  }, [fetchWorldState]);
+      // Set up global polling every 60 seconds (reduced from 30s)
+      globalPollingInterval = setInterval(() => {
+        useWorldStore.getState().fetchWorldState();
+      }, 60000);
+    }
+
+    // Cleanup: decrement count and clear interval if last instance
+    return () => {
+      pollingInstanceCount--;
+      if (pollingInstanceCount === 0 && globalPollingInterval) {
+        clearInterval(globalPollingInterval);
+        globalPollingInterval = null;
+      }
+    };
+  }, []); // Empty deps - only run on mount/unmount
 
   // Update game time state when world state changes
   const updateGameTime = useCallback(() => {

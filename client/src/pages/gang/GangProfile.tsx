@@ -9,6 +9,7 @@ import { useGangStore } from '@/store/useGangStore';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { Button, Card, Input } from '@/components/ui';
 import { Gang, GangRole, GangUpgradeType, GangMember } from '@desperados/shared';
+import { logger } from '@/services/logger.service';
 
 type TabType = 'members' | 'bank' | 'perks' | 'upgrades' | 'territories';
 
@@ -80,7 +81,7 @@ export function GangProfile() {
       await depositToBank(gang._id, amount);
       setDepositAmount('');
     } catch (error) {
-      console.error('Failed to deposit:', error);
+      logger.error('Failed to deposit', error as Error, { context: 'GangProfile.handleDeposit', gangId: gang._id, amount });
     }
   };
 
@@ -94,7 +95,7 @@ export function GangProfile() {
       await withdrawFromBank(gang._id, amount);
       setWithdrawAmount('');
     } catch (error) {
-      console.error('Failed to withdraw:', error);
+      logger.error('Failed to withdraw', error as Error, { context: 'GangProfile.handleWithdraw', gangId: gang._id, amount });
     }
   };
 
@@ -103,7 +104,7 @@ export function GangProfile() {
       await leaveGang();
       navigate('/game/gang');
     } catch (error) {
-      console.error('Failed to leave gang:', error);
+      logger.error('Failed to leave gang', error as Error, { context: 'GangProfile.handleLeave' });
     }
   };
 
@@ -112,7 +113,7 @@ export function GangProfile() {
       await disbandGang(gang._id);
       navigate('/game/gang');
     } catch (error) {
-      console.error('Failed to disband gang:', error);
+      logger.error('Failed to disband gang', error as Error, { context: 'GangProfile.handleDisband', gangId: gang._id });
     }
   };
 

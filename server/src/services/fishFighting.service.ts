@@ -7,7 +7,7 @@
 import mongoose from 'mongoose';
 import { Character, ICharacter } from '../models/Character.model';
 import { FishingTrip, IFishingTrip } from '../models/FishingTrip.model';
-import { TransactionSource } from '../models/GoldTransaction.model';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import {
   FishingActionResult,
   FightPhase,
@@ -18,6 +18,7 @@ import { getFishSpecies } from '../data/fishSpecies';
 import { getRod, getReel, getLine } from '../data/fishingGear';
 import { FishingService } from './fishing.service';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 type FightAction = 'REEL' | 'LET_RUN';
 
@@ -85,7 +86,7 @@ export class FishFightingService {
         staminaDrain = 5 + Math.floor(fish.aggression / 10);
 
         // Fish might fight back
-        if (Math.random() < fish.aggression / 100) {
+        if (SecureRNG.chance(fish.aggression / 100)) {
           tensionChange += 10;
           message = 'The fish fights hard!';
         } else {
@@ -138,7 +139,7 @@ export class FishFightingService {
 
       // Check if tension too high for line strength
       const lineStressRoll = fightState.lineTension - line.strength;
-      if (lineStressRoll > 0 && Math.random() * 100 < lineStressRoll) {
+      if (lineStressRoll > 0 && SecureRNG.d100() < lineStressRoll) {
         // Line broke under stress
         trip.currentFish = undefined;
         trip.isWaiting = true;
@@ -152,7 +153,7 @@ export class FishFightingService {
       }
 
       // Check if fish escaped (hook strength degradation)
-      if (Math.random() < 0.05) { // 5% chance per round
+      if (SecureRNG.chance(0.05)) { // 5% chance per round
         fightState.hookStrength -= 10;
         if (fightState.hookStrength <= 0) {
           trip.currentFish = undefined;
@@ -233,7 +234,7 @@ export class FishFightingService {
       const quality = this.calculateFightQuality(fightState, fish);
 
       // Calculate rewards
-      const { goldValue, experience } = FishingService.calculateCatchRewards(
+      const { dollarsValue, experience } = FishingService.calculateCatchRewards(
         fish,
         currentFish.weight,
         currentFish.size,
@@ -243,11 +244,12 @@ export class FishFightingService {
       // Process drops
       const drops = FishingService.processFishDrops(fish);
 
-      // Award gold
-      await character.addGold(goldValue, TransactionSource.FISHING, {
+      // Award dollars
+      await character.addDollars(dollarsValue, TransactionSource.FISHING, {
         fishId: fish.id,
         weight: currentFish.weight,
-        size: currentFish.size
+        size: currentFish.size,
+        currencyType: CurrencyType.DOLLAR
       });
 
       // Award XP
@@ -264,7 +266,7 @@ export class FishFightingService {
         weight: currentFish.weight,
         size: currentFish.size,
         quality,
-        goldValue,
+        dollarsValue,
         experience,
         drops,
         isNewRecord,
@@ -276,7 +278,7 @@ export class FishFightingService {
       // Add to trip
       trip.catches.push(caughtFish as any);
       trip.catchCount++;
-      trip.totalValue += goldValue;
+      trip.totalValue += dollarsValue;
       trip.totalExperience += experience;
 
       // Clear current fish and reset to waiting
@@ -292,7 +294,7 @@ export class FishFightingService {
           success: true,
           message: `Caught a ${currentFish.size} ${fish.name} (${currentFish.weight.toFixed(1)} lbs)! Session limit reached.`,
           catch: caughtFish as any,
-          goldGained: goldValue,
+          dollarsGained: dollarsValue,
           experienceGained: experience,
           itemsGained: drops
         };
@@ -315,13 +317,13 @@ export class FishFightingService {
         catchMessage += ' Perfect fight!';
       }
 
-      catchMessage += ` +${goldValue} gold, +${experience} XP`;
+      catchMessage += ` +${dollarsValue} dollars, +${experience} XP`;
 
       return {
         success: true,
         message: catchMessage,
         catch: caughtFish as any,
-        goldGained: goldValue,
+        dollarsGained: dollarsValue,
         experienceGained: experience,
         itemsGained: drops,
         session: trip.toSafeObject()

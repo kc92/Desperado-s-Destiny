@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Card, Button } from '@/components/ui';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 import type {
   Property,
   PropertyListing,
@@ -233,7 +233,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
               isForeclosed ? 'text-orange-400' : 'text-gold-light'
             }`}
           >
-            {formatGold(price)}
+            {formatDollars(price)}
           </span>
         </div>
 
@@ -243,7 +243,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
             <div className="flex justify-between">
               <span className="text-desert-stone">Workers:</span>
               <span className="text-desert-sand">
-                {property.workers?.filter((w) => w.isActive).length || 0}/{property.maxWorkers}
+                {property.workers?.filter((w) => w.isAssigned).length || 0}/{property.maxWorkers}
               </span>
             </div>
             <div className="flex justify-between">
@@ -260,7 +260,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           <div className="flex justify-between text-sm pt-2 border-t border-wood-dark/30">
             <span className="text-desert-stone">Weekly Costs:</span>
             <span className="text-red-400">
-              -{formatGold(property.weeklyTaxes + property.weeklyUpkeep)}
+              -{formatDollars(property.weeklyTaxes + property.weeklyUpkeep)}
             </span>
           </div>
         )}

@@ -11,22 +11,21 @@ import { useToast } from '@/store/useToastStore';
 import { Card, Button, Modal, EmptyState } from '@/components/ui';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import { PropertyCard } from '@/components/properties';
-import { formatGold } from '@/utils/format';
-import type { PropertyListing, PropertyType } from '@desperados/shared';
-import { LOAN_CONFIG } from '@desperados/shared';
+import { formatDollars } from '@/utils/format';
+import { PropertyType, LOAN_CONFIG, type PropertyListing } from '@desperados/shared';
 
 /**
  * Property type filter options
  */
 const PROPERTY_TYPES: { value: PropertyType | 'all'; label: string; icon: string }[] = [
   { value: 'all', label: 'All Properties', icon: '🏠' },
-  { value: 'ranch', label: 'Ranches', icon: '🌾' },
-  { value: 'shop', label: 'Shops', icon: '🏪' },
-  { value: 'workshop', label: 'Workshops', icon: '🔨' },
-  { value: 'homestead', label: 'Homesteads', icon: '🏡' },
-  { value: 'mine', label: 'Mines', icon: '⛏️' },
-  { value: 'saloon', label: 'Saloons', icon: '🍺' },
-  { value: 'stable', label: 'Stables', icon: '🐴' },
+  { value: PropertyType.RANCH, label: 'Ranches', icon: '🌾' },
+  { value: PropertyType.SHOP, label: 'Shops', icon: '🏪' },
+  { value: PropertyType.WORKSHOP, label: 'Workshops', icon: '🔨' },
+  { value: PropertyType.HOMESTEAD, label: 'Homesteads', icon: '🏡' },
+  { value: PropertyType.MINE, label: 'Mines', icon: '⛏️' },
+  { value: PropertyType.SALOON, label: 'Saloons', icon: '🍺' },
+  { value: PropertyType.STABLE, label: 'Stables', icon: '🐴' },
 ];
 
 /**
@@ -41,7 +40,7 @@ const PurchaseModal: React.FC<{
   isPurchasing: boolean;
 }> = ({ isOpen, onClose, listing, onPurchase, characterGold, isPurchasing }) => {
   const [useLoan, setUseLoan] = useState(false);
-  const [downPaymentPercent, setDownPaymentPercent] = useState(LOAN_CONFIG.MIN_DOWN_PAYMENT);
+  const [downPaymentPercent, setDownPaymentPercent] = useState<number>(LOAN_CONFIG.MIN_DOWN_PAYMENT);
 
   if (!listing) return null;
 
@@ -84,7 +83,7 @@ const PurchaseModal: React.FC<{
               <h3 className="font-western text-lg text-desert-sand">{listing.name}</h3>
               <p className="text-sm text-desert-stone">{listing.locationName}</p>
               <p className="text-gold-light font-western text-xl mt-1">
-                {formatGold(listing.price)}
+                {formatDollars(listing.price)}
               </p>
             </div>
           </div>
@@ -92,9 +91,9 @@ const PurchaseModal: React.FC<{
 
         {/* Your funds */}
         <div className="flex justify-between items-center p-3 bg-wood-dark/50 rounded-lg">
-          <span className="text-desert-stone">Your Gold:</span>
+          <span className="text-desert-stone">Your Dollars:</span>
           <span className="text-gold-light font-western text-lg">
-            {formatGold(characterGold)}
+            {formatDollars(characterGold)}
           </span>
         </div>
 
@@ -124,7 +123,7 @@ const PurchaseModal: React.FC<{
                   canBuyOutright ? 'text-gold-light' : 'text-red-400'
                 }`}
               >
-                {formatGold(listing.price)}
+                {formatDollars(listing.price)}
               </span>
             </div>
           </button>
@@ -182,16 +181,16 @@ const PurchaseModal: React.FC<{
                 <span
                   className={canAffordDownPayment ? 'text-gold-light' : 'text-red-400'}
                 >
-                  {formatGold(downPaymentAmount)}
+                  {formatDollars(downPaymentAmount)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-desert-stone">Loan Amount:</span>
-                <span className="text-desert-sand">{formatGold(loanAmount)}</span>
+                <span className="text-desert-sand">{formatDollars(loanAmount)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-desert-stone">Est. Weekly Payment:</span>
-                <span className="text-gold-light">{formatGold(weeklyPayment)}</span>
+                <span className="text-gold-light">{formatDollars(weeklyPayment)}</span>
               </div>
             </div>
 
@@ -250,8 +249,8 @@ const PurchaseModal: React.FC<{
             loadingText="Processing..."
           >
             {useLoan
-              ? `Purchase with ${formatGold(downPaymentAmount)} Down`
-              : `Purchase for ${formatGold(listing.price)}`}
+              ? `Purchase with ${formatDollars(downPaymentAmount)} Down`
+              : `Purchase for ${formatDollars(listing.price)}`}
           </Button>
           <Button variant="ghost" fullWidth onClick={onClose} disabled={isPurchasing}>
             Cancel
@@ -349,9 +348,9 @@ export const PropertyListingsPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="text-sm text-desert-stone">Your Gold</p>
+            <p className="text-sm text-desert-stone">Your Dollars</p>
             <p className="text-2xl font-western text-gold-light">
-              {formatGold(currentCharacter.gold)}
+              {formatDollars(currentCharacter.gold)}
             </p>
           </div>
           <Button

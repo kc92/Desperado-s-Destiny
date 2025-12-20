@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
-import { useMarketplace, MarketListing, PriceHistory, MarketFilters as Filters } from '@/hooks/useMarketplace';
+import { useMarketplaceStore } from '@/store/useMarketplaceStore';
 import { useShop, InventoryItemWithDetails } from '@/hooks/useShop';
 import { useToast } from '@/store/useToastStore';
 import { Card, Button, EmptyState } from '@/components/ui';
@@ -21,10 +21,18 @@ import {
   MyBids,
   TransactionHistory,
 } from '@/components/marketplace';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
+import type { Listing, ListingsFilter, TransactionHistoryEntry } from '@/services/marketplace.service';
+import type { PriceHistoryEntry } from '@/services/marketplace.service';
+import { marketplaceService } from '@/services/marketplace.service';
+// Import old types for component compatibility
+import type { MarketListing } from '@/hooks/useMarketplace';
 
 // Tab types
 type MarketTab = 'browse' | 'my-listings' | 'my-bids' | 'history';
+
+// Type alias for compatibility - the Listing type from the store is compatible with MarketListing used by components
+type CompatibleListing = Listing & Partial<MarketListing>;
 
 export const MarketplacePage: React.FC = () => {
   const { currentCharacter } = useCharacterStore();
@@ -32,35 +40,35 @@ export const MarketplacePage: React.FC = () => {
     listings,
     myListings,
     myBids,
-    transactions,
     categories,
     pagination,
+    purchaseHistory,
+    salesHistory,
     isLoading,
     error,
     fetchListings,
-    fetchListing,
     fetchMyListings,
     fetchMyBids,
-    fetchTransactions,
     fetchCategories,
+    fetchPurchaseHistory,
+    fetchSalesHistory,
     createListing,
     placeBid,
     buyNow,
     cancelListing,
-    updateListingPrice,
-    getPriceHistory,
+    updateListing,
     clearError,
-  } = useMarketplace();
+  } = useMarketplaceStore();
 
   const { inventory, fetchInventory } = useShop();
   const { success, error: showError } = useToast();
 
   // State
   const [activeTab, setActiveTab] = useState<MarketTab>('browse');
-  const [filters, setFilters] = useState<Filters>({ page: 1, limit: 20 });
-  const [selectedListing, setSelectedListing] = useState<MarketListing | null>(null);
-  const [bidListing, setBidListing] = useState<MarketListing | null>(null);
-  const [priceHistory, setPriceHistory] = useState<PriceHistory | null>(null);
+  const [filters, setFilters] = useState<ListingsFilter>({ page: 1, limit: 20 });
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [bidListing, setBidListing] = useState<Listing | null>(null);
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryEntry[] | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -77,9 +85,10 @@ export const MarketplacePage: React.FC = () => {
     } else if (activeTab === 'my-bids') {
       fetchMyBids();
     } else if (activeTab === 'history') {
-      fetchTransactions();
+      fetchPurchaseHistory();
+      fetchSalesHistory();
     }
-  }, [activeTab, fetchMyListings, fetchMyBids, fetchTransactions]);
+  }, [activeTab, fetchMyListings, fetchMyBids, fetchPurchaseHistory, fetchSalesHistory]);
 
   // Fetch inventory when create modal opens
   useEffect(() => {
@@ -88,15 +97,54 @@ export const MarketplacePage: React.FC = () => {
     }
   }, [showCreateModal, fetchInventory]);
 
+  // Combine purchase and sales history into transactions for the TransactionHistory component
+  // Map TransactionHistoryEntry to the Transaction type expected by the component
+  const transactions = useMemo(() => {
+    const mapped = [
+      ...purchaseHistory.map(p => ({
+        _id: p._id,
+        type: 'purchase' as const,
+        item: p.item as any, // Types are compatible
+        price: p.price,
+        buyerId: currentCharacter?._id || '',
+        buyerName: currentCharacter?.name || '',
+        sellerId: p.otherParty.characterId,
+        sellerName: p.otherParty.characterName,
+        timestamp: p.timestamp,
+        fee: 0, // Fee is already included in purchase price
+      })),
+      ...salesHistory.map(s => ({
+        _id: s._id,
+        type: 'sale' as const,
+        item: s.item as any, // Types are compatible
+        price: s.price,
+        buyerId: s.otherParty.characterId,
+        buyerName: s.otherParty.characterName,
+        sellerId: currentCharacter?._id || '',
+        sellerName: currentCharacter?.name || '',
+        timestamp: s.timestamp,
+        fee: Math.ceil(s.price * 0.05), // Marketplace fee is 5%
+      })),
+    ];
+    return mapped.sort((a, b) =>
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  }, [purchaseHistory, salesHistory, currentCharacter]);
+
   // Handle selecting a listing
   const handleSelectListing = useCallback(
-    async (listing: MarketListing) => {
+    async (listing: Listing) => {
       setSelectedListing(listing);
       // Fetch price history for the item
-      const history = await getPriceHistory(listing.item.itemId);
-      setPriceHistory(history);
+      try {
+        const history = await marketplaceService.getPriceHistory(listing.item.itemId);
+        setPriceHistory(history);
+      } catch (error) {
+        console.error('Failed to fetch price history:', error);
+        setPriceHistory(null);
+      }
     },
-    [getPriceHistory]
+    []
   );
 
   // Handle closing listing details
@@ -106,7 +154,7 @@ export const MarketplacePage: React.FC = () => {
   }, []);
 
   // Handle filter changes
-  const handleFiltersChange = useCallback((newFilters: Filters) => {
+  const handleFiltersChange = useCallback((newFilters: ListingsFilter) => {
     setFilters(newFilters);
   }, []);
 
@@ -119,41 +167,41 @@ export const MarketplacePage: React.FC = () => {
   const handleCreateListing = useCallback(
     async (data: Parameters<typeof createListing>[0]) => {
       setIsProcessing(true);
-      const result = await createListing(data);
-
-      if (result.success) {
+      try {
+        await createListing(data);
         success('Listing Created', `Your item has been listed on the marketplace!`);
         setShowCreateModal(false);
         fetchListings(filters);
         fetchMyListings();
-      } else {
-        showError('Failed to Create Listing', result.message);
+        setIsProcessing(false);
+        return { success: true, message: 'Listing created successfully' };
+      } catch (err: any) {
+        showError('Failed to Create Listing', err.message || 'An error occurred');
+        setIsProcessing(false);
+        return { success: false, message: err.message || 'An error occurred' };
       }
-
-      setIsProcessing(false);
-      return result;
     },
     [createListing, fetchListings, fetchMyListings, filters, success, showError]
   );
 
   // Handle placing a bid
   const handlePlaceBid = useCallback(
-    async (listing: MarketListing, amount: number) => {
+    async (listing: Listing, amount: number) => {
       setIsProcessing(true);
-      const result = await placeBid(listing._id, amount);
-
-      if (result.success) {
-        success('Bid Placed', `Your bid of ${formatGold(amount)} has been placed!`);
+      try {
+        await placeBid(listing._id, amount);
+        success('Bid Placed', `Your bid of ${formatDollars(amount)} has been placed!`);
         handleCloseDetails();
         setBidListing(null);
         fetchListings(filters);
         fetchMyBids();
-      } else {
-        showError('Failed to Place Bid', result.message);
+        setIsProcessing(false);
+        return { success: true, message: 'Bid placed successfully' };
+      } catch (err: any) {
+        showError('Failed to Place Bid', err.message || 'An error occurred');
+        setIsProcessing(false);
+        return { success: false, message: err.message || 'An error occurred' };
       }
-
-      setIsProcessing(false);
-      return result;
     },
     [placeBid, fetchListings, fetchMyBids, filters, success, showError, handleCloseDetails]
   );
@@ -162,57 +210,55 @@ export const MarketplacePage: React.FC = () => {
   const handlePlaceBidModal = useCallback(
     async (listingId: string, amount: number) => {
       setIsProcessing(true);
-      const result = await placeBid(listingId, amount);
-
-      if (result.success) {
-        success('Bid Placed', `Your bid of ${formatGold(amount)} has been placed!`);
+      try {
+        await placeBid(listingId, amount);
+        success('Bid Placed', `Your bid of ${formatDollars(amount)} has been placed!`);
         setBidListing(null);
         fetchListings(filters);
         fetchMyBids();
-      } else {
-        showError('Failed to Place Bid', result.message);
+        setIsProcessing(false);
+        return { success: true, message: 'Bid placed successfully' };
+      } catch (err: any) {
+        showError('Failed to Place Bid', err.message || 'An error occurred');
+        setIsProcessing(false);
+        return { success: false, message: err.message || 'An error occurred' };
       }
-
-      setIsProcessing(false);
-      return result;
     },
     [placeBid, fetchListings, fetchMyBids, filters, success, showError]
   );
 
   // Handle buy now
   const handleBuyNow = useCallback(
-    async (listing: MarketListing) => {
+    async (listing: Listing) => {
       setIsProcessing(true);
-      const result = await buyNow(listing._id);
-
-      if (result.success) {
+      try {
+        await buyNow(listing._id);
         success('Purchase Complete', `You bought ${listing.item.name}!`);
         handleCloseDetails();
         fetchListings(filters);
-        fetchTransactions();
-      } else {
-        showError('Purchase Failed', result.message);
+        fetchPurchaseHistory();
+        setIsProcessing(false);
+      } catch (err: any) {
+        showError('Purchase Failed', err.message || 'An error occurred');
+        setIsProcessing(false);
       }
-
-      setIsProcessing(false);
     },
-    [buyNow, fetchListings, fetchTransactions, filters, success, showError, handleCloseDetails]
+    [buyNow, fetchListings, fetchPurchaseHistory, filters, success, showError, handleCloseDetails]
   );
 
   // Handle cancel listing
   const handleCancelListing = useCallback(
     async (listingId: string) => {
-      const result = await cancelListing(listingId);
-
-      if (result.success) {
+      try {
+        await cancelListing(listingId);
         success('Listing Cancelled', 'Your item has been returned to your inventory.');
         fetchMyListings();
         fetchListings(filters);
-      } else {
-        showError('Failed to Cancel', result.message);
+        return { success: true, message: 'Listing cancelled successfully' };
+      } catch (err: any) {
+        showError('Failed to Cancel', err.message || 'An error occurred');
+        return { success: false, message: err.message || 'An error occurred' };
       }
-
-      return result;
     },
     [cancelListing, fetchMyListings, fetchListings, filters, success, showError]
   );
@@ -220,19 +266,18 @@ export const MarketplacePage: React.FC = () => {
   // Handle update listing price
   const handleUpdatePrice = useCallback(
     async (listingId: string, newPrice: number) => {
-      const result = await updateListingPrice(listingId, newPrice);
-
-      if (result.success) {
+      try {
+        await updateListing(listingId, { buyoutPrice: newPrice });
         success('Price Updated', 'Your listing price has been updated.');
         fetchMyListings();
         fetchListings(filters);
-      } else {
-        showError('Failed to Update Price', result.message);
+        return { success: true, message: 'Price updated successfully' };
+      } catch (err: any) {
+        showError('Failed to Update Price', err.message || 'An error occurred');
+        return { success: false, message: err.message || 'An error occurred' };
       }
-
-      return result;
     },
-    [updateListingPrice, fetchMyListings, fetchListings, filters, success, showError]
+    [updateListing, fetchMyListings, fetchListings, filters, success, showError]
   );
 
   // Calculate sellable inventory items
@@ -262,9 +307,9 @@ export const MarketplacePage: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="text-sm text-desert-stone">Your Gold</p>
+            <p className="text-sm text-desert-stone">Your Dollars</p>
             <p className="text-2xl font-western text-gold-light">
-              {formatGold(currentCharacter.gold)}
+              {formatDollars(currentCharacter.gold)}
             </p>
           </div>
           <Button
@@ -356,17 +401,17 @@ export const MarketplacePage: React.FC = () => {
                       {listings.map((listing) => (
                         <MarketListingCard
                           key={listing._id}
-                          listing={listing}
-                          onSelect={handleSelectListing}
-                          onBuyNow={handleBuyNow}
-                          onBid={(l) => setBidListing(l)}
+                          listing={listing as unknown as MarketListing}
+                          onSelect={(l) => handleSelectListing(l as unknown as Listing)}
+                          onBuyNow={(l) => handleBuyNow(l as unknown as Listing)}
+                          onBid={(l) => setBidListing(l as unknown as Listing)}
                           currentCharacterId={currentCharacter._id}
                         />
                       ))}
                     </div>
 
                     {/* Pagination */}
-                    {pagination.totalPages > 1 && (
+                    {pagination && pagination.totalPages > 1 && (
                       <div className="flex justify-center items-center gap-4 mt-8">
                         <Button
                           variant="ghost"
@@ -377,12 +422,12 @@ export const MarketplacePage: React.FC = () => {
                               page: Math.max(1, (prev.page || 1) - 1),
                             }))
                           }
-                          disabled={pagination.currentPage === 1}
+                          disabled={!pagination.hasPrev}
                         >
                           Previous
                         </Button>
                         <span className="text-desert-sand">
-                          Page {pagination.currentPage} of {pagination.totalPages}
+                          Page {pagination.page} of {pagination.totalPages}
                         </span>
                         <Button
                           variant="ghost"
@@ -393,7 +438,7 @@ export const MarketplacePage: React.FC = () => {
                               page: Math.min(pagination.totalPages, (prev.page || 1) + 1),
                             }))
                           }
-                          disabled={!pagination.hasMore}
+                          disabled={!pagination.hasNext}
                         >
                           Next
                         </Button>
@@ -419,7 +464,7 @@ export const MarketplacePage: React.FC = () => {
         {/* My Listings Tab */}
         {activeTab === 'my-listings' && (
           <MyListings
-            listings={myListings}
+            listings={myListings as unknown as MarketListing[]}
             onCancel={handleCancelListing}
             onUpdatePrice={handleUpdatePrice}
             onRefresh={fetchMyListings}
@@ -430,10 +475,10 @@ export const MarketplacePage: React.FC = () => {
         {/* My Bids Tab */}
         {activeTab === 'my-bids' && (
           <MyBids
-            listings={myBids}
+            listings={myBids.map(bid => bid.listing) as unknown as MarketListing[]}
             currentCharacterId={currentCharacter._id}
-            onViewListing={handleSelectListing}
-            onPlaceBid={(l) => setBidListing(l)}
+            onViewListing={(l) => handleSelectListing(l as unknown as Listing)}
+            onPlaceBid={(l) => setBidListing(l as unknown as Listing)}
             onRefresh={fetchMyBids}
             isLoading={isLoading}
           />
@@ -453,10 +498,10 @@ export const MarketplacePage: React.FC = () => {
       <ListingDetailsModal
         isOpen={!!selectedListing}
         onClose={handleCloseDetails}
-        listing={selectedListing}
-        priceHistory={priceHistory}
-        onPlaceBid={handlePlaceBid}
-        onBuyNow={handleBuyNow}
+        listing={selectedListing as unknown as MarketListing}
+        priceHistory={priceHistory as any}
+        onPlaceBid={(l, amount) => handlePlaceBid(l as unknown as Listing, amount)}
+        onBuyNow={(l) => handleBuyNow(l as unknown as Listing)}
         currentCharacterId={currentCharacter._id}
         currentGold={currentCharacter.gold}
         isProcessing={isProcessing}
@@ -466,7 +511,7 @@ export const MarketplacePage: React.FC = () => {
       <PlaceBidModal
         isOpen={!!bidListing}
         onClose={() => setBidListing(null)}
-        listing={bidListing}
+        listing={bidListing as unknown as MarketListing}
         currentGold={currentCharacter.gold}
         onPlaceBid={handlePlaceBidModal}
         isProcessing={isProcessing}

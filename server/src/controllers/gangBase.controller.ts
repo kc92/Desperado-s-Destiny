@@ -12,7 +12,7 @@ import {
   FacilityType,
   BaseUpgradeType,
 } from '@desperados/shared';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import logger from '../utils/logger';
 
 export class GangBaseController {

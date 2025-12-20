@@ -12,6 +12,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
   isLoading?: boolean;
   loadingText?: string;
+  'data-testid'?: string;
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
@@ -47,6 +48,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   loadingText,
   disabled = false,
   className = '',
+  'data-testid': testId,
   ...props
 }, ref) => {
   const baseStyles = 'btn-western font-semibold uppercase tracking-wider transition-all duration-200';
@@ -68,6 +70,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
       disabled={disabled || isLoading}
       aria-busy={isLoading}
       aria-disabled={disabled || isLoading}
+      data-testid={testId}
       {...props}
     >
       {isLoading ? (

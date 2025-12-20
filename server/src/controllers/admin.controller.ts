@@ -15,25 +15,73 @@ import logger from '../utils/logger';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import mongoose from 'mongoose';
 import os from 'os';
+import { logSecurityEvent, logEconomyEvent, SecurityEvent, EconomyEvent } from '../services/base';
+
+/**
+ * C2 SECURITY FIX: Escape regex special characters to prevent NoSQL injection
+ * Without this, attackers can use patterns like ".*" to enumerate all records
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * H7 SECURITY FIX: Safely parse and bound pagination parameters
+ * Prevents DoS via massive skip/limit values and handles invalid input
+ */
+function safePaginationParams(
+  pageInput: unknown,
+  limitInput: unknown,
+  maxLimit: number = 100
+): { page: number; limit: number; skip: number } {
+  // Parse page with safe defaults
+  let page = 1;
+  if (pageInput !== undefined && pageInput !== null) {
+    const parsed = Number(pageInput);
+    if (Number.isFinite(parsed) && parsed >= 1) {
+      page = Math.floor(parsed);
+    }
+  }
+
+  // Parse limit with safe defaults and bounds
+  let limit = 50;
+  if (limitInput !== undefined && limitInput !== null) {
+    const parsed = Number(limitInput);
+    if (Number.isFinite(parsed) && parsed >= 1) {
+      limit = Math.min(Math.floor(parsed), maxLimit);
+    }
+  }
+
+  // Calculate skip with overflow protection
+  const skip = Math.max(0, (page - 1) * limit);
+
+  // Additional safety: cap skip to prevent memory issues
+  const maxSkip = 100000;
+  if (skip > maxSkip) {
+    logger.warn(`[SECURITY] Pagination skip capped from ${skip} to ${maxSkip}`);
+    return { page: Math.floor(maxSkip / limit) + 1, limit, skip: maxSkip };
+  }
+
+  return { page, limit, skip };
+}
 
 /**
  * GET /api/admin/users
  * Get list of all users with filtering and pagination
+ * H7 SECURITY FIX: Safe pagination bounds
  */
 export async function getUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const {
-    search,
-    role,
-    isActive,
-    page = 1,
-    limit = 50
-  } = req.query;
+  const { search, role, isActive } = req.query;
+
+  // H7 SECURITY FIX: Use safe pagination helper
+  const { page, limit, skip } = safePaginationParams(req.query.page, req.query.limit);
 
   // Build query
   const query: any = {};
 
   if (search) {
-    query.email = { $regex: search, $options: 'i' };
+    // C2 SECURITY FIX: Escape regex to prevent NoSQL injection
+    query.email = { $regex: escapeRegex(search as string), $options: 'i' };
   }
 
   if (role) {
@@ -45,22 +93,21 @@ export async function getUsers(req: AuthenticatedRequest, res: Response): Promis
   }
 
   // Execute query with pagination
-  const skip = (Number(page) - 1) * Number(limit);
   const users = await User.find(query)
     .select('-passwordHash -verificationToken -resetPasswordToken')
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(Number(limit));
+    .limit(limit);
 
   const total = await User.countDocuments(query);
 
   sendSuccess(res, {
     users,
     pagination: {
-      page: Number(page),
-      limit: Number(limit),
+      page,
+      limit,
       total,
-      pages: Math.ceil(total / Number(limit))
+      pages: Math.ceil(total / limit)
     }
   });
 }
@@ -121,6 +168,20 @@ export async function banUser(req: AuthenticatedRequest, res: Response): Promise
 
   logger.info(`Admin ${req.user?.email} banned user ${user.email}. Reason: ${reason || 'Not specified'}`);
 
+  // Audit log the admin ban action
+  await logSecurityEvent({
+    event: SecurityEvent.ADMIN_ACTION,
+    userId: req.user?._id?.toString() || 'unknown',
+    ip: req.ip || 'unknown',
+    metadata: {
+      action: 'BAN_USER',
+      targetUserId: userId,
+      targetEmail: user.email,
+      reason: reason || 'Not specified',
+      adminEmail: req.user?.email
+    }
+  });
+
   sendSuccess(res, {
     message: 'User banned successfully',
     userId: user._id
@@ -150,6 +211,19 @@ export async function unbanUser(req: AuthenticatedRequest, res: Response): Promi
 
   logger.info(`Admin ${req.user?.email} unbanned user ${user.email}`);
 
+  // Audit log the admin unban action
+  await logSecurityEvent({
+    event: SecurityEvent.ADMIN_ACTION,
+    userId: req.user?._id?.toString() || 'unknown',
+    ip: req.ip || 'unknown',
+    metadata: {
+      action: 'UNBAN_USER',
+      targetUserId: userId,
+      targetEmail: user.email,
+      adminEmail: req.user?.email
+    }
+  });
+
   sendSuccess(res, {
     message: 'User unbanned successfully',
     userId: user._id
@@ -159,22 +233,20 @@ export async function unbanUser(req: AuthenticatedRequest, res: Response): Promi
 /**
  * GET /api/admin/characters
  * Get list of all characters with filtering and pagination
+ * H7 SECURITY FIX: Safe pagination bounds
  */
 export async function getCharacters(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const {
-    search,
-    faction,
-    minLevel,
-    maxLevel,
-    page = 1,
-    limit = 50
-  } = req.query;
+  const { search, faction, minLevel, maxLevel } = req.query;
+
+  // H7 SECURITY FIX: Use safe pagination parsing
+  const { page, limit, skip } = safePaginationParams(req.query.page, req.query.limit);
 
   // Build query
   const query: any = {};
 
   if (search) {
-    query.name = { $regex: search, $options: 'i' };
+    // C2 SECURITY FIX: Escape regex to prevent NoSQL injection
+    query.name = { $regex: escapeRegex(search as string), $options: 'i' };
   }
 
   if (faction) {
@@ -189,23 +261,22 @@ export async function getCharacters(req: AuthenticatedRequest, res: Response): P
     query.level = { ...query.level, $lte: Number(maxLevel) };
   }
 
-  // Execute query with pagination
-  const skip = (Number(page) - 1) * Number(limit);
+  // Execute query with pagination (skip already calculated by safePaginationParams)
   const characters = await Character.find(query)
     .populate('userId', 'email')
     .sort({ level: -1, gold: -1 })
     .skip(skip)
-    .limit(Number(limit));
+    .limit(limit);
 
   const total = await Character.countDocuments(query);
 
   sendSuccess(res, {
     characters,
     pagination: {
-      page: Number(page),
-      limit: Number(limit),
+      page,
+      limit,
       total,
-      pages: Math.ceil(total / Number(limit))
+      pages: Math.ceil(total / limit)
     }
   });
 }
@@ -244,6 +315,20 @@ export async function updateCharacter(req: AuthenticatedRequest, res: Response):
 
   logger.info(`Admin ${req.user?.email} updated character ${character.name} (${characterId}):`, actualUpdates);
 
+  // Audit log the admin character update
+  await logSecurityEvent({
+    event: SecurityEvent.ADMIN_ACTION,
+    userId: req.user?._id?.toString() || 'unknown',
+    ip: req.ip || 'unknown',
+    metadata: {
+      action: 'UPDATE_CHARACTER',
+      targetCharacterId: characterId,
+      characterName: character.name,
+      updates: actualUpdates,
+      adminEmail: req.user?.email
+    }
+  });
+
   sendSuccess(res, {
     message: 'Character updated successfully',
     character
@@ -268,6 +353,21 @@ export async function deleteCharacter(req: AuthenticatedRequest, res: Response):
   }
 
   logger.info(`Admin ${req.user?.email} deleted character ${character.name} (${characterId})`);
+
+  // Audit log the admin character deletion
+  await logSecurityEvent({
+    event: SecurityEvent.ADMIN_ACTION,
+    userId: req.user?._id?.toString() || 'unknown',
+    ip: req.ip || 'unknown',
+    metadata: {
+      action: 'DELETE_CHARACTER',
+      targetCharacterId: characterId,
+      characterName: character.name,
+      characterLevel: character.level,
+      characterGold: character.gold,
+      adminEmail: req.user?.email
+    }
+  });
 
   sendSuccess(res, {
     message: 'Character deleted successfully',
@@ -313,6 +413,21 @@ export async function adjustGold(req: AuthenticatedRequest, res: Response): Prom
   await transaction.save();
 
   logger.info(`Admin ${req.user?.email} adjusted gold for ${character.name}: ${amount > 0 ? '+' : ''}${amount} (${previousGold} -> ${character.gold}). Reason: ${reason || 'Not specified'}`);
+
+  // Audit log the admin gold adjustment
+  await logEconomyEvent({
+    event: amount > 0 ? EconomyEvent.GOLD_GRANT : EconomyEvent.GOLD_DEDUCT,
+    characterId: characterId,
+    amount: Number(amount),
+    beforeBalance: previousGold,
+    afterBalance: character.gold,
+    metadata: {
+      source: 'ADMIN_ADJUSTMENT',
+      reason: reason || 'Not specified',
+      adminUserId: req.user?._id?.toString(),
+      adminEmail: req.user?.email
+    }
+  });
 
   sendSuccess(res, {
     message: 'Gold adjusted successfully',
@@ -411,26 +526,27 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response): Pr
 /**
  * GET /api/admin/gangs
  * Get list of all gangs
+ * H7 SECURITY FIX: Safe pagination bounds
  */
 export async function getGangs(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const { page = 1, limit = 50 } = req.query;
+  // H7 SECURITY FIX: Use safe pagination parsing
+  const { page, limit, skip } = safePaginationParams(req.query.page, req.query.limit);
 
-  const skip = (Number(page) - 1) * Number(limit);
   const gangs = await Gang.find()
     .populate('leaderId', 'name')
     .sort({ bankBalance: -1 })
     .skip(skip)
-    .limit(Number(limit));
+    .limit(limit);
 
   const total = await Gang.countDocuments();
 
   sendSuccess(res, {
     gangs,
     pagination: {
-      page: Number(page),
-      limit: Number(limit),
+      page,
+      limit,
       total,
-      pages: Math.ceil(total / Number(limit))
+      pages: Math.ceil(total / limit)
     }
   });
 }
@@ -459,6 +575,22 @@ export async function disbandGang(req: AuthenticatedRequest, res: Response): Pro
   );
 
   logger.info(`Admin ${req.user?.email} disbanded gang ${gang.name} (${gangId})`);
+
+  // Audit log the admin gang disband
+  await logSecurityEvent({
+    event: SecurityEvent.ADMIN_ACTION,
+    userId: req.user?._id?.toString() || 'unknown',
+    ip: req.ip || 'unknown',
+    metadata: {
+      action: 'DISBAND_GANG',
+      gangId: gangId,
+      gangName: gang.name,
+      gangLeaderId: gang.leaderId?.toString(),
+      memberCount: gang.members?.length || 0,
+      bank: gang.bank || 0,
+      adminEmail: req.user?.email
+    }
+  });
 
   sendSuccess(res, {
     message: 'Gang disbanded successfully',
@@ -492,6 +624,22 @@ export async function updateSystemSettings(req: AuthenticatedRequest, res: Respo
   // For now, just acknowledge the update
   logger.info(`Admin ${req.user?.email} updated system settings:`, req.body);
 
+  // Audit log the system settings update
+  await logSecurityEvent({
+    event: SecurityEvent.ADMIN_ACTION,
+    userId: req.user?._id?.toString() || 'unknown',
+    ip: req.ip || 'unknown',
+    metadata: {
+      action: 'UPDATE_SYSTEM_SETTINGS',
+      changes: {
+        maintenanceMode,
+        registrationEnabled,
+        chatEnabled
+      },
+      adminEmail: req.user?.email
+    }
+  });
+
   sendSuccess(res, {
     message: 'System settings updated successfully',
     settings: {
@@ -505,18 +653,13 @@ export async function updateSystemSettings(req: AuthenticatedRequest, res: Respo
 /**
  * GET /api/admin/audit-logs
  * Get audit logs with filtering and pagination
- * Security Audit - Phase 2
+ * H7 SECURITY FIX: Safe pagination bounds
  */
 export async function getAuditLogs(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const {
-    userId,
-    action,
-    endpoint,
-    startDate,
-    endDate,
-    page = 1,
-    limit = 100
-  } = req.query;
+  const { userId, action, endpoint, startDate, endDate } = req.query;
+
+  // H7 SECURITY FIX: Use safe pagination parsing (audit logs allow up to 100 per page)
+  const { page, limit, skip } = safePaginationParams(req.query.page, req.query.limit, 100);
 
   // Build filters
   const filters: any = {};
@@ -526,11 +669,13 @@ export async function getAuditLogs(req: AuthenticatedRequest, res: Response): Pr
   }
 
   if (action) {
-    filters.action = { $regex: action, $options: 'i' };
+    // C2 SECURITY FIX: Escape regex to prevent NoSQL injection
+    filters.action = { $regex: escapeRegex(action as string), $options: 'i' };
   }
 
   if (endpoint) {
-    filters.endpoint = { $regex: endpoint, $options: 'i' };
+    // C2 SECURITY FIX: Escape regex to prevent NoSQL injection
+    filters.endpoint = { $regex: escapeRegex(endpoint as string), $options: 'i' };
   }
 
   if (startDate || endDate) {
@@ -546,12 +691,11 @@ export async function getAuditLogs(req: AuthenticatedRequest, res: Response): Pr
   // Import AuditLog model dynamically
   const { AuditLog } = await import('../models/AuditLog.model');
 
-  // Execute query with pagination
-  const skip = (Number(page) - 1) * Number(limit);
+  // Execute query with pagination (skip already calculated by safePaginationParams)
   const logs = await AuditLog.find(filters)
     .sort({ timestamp: -1 })
     .skip(skip)
-    .limit(Number(limit))
+    .limit(limit)
     .populate('userId', 'email username')
     .populate('characterId', 'name')
     .lean();
@@ -566,10 +710,10 @@ export async function getAuditLogs(req: AuthenticatedRequest, res: Response): Pr
   sendSuccess(res, {
     logs,
     pagination: {
-      page: Number(page),
-      limit: Number(limit),
+      page,
+      limit,
       total,
-      pages: Math.ceil(total / Number(limit))
+      pages: Math.ceil(total / limit)
     }
   });
 }

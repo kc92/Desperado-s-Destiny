@@ -146,16 +146,12 @@ export const cardVariants = {
     x: custom.position.x,
     y: custom.position.y,
     scale: 1,
-    rotateY: 180,
+    rotateY: 0, // PlayingCard handles flip internally
     rotateZ: custom.position.rotation,
     rotateX: 0,
     opacity: 1,
     filter: 'blur(0px)',
     transition: {
-      rotateY: {
-        duration: custom.isFinalCard ? TIMING.FINAL_CARD_FLIP_DURATION : TIMING.FLIP_DURATION,
-        ease: EASING.FLIP,
-      },
       y: {
         duration: 0.15,
         ease: EASING.BOUNCE,
@@ -170,7 +166,7 @@ export const cardVariants = {
     x: custom.position.x,
     y: custom.position.y - 20,
     scale: 1.05,
-    rotateY: 180,
+    rotateY: 0, // PlayingCard handles flip internally
     rotateZ: custom.position.rotation,
     rotateX: 0,
     opacity: 1,
@@ -184,7 +180,7 @@ export const cardVariants = {
     x: POSITIONS.DISCARD.x,
     y: POSITIONS.DISCARD.y,
     scale: 0.7,
-    rotateY: 180,
+    rotateY: 0, // PlayingCard handles flip internally
     rotateZ: 15 + (custom.index * 5),
     rotateX: -5,
     opacity: 0,

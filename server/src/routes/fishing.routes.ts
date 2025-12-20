@@ -7,6 +7,8 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import {
   startFishing,
   getCurrentSession,
@@ -38,18 +40,18 @@ const fishingLimiter = rateLimit({
  */
 
 // Get current fishing session
-router.get('/session', requireAuth, requireCharacter, getCurrentSession);
+router.get('/session', requireAuth, requireCharacter, asyncHandler(getCurrentSession));
 
 // Start a new fishing session
-router.post('/start', requireAuth, requireCharacter, fishingLimiter, startFishing);
+router.post('/start', requireAuth, requireCsrfToken, requireCharacter, fishingLimiter, asyncHandler(startFishing));
 
 // Check for a bite (can be called frequently during fishing)
-router.post('/check-bite', requireAuth, requireCharacter, fishingLimiter, checkForBite);
+router.post('/check-bite', requireAuth, requireCsrfToken, requireCharacter, fishingLimiter, asyncHandler(checkForBite));
 
 // Set the hook when a bite is detected
-router.post('/set-hook', requireAuth, requireCharacter, fishingLimiter, setHook);
+router.post('/set-hook', requireAuth, requireCsrfToken, requireCharacter, fishingLimiter, asyncHandler(setHook));
 
 // End the current fishing session
-router.post('/end', requireAuth, requireCharacter, fishingLimiter, endFishing);
+router.post('/end', requireAuth, requireCsrfToken, requireCharacter, fishingLimiter, asyncHandler(endFishing));
 
 export default router;

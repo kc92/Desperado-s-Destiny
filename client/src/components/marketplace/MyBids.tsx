@@ -5,8 +5,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Button, EmptyState } from '@/components/ui';
+import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import { MarketListing, ItemRarity } from '@/hooks/useMarketplace';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 
 interface MyBidsProps {
   listings: MarketListing[];
@@ -161,6 +162,17 @@ export const MyBids: React.FC<MyBidsProps> = ({
     return new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime();
   });
 
+  // Show loading skeleton while fetching data
+  if (isLoading) {
+    return (
+      <div>
+        <h3 className="text-lg font-western text-gold-light mb-4">My Bids</h3>
+        <CardGridSkeleton count={6} columns={2} />
+      </div>
+    );
+  }
+
+  // Show empty state if no bids
   if (listings.length === 0) {
     return (
       <EmptyState
@@ -245,7 +257,7 @@ export const MyBids: React.FC<MyBidsProps> = ({
                         <div>
                           <span className="text-desert-stone">Your Bid: </span>
                           <span className="font-bold text-desert-sand">
-                            {userBid ? formatGold(userBid.amount) : 'N/A'}
+                            {userBid ? formatDollars(userBid.amount) : 'N/A'}
                           </span>
                         </div>
 
@@ -257,7 +269,7 @@ export const MyBids: React.FC<MyBidsProps> = ({
                               bidStatus === 'winning' ? 'text-emerald-400' : 'text-gold-light'
                             }`}
                           >
-                            {formatGold(listing.currentBid || listing.startingPrice)}
+                            {formatDollars(listing.currentBid || listing.startingPrice)}
                           </span>
                         </div>
 
@@ -309,7 +321,7 @@ export const MyBids: React.FC<MyBidsProps> = ({
                   {listing.buyoutPrice && bidStatus === 'outbid' && (
                     <div className="px-4 py-2 bg-wood-darker/50 border-t border-wood-grain/30 flex items-center justify-between">
                       <span className="text-sm text-desert-stone">
-                        Buy now for {formatGold(listing.buyoutPrice)} and win instantly
+                        Buy now for {formatDollars(listing.buyoutPrice)} and win instantly
                       </span>
                       <Button
                         size="sm"
@@ -355,14 +367,14 @@ export const MyBids: React.FC<MyBidsProps> = ({
                       {listing.item.name}
                     </p>
                     <p className="text-xs text-desert-stone">
-                      Your bid: {userBid ? formatGold(userBid.amount) : 'N/A'}
+                      Your bid: {userBid ? formatDollars(userBid.amount) : 'N/A'}
                     </p>
                   </div>
                   <div className="text-right">
                     <BidStatusBadge status={bidStatus} />
                     {bidStatus === 'ended_won' && (
                       <p className="text-xs text-emerald-400 mt-1">
-                        Final: {formatGold(listing.currentBid || 0)}
+                        Final: {formatDollars(listing.currentBid || 0)}
                       </p>
                     )}
                   </div>

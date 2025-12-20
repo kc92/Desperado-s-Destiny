@@ -5,6 +5,7 @@
  */
 
 import mongoose from 'mongoose';
+import DOMPurify from 'isomorphic-dompurify';
 import { Message, IMessage, RoomType } from '../models/Message.model';
 import { User } from '../models/User.model';
 import { filterProfanity } from '../utils/profanityFilter';
@@ -70,10 +71,14 @@ export class ChatService {
         throw new Error('Sender name must be between 3 and 20 characters');
       }
 
+      // C7 SECURITY FIX: Sanitize HTML to prevent XSS attacks, then filter profanity
+      // Strip ALL HTML tags - chat messages should be plain text only
+      const sanitizedContent = DOMPurify.sanitize(trimmedContent, { ALLOWED_TAGS: [] });
+
       // Filter profanity (unless it's a system message)
       const filteredContent = isSystemMessage
-        ? trimmedContent
-        : filterProfanity(trimmedContent);
+        ? sanitizedContent
+        : filterProfanity(sanitizedContent);
 
       // Create message
       const message = new Message({
@@ -264,10 +269,29 @@ export class ChatService {
         return [];
       }
 
+      // C2 SECURITY FIX: Additional validation BEFORE regex to prevent NoSQL injection
+      if (typeof searchTerm !== 'string') {
+        logger.warn('Invalid search term type');
+        return [];
+      }
+      // Reject MongoDB operator characters that could be used for injection
+      if (searchTerm.includes('$') || searchTerm.includes('{') || searchTerm.includes('}')) {
+        logger.warn('Rejected search term with potential injection characters');
+        return [];
+      }
+      // Enforce maximum length to prevent ReDoS
+      if (searchTerm.length > 100) {
+        logger.warn('Search term exceeds maximum length');
+        return [];
+      }
+
+      // C2 SECURITY FIX: Escape regex to prevent NoSQL injection in search
+      const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
       const messages = await Message.find({
         roomType,
         roomId,
-        content: { $regex: searchTerm, $options: 'i' }
+        content: { $regex: escapedSearchTerm, $options: 'i' }
       })
         .sort({ timestamp: -1 })
         .limit(Math.min(limit, 50))

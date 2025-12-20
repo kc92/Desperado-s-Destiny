@@ -8,7 +8,7 @@
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import { CharacterRequest } from '../middleware/characterOwnership.middleware';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import { BossEncounterService } from '../services/bossEncounter.service';
 import { BossPhaseService } from '../services/bossPhase.service';
 import { BossAttackRequest } from '@desperados/shared';

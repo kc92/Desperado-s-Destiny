@@ -6,7 +6,6 @@
 import React from 'react';
 import type { PeakDayNPC, FrontierSign, ZodiacSignId } from '@/types/zodiac.types';
 import { SIGN_COLORS } from '@/constants/zodiac.constants';
-import { Card } from '@/components/ui';
 
 interface SignNPCListProps {
   sign: FrontierSign;

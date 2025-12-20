@@ -14,8 +14,9 @@ import {
   getTerritoryMap,
   getZoneStatistics,
 } from '../controllers/territoryControl.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import asyncHandler from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -45,14 +46,14 @@ router.get('/gang/:gangId', asyncHandler(getGangTerritoryControl));
  * @desc    Record influence gain from activity
  * @access  Private
  */
-router.post('/influence', requireAuth, asyncHandler(recordInfluenceGain));
+router.post('/influence', requireAuth, requireCsrfToken, asyncHandler(recordInfluenceGain));
 
 /**
  * @route   POST /api/territory/contest/:zoneId
  * @desc    Contest a zone (declare intent to take it)
  * @access  Private
  */
-router.post('/contest/:zoneId', requireAuth, asyncHandler(contestZone));
+router.post('/contest/:zoneId', requireAuth, requireCsrfToken, asyncHandler(contestZone));
 
 /**
  * @route   GET /api/territory/map

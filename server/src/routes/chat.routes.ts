@@ -2,19 +2,24 @@
  * Chat Routes
  *
  * HTTP endpoints for chat operations
+ *
+ * SECURITY: All endpoints protected by rate limiting to prevent DoS attacks
  */
 
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { chatHttpRateLimiter } from '../middleware/rateLimiter';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import * as chatController from '../controllers/chat.controller';
 
 const router = Router();
 
 /**
- * All chat routes require authentication
+ * All chat routes require authentication and rate limiting
  */
 router.use(requireAuth);
+router.use(chatHttpRateLimiter);
 
 /**
  * GET /api/chat/messages
@@ -49,6 +54,7 @@ router.get(
  */
 router.post(
   '/report',
+  requireCsrfToken,
   asyncHandler(chatController.reportMessage)
 );
 

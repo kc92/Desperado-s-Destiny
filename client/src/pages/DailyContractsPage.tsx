@@ -14,7 +14,6 @@ import {
   useDailyContracts,
   Contract,
   ContractType,
-  LeaderboardEntry,
   CompletionResult
 } from '@/hooks/useDailyContracts';
 
@@ -49,11 +48,11 @@ export const DailyContractsPage: React.FC = () => {
     acceptContract,
     completeContract,
     claimStreakBonus,
-    clearMessage
+    clearMessage: _clearMessage
   } = useDailyContracts();
 
   const [filter, setFilter] = useState<ContractFilter>('all');
-  const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+  const [_selectedContract, _setSelectedContract] = useState<Contract | null>(null);
   const [completionResult, setCompletionResult] = useState<CompletionResult | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -147,7 +146,7 @@ export const DailyContractsPage: React.FC = () => {
       {error && (
         <div className="bg-red-900/50 border border-red-500/50 rounded-lg p-4 mb-6 text-center">
           <p className="text-red-300">{error}</p>
-          <Button onClick={() => fetchContracts()} variant="outline" size="sm" className="mt-2">
+          <Button onClick={() => fetchContracts()} variant="ghost" size="sm" className="mt-2">
             Retry
           </Button>
         </div>
@@ -187,7 +186,7 @@ export const DailyContractsPage: React.FC = () => {
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-western text-lg text-desert-sand">Top Streaks</h3>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setShowLeaderboard(true)}
               >

@@ -1,10 +1,14 @@
 import { GossipItemModel } from '../models/GossipItem.model';
 import { NPCKnowledge } from '../models/NPCKnowledge.model';
-import { GossipService } from '../services/gossip.service';
+import { withLock } from '../utils/distributedLock';
+import logger from '../utils/logger';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * GOSSIP SPREAD JOB
  * Daily job to spread gossip through the NPC network
+ *
+ * PERFORMANCE FIX: Refactored to use batch queries instead of N+1 loops
  */
 
 interface SpreadReport {
@@ -15,12 +19,19 @@ interface SpreadReport {
   gossipExpired: number;
 }
 
+// Cache for batch-loaded NPC knowledge
+interface KnowledgeCache {
+  byNpcId: Map<string, any>;
+  allNpcIds: string[];
+}
+
 export class GossipSpreadJob {
   /**
    * Run the daily gossip spread cycle
+   * PERFORMANCE FIX: Uses batch queries and caching to avoid N+1 patterns
    */
   static async runDailySpread(): Promise<SpreadReport> {
-    console.log('[GossipSpread] Starting daily gossip spread...');
+    const lockKey = 'job:gossip-daily-spread';
 
     const report: SpreadReport = {
       totalGossip: 0,
@@ -31,117 +42,132 @@ export class GossipSpreadJob {
     };
 
     try {
-      // Get all active gossip
+      await withLock(lockKey, async () => {
+        logger.info('[GossipSpread] Starting daily gossip spread...');
+      // BATCH LOAD: Get all active gossip in one query
       const activeGossip = await GossipItemModel.find({
         expiresAt: { $gt: new Date() },
         currentVersion: { $lt: 5 } // Don't spread if too distorted
-      });
+      }).lean();
 
       report.totalGossip = activeGossip.length;
 
+      if (activeGossip.length === 0) {
+        logger.info('[GossipSpread] No active gossip to spread');
+        return report;
+      }
+
+      // BATCH LOAD: Get all NPC knowledge in one query
+      const allKnowledge = await NPCKnowledge.find({}).lean();
+      const knowledgeCache: KnowledgeCache = {
+        byNpcId: new Map(allKnowledge.map(k => [k.npcId.toString(), k])),
+        allNpcIds: allKnowledge.map(k => k.npcId.toString())
+      };
+
+      // Collect all gossip updates to batch save
+      const gossipUpdates: Map<string, Set<string>> = new Map(); // gossipId -> Set of new knower IDs
+
       // For each gossip item
       for (const gossip of activeGossip) {
-        // Get NPCs who know this gossip
-        const knowers = gossip.knownBy;
-
+        const knowers = gossip.knownBy?.map((id: any) => id.toString()) || [];
         if (knowers.length === 0) continue;
 
-        // For each knower, try to spread to their connections
+        // For each knower, determine spread targets (using cached data)
         for (const npcId of knowers) {
-          await this.spreadFromNPC(npcId.toString(), gossip._id!.toString(), report);
+          const spreadResults = this.calculateSpread(npcId, gossip, knowledgeCache);
+
+          if (spreadResults.length > 0) {
+            const gossipId = gossip._id!.toString();
+            if (!gossipUpdates.has(gossipId)) {
+              gossipUpdates.set(gossipId, new Set());
+            }
+
+            // Get existing knowers as strings
+            const existingKnowers = new Set(knowers);
+
+            for (const targetId of spreadResults) {
+              if (!existingKnowers.has(targetId)) {
+                gossipUpdates.get(gossipId)!.add(targetId);
+                report.npcsInformed++;
+              }
+            }
+          }
         }
 
         report.gossipSpread++;
+      }
+
+      // BATCH SAVE: Update all gossip items with new knowers
+      if (gossipUpdates.size > 0) {
+        const bulkOps = Array.from(gossipUpdates.entries()).map(([gossipId, newKnowers]) => ({
+          updateOne: {
+            filter: { _id: gossipId },
+            update: {
+              $addToSet: { knownBy: { $each: Array.from(newKnowers) } }
+            }
+          }
+        }));
+
+        await GossipItemModel.bulkWrite(bulkOps);
       }
 
       // Clean up expired gossip
       const expired = await this.cleanupExpiredGossip();
       report.gossipExpired = expired;
 
-      // Clean up old NPC knowledge
+      // Clean up old NPC knowledge (batch operation)
       await this.cleanupOldKnowledge();
 
-      console.log('[GossipSpread] Daily spread complete:', report);
+        logger.info('[GossipSpread] Daily spread complete', report);
+      }, {
+        ttl: 1800, // 30 minute lock TTL
+        retries: 0 // Don't retry - skip if locked
+      });
 
       return report;
     } catch (error) {
-      console.error('[GossipSpread] Error in daily spread:', error);
+      if ((error as Error).message?.includes('lock')) {
+        logger.debug('[GossipSpread] Daily gossip spread already running on another instance, skipping');
+        return report;
+      }
+      logger.error('[GossipSpread] Error in daily spread:', error);
       throw error;
     }
   }
 
   /**
-   * Spread gossip from a specific NPC
+   * Calculate spread targets for an NPC (uses cached data, no DB calls)
    */
-  private static async spreadFromNPC(
+  private static calculateSpread(
     npcId: string,
-    gossipId: string,
-    report: SpreadReport
-  ): Promise<void> {
-    // Get NPC's knowledge to check gossipiness
-    const knowledge = await NPCKnowledge.findOne({ npcId });
-    if (!knowledge) return;
+    gossip: any,
+    cache: KnowledgeCache
+  ): string[] {
+    const knowledge = cache.byNpcId.get(npcId);
+    if (!knowledge) return [];
 
     // Check if NPC should spread gossip today
-    // Using a default gossipiness value since it's not in the interface
     const gossipiness = (knowledge as any).gossipiness || 50;
     if (gossipiness < 30) {
-      // Not gossipy enough
-      return;
+      return []; // Not gossipy enough
     }
 
     // Roll to see if they gossip today
     const gossipChance = gossipiness / 100;
-    if (Math.random() > gossipChance) {
-      return; // Not gossiping today
+    if (!SecureRNG.chance(gossipChance)) {
+      return []; // Not gossiping today
     }
 
-    // Find potential targets (NPCs in same area or connected)
-    const targets = await this.findSpreadTargets(npcId);
+    // Find potential targets (all other NPCs for simplicity)
+    const targets = cache.allNpcIds.filter(id => id !== npcId);
 
-    if (targets.length === 0) return;
+    if (targets.length === 0) return [];
 
     // Spread to 1-3 random targets
-    const spreadCount = Math.min(
-      targets.length,
-      Math.floor(Math.random() * 3) + 1
-    );
+    const spreadCount = Math.min(targets.length, SecureRNG.range(1, 3));
+    const shuffled = SecureRNG.shuffle(targets);
 
-    const shuffled = targets.sort(() => Math.random() - 0.5);
-    const selectedTargets = shuffled.slice(0, spreadCount);
-
-    for (const targetId of selectedTargets) {
-      try {
-        // GossipService.attemptSpread may not exist, using manual spread logic
-        const gossip = await GossipItemModel.findById(gossipId);
-        if (gossip && !(gossip as any).isKnownBy(targetId)) {
-          (gossip as any).addKnower(targetId);
-          await gossip.save();
-          report.npcsInformed++;
-        }
-      } catch (error) {
-        console.error(`[GossipSpread] Error spreading from ${npcId} to ${targetId}:`, error);
-      }
-    }
-  }
-
-  /**
-   * Find NPCs who could hear gossip from this NPC
-   */
-  private static async findSpreadTargets(npcId: string): Promise<string[]> {
-    // In a full implementation, this would:
-    // 1. Find NPCs in the same location
-    // 2. Find NPCs with relationship connections
-    // 3. Find NPCs in nearby locations
-
-    // For now, return a sample of NPCs
-    // This would be replaced with actual NPC proximity/relationship logic
-
-    const allKnowledge = await NPCKnowledge.find({
-      npcId: { $ne: npcId }
-    }).limit(20);
-
-    return allKnowledge.map(k => k.npcId);
+    return shuffled.slice(0, spreadCount);
   }
 
   /**
@@ -157,36 +183,31 @@ export class GossipSpreadJob {
 
   /**
    * Clean up old NPC knowledge
+   * PERFORMANCE FIX: Uses bulkWrite instead of individual saves
    */
   private static async cleanupOldKnowledge(): Promise<void> {
-    const allKnowledge = await NPCKnowledge.find({});
+    const now = new Date();
+    const defaultMemoryDuration = 30; // days
+    const defaultExpirationDate = new Date(
+      now.getTime() - defaultMemoryDuration * 24 * 60 * 60 * 1000
+    );
 
-    for (const knowledge of allKnowledge) {
-      // Remove expired rumors
-      const now = new Date();
-      // Using default memory duration of 30 days since it's not in the interface
-      const memoryDuration = (knowledge as any).memoryDuration || 30;
-      const expirationDate = new Date(
-        now.getTime() - memoryDuration * 24 * 60 * 60 * 1000
-      );
-
-      // Remove old events
-      knowledge.events = knowledge.events.filter(
-        event => event.learnedAt > expirationDate
-      );
-
-      // Recalculate opinion based on remaining events
-      knowledge.recalculateOpinion();
-
-      await knowledge.save();
-    }
+    // Use updateMany with $pull to remove old events in one operation
+    await NPCKnowledge.updateMany(
+      {},
+      {
+        $pull: {
+          events: { learnedAt: { $lt: defaultExpirationDate } }
+        }
+      }
+    );
   }
 
   /**
    * Spread gossip hourly (lighter cycle)
    */
   static async runHourlySpread(): Promise<SpreadReport> {
-    console.log('[GossipSpread] Starting hourly gossip spread...');
+    const lockKey = 'job:gossip-hourly-spread';
 
     const report: SpreadReport = {
       totalGossip: 0,
@@ -197,32 +218,86 @@ export class GossipSpreadJob {
     };
 
     try {
+      await withLock(lockKey, async () => {
+        logger.info('[GossipSpread] Starting hourly gossip spread...');
       // Get trending gossip (high-impact, recent)
       const trending = await GossipItemModel.find({
         expiresAt: { $gt: new Date() },
         notorietyImpact: { $gte: 50 }, // High impact only
         currentVersion: { $lt: 5 },
         originDate: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
-      }).limit(10);
+      }).limit(10).lean();
 
       report.totalGossip = trending.length;
 
+      if (trending.length === 0) {
+        return report;
+      }
+
+      // BATCH LOAD: Get all NPC knowledge in one query
+      const allKnowledge = await NPCKnowledge.find({}).lean();
+      const knowledgeCache: KnowledgeCache = {
+        byNpcId: new Map(allKnowledge.map(k => [k.npcId.toString(), k])),
+        allNpcIds: allKnowledge.map(k => k.npcId.toString())
+      };
+
+      // Collect all gossip updates to batch save
+      const gossipUpdates: Map<string, Set<string>> = new Map();
+
       // Spread trending gossip more aggressively
       for (const gossip of trending) {
-        const knowers = gossip.knownBy.slice(0, 5); // Top 5 knowers
+        const knowers = (gossip.knownBy?.slice(0, 5) || []).map((id: any) => id.toString());
 
         for (const npcId of knowers) {
-          await this.spreadFromNPC(npcId.toString(), gossip._id!.toString(), report);
+          const spreadResults = this.calculateSpread(npcId, gossip, knowledgeCache);
+
+          if (spreadResults.length > 0) {
+            const gossipId = gossip._id!.toString();
+            if (!gossipUpdates.has(gossipId)) {
+              gossipUpdates.set(gossipId, new Set());
+            }
+
+            const existingKnowers = new Set(knowers);
+
+            for (const targetId of spreadResults) {
+              if (!existingKnowers.has(targetId)) {
+                gossipUpdates.get(gossipId)!.add(targetId);
+                report.npcsInformed++;
+              }
+            }
+          }
         }
 
         report.gossipSpread++;
       }
 
-      console.log('[GossipSpread] Hourly spread complete:', report);
+      // BATCH SAVE: Update all gossip items with new knowers
+      if (gossipUpdates.size > 0) {
+        const bulkOps = Array.from(gossipUpdates.entries()).map(([gossipId, newKnowers]) => ({
+          updateOne: {
+            filter: { _id: gossipId },
+            update: {
+              $addToSet: { knownBy: { $each: Array.from(newKnowers) } }
+            }
+          }
+        }));
+
+        await GossipItemModel.bulkWrite(bulkOps);
+      }
+
+        logger.info('[GossipSpread] Hourly spread complete', report);
+      }, {
+        ttl: 3600, // 60 minute lock TTL
+        retries: 0 // Don't retry - skip if locked
+      });
 
       return report;
     } catch (error) {
-      console.error('[GossipSpread] Error in hourly spread:', error);
+      if ((error as Error).message?.includes('lock')) {
+        logger.debug('[GossipSpread] Hourly gossip spread already running on another instance, skipping');
+        return report;
+      }
+      logger.error('[GossipSpread] Error in hourly spread:', error);
       throw error;
     }
   }
@@ -234,7 +309,7 @@ export class GossipSpreadJob {
     gossipId: string,
     sourceNPCIds: string[]
   ): Promise<SpreadReport> {
-    console.log('[GossipSpread] Spreading breaking news:', gossipId);
+    logger.info('[GossipSpread] Spreading breaking news:', { gossipId });
 
     const report: SpreadReport = {
       totalGossip: 1,
@@ -245,32 +320,46 @@ export class GossipSpreadJob {
     };
 
     try {
+      // BATCH LOAD: Get all NPC knowledge in one query
+      const allKnowledge = await NPCKnowledge.find({}).limit(100).lean();
+      const allNpcIds = allKnowledge.map(k => k.npcId.toString());
+
+      // Get gossip to check existing knowers
+      const gossip = await GossipItemModel.findById(gossipId).lean();
+      if (!gossip) {
+        logger.warn('[GossipSpread] Gossip not found for breaking news:', { gossipId });
+        return report;
+      }
+
+      const existingKnowers = new Set((gossip.knownBy || []).map((id: any) => id.toString()));
+      const newKnowers: string[] = [];
+
       // Spread from all source NPCs immediately
       for (const npcId of sourceNPCIds) {
-        // Get all nearby NPCs
-        const targets = await this.findSpreadTargets(npcId);
+        // Get all nearby NPCs (all others for simplicity)
+        const targets = allNpcIds.filter(id => id !== npcId && !existingKnowers.has(id));
 
-        // Spread to all nearby (breaking news spreads fast)
         for (const targetId of targets) {
-          try {
-            // Manual spread logic since GossipService.attemptSpread may not exist
-            const gossip = await GossipItemModel.findById(gossipId);
-            if (gossip && !(gossip as any).isKnownBy(targetId)) {
-              (gossip as any).addKnower(targetId);
-              await gossip.save();
-              report.npcsInformed++;
-            }
-          } catch (error) {
-            console.error(`[GossipSpread] Error spreading breaking news:`, error);
+          if (!newKnowers.includes(targetId)) {
+            newKnowers.push(targetId);
+            report.npcsInformed++;
           }
         }
       }
 
-      console.log('[GossipSpread] Breaking news spread complete:', report);
+      // BATCH SAVE: Update gossip with all new knowers at once
+      if (newKnowers.length > 0) {
+        await GossipItemModel.updateOne(
+          { _id: gossipId },
+          { $addToSet: { knownBy: { $each: newKnowers } } }
+        );
+      }
+
+      logger.info('[GossipSpread] Breaking news spread complete', report);
 
       return report;
     } catch (error) {
-      console.error('[GossipSpread] Error spreading breaking news:', error);
+      logger.error('[GossipSpread] Error spreading breaking news:', error);
       throw error;
     }
   }
@@ -285,34 +374,20 @@ export class GossipSpreadJob {
     mostSpread: any;
     trending: any[];
   }> {
-    const totalActive = await GossipItemModel.countDocuments({
-      expiresAt: { $gt: new Date() }
-    });
-
-    const totalExpired = await GossipItemModel.countDocuments({
-      expiresAt: { $lt: new Date() }
-    });
-
-    const allActive = await GossipItemModel.find({
-      expiresAt: { $gt: new Date() }
-    });
+    const [totalActive, totalExpired, allActive, mostSpread, trending] = await Promise.all([
+      GossipItemModel.countDocuments({ expiresAt: { $gt: new Date() } }),
+      GossipItemModel.countDocuments({ expiresAt: { $lt: new Date() } }),
+      GossipItemModel.find({ expiresAt: { $gt: new Date() } }).select('currentReach').lean(),
+      GossipItemModel.findOne({ expiresAt: { $gt: new Date() } }).sort({ currentReach: -1 }).lean(),
+      GossipItemModel.find({
+        expiresAt: { $gt: new Date() },
+        lastSpread: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+      }).sort({ currentReach: -1 }).limit(5).lean()
+    ]);
 
     const averageSpread = allActive.length > 0
-      ? allActive.reduce((sum, g) => sum + g.currentReach, 0) / allActive.length
+      ? allActive.reduce((sum, g) => sum + (g.currentReach || 0), 0) / allActive.length
       : 0;
-
-    const mostSpread = await GossipItemModel.findOne({
-      expiresAt: { $gt: new Date() }
-    }).sort({ currentReach: -1 });
-
-    // Manual trending gossip query since static method may not be typed
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const trending = await GossipItemModel.find({
-      expiresAt: { $gt: new Date() },
-      lastSpread: { $gt: oneDayAgo }
-    })
-      .sort({ currentReach: -1 })
-      .limit(5);
 
     return {
       totalActive,
@@ -333,30 +408,5 @@ export class GossipSpreadJob {
   }
 }
 
-/**
- * Schedule gossip spread jobs
- * Call this from server initialization
- */
-export function scheduleGossipJobs(): void {
-  // Daily spread at 2 AM
-  const dailyInterval = 24 * 60 * 60 * 1000; // 24 hours
-  setInterval(async () => {
-    try {
-      await GossipSpreadJob.runDailySpread();
-    } catch (error) {
-      console.error('[GossipSpread] Daily job error:', error);
-    }
-  }, dailyInterval);
-
-  // Hourly spread for trending gossip
-  const hourlyInterval = 60 * 60 * 1000; // 1 hour
-  setInterval(async () => {
-    try {
-      await GossipSpreadJob.runHourlySpread();
-    } catch (error) {
-      console.error('[GossipSpread] Hourly job error:', error);
-    }
-  }, hourlyInterval);
-
-  console.log('[GossipSpread] Gossip spread jobs scheduled');
-}
+// NOTE: Scheduling is handled by Bull queues in queues.ts
+// Use GossipSpreadJob.runDailySpread() and GossipSpreadJob.runHourlySpread() for direct execution

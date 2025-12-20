@@ -10,6 +10,7 @@ import { useCharacterStore } from '@/store/useCharacterStore';
 import { gangService } from '@/services/gang.service';
 import { Button, Input, Card } from '@/components/ui';
 import { GANG_CREATION, GANG_CONSTRAINTS } from '@desperados/shared';
+import { logger } from '@/services/logger.service';
 
 export function GangCreation() {
   const navigate = useNavigate();
@@ -67,7 +68,7 @@ export function GangCreation() {
         setNameAvailable(response.data.available);
       }
     } catch (error) {
-      console.error('Failed to check name availability:', error);
+      logger.error('Failed to check name availability', error as Error, { context: 'GangCreation.checkNameAvailability', name: value });
       setNameAvailable(null);
     }
   }, [validateName]);
@@ -85,7 +86,7 @@ export function GangCreation() {
         setTagAvailable(response.data.available);
       }
     } catch (error) {
-      console.error('Failed to check tag availability:', error);
+      logger.error('Failed to check tag availability', error as Error, { context: 'GangCreation.checkTagAvailability', tag: value });
       setTagAvailable(null);
     }
   }, [validateTag]);
@@ -156,7 +157,7 @@ export function GangCreation() {
       setShowSuccessModal(true);
       setTimeout(() => navigate('/game/gang/profile'), 2000);
     } catch (error) {
-      console.error('Failed to create gang:', error);
+      logger.error('Failed to create gang', error as Error, { context: 'GangCreation.handleSubmit', name, tag });
     }
   };
 

@@ -6,6 +6,7 @@
 import mongoose from 'mongoose';
 import { config } from '../config';
 import { seedLocations } from '../seeds/locations.seed';
+import logger from '../utils/logger';
 
 async function main() {
   try {
@@ -18,7 +19,7 @@ async function main() {
     console.log('Seeding complete!');
     process.exit(0);
   } catch (error) {
-    console.error('Seeding failed:', error);
+    logger.error('Seeding failed', { error: error instanceof Error ? error.message : error });
     process.exit(1);
   }
 }

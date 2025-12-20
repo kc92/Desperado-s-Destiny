@@ -122,7 +122,7 @@ export class ForeclosureService {
         const character = await Character.findById(bidderId).session(session);
         if (character) {
           bidderName = character.name;
-          hasEnoughFunds = character.hasGold(bidAmount);
+          hasEnoughFunds = character.hasDollars(bidAmount);
         } else {
           throw new Error('Bidder not found');
         }
@@ -259,11 +259,11 @@ export class ForeclosureService {
           throw new Error('Winner character not found');
         }
 
-        if (!character.hasGold(auction.finalPrice)) {
+        if (!character.hasDollars(auction.finalPrice)) {
           throw new Error('Winner cannot afford the bid');
         }
 
-        await character.deductGold(
+        await character.deductDollars(
           auction.finalPrice,
           TransactionSource.SHOP_PURCHASE, // TODO: Add PROPERTY_AUCTION_WIN source
           { auctionId: auction._id.toString(), propertyId: auction.propertyId.toString() }
@@ -316,7 +316,7 @@ export class ForeclosureService {
         const character = await Character.findById(auction.originalOwnerId).session(session);
 
         if (character) {
-          await character.addGold(
+          await character.addDollars(
             auction.proceedsToOwner,
             TransactionSource.SHOP_SALE, // TODO: Add PROPERTY_AUCTION_PROCEEDS source
             { auctionId: auction._id.toString() }

@@ -7,16 +7,51 @@
 import { initializeSentry } from './config/sentry';
 initializeSentry();
 
-// React import used in comments for StrictMode
-// import React from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { logger } from './services/logger.service';
 import App from './App';
 import './styles/index.css';
 
 // Initialize tutorial analytics dev tools
 import { exposeAnalyticsToDevTools } from './utils/tutorialAnalytics';
+import { useTutorialStore } from './store/useTutorialStore';
+import { useCharacterStore } from './store/useCharacterStore';
+
 if (import.meta.env.DEV) {
   exposeAnalyticsToDevTools();
+
+  // Expose tutorial helpers for debugging
+  (window as any).__tutorial = {
+    getState: () => useTutorialStore.getState(),
+    reset: () => useTutorialStore.getState().resetTutorial(),
+    forceStart: () => {
+      const tutorialStore = useTutorialStore.getState();
+      const character = useCharacterStore.getState().currentCharacter;
+      const factionId = character?.faction || 'SETTLER_ALLIANCE';
+      const factionMap: Record<string, string> = {
+        'SETTLER_ALLIANCE': 'intro_settler',
+        'NAHI_COALITION': 'intro_nahi',
+        'FRONTERA': 'intro_frontera',
+      };
+      const section = factionMap[factionId] || 'intro_settler';
+      tutorialStore.resetTutorial();
+      tutorialStore.startTutorial(section, 'core', factionId);
+      console.log('[Tutorial] Force started! Section:', section, 'Faction:', factionId);
+    },
+    skip: () => {
+      const tutorialStore = useTutorialStore.getState();
+      // Set tutorialCompleted to true to skip
+      useTutorialStore.setState({
+        tutorialCompleted: true,
+        isActive: false,
+        isPaused: false,
+        currentSection: null
+      });
+      console.log('[Tutorial] Skipped!');
+    },
+  };
+  console.log('[Dev] Tutorial helpers available at window.__tutorial (getState, reset, forceStart, skip)');
 }
 
 /**
@@ -31,11 +66,10 @@ function initializeApp(): void {
   }
 
   // Create React root and render app
-  // StrictMode temporarily disabled to debug infinite render loop
   ReactDOM.createRoot(rootElement).render(
-    // <React.StrictMode>
+    <React.StrictMode>
       <App />
-    // </React.StrictMode>
+    </React.StrictMode>
   );
 }
 
@@ -43,11 +77,11 @@ function initializeApp(): void {
 try {
   initializeApp();
 } catch (error) {
-  console.error('Failed to initialize application:', error);
+  logger.error('Failed to initialize application', error as Error, { context: 'main.tsx' });
 
   // Report to Sentry if available
   if (window.Sentry) {
-    window.Sentry.captureException(error);
+    window.Sentry.captureException(error instanceof Error ? error : new Error(String(error)));
   }
 
   // Show user-friendly error message

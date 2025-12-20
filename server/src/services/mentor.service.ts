@@ -16,6 +16,7 @@ import {
   AbilityUseResponse,
   MentorProgressUpdate
 } from '@desperados/shared';
+import { EnergyService } from './energy.service';
 import { AppError } from '../utils/errors';
 
 export class MentorService {
@@ -321,7 +322,7 @@ export class MentorService {
 
       // Spend energy
       if (ability.energyCost) {
-        character.spendEnergy(ability.energyCost);
+        await EnergyService.spendEnergy(character._id.toString(), ability.energyCost, `mentor_ability_${abilityId}`);
         await character.save();
       }
 

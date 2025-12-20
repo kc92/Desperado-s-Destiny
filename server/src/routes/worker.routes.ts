@@ -7,8 +7,9 @@
 
 import { Router } from 'express';
 import { WorkerController } from '../controllers/worker.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -29,14 +30,14 @@ router.get('/listings', asyncHandler(WorkerController.getWorkerListings));
  * Hire a worker from listings
  * Body: { propertyId: string, characterId: string, listing: WorkerListing }
  */
-router.post('/hire', asyncHandler(WorkerController.hireWorker));
+router.post('/hire', requireCsrfToken, asyncHandler(WorkerController.hireWorker));
 
 /**
  * POST /api/workers/pay-wages
  * Pay wages to all workers due
  * Body: { characterId: string }
  */
-router.post('/pay-wages', asyncHandler(WorkerController.payWages));
+router.post('/pay-wages', requireCsrfToken, asyncHandler(WorkerController.payWages));
 
 /**
  * GET /api/workers/property/:propertyId
@@ -61,27 +62,27 @@ router.get('/:workerId', asyncHandler(WorkerController.getWorkerDetails));
  * Fire a worker
  * Body: { characterId: string }
  */
-router.post('/:workerId/fire', asyncHandler(WorkerController.fireWorker));
+router.post('/:workerId/fire', requireCsrfToken, asyncHandler(WorkerController.fireWorker));
 
 /**
  * POST /api/workers/:workerId/train
  * Train a worker to increase skill
  * Body: { characterId: string }
  */
-router.post('/:workerId/train', asyncHandler(WorkerController.trainWorker));
+router.post('/:workerId/train', requireCsrfToken, asyncHandler(WorkerController.trainWorker));
 
 /**
  * POST /api/workers/:workerId/rest
  * Rest a worker to restore morale
  * Body: { characterId: string }
  */
-router.post('/:workerId/rest', asyncHandler(WorkerController.restWorker));
+router.post('/:workerId/rest', requireCsrfToken, asyncHandler(WorkerController.restWorker));
 
 /**
  * POST /api/workers/:workerId/resolve-strike
  * Resolve a worker strike
  * Body: { characterId: string, bonus?: number }
  */
-router.post('/:workerId/resolve-strike', asyncHandler(WorkerController.resolveStrike));
+router.post('/:workerId/resolve-strike', requireCsrfToken, asyncHandler(WorkerController.resolveStrike));
 
 export default router;

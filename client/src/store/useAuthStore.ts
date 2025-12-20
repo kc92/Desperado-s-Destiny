@@ -1,12 +1,18 @@
 /**
  * Authentication Store
  * Manages user authentication state using Zustand
+ *
+ * Includes cross-tab synchronization via BroadcastChannel.
+ * Login/logout events are broadcast to all open tabs.
  */
 
 import { create } from 'zustand';
 import type { User, LoginCredentials, RegisterCredentials } from '@/types';
 import authService from '@/services/auth.service';
 import { socketService } from '@/services/socket.service';
+import { useCsrfStore } from '@/store/useCsrfStore';
+import { broadcastAuthEvent, type AuthBroadcastMessage } from '@/hooks/useStorageSync';
+import { setUserContext } from '@/config/sentry';
 
 interface AuthStore {
   // State
@@ -37,7 +43,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
   // Initial state
   user: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true, // Start with true to prevent redirect before checkAuth completes
   error: null,
   _hasHydrated: true, // Always true since we're not using persistence
 
@@ -53,12 +59,27 @@ export const useAuthStore = create<AuthStore>()((set) => ({
       // Initialize socket connection
       socketService.connect();
 
+      // Fetch CSRF token for secure form submissions
+      try {
+        const csrfToken = await authService.getCsrfToken();
+        useCsrfStore.getState().setToken(csrfToken);
+      } catch (csrfError) {
+        // Non-fatal: continue without CSRF token, will be fetched on demand
+        console.warn('Failed to fetch CSRF token after login');
+      }
+
       set({
         user,
         isAuthenticated: true,
         isLoading: false,
         error: null,
       });
+
+      // Set Sentry user context for error tracking
+      setUserContext({ id: user.id, email: user.email, username: user.username });
+
+      // Broadcast login to other tabs
+      broadcastAuthEvent('LOGIN', { userId: user.id });
     } catch (error: any) {
       set({
         user: null,
@@ -78,12 +99,31 @@ export const useAuthStore = create<AuthStore>()((set) => ({
 
     try {
       const user = await authService.register(credentials);
+
+      // Initialize socket connection (same as login)
+      socketService.connect();
+
+      // Fetch CSRF token for secure form submissions
+      try {
+        const csrfToken = await authService.getCsrfToken();
+        useCsrfStore.getState().setToken(csrfToken);
+      } catch (csrfError) {
+        // Non-fatal: continue without CSRF token, will be fetched on demand
+        console.warn('Failed to fetch CSRF token after registration');
+      }
+
       set({
         user,
         isAuthenticated: true,
         isLoading: false,
         error: null,
       });
+
+      // Set Sentry user context for error tracking
+      setUserContext({ id: user.id, email: user.email, username: user.username });
+
+      // Broadcast login to other tabs (registration also logs in)
+      broadcastAuthEvent('LOGIN', { userId: user.id });
     } catch (error: any) {
       set({
         user: null,
@@ -105,6 +145,10 @@ export const useAuthStore = create<AuthStore>()((set) => ({
       await authService.logout();
 
       socketService.disconnect();
+      useCsrfStore.getState().clearToken();
+
+      // Clear Sentry user context
+      setUserContext(null);
 
       set({
         user: null,
@@ -112,8 +156,15 @@ export const useAuthStore = create<AuthStore>()((set) => ({
         isLoading: false,
         error: null,
       });
+
+      // Broadcast logout to other tabs
+      broadcastAuthEvent('LOGOUT');
     } catch (error: any) {
       socketService.disconnect();
+      useCsrfStore.getState().clearToken();
+
+      // Clear Sentry user context (still logged out locally)
+      setUserContext(null);
 
       set({
         user: null,
@@ -121,6 +172,9 @@ export const useAuthStore = create<AuthStore>()((set) => ({
         isLoading: false,
         error: error.message || 'Logout failed',
       });
+
+      // Still broadcast logout even on error (user is logged out locally)
+      broadcastAuthEvent('LOGOUT');
     }
   },
 
@@ -137,6 +191,18 @@ export const useAuthStore = create<AuthStore>()((set) => ({
         // Initialize socket connection
         socketService.connect();
 
+        // Fetch CSRF token for secure form submissions
+        try {
+          const csrfToken = await authService.getCsrfToken();
+          useCsrfStore.getState().setToken(csrfToken);
+        } catch (csrfError) {
+          // Non-fatal: continue without CSRF token, will be fetched on demand
+          console.warn('Failed to fetch CSRF token during session restore');
+        }
+
+        // Set Sentry user context for error tracking (session restored)
+        setUserContext({ id: result.user.id, email: result.user.email, username: result.user.username });
+
         set({
           user: result.user,
           isAuthenticated: true,
@@ -144,6 +210,9 @@ export const useAuthStore = create<AuthStore>()((set) => ({
           error: null,
         });
       } else {
+        useCsrfStore.getState().clearToken();
+        // Clear any stale Sentry user context
+        setUserContext(null);
         set({
           user: null,
           isAuthenticated: false,
@@ -152,6 +221,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
         });
       }
     } catch (error: any) {
+      useCsrfStore.getState().clearToken();
       set({
         user: null,
         isAuthenticated: false,

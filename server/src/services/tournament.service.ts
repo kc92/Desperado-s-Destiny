@@ -12,8 +12,8 @@ import {
   ITournament
 } from '../models/Tournament.model';
 import { Character } from '../models/Character.model';
-import { GoldService } from './gold.service';
-import { TransactionSource } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import {
   initGame,
   processAction,
@@ -22,7 +22,9 @@ import {
   PlayerAction
 } from './deckGames';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 import { v4 as uuidv4 } from 'uuid';
+import { withLock } from '../utils/distributedLock';
 
 // Active tournament matches (in production, use Redis)
 interface TournamentGameState {
@@ -92,71 +94,73 @@ export async function joinTournament(
   tournamentId: string,
   characterId: string
 ): Promise<ITournament> {
-  const tournament = await Tournament.findById(tournamentId);
+  return withLock(`lock:tournament:${tournamentId}`, async () => {
+    const tournament = await Tournament.findById(tournamentId);
 
-  if (!tournament) {
-    throw new Error('Tournament not found');
-  }
-
-  if (tournament.status !== TournamentStatus.REGISTRATION) {
-    throw new Error('Tournament is not accepting registrations');
-  }
-
-  if (tournament.registrationEndsAt < new Date()) {
-    throw new Error('Registration period has ended');
-  }
-
-  if (tournament.participants.length >= tournament.maxParticipants) {
-    throw new Error('Tournament is full');
-  }
-
-  // Check if already joined
-  const alreadyJoined = tournament.participants.some(
-    p => p.characterId.toString() === characterId
-  );
-  if (alreadyJoined) {
-    throw new Error('Already registered for this tournament');
-  }
-
-  // Get character
-  const character = await Character.findById(characterId);
-  if (!character) {
-    throw new Error('Character not found');
-  }
-
-  // Handle entry fee
-  if (tournament.entryFee > 0) {
-    if (character.gold < tournament.entryFee) {
-      throw new Error(`Insufficient gold. Need ${tournament.entryFee}, have ${character.gold}`);
+    if (!tournament) {
+      throw new Error('Tournament not found');
     }
 
-    await GoldService.deductGold(
-      characterId as any,
-      tournament.entryFee,
-      TransactionSource.TOURNAMENT_ENTRY,
-      {
-        tournamentId: tournament._id,
-        tournamentName: tournament.name,
-        description: `Entry fee for ${tournament.name}`
-      }
+    if (tournament.status !== TournamentStatus.REGISTRATION) {
+      throw new Error('Tournament is not accepting registrations');
+    }
+
+    if (tournament.registrationEndsAt < new Date()) {
+      throw new Error('Registration period has ended');
+    }
+
+    if (tournament.participants.length >= tournament.maxParticipants) {
+      throw new Error('Tournament is full');
+    }
+
+    // Check if already joined
+    const alreadyJoined = tournament.participants.some(
+      p => p.characterId.toString() === characterId
     );
+    if (alreadyJoined) {
+      throw new Error('Already registered for this tournament');
+    }
 
-    tournament.prizePool += tournament.entryFee;
-  }
+    // Get character
+    const character = await Character.findById(characterId);
+    if (!character) {
+      throw new Error('Character not found');
+    }
 
-  // Add participant
-  tournament.participants.push({
-    characterId: new mongoose.Types.ObjectId(characterId),
-    characterName: character.name,
-    joinedAt: new Date(),
-    eliminated: false
-  });
+    // Handle entry fee
+    if (tournament.entryFee > 0) {
+      if (character.dollars < tournament.entryFee) {
+        throw new Error(`Insufficient dollars. Need ${tournament.entryFee}, have ${character.dollars}`);
+      }
 
-  await tournament.save();
+      await DollarService.deductDollars(
+        characterId as any,
+        tournament.entryFee,
+        TransactionSource.TOURNAMENT_ENTRY,
+        {
+          tournamentId: tournament._id,
+          tournamentName: tournament.name,
+          description: `Entry fee for ${tournament.name}`
+        }
+      );
 
-  logger.info(`${character.name} joined tournament: ${tournament.name}`);
+      tournament.prizePool += tournament.entryFee;
+    }
 
-  return tournament;
+    // Add participant
+    tournament.participants.push({
+      characterId: new mongoose.Types.ObjectId(characterId),
+      characterName: character.name,
+      joinedAt: new Date(),
+      eliminated: false
+    });
+
+    await tournament.save();
+
+    logger.info(`${character.name} joined tournament: ${tournament.name}`);
+
+    return tournament;
+  }, { ttl: 30, retries: 3 });
 }
 
 /**
@@ -186,7 +190,7 @@ export async function leaveTournament(
 
   // Refund entry fee
   if (tournament.entryFee > 0) {
-    await GoldService.addGold(
+    await DollarService.addDollars(
       characterId as any,
       tournament.entryFee,
       TransactionSource.TOURNAMENT_WIN, // Refund
@@ -224,7 +228,7 @@ export async function startTournament(tournamentId: string): Promise<ITournament
   }
 
   // Shuffle participants
-  const shuffled = [...tournament.participants].sort(() => Math.random() - 0.5);
+  const shuffled = SecureRNG.shuffle([...tournament.participants]);
 
   // Generate bracket matches
   const matches: TournamentMatch[] = [];
@@ -576,7 +580,7 @@ async function resolveTournamentMatch(matchId: string): Promise<{
 
       // Award prize pool
       if (tournament.prizePool > 0) {
-        await GoldService.addGold(
+        await DollarService.addDollars(
           winnerId as any,
           tournament.prizePool,
           TransactionSource.TOURNAMENT_WIN,

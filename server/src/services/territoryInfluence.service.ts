@@ -23,6 +23,7 @@ import {
   AlignmentBenefits,
 } from '@desperados/shared';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Territory Influence Service
@@ -512,7 +513,7 @@ export class TerritoryInfluenceService {
     }
 
     // Criminal activity hurts controlling faction
-    const influenceLoss = -Math.floor(Math.random() * 5) - 1; // -1 to -5
+    const influenceLoss = -SecureRNG.range(1, 5); // -1 to -5
 
     return this.modifyInfluence(
       territoryId,

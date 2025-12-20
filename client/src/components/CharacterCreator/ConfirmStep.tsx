@@ -98,6 +98,7 @@ export const ConfirmStep: React.FC<ConfirmStepProps> = ({
           size="lg"
           onClick={onBack}
           disabled={isCreating}
+          data-testid="character-back-button"
         >
           Back
         </Button>
@@ -108,6 +109,7 @@ export const ConfirmStep: React.FC<ConfirmStepProps> = ({
           onClick={onCreate}
           isLoading={isCreating}
           disabled={isCreating}
+          data-testid="character-create-button"
         >
           {isCreating ? 'Creating Character...' : 'Create Character'}
         </Button>

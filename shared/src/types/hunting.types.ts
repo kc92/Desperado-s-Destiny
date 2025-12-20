@@ -567,10 +567,13 @@ export interface HuntResponse {
   availableActions: string[];
 }
 
+// Note: HUNTING_CONSTANTS is exported from game.constants.ts
+// Below are extended hunting system mechanics constants
+
 /**
- * Hunting constants
+ * Extended hunting system constants (mechanics details)
  */
-export const HUNTING_CONSTANTS = {
+export const HUNTING_SYSTEM_DETAILS = {
   /** Base energy cost for hunting */
   BASE_ENERGY_COST: 10,
 

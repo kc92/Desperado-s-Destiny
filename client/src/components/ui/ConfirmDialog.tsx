@@ -6,6 +6,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Card } from './Card';
 import { Button } from './Button';
+import { logger } from '@/services/logger.service';
 
 type ConfirmVariant = 'primary' | 'danger' | 'success';
 
@@ -95,7 +96,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     try {
       await onConfirm();
     } catch (error) {
-      console.error('ConfirmDialog: Error during confirm action:', error);
+      logger.error('Error during confirm action', error as Error, { context: 'ConfirmDialog' });
     }
   }, [onConfirm]);
 

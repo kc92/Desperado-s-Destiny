@@ -2,144 +2,235 @@
  * NPC Gang Events Job
  *
  * Handles random NPC gang events, attacks, and world state changes
+ *
+ * NOTE: Scheduling is handled by Bull queues in queues.ts
+ * This file only contains job logic and helper functions
+ *
+ * SECURITY: World events are now persisted to Redis to survive server restarts
+ * and ensure consistency across multiple server instances.
  */
 
-import cron from 'node-cron';
 import { Gang } from '../models/Gang.model';
 import { NPCGangRelationship } from '../models/NPCGangRelationship.model';
-import { TerritoryZone } from '../models/TerritoryZone.model';
 import { NPCGangConflictService } from '../services/npcGangConflict.service';
 import {
-  NPCGangId,
-  AttackType,
   NPCGangEventType,
   NPCGangWorldEvent,
   RelationshipAttitude,
 } from '@desperados/shared';
 import { ALL_NPC_GANGS } from '../data/npcGangs';
+import { withLock } from '../utils/distributedLock';
+import { RedisStateManager } from '../services/base/RedisStateManager';
 import logger from '../utils/logger';
 import mongoose from 'mongoose';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
- * Active world events
+ * Redis-backed storage for NPC world events
+ * Persists events across server restarts and ensures consistency across instances
  */
-const activeWorldEvents: NPCGangWorldEvent[] = [];
+class NPCWorldEventManager extends RedisStateManager<NPCGangWorldEvent[]> {
+  protected keyPrefix = 'npc-gang:world-events:';
+  protected ttlSeconds = 8 * 24 * 60 * 60; // 8 days (slightly longer than max event duration)
+
+  /**
+   * Get all active world events (filtering expired ones)
+   */
+  async getActiveEvents(): Promise<NPCGangWorldEvent[]> {
+    try {
+      const events = await this.getState('active') || [];
+      const now = new Date();
+      return events.filter(e => e.isActive && (!e.endsAt || new Date(e.endsAt) > now));
+    } catch (error) {
+      logger.error('[NPCWorldEvents] Error getting active events:', error);
+      return []; // Return empty array on error to not break game functionality
+    }
+  }
+
+  /**
+   * Add a new world event
+   */
+  async addEvent(event: NPCGangWorldEvent): Promise<void> {
+    try {
+      const events = await this.getState('active') || [];
+      events.push(event);
+      await this.setState('active', events);
+      logger.debug(`[NPCWorldEvents] Added event: ${event.title}`);
+    } catch (error) {
+      logger.error('[NPCWorldEvents] Error adding event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove expired events from storage
+   * @returns Number of events cleaned up
+   */
+  async cleanExpiredEvents(): Promise<number> {
+    try {
+      const events = await this.getState('active') || [];
+      const now = new Date();
+      const activeEvents = events.filter(e => e.isActive && (!e.endsAt || new Date(e.endsAt) > now));
+      const expiredCount = events.length - activeEvents.length;
+
+      if (expiredCount > 0) {
+        await this.setState('active', activeEvents);
+        logger.info(`[NPCWorldEvents] Cleaned up ${expiredCount} expired events`);
+      }
+
+      return expiredCount;
+    } catch (error) {
+      logger.error('[NPCWorldEvents] Error cleaning expired events:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get count of active events
+   */
+  async getActiveEventCount(): Promise<number> {
+    const events = await this.getActiveEvents();
+    return events.length;
+  }
+}
+
+// Singleton instance for world event management
+const worldEventManager = new NPCWorldEventManager();
 
 /**
  * Process NPC gang attacks on player gangs
- * Runs daily at midnight
+ * Called by Bull queue - scheduling handled in queues.ts
  */
-export const processNPCAttacks = cron.schedule('0 0 * * *', async () => {
+export async function processNPCAttacks(): Promise<void> {
+  const lockKey = 'job:npc-attacks';
+
   try {
-    logger.info('Processing NPC gang attacks...');
+    await withLock(lockKey, async () => {
+      logger.info('Processing NPC gang attacks...');
 
-    // Get all player gangs
-    const playerGangs = await Gang.find({ isActive: true });
+      // Get all player gangs
+      const playerGangs = await Gang.find({ isActive: true });
 
-    for (const playerGang of playerGangs) {
-      // Check relationships with each NPC gang
-      const relationships = await NPCGangRelationship.findByPlayerGang(
-        playerGang._id as mongoose.Types.ObjectId
-      );
+      for (const playerGang of playerGangs) {
+        // Check relationships with each NPC gang
+        const relationships = await NPCGangRelationship.findByPlayerGang(
+          playerGang._id as mongoose.Types.ObjectId
+        );
 
-      for (const relationship of relationships) {
-        // Hostile or in conflict = higher attack chance
-        if (
-          relationship.attitude === RelationshipAttitude.HOSTILE ||
-          relationship.activeConflict
-        ) {
-          const attackChance = 0.7; // 70% chance daily
-          if (Math.random() < attackChance) {
-            const npcGang = ALL_NPC_GANGS.find(g => g.id === relationship.npcGangId);
-            if (!npcGang) continue;
+        for (const relationship of relationships) {
+          // Hostile or in conflict = higher attack chance
+          if (
+            relationship.attitude === RelationshipAttitude.HOSTILE ||
+            relationship.activeConflict
+          ) {
+            const attackChance = 0.7; // 70% chance daily
+            if (SecureRNG.chance(attackChance)) {
+              const npcGang = ALL_NPC_GANGS.find(g => g.id === relationship.npcGangId);
+              if (!npcGang) continue;
 
-            // Random attack type
-            const attackPattern = npcGang.attackPatterns[
-              Math.floor(Math.random() * npcGang.attackPatterns.length)
-            ];
+              // Random attack type
+              const attackPattern = SecureRNG.select(npcGang.attackPatterns);
 
-            try {
-              await NPCGangConflictService.processNPCAttack(
-                playerGang._id as mongoose.Types.ObjectId,
-                npcGang.id,
-                attackPattern.type
-              );
+              try {
+                await NPCGangConflictService.processNPCAttack(
+                  playerGang._id as mongoose.Types.ObjectId,
+                  npcGang.id,
+                  attackPattern.type
+                );
 
-              logger.info(
-                `${npcGang.name} attacked ${playerGang.name} (${attackPattern.type})`
-              );
-            } catch (error) {
-              logger.error(`Error processing attack from ${npcGang.name}:`, error);
+                logger.info(
+                  `${npcGang.name} attacked ${playerGang.name} (${attackPattern.type})`
+                );
+              } catch (error) {
+                logger.error(`Error processing attack from ${npcGang.name}:`, error);
+              }
             }
           }
-        }
-        // Unfriendly = lower attack chance
-        else if (relationship.attitude === RelationshipAttitude.UNFRIENDLY) {
-          const attackChance = 0.2; // 20% chance daily
-          if (Math.random() < attackChance) {
-            const npcGang = ALL_NPC_GANGS.find(g => g.id === relationship.npcGangId);
-            if (!npcGang) continue;
+          // Unfriendly = lower attack chance
+          else if (relationship.attitude === RelationshipAttitude.UNFRIENDLY) {
+            const attackChance = 0.2; // 20% chance daily
+            if (SecureRNG.chance(attackChance)) {
+              const npcGang = ALL_NPC_GANGS.find(g => g.id === relationship.npcGangId);
+              if (!npcGang) continue;
 
-            const attackPattern = npcGang.attackPatterns[
-              Math.floor(Math.random() * npcGang.attackPatterns.length)
-            ];
+              const attackPattern = SecureRNG.select(npcGang.attackPatterns);
 
-            try {
-              await NPCGangConflictService.processNPCAttack(
-                playerGang._id as mongoose.Types.ObjectId,
-                npcGang.id,
-                attackPattern.type
-              );
+              try {
+                await NPCGangConflictService.processNPCAttack(
+                  playerGang._id as mongoose.Types.ObjectId,
+                  npcGang.id,
+                  attackPattern.type
+                );
 
-              logger.info(
-                `${npcGang.name} attacked ${playerGang.name} (${attackPattern.type})`
-              );
-            } catch (error) {
-              logger.error(`Error processing attack from ${npcGang.name}:`, error);
+                logger.info(
+                  `${npcGang.name} attacked ${playerGang.name} (${attackPattern.type})`
+                );
+              } catch (error) {
+                logger.error(`Error processing attack from ${npcGang.name}:`, error);
+              }
             }
           }
         }
       }
-    }
 
-    logger.info('NPC gang attacks processed successfully');
+      logger.info('NPC gang attacks processed successfully');
+    }, {
+      ttl: 1800, // 30 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('NPC gang attacks already running on another instance, skipping');
+      return;
+    }
     logger.error('Error processing NPC gang attacks:', error);
   }
-});
+}
 
 /**
  * Generate random world events
- * Runs every 3 days at noon
+ * Called by Bull queue - scheduling handled in queues.ts
+ *
+ * SECURITY: Events are now persisted to Redis for crash recovery and multi-instance support
  */
-export const generateWorldEvents = cron.schedule('0 12 */3 * *', async () => {
+export async function generateWorldEvents(): Promise<void> {
+  const lockKey = 'job:npc-world-events';
+
   try {
-    logger.info('Generating NPC gang world events...');
+    await withLock(lockKey, async () => {
+      logger.info('Generating NPC gang world events...');
 
-    // Clear expired events
-    const now = new Date();
-    for (let i = activeWorldEvents.length - 1; i >= 0; i--) {
-      if (activeWorldEvents[i].endsAt && activeWorldEvents[i].endsAt! < now) {
-        activeWorldEvents.splice(i, 1);
+      // Clear expired events from Redis storage
+      const expiredCount = await worldEventManager.cleanExpiredEvents();
+      if (expiredCount > 0) {
+        logger.info(`Cleaned up ${expiredCount} expired world events`);
       }
-    }
 
-    // Chance to generate new event
-    if (Math.random() < 0.6) { // 60% chance every 3 days
-      const eventType = getRandomEventType();
-      const event = await generateEvent(eventType);
+      // Chance to generate new event
+      if (SecureRNG.chance(0.6)) { // 60% chance every 3 days
+        const eventType = getRandomEventType();
+        const event = await generateEvent(eventType);
 
-      if (event) {
-        activeWorldEvents.push(event);
-        logger.info(`Generated world event: ${event.title}`);
+        if (event) {
+          await worldEventManager.addEvent(event);
+          logger.info(`Generated world event: ${event.title}`);
+        }
       }
-    }
 
-    logger.info(`Active world events: ${activeWorldEvents.length}`);
+      const activeCount = await worldEventManager.getActiveEventCount();
+      logger.info(`Active world events: ${activeCount}`);
+    }, {
+      ttl: 1800, // 30 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('NPC gang world events already running on another instance, skipping');
+      return;
+    }
     logger.error('Error generating world events:', error);
   }
-});
+}
 
 /**
  * Get random event type
@@ -153,14 +244,14 @@ function getRandomEventType(): NPCGangEventType {
     NPCGangEventType.TRIBUTE_DEMAND,
   ];
 
-  return types[Math.floor(Math.random() * types.length)];
+  return SecureRNG.select(types);
 }
 
 /**
  * Generate specific event
  */
 async function generateEvent(type: NPCGangEventType): Promise<NPCGangWorldEvent | null> {
-  const npcGang = ALL_NPC_GANGS[Math.floor(Math.random() * ALL_NPC_GANGS.length)];
+  const npcGang = SecureRNG.select(ALL_NPC_GANGS);
   const now = new Date();
   const endsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
@@ -183,7 +274,7 @@ async function generateEvent(type: NPCGangEventType): Promise<NPCGangWorldEvent 
 
     case NPCGangEventType.NPC_WAR:
       // Find enemy gang
-      const enemyId = npcGang.enemies[Math.floor(Math.random() * npcGang.enemies.length)];
+      const enemyId = SecureRNG.select(npcGang.enemies);
       if (!enemyId) return null;
 
       const enemy = ALL_NPC_GANGS.find(g => g.id === enemyId);
@@ -260,88 +351,88 @@ async function generateEvent(type: NPCGangEventType): Promise<NPCGangWorldEvent 
 
 /**
  * Reset tribute status weekly
- * Runs every Monday at midnight
+ * Called by Bull queue - scheduling handled in queues.ts
  */
-export const resetTributeStatus = cron.schedule('0 0 * * 1', async () => {
+export async function resetTributeStatus(): Promise<void> {
+  const lockKey = 'job:npc-tribute-reset';
+
   try {
-    logger.info('Resetting tribute status for all gangs...');
+    await withLock(lockKey, async () => {
+      logger.info('Resetting tribute status for all gangs...');
 
-    const result = await NPCGangRelationship.updateMany(
-      { tributePaid: true },
-      {
-        $set: { tributePaid: false },
-        $inc: { tributeStreak: -1 },
-      }
-    );
+      const result = await NPCGangRelationship.updateMany(
+        { tributePaid: true },
+        {
+          $set: { tributePaid: false },
+          $inc: { tributeStreak: -1 },
+        }
+      );
 
-    logger.info(`Reset tribute status for ${result.modifiedCount} relationships`);
+      logger.info(`Reset tribute status for ${result.modifiedCount} relationships`);
+    }, {
+      ttl: 1800, // 30 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('NPC tribute reset already running on another instance, skipping');
+      return;
+    }
     logger.error('Error resetting tribute status:', error);
   }
-});
+}
 
 /**
  * Expire old challenges
- * Runs daily at 3 AM
+ * Called by Bull queue - scheduling handled in queues.ts
  */
-export const expireChallenges = cron.schedule('0 3 * * *', async () => {
+export async function expireChallenges(): Promise<void> {
+  const lockKey = 'job:npc-expire-challenges';
+
   try {
-    logger.info('Expiring old challenges...');
+    await withLock(lockKey, async () => {
+      logger.info('Expiring old challenges...');
 
-    const now = new Date();
-    const relationships = await NPCGangRelationship.find({
-      'challengeProgress.expiresAt': { $lt: now },
-    });
+      const now = new Date();
+      const relationships = await NPCGangRelationship.find({
+        'challengeProgress.expiresAt': { $lt: now },
+      });
 
-    for (const relationship of relationships) {
-      if (relationship.challengeProgress) {
-        logger.info(
-          `Expiring challenge for gang ${relationship.playerGangId} ` +
-          `vs ${relationship.npcGangId}`
-        );
+      for (const relationship of relationships) {
+        if (relationship.challengeProgress) {
+          logger.info(
+            `Expiring challenge for gang ${relationship.playerGangId} ` +
+            `vs ${relationship.npcGangId}`
+          );
 
-        relationship.challengeProgress = undefined;
-        await relationship.save();
+          relationship.challengeProgress = undefined;
+          await relationship.save();
+        }
       }
-    }
 
-    logger.info(`Expired ${relationships.length} challenges`);
+      logger.info(`Expired ${relationships.length} challenges`);
+    }, {
+      ttl: 1800, // 30 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('NPC expire challenges already running on another instance, skipping');
+      return;
+    }
     logger.error('Error expiring challenges:', error);
   }
-});
-
-/**
- * Get active world events
- */
-export function getActiveWorldEvents(): NPCGangWorldEvent[] {
-  return activeWorldEvents.filter(e => e.isActive);
 }
 
 /**
- * Start all NPC gang jobs
+ * Get active world events (from Redis)
+ *
+ * SECURITY: Now fetches from Redis for consistency across server instances
  */
-export function startNPCGangJobs(): void {
-  logger.info('Starting NPC gang event jobs...');
-
-  processNPCAttacks.start();
-  generateWorldEvents.start();
-  resetTributeStatus.start();
-  expireChallenges.start();
-
-  logger.info('NPC gang event jobs started');
+export async function getActiveWorldEvents(): Promise<NPCGangWorldEvent[]> {
+  return worldEventManager.getActiveEvents();
 }
 
-/**
- * Stop all NPC gang jobs
- */
-export function stopNPCGangJobs(): void {
-  logger.info('Stopping NPC gang event jobs...');
-
-  processNPCAttacks.stop();
-  generateWorldEvents.stop();
-  resetTributeStatus.stop();
-  expireChallenges.stop();
-
-  logger.info('NPC gang event jobs stopped');
-}
+// NOTE: Scheduling is now handled by Bull queues in queues.ts
+// The exported functions (processNPCAttacks, generateWorldEvents, etc.)
+// are called directly by Bull job processors. No manual start/stop needed.

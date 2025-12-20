@@ -1,0 +1,62 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - link "Skip to main content" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Your Characters" [level=1] [ref=e7]
+        - paragraph [ref=e8]: Welcome back, ! Select a character to continue your journey.
+      - generic [ref=e11]:
+        - img [ref=e12]
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: An error occurred
+          - button "Try Again" [ref=e16] [cursor=pointer]
+    - dialog "Create Character - Step 2 of 2" [ref=e17]:
+      - document [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]:
+            - heading "Create Character - Step 2 of 2" [level=2] [ref=e21]
+            - button "Close modal" [ref=e22] [cursor=pointer]:
+              - img [ref=e23]
+          - generic [ref=e27]:
+            - generic [ref=e28]:
+              - heading "Confirm Your Character" [level=3] [ref=e29]
+              - paragraph [ref=e30]: Review your choices before entering the Sangre Territory
+            - generic [ref=e31]:
+              - generic [ref=e32]:
+                - img [ref=e34]
+                - generic [ref=e37]: SETTLER ALLIANCE
+                - heading "Achiever176515401357" [level=3] [ref=e39]
+              - generic [ref=e40]: Character Preview
+            - generic [ref=e41]:
+              - generic [ref=e42]:
+                - generic [ref=e43]:
+                  - heading "Character Name" [level=4] [ref=e44]
+                  - paragraph [ref=e45]: Achiever176515401357
+                - generic [ref=e46]:
+                  - heading "Faction" [level=4] [ref=e47]
+                  - paragraph [ref=e48]: Settler Alliance
+              - generic [ref=e49]:
+                - heading "Starting Location" [level=4] [ref=e50]
+                - paragraph [ref=e51]: Red Gulch
+              - generic [ref=e52]:
+                - heading "Cultural Bonus" [level=4] [ref=e53]
+                - paragraph [ref=e54]: +5 Craft
+              - generic [ref=e55]:
+                - heading "Philosophy" [level=4] [ref=e56]
+                - paragraph [ref=e57]: Progress through industry and innovation
+              - generic [ref=e58]:
+                - heading "Starting Benefits" [level=4] [ref=e59]
+                - list [ref=e60]:
+                  - listitem [ref=e61]: Level 1 character ready for adventure
+                  - listitem [ref=e62]: 150 Energy to explore the territory
+                  - listitem [ref=e63]: 5-card Destiny Deck for challenges
+                  - listitem [ref=e64]: Unique faction starting bonuses
+            - paragraph [ref=e66]: An error occurred
+            - generic [ref=e67]:
+              - button "Back" [ref=e68] [cursor=pointer]
+              - button "Create Character" [ref=e69] [cursor=pointer]
+```

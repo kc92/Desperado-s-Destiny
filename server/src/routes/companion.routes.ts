@@ -7,6 +7,8 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import {
   getCompanions,
   getCompanionShop,
@@ -97,39 +99,39 @@ const combatAbilityRateLimiter = rateLimit({
  * GET /api/companions
  * Get all companions owned by the character
  */
-router.get('/', requireAuth, requireCharacter, getCompanions);
+router.get('/', requireAuth, requireCharacter, asyncHandler(getCompanions));
 
 /**
  * GET /api/companions/shop
  * Get available companions for purchase
  */
-router.get('/shop', requireAuth, requireCharacter, getCompanionShop);
+router.get('/shop', requireAuth, requireCharacter, asyncHandler(getCompanionShop));
 
 /**
  * POST /api/companions/purchase
  * Purchase a new companion
  * Body: { species: CompanionSpecies, name: string, gender: 'male' | 'female' }
  */
-router.post('/purchase', requireAuth, requireCharacter, companionPurchaseRateLimiter, purchaseCompanion);
+router.post('/purchase', requireAuth, requireCsrfToken, requireCharacter, companionPurchaseRateLimiter, asyncHandler(purchaseCompanion));
 
 /**
  * POST /api/companions/:companionId/activate
  * Set a companion as active
  */
-router.post('/:companionId/activate', requireAuth, requireCharacter, companionCareRateLimiter, activateCompanion);
+router.post('/:companionId/activate', requireAuth, requireCsrfToken, requireCharacter, companionCareRateLimiter, asyncHandler(activateCompanion));
 
 /**
  * PATCH /api/companions/:companionId/rename
  * Rename a companion
  * Body: { newName: string }
  */
-router.patch('/:companionId/rename', requireAuth, requireCharacter, companionCareRateLimiter, renameCompanion);
+router.patch('/:companionId/rename', requireAuth, requireCsrfToken, requireCharacter, companionCareRateLimiter, asyncHandler(renameCompanion));
 
 /**
  * DELETE /api/companions/:companionId
  * Release a companion back to the wild
  */
-router.delete('/:companionId', requireAuth, requireCharacter, companionCareRateLimiter, releaseCompanion);
+router.delete('/:companionId', requireAuth, requireCsrfToken, requireCharacter, companionCareRateLimiter, asyncHandler(releaseCompanion));
 
 // ============================================================================
 // CARE ROUTES
@@ -139,19 +141,19 @@ router.delete('/:companionId', requireAuth, requireCharacter, companionCareRateL
  * POST /api/companions/:companionId/feed
  * Feed a companion
  */
-router.post('/:companionId/feed', requireAuth, requireCharacter, companionCareRateLimiter, feedCompanion);
+router.post('/:companionId/feed', requireAuth, requireCsrfToken, requireCharacter, companionCareRateLimiter, asyncHandler(feedCompanion));
 
 /**
  * POST /api/companions/:companionId/heal
  * Heal a companion
  */
-router.post('/:companionId/heal', requireAuth, requireCharacter, companionCareRateLimiter, healCompanion);
+router.post('/:companionId/heal', requireAuth, requireCsrfToken, requireCharacter, companionCareRateLimiter, asyncHandler(healCompanion));
 
 /**
  * GET /api/companions/care-tasks
  * Get pending care tasks for all companions
  */
-router.get('/care-tasks', requireAuth, requireCharacter, getCareTasks);
+router.get('/care-tasks', requireAuth, requireCharacter, asyncHandler(getCareTasks));
 
 // ============================================================================
 // TRAINING ROUTES
@@ -162,13 +164,13 @@ router.get('/care-tasks', requireAuth, requireCharacter, getCareTasks);
  * Start training an ability
  * Body: { abilityId: CompanionAbilityId }
  */
-router.post('/:companionId/train', requireAuth, requireCharacter, companionCareRateLimiter, startTraining);
+router.post('/:companionId/train', requireAuth, requireCsrfToken, requireCharacter, companionCareRateLimiter, asyncHandler(startTraining));
 
 /**
  * POST /api/companions/:companionId/complete-training
  * Complete training and learn the ability
  */
-router.post('/:companionId/complete-training', requireAuth, requireCharacter, companionCareRateLimiter, completeTraining);
+router.post('/:companionId/complete-training', requireAuth, requireCsrfToken, requireCharacter, companionCareRateLimiter, asyncHandler(completeTraining));
 
 // ============================================================================
 // TAMING ROUTES
@@ -178,27 +180,27 @@ router.post('/:companionId/complete-training', requireAuth, requireCharacter, co
  * GET /api/companions/wild-encounters
  * Get available wild animals to tame at current location
  */
-router.get('/wild-encounters', requireAuth, requireCharacter, getWildEncounters);
+router.get('/wild-encounters', requireAuth, requireCharacter, asyncHandler(getWildEncounters));
 
 /**
  * POST /api/companions/tame
  * Attempt to tame a wild animal
  * Body: { species: CompanionSpecies }
  */
-router.post('/tame', requireAuth, requireCharacter, tamingRateLimiter, attemptTaming);
+router.post('/tame', requireAuth, requireCsrfToken, requireCharacter, tamingRateLimiter, asyncHandler(attemptTaming));
 
 /**
  * GET /api/companions/taming-progress/:species
  * Get current taming progress for a species
  */
-router.get('/taming-progress/:species', requireAuth, requireCharacter, getTamingProgress);
+router.get('/taming-progress/:species', requireAuth, requireCharacter, asyncHandler(getTamingProgress));
 
 /**
  * POST /api/companions/abandon-taming
  * Abandon current taming attempt
  * Body: { species: CompanionSpecies }
  */
-router.post('/abandon-taming', requireAuth, requireCharacter, companionCareRateLimiter, abandonTaming);
+router.post('/abandon-taming', requireAuth, requireCsrfToken, requireCharacter, companionCareRateLimiter, asyncHandler(abandonTaming));
 
 // ============================================================================
 // COMBAT ROUTES
@@ -208,13 +210,13 @@ router.post('/abandon-taming', requireAuth, requireCharacter, companionCareRateL
  * GET /api/companions/active/combat-stats
  * Get combat stats for the active companion
  */
-router.get('/active/combat-stats', requireAuth, requireCharacter, getActiveCompanionCombatStats);
+router.get('/active/combat-stats', requireAuth, requireCharacter, asyncHandler(getActiveCompanionCombatStats));
 
 /**
  * POST /api/companions/:companionId/use-ability
  * Use a companion ability in combat
  * Body: { abilityId: CompanionAbilityId, encounterId: string }
  */
-router.post('/:companionId/use-ability', requireAuth, requireCharacter, combatAbilityRateLimiter, useCompanionAbility);
+router.post('/:companionId/use-ability', requireAuth, requireCsrfToken, requireCharacter, combatAbilityRateLimiter, asyncHandler(useCompanionAbility));
 
 export default router;

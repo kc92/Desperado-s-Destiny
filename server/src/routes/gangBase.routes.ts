@@ -6,8 +6,11 @@
 
 import { Router } from 'express';
 import { GangBaseController } from '../controllers/gangBase.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
+import { validate, validateObjectId } from '../validation/middleware';
+import { GangBaseSchemas } from '../validation/schemas';
 
 const router = Router();
 
@@ -21,41 +24,70 @@ router.use(requireAuth);
  * Establish a new gang base
  * Body: { characterId, tier?, locationType, region, coordinates? }
  */
-router.post('/:gangId/base/establish', asyncHandler(GangBaseController.establish));
+router.post(
+  '/:gangId/base/establish',
+  validateObjectId('gangId'),
+  validate(GangBaseSchemas.gangIdParam),
+  asyncHandler(GangBaseController.establish)
+);
 
 /**
  * GET /api/gangs/:gangId/base
  * Get gang base details
  */
-router.get('/:gangId/base', asyncHandler(GangBaseController.getBase));
+router.get(
+  '/:gangId/base',
+  validateObjectId('gangId'),
+  asyncHandler(GangBaseController.getBase)
+);
 
 /**
  * POST /api/gangs/:gangId/base/upgrade
  * Upgrade base tier
  * Body: { characterId }
  */
-router.post('/:gangId/base/upgrade', asyncHandler(GangBaseController.upgradeTier));
+router.post(
+  '/:gangId/base/upgrade',
+  validateObjectId('gangId'),
+  validate(GangBaseSchemas.upgradeBase),
+  asyncHandler(GangBaseController.upgradeTier)
+);
 
 /**
  * POST /api/gangs/:gangId/base/facility
  * Add facility to base
  * Body: { characterId, facilityType }
  */
-router.post('/:gangId/base/facility', asyncHandler(GangBaseController.addFacility));
+router.post(
+  '/:gangId/base/facility',
+  validateObjectId('gangId'),
+  validate(GangBaseSchemas.gangIdParam),
+  asyncHandler(GangBaseController.addFacility)
+);
 
 /**
  * POST /api/gangs/:gangId/base/upgrade-feature
  * Add upgrade to base
  * Body: { characterId, upgradeType }
  */
-router.post('/:gangId/base/upgrade-feature', asyncHandler(GangBaseController.addUpgrade));
+router.post(
+  '/:gangId/base/upgrade-feature',
+  validateObjectId('gangId'),
+  validate(GangBaseSchemas.upgradeBase),
+  asyncHandler(GangBaseController.addUpgrade)
+);
 
 /**
  * POST /api/gangs/:gangId/base/defense/guard
  * Hire a guard
  * Body: { characterId, guardName, level, combatSkill }
  */
-router.post('/:gangId/base/defense/guard', asyncHandler(GangBaseController.hireGuard));
+router.post(
+  '/:gangId/base/defense/guard',
+  validateObjectId('gangId'),
+  validate(GangBaseSchemas.gangIdParam),
+  asyncHandler(GangBaseController.hireGuard)
+);
 
 /**
  * DELETE /api/gangs/:gangId/base/defense/guard/:guardId
@@ -64,6 +96,8 @@ router.post('/:gangId/base/defense/guard', asyncHandler(GangBaseController.hireG
  */
 router.delete(
   '/:gangId/base/defense/guard/:guardId',
+  validateObjectId('gangId'),
+  validateObjectId('guardId'),
   asyncHandler(GangBaseController.fireGuard)
 );
 
@@ -72,7 +106,12 @@ router.delete(
  * Install a trap
  * Body: { characterId, trapType, effectiveness }
  */
-router.post('/:gangId/base/defense/trap', asyncHandler(GangBaseController.installTrap));
+router.post(
+  '/:gangId/base/defense/trap',
+  validateObjectId('gangId'),
+  validate(GangBaseSchemas.gangIdParam),
+  asyncHandler(GangBaseController.installTrap)
+);
 
 /**
  * DELETE /api/gangs/:gangId/base/defense/trap/:trapId
@@ -81,6 +120,8 @@ router.post('/:gangId/base/defense/trap', asyncHandler(GangBaseController.instal
  */
 router.delete(
   '/:gangId/base/defense/trap/:trapId',
+  validateObjectId('gangId'),
+  validateObjectId('trapId'),
   asyncHandler(GangBaseController.removeTrap)
 );
 
@@ -88,20 +129,34 @@ router.delete(
  * GET /api/gangs/:gangId/base/storage
  * Get base storage details
  */
-router.get('/:gangId/base/storage', asyncHandler(GangBaseController.getStorage));
+router.get(
+  '/:gangId/base/storage',
+  validateObjectId('gangId'),
+  asyncHandler(GangBaseController.getStorage)
+);
 
 /**
  * POST /api/gangs/:gangId/base/storage/deposit
  * Deposit item to storage
  * Body: { characterId, itemId, quantity }
  */
-router.post('/:gangId/base/storage/deposit', asyncHandler(GangBaseController.depositItem));
+router.post(
+  '/:gangId/base/storage/deposit',
+  validateObjectId('gangId'),
+  validate(GangBaseSchemas.depositToTreasury),
+  asyncHandler(GangBaseController.depositItem)
+);
 
 /**
  * POST /api/gangs/:gangId/base/storage/withdraw
  * Withdraw item from storage
  * Body: { characterId, itemId, quantity }
  */
-router.post('/:gangId/base/storage/withdraw', asyncHandler(GangBaseController.withdrawItem));
+router.post(
+  '/:gangId/base/storage/withdraw',
+  validateObjectId('gangId'),
+  validate(GangBaseSchemas.withdrawFromTreasury),
+  asyncHandler(GangBaseController.withdrawItem)
+);
 
 export default router;

@@ -9,16 +9,43 @@ import mongoose from 'mongoose';
 import { GangService } from '../services/gang.service';
 import { Gang } from '../models/Gang.model';
 import { GangInvitation } from '../models/GangInvitation.model';
-import { Character } from '../models/Character.model';
+import { Character, ICharacter } from '../models/Character.model';
 import { GangRole, GangUpgradeType, GangSearchFilters } from '@desperados/shared';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import { isValidUpgradeType } from '../utils/gangUpgrades';
 import logger from '../utils/logger';
+import { sanitizeErrorMessage } from '../utils/errors';
+
+/**
+ * C4 SECURITY FIX: Helper to verify character ownership
+ * Prevents IDOR attacks where attacker uses another user's characterId
+ */
+async function verifyCharacterOwnership(
+  userId: string,
+  characterId: string,
+  res: Response
+): Promise<ICharacter | null> {
+  const character = await Character.findById(characterId);
+
+  if (!character) {
+    res.status(404).json({ success: false, error: 'Character not found' });
+    return null;
+  }
+
+  if (character.userId.toString() !== userId.toString()) {
+    logger.warn(`[SECURITY] IDOR attempt: user ${userId} tried to use character ${characterId}`);
+    res.status(403).json({ success: false, error: 'You do not own this character' });
+    return null;
+  }
+
+  return character;
+}
 
 export class GangController {
   /**
    * POST /api/gangs/create
    * Create a new gang
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async create(req: AuthRequest, res: Response): Promise<void> {
     try {
@@ -38,6 +65,10 @@ export class GangController {
         return;
       }
 
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), characterId, res);
+      if (!character) return;
+
       const gang = await GangService.createGang(userId, characterId, name, tag);
 
       res.status(201).json({
@@ -48,7 +79,7 @@ export class GangController {
       logger.error('Error in create gang:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to create gang',
+        error: sanitizeErrorMessage(error),
       });
     }
   }
@@ -130,9 +161,16 @@ export class GangController {
   /**
    * POST /api/gangs/:id/join
    * Join a gang via invitation
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async join(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const { id } = req.params;
       const { characterId, invitationId } = req.body;
 
@@ -144,6 +182,10 @@ export class GangController {
         return;
       }
 
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), characterId, res);
+      if (!character) return;
+
       const gang = await GangService.joinGang(id, characterId, invitationId);
 
       res.status(200).json({
@@ -154,7 +196,7 @@ export class GangController {
       logger.error('Error joining gang:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to join gang',
+        error: sanitizeErrorMessage(error),
       });
     }
   }
@@ -162,9 +204,16 @@ export class GangController {
   /**
    * POST /api/gangs/:id/leave
    * Leave a gang
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async leave(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const { id } = req.params;
       const { characterId } = req.body;
 
@@ -176,6 +225,10 @@ export class GangController {
         return;
       }
 
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), characterId, res);
+      if (!character) return;
+
       await GangService.leaveGang(id, characterId);
 
       res.status(200).json({
@@ -186,7 +239,7 @@ export class GangController {
       logger.error('Error leaving gang:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to leave gang',
+        error: sanitizeErrorMessage(error),
       });
     }
   }
@@ -194,9 +247,16 @@ export class GangController {
   /**
    * DELETE /api/gangs/:id/members/:characterId
    * Kick a member
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async kick(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const { id, characterId: targetId } = req.params;
       const { kickerId } = req.body;
 
@@ -208,6 +268,10 @@ export class GangController {
         return;
       }
 
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), kickerId, res);
+      if (!character) return;
+
       const gang = await GangService.kickMember(id, kickerId, targetId);
 
       res.status(200).json({
@@ -218,7 +282,7 @@ export class GangController {
       logger.error('Error kicking member:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to kick member',
+        error: sanitizeErrorMessage(error),
       });
     }
   }
@@ -226,9 +290,16 @@ export class GangController {
   /**
    * PATCH /api/gangs/:id/members/:characterId/promote
    * Promote or demote a member
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async promote(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const { id, characterId: targetId } = req.params;
       const { promoterId, newRole } = req.body;
 
@@ -239,6 +310,10 @@ export class GangController {
         });
         return;
       }
+
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), promoterId, res);
+      if (!character) return;
 
       if (!Object.values(GangRole).includes(newRole)) {
         res.status(400).json({
@@ -258,7 +333,7 @@ export class GangController {
       logger.error('Error promoting member:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to promote member',
+        error: sanitizeErrorMessage(error),
       });
     }
   }
@@ -266,9 +341,16 @@ export class GangController {
   /**
    * POST /api/gangs/:id/bank/deposit
    * Deposit gold to gang bank
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async depositBank(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const { id } = req.params;
       const { characterId, amount } = req.body;
 
@@ -279,6 +361,10 @@ export class GangController {
         });
         return;
       }
+
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), characterId, res);
+      if (!character) return;
 
       if (amount <= 0) {
         res.status(400).json({
@@ -301,7 +387,7 @@ export class GangController {
       logger.error('Error depositing to bank:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to deposit gold',
+        error: sanitizeErrorMessage(error),
       });
     }
   }
@@ -309,9 +395,16 @@ export class GangController {
   /**
    * POST /api/gangs/:id/bank/withdraw
    * Withdraw gold from gang bank
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async withdrawBank(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const { id } = req.params;
       const { characterId, amount } = req.body;
 
@@ -322,6 +415,10 @@ export class GangController {
         });
         return;
       }
+
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), characterId, res);
+      if (!character) return;
 
       if (amount <= 0) {
         res.status(400).json({
@@ -344,7 +441,7 @@ export class GangController {
       logger.error('Error withdrawing from bank:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to withdraw gold',
+        error: sanitizeErrorMessage(error),
       });
     }
   }
@@ -352,9 +449,16 @@ export class GangController {
   /**
    * POST /api/gangs/:id/upgrades/:upgradeType
    * Purchase an upgrade
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async purchaseUpgrade(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const { id, upgradeType } = req.params;
       const { characterId } = req.body;
 
@@ -365,6 +469,10 @@ export class GangController {
         });
         return;
       }
+
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), characterId, res);
+      if (!character) return;
 
       if (!isValidUpgradeType(upgradeType)) {
         res.status(400).json({
@@ -384,7 +492,7 @@ export class GangController {
       logger.error('Error purchasing upgrade:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to purchase upgrade',
+        error: sanitizeErrorMessage(error),
       });
     }
   }
@@ -392,9 +500,16 @@ export class GangController {
   /**
    * DELETE /api/gangs/:id
    * Disband gang
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async disband(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const { id } = req.params;
       const { characterId } = req.body;
 
@@ -406,6 +521,10 @@ export class GangController {
         return;
       }
 
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), characterId, res);
+      if (!character) return;
+
       await GangService.disbandGang(id, characterId);
 
       res.status(200).json({
@@ -416,7 +535,7 @@ export class GangController {
       logger.error('Error disbanding gang:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to disband gang',
+        error: sanitizeErrorMessage(error),
       });
     }
   }
@@ -479,9 +598,16 @@ export class GangController {
   /**
    * POST /api/gangs/:id/invitations
    * Send gang invitation
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async sendInvitation(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const { id } = req.params;
       const { inviterId, recipientId } = req.body;
 
@@ -493,6 +619,10 @@ export class GangController {
         return;
       }
 
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), inviterId, res);
+      if (!character) return;
+
       const invitation = await GangService.sendInvitation(id, inviterId, recipientId);
 
       res.status(201).json({
@@ -503,7 +633,7 @@ export class GangController {
       logger.error('Error sending invitation:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to send invitation',
+        error: sanitizeErrorMessage(error),
       });
     }
   }
@@ -511,16 +641,21 @@ export class GangController {
   /**
    * GET /api/gangs/invitations/:characterId
    * Get invitations for a character
+   * C4 SECURITY FIX: Verifies character ownership
    */
-  static async getInvitations(req: Request, res: Response): Promise<void> {
+  static async getInvitations(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { characterId } = req.params;
-
-      const character = await Character.findById(characterId);
-      if (!character) {
-        res.status(404).json({ success: false, error: 'Character not found' });
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
         return;
       }
+
+      const { characterId } = req.params;
+
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), characterId, res);
+      if (!character) return;
 
       const invitations = await GangInvitation.findPendingByRecipient(character._id as mongoose.Types.ObjectId);
 
@@ -540,9 +675,16 @@ export class GangController {
   /**
    * POST /api/gangs/invitations/:id/accept
    * Accept gang invitation
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async acceptInvitation(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const { id } = req.params;
       const { characterId } = req.body;
 
@@ -553,6 +695,10 @@ export class GangController {
         });
         return;
       }
+
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), characterId, res);
+      if (!character) return;
 
       const invitation = await GangInvitation.findById(id);
       if (!invitation) {
@@ -579,7 +725,7 @@ export class GangController {
       logger.error('Error accepting invitation:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to accept invitation',
+        error: sanitizeErrorMessage(error),
       });
     }
   }
@@ -587,9 +733,16 @@ export class GangController {
   /**
    * POST /api/gangs/invitations/:id/reject
    * Reject gang invitation
+   * C4 SECURITY FIX: Verifies character ownership
    */
   static async rejectInvitation(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
       const { id } = req.params;
       const { characterId } = req.body;
 
@@ -600,6 +753,10 @@ export class GangController {
         });
         return;
       }
+
+      // C4 SECURITY FIX: Verify character ownership
+      const character = await verifyCharacterOwnership(userId.toString(), characterId, res);
+      if (!character) return;
 
       const invitation = await GangInvitation.findById(id);
       if (!invitation) {
@@ -623,7 +780,7 @@ export class GangController {
       logger.error('Error rejecting invitation:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to reject invitation',
+        error: sanitizeErrorMessage(error),
       });
     }
   }

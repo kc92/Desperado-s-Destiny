@@ -11,7 +11,12 @@ import { TransactionSource } from '../models/GoldTransaction.model';
 import { TimeService } from './time.service';
 import { WeatherService } from './weather.service';
 import { CrowdService } from './crowd.service';
+import { calculateCategoryMultiplier, SkillCategory, SKILLS } from '@desperados/shared';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
+import { withLock } from '../utils/distributedLock';
+import karmaService from './karma.service';
+import karmaEffectsService from './karmaEffects.service';
 
 /**
  * Crime resolution result
@@ -37,6 +42,41 @@ export interface ArrestResult {
 }
 
 export class CrimeService {
+  /**
+   * Get the highest cunning skill level for a character
+   * Used to determine the cunning category multiplier
+   *
+   * BALANCE FIX (Phase 4.1): Skill unlock bonuses are now multiplicative
+   */
+  static getHighestCunningSkillLevel(character: ICharacter): number {
+    let highestLevel = 0;
+
+    for (const skill of character.skills) {
+      // Check if this is a CUNNING category skill
+      const skillDef = SKILLS[skill.skillId.toUpperCase()];
+      if (skillDef && skillDef.category === SkillCategory.CUNNING) {
+        highestLevel = Math.max(highestLevel, skill.level);
+      }
+    }
+
+    return highestLevel;
+  }
+
+  /**
+   * Get the cunning category multiplier for a character
+   * Higher multiplier = better at avoiding detection
+   *
+   * BALANCE FIX (Phase 4.1): Multiplicative bonuses
+   * - Level 15: ×1.05 (Quick Fingers)
+   * - Level 30: ×1.10 (Shadow Walker)
+   * - Level 48: ×1.15 (Ghost)
+   * - Combined: ×1.328 at level 48+
+   */
+  static getCunningCategoryMultiplier(character: ICharacter): number {
+    const highestLevel = this.getHighestCunningSkillLevel(character);
+    return calculateCategoryMultiplier(highestLevel, 'CUNNING');
+  }
+
   /**
    * Resolve a crime attempt after action challenge completes
    * Determines if crime was witnessed and applies consequences
@@ -100,6 +140,40 @@ export class CrimeService {
       logger.error('Failed to check crowd for crime detection modifiers:', crowdError);
     }
 
+    // BALANCE FIX (Phase 4.1): Apply cunning skill multiplier to reduce detection
+    // Higher cunning = lower chance of being witnessed
+    // Multiplier increases with skill, so divide to reduce detection chance
+    const cunningMultiplier = this.getCunningCategoryMultiplier(character);
+    if (cunningMultiplier > 1.0) {
+      effectiveWitnessChance /= cunningMultiplier;
+      logger.info(
+        `Cunning skill multiplier ${cunningMultiplier.toFixed(3)}x reduced witness chance ` +
+        `to ${effectiveWitnessChance.toFixed(1)}%`
+      );
+    }
+
+    // DEITY SYSTEM: Apply karma effects to detection chance
+    // Divine blessings/curses can affect luck and detection
+    try {
+      const karmaEffects = await karmaEffectsService.getActiveEffects(character._id.toString());
+      if (karmaEffects.blessingCount > 0 || karmaEffects.curseCount > 0) {
+        // Luck bonus reduces detection, luck penalty increases it
+        // We invert the modifier since lower detection is better for the criminal
+        const luckModifier = karmaEffects.luck_bonus + karmaEffects.deception_bonus;
+        if (luckModifier !== 0) {
+          // Convert bonus to percentage reduction (e.g., +20 luck = 20% less detection)
+          const adjustedChance = effectiveWitnessChance * (1 - luckModifier / 100);
+          logger.info(
+            `Karma effects (luck: ${luckModifier}) adjusted witness chance from ` +
+            `${effectiveWitnessChance.toFixed(1)}% to ${adjustedChance.toFixed(1)}%`
+          );
+          effectiveWitnessChance = adjustedChance;
+        }
+      }
+    } catch (karmaError) {
+      logger.warn('Failed to apply karma effects to crime detection:', karmaError);
+    }
+
     // Check if crime is available at current time
     const crimeAvailability = TimeService.checkCrimeAvailability(
       action.name,
@@ -107,7 +181,7 @@ export class CrimeService {
     );
 
     // Roll for witness (0-100) using time and weather modified chance
-    const witnessRoll = Math.random() * 100;
+    const witnessRoll = SecureRNG.d100();
     const wasWitnessed = witnessRoll < effectiveWitnessChance;
 
     let wasJailed = false;
@@ -116,50 +190,53 @@ export class CrimeService {
 
     // If witnessed OR failed, apply consequences
     if (wasWitnessed || !actionSuccess) {
-      // Jail the character
-      if (props.jailTimeOnFailure && props.jailTimeOnFailure > 0) {
-        jailTimeMinutes = props.jailTimeOnFailure;
-        // Pass bailCost from action if available
-        const bailCost = props.bailCost || undefined;
-        character.sendToJail(jailTimeMinutes, bailCost);
-        wasJailed = true;
-      }
-
-      // Increase wanted level
-      if (props.wantedLevelIncrease && props.wantedLevelIncrease > 0) {
-        wantedLevelIncreased = props.wantedLevelIncrease;
-        character.increaseWantedLevel(wantedLevelIncreased);
-      }
-
-      // Add bounty when crime is witnessed
-      if (wasWitnessed) {
-        try {
-          const { BountyService } = await import('./bounty.service');
-          const { BountyFaction } = await import('@desperados/shared');
-
-          // Determine which faction to add bounty for
-          // Most crimes go against Settler Alliance
-          let faction = BountyFaction.SETTLER_ALLIANCE;
-
-          // Some crimes might be against other factions
-          // (can be customized per crime type later)
-          const crimeName = action.name;
-
-          await BountyService.addCrimeBounty(
-            character._id.toString(),
-            crimeName,
-            faction,
-            character.currentLocation
-          );
-
-          logger.info(`Bounty added for witnessed crime: ${crimeName} by ${character.name}`);
-        } catch (bountyError) {
-          // Don't fail the crime if bounty system fails
-          logger.error('Failed to add bounty for crime:', bountyError);
+      // Use distributed lock to prevent race conditions when updating wanted level
+      await withLock(`lock:wanted:${character._id}`, async () => {
+        // Jail the character
+        if (props.jailTimeOnFailure && props.jailTimeOnFailure > 0) {
+          jailTimeMinutes = props.jailTimeOnFailure;
+          // Pass bailCost from action if available
+          const bailCost = props.bailCost || undefined;
+          character.sendToJail(jailTimeMinutes, bailCost);
+          wasJailed = true;
         }
-      }
 
-      await character.save();
+        // Increase wanted level
+        if (props.wantedLevelIncrease && props.wantedLevelIncrease > 0) {
+          wantedLevelIncreased = props.wantedLevelIncrease;
+          character.increaseWantedLevel(wantedLevelIncreased);
+        }
+
+        // Add bounty when crime is witnessed
+        if (wasWitnessed) {
+          try {
+            const { BountyService } = await import('./bounty.service');
+            const { BountyFaction } = await import('@desperados/shared');
+
+            // Determine which faction to add bounty for
+            // Most crimes go against Settler Alliance
+            let faction = BountyFaction.SETTLER_ALLIANCE;
+
+            // Some crimes might be against other factions
+            // (can be customized per crime type later)
+            const crimeName = action.name;
+
+            await BountyService.addCrimeBounty(
+              character._id.toString(),
+              crimeName,
+              faction,
+              character.currentLocation
+            );
+
+            logger.info(`Bounty added for witnessed crime: ${crimeName} by ${character.name}`);
+          } catch (bountyError) {
+            // Don't fail the crime if bounty system fails
+            logger.error('Failed to add bounty for crime:', bountyError);
+          }
+        }
+
+        await character.save();
+      }, { ttl: 30, retries: 3 });
 
       const timeState = TimeService.getCurrentTimeState();
       logger.info(
@@ -175,6 +252,36 @@ export class CrimeService {
     let message = '';
     if (actionSuccess && !wasWitnessed) {
       message = 'You pulled it off! No witnesses, no problems.';
+
+      // DEITY SYSTEM: Record karma action for successful crime
+      try {
+        const crimeNameLower = action.name.toLowerCase();
+        let karmaActionType = 'CRIME_ROBBERY'; // Default
+
+        // Map crime types to karma actions
+        if (crimeNameLower.includes('murder') || crimeNameLower.includes('kill')) {
+          karmaActionType = 'CRIME_MURDER';
+        } else if (crimeNameLower.includes('theft') || crimeNameLower.includes('steal') || crimeNameLower.includes('pickpocket')) {
+          // Determine target wealth for karma distinction
+          // For now, treat most theft as from the wealthy (less severe karma)
+          karmaActionType = 'CRIME_THEFT_RICH';
+        } else if (crimeNameLower.includes('assault') || crimeNameLower.includes('beat')) {
+          karmaActionType = 'CRIME_ASSAULT';
+        } else if (crimeNameLower.includes('arson') || crimeNameLower.includes('fire') || crimeNameLower.includes('burn')) {
+          karmaActionType = 'CRIME_ARSON';
+        } else if (crimeNameLower.includes('rob')) {
+          karmaActionType = 'CRIME_ROBBERY';
+        }
+
+        await karmaService.recordAction(
+          character._id.toString(),
+          karmaActionType,
+          `Successful crime: ${action.name} at ${character.currentLocation}`
+        );
+        logger.debug(`Karma recorded for crime: ${karmaActionType}`);
+      } catch (karmaError) {
+        logger.warn('Failed to record karma for crime:', karmaError);
+      }
 
       // Update quest progress for successful crime
       const crimeType = action.name.toLowerCase().replace(/\s+/g, '_');
@@ -200,7 +307,7 @@ export class CrimeService {
         );
       } catch (repError) {
         // Don't fail crime if reputation update fails
-        console.error('Failed to update reputation from crime:', repError);
+        logger.error('Failed to update reputation from crime', { error: repError instanceof Error ? repError.message : repError, stack: repError instanceof Error ? repError.stack : undefined });
       }
 
       // Create reputation spreading event (unwitnessed crime spreads as rumor)
@@ -225,6 +332,31 @@ export class CrimeService {
     } else if (actionSuccess && wasWitnessed) {
       message = 'You succeeded, but someone saw you! The law is coming.';
 
+      // DEITY SYSTEM: Record karma for witnessed crime (higher witness chance)
+      // Being witnessed means deities are more likely to notice
+      try {
+        const crimeNameLower = action.name.toLowerCase();
+        let karmaActionType = 'CRIME_ROBBERY';
+
+        if (crimeNameLower.includes('murder') || crimeNameLower.includes('kill')) {
+          karmaActionType = 'CRIME_MURDER';
+        } else if (crimeNameLower.includes('theft') || crimeNameLower.includes('steal')) {
+          karmaActionType = 'CRIME_THEFT_RICH';
+        } else if (crimeNameLower.includes('assault') || crimeNameLower.includes('beat')) {
+          karmaActionType = 'CRIME_ASSAULT';
+        } else if (crimeNameLower.includes('arson') || crimeNameLower.includes('fire')) {
+          karmaActionType = 'CRIME_ARSON';
+        }
+
+        await karmaService.recordAction(
+          character._id.toString(),
+          karmaActionType,
+          `Witnessed crime: ${action.name} at ${character.currentLocation}`
+        );
+      } catch (karmaError) {
+        logger.warn('Failed to record karma for witnessed crime:', karmaError);
+      }
+
       // Witnessed crimes hurt settler reputation more
       try {
         const { ReputationService } = await import('./reputation.service');
@@ -235,7 +367,7 @@ export class CrimeService {
           `Witnessed crime: ${action.name}`
         );
       } catch (repError) {
-        console.error('Failed to update reputation from witnessed crime:', repError);
+        logger.error('Failed to update reputation from witnessed crime', { error: repError instanceof Error ? repError.message : repError, stack: repError instanceof Error ? repError.stack : undefined });
       }
 
       // Create reputation spreading event (witnessed crime spreads widely)
@@ -264,6 +396,31 @@ export class CrimeService {
     } else if (!actionSuccess && wasWitnessed) {
       message = 'You failed AND got caught red-handed! The sheriff is not pleased.';
 
+      // DEITY SYSTEM: Record karma for failed witnessed crime
+      // Failed crimes still show intent and attract divine attention
+      try {
+        const crimeNameLower = action.name.toLowerCase();
+        let karmaActionType = 'CRIME_ROBBERY';
+
+        if (crimeNameLower.includes('murder') || crimeNameLower.includes('kill')) {
+          karmaActionType = 'CRIME_MURDER';
+        } else if (crimeNameLower.includes('theft') || crimeNameLower.includes('steal')) {
+          karmaActionType = 'CRIME_THEFT_RICH';
+        } else if (crimeNameLower.includes('assault') || crimeNameLower.includes('beat')) {
+          karmaActionType = 'CRIME_ASSAULT';
+        } else if (crimeNameLower.includes('arson') || crimeNameLower.includes('fire')) {
+          karmaActionType = 'CRIME_ARSON';
+        }
+
+        await karmaService.recordAction(
+          character._id.toString(),
+          karmaActionType,
+          `Failed crime attempt: ${action.name} at ${character.currentLocation}`
+        );
+      } catch (karmaError) {
+        logger.warn('Failed to record karma for failed crime:', karmaError);
+      }
+
       // Failed and caught hurts settler rep significantly
       try {
         const { ReputationService } = await import('./reputation.service');
@@ -274,7 +431,7 @@ export class CrimeService {
           `Failed and caught: ${action.name}`
         );
       } catch (repError) {
-        console.error('Failed to update reputation from failed crime:', repError);
+        logger.error('Failed to update reputation from failed crime', { error: repError instanceof Error ? repError.message : repError, stack: repError instanceof Error ? repError.stack : undefined });
       }
 
       // Create reputation spreading event (failed crime witnessed - spreads with mockery)
@@ -316,12 +473,12 @@ export class CrimeService {
 
   /**
    * Pay bail to escape jail early
-   * Costs gold based on wanted level
+   * Costs dollars based on wanted level
    */
   static async payBail(characterId: string): Promise<{
     success: boolean;
     error?: string;
-    goldSpent?: number;
+    dollarsSpent?: number;
     message?: string;
   }> {
     const session = await mongoose.startSession();
@@ -348,25 +505,25 @@ export class CrimeService {
         ? character.lastBailCost
         : character.wantedLevel * 50;
 
-      // Check if character has enough gold
-      if (!character.hasGold(bailCost)) {
+      // Check if character has enough dollars
+      if (!character.hasDollars(bailCost)) {
         await session.abortTransaction();
         session.endSession();
         return {
           success: false,
-          error: `Insufficient gold. Need ${bailCost} gold, have ${character.gold}.`
+          error: `Insufficient dollars. Need ${bailCost} dollars, have ${character.dollars}.`
         };
       }
 
-      // Deduct gold using GoldService (transaction-safe)
-      const { GoldService } = await import('./gold.service');
-      await GoldService.deductGold(
+      // Deduct dollars using DollarService (transaction-safe)
+      const { DollarService } = await import('./dollar.service');
+      await DollarService.deductDollars(
         character._id as any,
         bailCost,
         TransactionSource.BAIL_PAYMENT,
         {
           wantedLevel: character.wantedLevel,
-          description: `Paid ${bailCost} gold bail to escape jail (Wanted Level: ${character.wantedLevel})`,
+          description: `Paid ${bailCost} dollars bail to escape jail (Wanted Level: ${character.wantedLevel})`,
         },
         session
       );
@@ -378,12 +535,12 @@ export class CrimeService {
       await session.commitTransaction();
       session.endSession();
 
-      logger.info(`Character ${characterId} paid ${bailCost} gold bail and was released`);
+      logger.info(`Character ${characterId} paid ${bailCost} dollars bail and was released`);
 
       return {
         success: true,
-        goldSpent: bailCost,
-        message: `You paid ${bailCost} gold and walked free. The sheriff tips his hat as you leave.`
+        dollarsSpent: bailCost,
+        message: `You paid ${bailCost} dollars and walked free. The sheriff tips his hat as you leave.`
       };
     } catch (error) {
       await session.abortTransaction();
@@ -395,11 +552,11 @@ export class CrimeService {
 
   /**
    * Lay low to reduce wanted level
-   * Costs time OR gold
+   * Costs time OR dollars
    */
   static async layLow(
     characterId: string,
-    useGold: boolean
+    useDollars: boolean
   ): Promise<{
     success: boolean;
     error?: string;
@@ -425,28 +582,28 @@ export class CrimeService {
         return { success: false, error: 'No wanted level to reduce' };
       }
 
-      if (useGold) {
-        const goldCost = 50;
+      if (useDollars) {
+        const dollarsCost = 50;
 
-        // Check if character has enough gold
-        if (!character.hasGold(goldCost)) {
+        // Check if character has enough dollars
+        if (!character.hasDollars(dollarsCost)) {
           await session.abortTransaction();
           session.endSession();
           return {
             success: false,
-            error: `Insufficient gold. Need ${goldCost} gold, have ${character.gold}.`
+            error: `Insufficient dollars. Need ${dollarsCost} dollars, have ${character.dollars}.`
           };
         }
 
-        // Deduct gold using GoldService (transaction-safe)
-        const { GoldService } = await import('./gold.service');
-        await GoldService.deductGold(
+        // Deduct dollars using DollarService (transaction-safe)
+        const { DollarService } = await import('./dollar.service');
+        await DollarService.deductDollars(
           character._id as any,
-          goldCost,
+          dollarsCost,
           TransactionSource.LAY_LOW_PAYMENT,
           {
             wantedLevel: character.wantedLevel,
-            description: `Paid ${goldCost} gold to lay low and reduce wanted level`,
+            description: `Paid ${dollarsCost} dollars to lay low and reduce wanted level`,
           },
           session
         );
@@ -468,7 +625,7 @@ export class CrimeService {
       return {
         success: true,
         newWantedLevel: character.wantedLevel,
-        costPaid: useGold ? '50 gold' : '30 minutes'
+        costPaid: useDollars ? '50 dollars' : '30 minutes'
       };
     } catch (error) {
       await session.abortTransaction();
@@ -561,10 +718,10 @@ export class CrimeService {
       target.bountyAmount = 0;
       target.lastArrestTime = new Date();
 
-      // Award bounty to arrester using GoldService (transaction-safe)
+      // Award bounty to arrester using DollarService (transaction-safe)
       if (bountyAmount > 0) {
-        const { GoldService } = await import('./gold.service');
-        await GoldService.addGold(
+        const { DollarService } = await import('./dollar.service');
+        await DollarService.addDollars(
           arrester._id as any,
           bountyAmount,
           TransactionSource.BOUNTY_REWARD,
@@ -572,7 +729,7 @@ export class CrimeService {
             targetCharacterId: target._id,
             targetName: target.name,
             targetWantedLevel: target.wantedLevel,
-            description: `Arrested ${target.name} and earned ${bountyAmount} gold bounty reward`,
+            description: `Arrested ${target.name} and earned ${bountyAmount} dollars bounty reward`,
           },
           session
         );
@@ -587,16 +744,28 @@ export class CrimeService {
       await session.commitTransaction();
       session.endSession();
 
+      // DEITY SYSTEM: Record karma for bringing criminal to justice
+      try {
+        await karmaService.recordAction(
+          arresterCharacterId,
+          'TURNED_IN_CRIMINAL',
+          `Arrested ${target.name} (Wanted Level: ${jailTimeMinutes / 30})`
+        );
+        logger.debug('Karma recorded for arrest: TURNED_IN_CRIMINAL');
+      } catch (karmaError) {
+        logger.warn('Failed to record karma for arrest:', karmaError);
+      }
+
       logger.info(
         `Character ${arresterCharacterId} arrested ${targetCharacterId}. ` +
-        `Bounty: ${bountyAmount} gold, Jail: ${jailTimeMinutes}m`
+        `Bounty: ${bountyAmount} dollars, Jail: ${jailTimeMinutes}m`
       );
 
       return {
         success: true,
         bountyEarned: bountyAmount,
         targetJailTime: jailTimeMinutes,
-        message: `You brought ${target.name} to justice! Earned ${bountyAmount} gold bounty.`
+        message: `You brought ${target.name} to justice! Earned ${bountyAmount} dollars bounty.`
       };
     } catch (error) {
       await session.abortTransaction();

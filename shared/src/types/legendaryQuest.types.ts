@@ -277,8 +277,8 @@ interface ExperienceReward {
   amount: number;
 }
 
-interface GoldReward {
-  type: 'gold';
+interface DollarsReward {
+  type: 'dollars';
   amount: number;
 }
 
@@ -307,7 +307,7 @@ interface PropertyReward {
 
 export type LegendaryQuestReward =
   | ExperienceReward
-  | GoldReward
+  | DollarsReward
   | ItemReward
   | TitleReward
   | SkillPointReward

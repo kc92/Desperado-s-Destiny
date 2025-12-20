@@ -620,7 +620,7 @@ export const ACT_4_QUESTS: CosmicQuest[] = [
         amount: 15000
       },
       {
-        type: 'gold',
+        type: 'dollars',
         amount: 5000
       }
     ],

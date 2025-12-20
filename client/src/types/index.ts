@@ -2,14 +2,14 @@
 // Re-export shared types for consistency with backend
 
 // Import shared types
-import type {
-  SafeUser,
-  SafeCharacter,
-  CharacterStats as SharedCharacterStats,
-  CharacterSkill,
+import {
   Faction,
-  CharacterCreation,
-  CharacterListItem,
+  type SafeUser,
+  type SafeCharacter,
+  type CharacterStats as SharedCharacterStats,
+  type CharacterSkill,
+  type CharacterCreation,
+  type CharacterListItem,
 } from '@desperados/shared';
 
 // Re-export shared types
@@ -20,7 +20,7 @@ export type {
   CharacterCreation,
   CharacterListItem,
 };
-export { Faction } from '@desperados/shared';
+export { Faction };
 
 /**
  * User type - uses SafeUser from shared

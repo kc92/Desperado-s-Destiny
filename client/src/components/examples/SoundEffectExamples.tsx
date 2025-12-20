@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { logger } from '@/services/logger.service';
 
 // ============================================================================
 // Example 1: Basic Usage
@@ -20,7 +21,7 @@ export const BasicSoundExample: React.FC = () => {
     playSound('button_click');
 
     // Do other stuff
-    console.log('Button clicked!');
+    logger.info('Button clicked!', { context: 'BasicSoundExample' });
   };
 
   return (
@@ -153,17 +154,17 @@ export const NotificationSoundExample: React.FC = () => {
 
   const sendMessage = () => {
     playSound('message');
-    console.log('Message sent!');
+    logger.info('Message sent!', { context: 'NotificationSoundExample' });
   };
 
   const sendWhisper = () => {
     playSound('whisper');
-    console.log('Private message sent!');
+    logger.info('Private message sent!', { context: 'NotificationSoundExample' });
   };
 
   const mention = () => {
     playSound('mention');
-    console.log('User mentioned!');
+    logger.info('User mentioned!', { context: 'NotificationSoundExample' });
   };
 
   return (
@@ -331,10 +332,10 @@ export const FormSoundExample: React.FC = () => {
 
     if (email.includes('@')) {
       playSound('success');
-      console.log('Form submitted!');
+      logger.info('Form submitted!', { context: 'FormSoundExample' });
     } else {
       playSound('failure');
-      console.log('Invalid email!');
+      logger.info('Invalid email!', { context: 'FormSoundExample' });
     }
   };
 
@@ -362,7 +363,7 @@ export const CustomEventSoundExample: React.FC = () => {
     // Listen for custom events
     const handleLevelUp = (event: CustomEvent) => {
       playSound('level_up');
-      console.log('Level up!', event.detail);
+      logger.info('Level up!', { context: 'CustomEventSoundExample', detail: event.detail });
     };
 
     window.addEventListener('character-level-up', handleLevelUp as EventListener);

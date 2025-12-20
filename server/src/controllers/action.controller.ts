@@ -5,7 +5,7 @@
  */
 
 import { Response } from 'express';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import { Action, ActionType } from '../models/Action.model';
 import { ActionResult, SuitBonuses, RewardsGained } from '../models/ActionResult.model';
 import { Character } from '../models/Character.model';
@@ -15,13 +15,16 @@ import {
   drawCards,
   evaluateHand,
   Suit,
-  Card
+  Card,
+  COMBAT_CONSTANTS,
+  SkillCategory
 } from '@desperados/shared';
+import { UnlockEnforcementService } from '../services/unlockEnforcement.service';
 import logger from '../utils/logger';
 import mongoose from 'mongoose';
 import { CrimeService } from '../services/crime.service';
-import { GoldService } from '../services/gold.service';
-import { TransactionSource } from '../models/GoldTransaction.model';
+import { DollarService } from '../services/dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 
 /**
  * Calculate skill bonuses from character stats to suit scores
@@ -69,8 +72,26 @@ function calculateTotalScore(
 }
 
 /**
+ * Calculate regenerated energy based on time elapsed
+ * This mirrors the Character model's regenerateEnergy method but returns the calculated value
+ */
+function calculateRegeneratedEnergy(
+  currentEnergy: number,
+  lastEnergyUpdate: Date,
+  maxEnergy: number,
+  regenRate: number
+): number {
+  const now = new Date();
+  const timeSinceLastUpdate = now.getTime() - lastEnergyUpdate.getTime();
+  const minutesElapsed = timeSinceLastUpdate / (1000 * 60);
+  const energyToAdd = minutesElapsed * regenRate;
+  return Math.min(currentEnergy + energyToAdd, maxEnergy);
+}
+
+/**
  * POST /api/actions/challenge
  * Perform a Destiny Deck challenge action
+ * Uses atomic energy deduction to prevent race conditions
  */
 export async function performChallenge(req: AuthRequest, res: Response): Promise<void> {
   const session = await mongoose.startSession();
@@ -111,9 +132,12 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
       return;
     }
 
-    // Find and validate character
-    const character = await Character.findById(characterId).session(session);
-    if (!character) {
+    // First, get character info for validation and ownership check
+    const characterCheck = await Character.findById(characterId)
+      .select('userId name energy lastEnergyUpdate maxEnergy stats level experience')
+      .session(session);
+
+    if (!characterCheck) {
       await session.abortTransaction();
       res.status(404).json({
         success: false,
@@ -123,7 +147,7 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
     }
 
     // Verify character ownership
-    if (character.userId.toString() !== userId) {
+    if (characterCheck.userId.toString() !== userId) {
       await session.abortTransaction();
       res.status(403).json({
         success: false,
@@ -132,23 +156,67 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
       return;
     }
 
-    // Regenerate energy before checking
-    character.regenerateEnergy();
+    // Calculate regenerated energy
+    const regenRate = 1; // Base regen rate: 1 energy per minute
+    const regeneratedEnergy = calculateRegeneratedEnergy(
+      characterCheck.energy,
+      characterCheck.lastEnergyUpdate || new Date(),
+      characterCheck.maxEnergy,
+      regenRate
+    );
 
-    // Check energy requirement
-    if (!character.canAffordAction(action.energyCost)) {
+    // Quick check if we have enough energy (this is a soft check, atomic update does the real check)
+    if (Math.floor(regeneratedEnergy) < action.energyCost) {
       await session.abortTransaction();
       res.status(400).json({
         success: false,
         error: 'Insufficient energy',
         details: {
           required: action.energyCost,
-          current: Math.floor(character.energy),
-          maxEnergy: character.maxEnergy
+          current: Math.floor(regeneratedEnergy),
+          maxEnergy: characterCheck.maxEnergy
         }
       });
       return;
     }
+
+    // ATOMIC OPERATION: Deduct energy BEFORE doing game logic
+    // This prevents race conditions where two actions could both pass the energy check
+    // We calculate the new energy value (regenerated - cost) and set it atomically
+    const newEnergy = Math.max(0, regeneratedEnergy - action.energyCost);
+    const now = new Date();
+
+    // Atomic update: Set energy to the calculated value, but only if it results in non-negative energy
+    // We also update lastEnergyUpdate to now so future calculations are correct
+    const energyUpdateResult = await Character.findOneAndUpdate(
+      {
+        _id: characterId,
+        userId: userId  // Extra safety: verify ownership in the query
+      },
+      {
+        $set: {
+          energy: newEnergy,
+          lastEnergyUpdate: now,
+          lastActive: now
+        }
+      },
+      {
+        new: true,
+        session
+      }
+    );
+
+    if (!energyUpdateResult) {
+      await session.abortTransaction();
+      res.status(400).json({
+        success: false,
+        error: 'Failed to deduct energy. Please try again.'
+      });
+      return;
+    }
+
+    // Energy has been atomically deducted - now proceed with game logic
+    const character = energyUpdateResult;
 
     // Draw 5 cards from shuffled deck
     const deck = shuffleDeck();
@@ -169,8 +237,9 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
 
     // Determine success based on difficulty
     // Success if total score exceeds difficulty threshold
-    // Difficulty is scaled from 1-100, we normalize it
-    const difficultyThreshold = action.difficulty * 100000; // Scale to match score ranges
+    // Difficulty is scaled from 1-10, we normalize using COMBAT_CONSTANTS.DIFFICULTY_MULTIPLIER
+    // CRITICAL FIX: Was * 100000, should be * 100 (using constant for maintainability)
+    const difficultyThreshold = action.difficulty * COMBAT_CONSTANTS.DIFFICULTY_MULTIPLIER;
     const success = totalScore >= difficultyThreshold;
 
     // Determine rewards
@@ -182,16 +251,22 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
         items: action.rewards.items || []
       };
 
-      // Award rewards to character
-      await character.addExperience(rewardsGained.xp);
+      // Award XP using atomic operation
+      if (rewardsGained.xp > 0) {
+        await Character.findByIdAndUpdate(
+          characterId,
+          { $inc: { experience: rewardsGained.xp } },
+          { session }
+        );
+      }
 
-      // Award gold using GoldService (transaction-safe)
+      // Award dollars using DollarService (transaction-safe)
       if (rewardsGained.gold > 0) {
         const source = action.type === ActionType.CRIME
           ? TransactionSource.CRIME_SUCCESS
           : TransactionSource.QUEST_REWARD;
 
-        await GoldService.addGold(
+        await DollarService.addDollars(
           character._id as any,
           rewardsGained.gold,
           source,
@@ -199,7 +274,8 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
             actionId: action._id,
             actionName: action.name,
             actionType: action.type,
-            description: `Earned ${rewardsGained.gold} gold from successful ${action.name}`,
+            description: `Earned ${rewardsGained.gold} dollars from successful ${action.name}`,
+            currencyType: CurrencyType.DOLLAR,
           },
           session
         );
@@ -214,11 +290,6 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
         items: []
       };
     }
-
-    // Deduct energy (transaction-safe)
-    character.spendEnergy(action.energyCost);
-    character.lastActive = new Date();
-    await character.save({ session });
 
     // Create action result record
     const actionResult = new ActionResult({
@@ -314,6 +385,20 @@ export async function getActions(req: AuthRequest, res: Response): Promise<void>
         crimes = crimes.filter(crime =>
           location.availableCrimes.includes(crime.name)
         );
+      }
+    }
+
+    // Filter crimes by CUNNING skill level if character is available
+    if (req.user?.activeCharacterId) {
+      try {
+        const character = await Character.findById(req.user.activeCharacterId);
+        if (character) {
+          // Filter crimes using the UnlockEnforcementService
+          crimes = UnlockEnforcementService.filterAvailableCrimes(character, crimes);
+        }
+      } catch (err) {
+        // If we can't get character skills, show all crimes (graceful degradation)
+        logger.debug('Could not filter crimes by skill level:', err);
       }
     }
 

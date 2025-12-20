@@ -17,6 +17,8 @@ interface NavLinkProps {
   exact?: boolean;
   /** Icon to show before text */
   icon?: string;
+  /** Click handler */
+  onClick?: () => void;
 }
 
 /**
@@ -29,6 +31,7 @@ export const NavLink: React.FC<NavLinkProps> = ({
   className = '',
   exact = false,
   icon,
+  onClick,
 }) => {
   const location = useLocation();
 
@@ -47,6 +50,7 @@ export const NavLink: React.FC<NavLinkProps> = ({
       to={to}
       className={`${baseStyles} ${activeStyles} ${className}`}
       aria-current={isActive ? 'page' : undefined}
+      onClick={onClick}
     >
       <span className="flex items-center gap-1.5">
         {icon && <span className="text-lg">{icon}</span>}

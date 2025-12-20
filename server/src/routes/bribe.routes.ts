@@ -6,9 +6,10 @@
 
 import { Router } from 'express';
 import { BribeController } from '../controllers/bribe.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -36,13 +37,13 @@ router.get('/options/:buildingId', asyncHandler(BribeController.getBuildingOptio
  * Bribe a guard to bypass wanted level restrictions
  * Body: { buildingId: string, amount: number }
  */
-router.post('/guard', asyncHandler(BribeController.bribeGuard));
+router.post('/guard', requireCsrfToken, asyncHandler(BribeController.bribeGuard));
 
 /**
  * POST /api/bribe/npc
  * Bribe an NPC for information or services
  * Body: { npcId: string, amount: number }
  */
-router.post('/npc', asyncHandler(BribeController.bribeNPC));
+router.post('/npc', requireCsrfToken, asyncHandler(BribeController.bribeNPC));
 
 export default router;

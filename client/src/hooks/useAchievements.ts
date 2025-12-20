@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Achievement categories
 export type AchievementCategory =
@@ -115,7 +116,7 @@ export const useAchievements = (): UseAchievementsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch achievements';
       setError(errorMessage);
-      console.error('[useAchievements] Fetch achievements error:', err);
+      logger.error('[useAchievements] Fetch achievements error:', err as Error, { context: { errorMessage } });
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +133,7 @@ export const useAchievements = (): UseAchievementsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch unlocked achievements';
       setError(errorMessage);
-      console.error('[useAchievements] Fetch unlocked achievements error:', err);
+      logger.error('[useAchievements] Fetch unlocked achievements error:', err as Error, { context: { errorMessage } });
     } finally {
       setIsLoading(false);
     }
@@ -149,7 +150,7 @@ export const useAchievements = (): UseAchievementsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch achievement summary';
       setError(errorMessage);
-      console.error('[useAchievements] Fetch summary error:', err);
+      logger.error('[useAchievements] Fetch summary error:', err as Error, { context: { errorMessage } });
     } finally {
       setIsLoading(false);
     }
@@ -163,7 +164,7 @@ export const useAchievements = (): UseAchievementsReturn => {
       );
       return response.data.data.progress;
     } catch (err: any) {
-      console.error('[useAchievements] Get progress error:', err);
+      logger.error('[useAchievements] Get progress error:', err as Error, { context: { achievementId } });
       return null;
     }
   }, []);
@@ -200,7 +201,7 @@ export const useAchievements = (): UseAchievementsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to claim achievement reward';
       setError(errorMessage);
-      console.error('[useAchievements] Claim reward error:', err);
+      logger.error('[useAchievements] Claim reward error:', err as Error, { context: { achievementId, errorMessage } });
       return { success: false, message: errorMessage };
     }
   }, [summary, refreshCharacter]);

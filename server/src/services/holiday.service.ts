@@ -17,6 +17,9 @@ import {
 import * as HolidayData from '../data/holidays/index';
 import { HolidayProgress } from '../models/HolidayProgress.model';
 import { Character } from '../models/Character.model';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
+import logger from '../utils/logger';
 
 export class HolidayService {
   /**
@@ -346,12 +349,30 @@ export class HolidayService {
           });
           break;
         case 'GOLD':
-          // Would update character gold
-          rewards.push({ type: 'GOLD', amount: reward.amount });
+          // Actually apply the dollar reward to character
+          try {
+            await DollarService.addDollars(
+              progress.characterId.toString(),
+              reward.amount,
+              TransactionSource.HOLIDAY_REWARD,
+              { questId: quest.id, holidayId: progress.holidayId }
+            );
+            rewards.push({ type: 'GOLD', amount: reward.amount });
+          } catch (error) {
+            logger.error('Failed to award holiday dollars', { error, characterId: progress.characterId, amount: reward.amount });
+          }
           break;
         case 'XP':
-          // Would update character XP
-          rewards.push({ type: 'XP', amount: reward.amount });
+          // Actually apply the XP reward to character
+          try {
+            await Character.findByIdAndUpdate(
+              progress.characterId,
+              { $inc: { experience: reward.amount } }
+            );
+            rewards.push({ type: 'XP', amount: reward.amount });
+          } catch (error) {
+            logger.error('Failed to award holiday XP', { error, characterId: progress.characterId, amount: reward.amount });
+          }
           break;
         case 'ITEM':
           progress.collectItem(reward.id);
@@ -615,17 +636,40 @@ export class HolidayService {
       return { converted: false, goldEarned: 0 };
     }
 
-    const goldEarned = Math.floor(
+    const dollarsEarned = Math.floor(
       progress.currencyBalance * holiday.currencyConversionRate
     );
 
-    // Would add gold to character here
+    // Actually add dollars to character
+    if (dollarsEarned > 0) {
+      try {
+        await DollarService.addDollars(
+          characterId,
+          dollarsEarned,
+          TransactionSource.HOLIDAY_CURRENCY_CONVERSION,
+          {
+            holidayId,
+            currencyAmount: progress.currencyBalance,
+            conversionRate: holiday.currencyConversionRate
+          }
+        );
+      } catch (error) {
+        logger.error('Failed to convert holiday currency to dollars', {
+          error,
+          characterId,
+          dollarsEarned,
+          holidayId
+        });
+        return { converted: false, dollarsEarned: 0, error: 'Dollar conversion failed' };
+      }
+    }
+
     progress.currencyBalance = 0;
     await progress.save();
 
     return {
       converted: true,
-      goldEarned,
+      dollarsEarned,
     };
   }
 }

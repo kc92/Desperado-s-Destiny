@@ -6,9 +6,10 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { AuthRequest } from './requireAuth';
+import { AuthRequest } from './auth.middleware';
 import { Character } from '../models/Character.model';
 import logger from '../utils/logger';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Middleware to prevent actions while jailed
@@ -112,7 +113,7 @@ function getJailFlavorText(wantedLevel: number): string {
   } else if (wantedLevel >= 3) {
     return "You can hear wanted posters being printed with your name on them.";
   } else {
-    return flavorTexts[Math.floor(Math.random() * flavorTexts.length)] || flavorTexts[0];
+    return SecureRNG.select(flavorTexts);
   }
 }
 

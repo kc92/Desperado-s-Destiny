@@ -30,22 +30,22 @@ const RewardIcon: React.FC<{ type: RewardType; size?: 'sm' | 'md' | 'lg' }> = ({
   const iconClass = sizeClasses[size];
 
   switch (type) {
-    case 'gold':
+    case 'dollars':
       return (
         <div className={`${iconClass} relative`}>
           <svg viewBox="0 0 100 100" className="w-full h-full">
             <defs>
-              <radialGradient id="goldGrad" cx="50%" cy="30%" r="70%">
-                <stop offset="0%" stopColor="#FFD700" />
-                <stop offset="100%" stopColor="#B8860B" />
+              <radialGradient id="dollarGrad" cx="50%" cy="30%" r="70%">
+                <stop offset="0%" stopColor="#22C55E" />
+                <stop offset="100%" stopColor="#166534" />
               </radialGradient>
             </defs>
-            <circle cx="50" cy="50" r="45" fill="url(#goldGrad)" stroke="#8B6914" strokeWidth="3" />
-            <text x="50" y="65" textAnchor="middle" fontSize="40" fill="#5C4600" fontWeight="bold">$</text>
+            <circle cx="50" cy="50" r="45" fill="url(#dollarGrad)" stroke="#14532D" strokeWidth="3" />
+            <text x="50" y="65" textAnchor="middle" fontSize="40" fill="#052E16" fontWeight="bold">$</text>
           </svg>
           {/* Sparkle effects */}
-          <div className="absolute top-0 right-0 animate-ping w-3 h-3 bg-yellow-200 rounded-full opacity-75" />
-          <div className="absolute bottom-2 left-1 animate-ping delay-300 w-2 h-2 bg-yellow-200 rounded-full opacity-75" />
+          <div className="absolute top-0 right-0 animate-ping w-3 h-3 bg-green-200 rounded-full opacity-75" />
+          <div className="absolute bottom-2 left-1 animate-ping delay-300 w-2 h-2 bg-green-200 rounded-full opacity-75" />
         </div>
       );
     case 'item':
@@ -189,7 +189,7 @@ export const ClaimRewardModal: React.FC<ClaimRewardModalProps> = ({
           <div className="relative">
             <div className={`
               absolute inset-0 rounded-full blur-2xl opacity-50
-              ${reward.type === 'gold' ? 'bg-yellow-400' : ''}
+              ${reward.type === 'dollars' ? 'bg-green-400' : ''}
               ${reward.type === 'energy' ? 'bg-blue-400' : ''}
               ${reward.type === 'premium' ? 'bg-yellow-300' : ''}
               ${reward.type === 'material' ? 'bg-purple-400' : ''}
@@ -206,7 +206,7 @@ export const ClaimRewardModal: React.FC<ClaimRewardModalProps> = ({
         `}>
           {/* Amount or name */}
           <div className={`text-2xl font-western mb-2 ${getRarityColors(reward.rarity)}`}>
-            {reward.type === 'gold' && `+${reward.amount} Gold`}
+            {reward.type === 'dollars' && `+$${reward.amount}`}
             {reward.type === 'energy' && `+${reward.amount} Energy`}
             {reward.itemName && reward.itemName}
           </div>

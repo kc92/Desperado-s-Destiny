@@ -7,6 +7,8 @@ import { create } from 'zustand';
 import type { SafeCharacter, CharacterCreation } from '@desperados/shared';
 import { characterService } from '@/services/character.service';
 import { useEnergyStore } from './useEnergyStore';
+import { logger } from '@/services/logger.service';
+import { broadcastAuthEvent } from '@/hooks/useStorageSync';
 
 interface CharacterStore {
   // State
@@ -62,7 +64,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         throw new Error(response.error || 'Failed to load characters');
       }
     } catch (error: any) {
-      console.error('Failed to load characters:', error);
+      logger.error('Failed to load characters', error as Error, { context: 'useCharacterStore.loadCharacters' });
       set({
         characters: [],
         isLoading: false,
@@ -91,7 +93,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         throw new Error(response.error || 'Failed to create character');
       }
     } catch (error: any) {
-      console.error('Failed to create character:', error);
+      logger.error('Failed to create character', error as Error, { context: 'useCharacterStore.createCharacter', characterName: data.name });
       set({
         isLoading: false,
         error: error.message || 'Failed to create character',
@@ -120,16 +122,19 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         useEnergyStore.getState().initializeEnergy(
           character.energy,
           character.maxEnergy || 100,
-          character.isPremium ? 15 : 10,
-          character.isPremium || false
+          (character as any).isPremium ? 15 : 10,
+          (character as any).isPremium || false
         );
 
         localStorage.setItem('selectedCharacterId', id);
+
+        // Broadcast character change to other tabs
+        broadcastAuthEvent('CHARACTER_CHANGED', { characterId: id });
       } else {
         throw new Error(response.error || 'Failed to select character');
       }
     } catch (error: any) {
-      console.error('Failed to select character:', error);
+      logger.error('Failed to select character', error as Error, { context: 'useCharacterStore.selectCharacter', characterId: id });
       set({
         isLoading: false,
         error: error.message || 'Failed to select character',
@@ -159,7 +164,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         throw new Error(response.error || 'Failed to delete character');
       }
     } catch (error: any) {
-      console.error('Failed to delete character:', error);
+      logger.error('Failed to delete character', error as Error, { context: 'useCharacterStore.deleteCharacter', characterId: id });
       set({
         isLoading: false,
         error: error.message || 'Failed to delete character',
@@ -193,15 +198,15 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         useEnergyStore.getState().initializeEnergy(
           character.energy,
           character.maxEnergy || 100,
-          character.isPremium ? 15 : 10,
-          character.isPremium || false
+          (character as any).isPremium ? 15 : 10,
+          (character as any).isPremium || false
         );
       } else {
         localStorage.removeItem('selectedCharacterId');
         set({ isLoading: false });
       }
     } catch (error) {
-      console.error('Failed to load selected character:', error);
+      logger.error('Failed to load selected character', error as Error, { context: 'useCharacterStore.loadSelectedCharacter', characterId: id });
       localStorage.removeItem('selectedCharacterId');
       set({ isLoading: false });
     }
@@ -279,7 +284,7 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         });
       }
     } catch (error) {
-      console.error('Failed to refresh character:', error);
+      logger.error('Failed to refresh character', error as Error, { context: 'useCharacterStore.refreshCharacter', characterId: currentCharacter._id });
     }
   },
 

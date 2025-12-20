@@ -4,7 +4,7 @@
  */
 
 import { useTutorialStore } from '@/store/useTutorialStore';
-import type { TutorialSkipEvent, TutorialCompletionEvent } from '@/store/useTutorialStore';
+import { logger } from '@/services/logger.service';
 
 /**
  * Get detailed analytics report
@@ -51,23 +51,27 @@ export function exportAnalyticsToJSON() {
 export function logAnalyticsSummary() {
   const report = getTutorialAnalyticsReport();
 
-  console.group('%c Tutorial Analytics Report', 'font-weight: bold; font-size: 14px; color: #d4af37');
+  logger.info('Tutorial Analytics Report', {
+    context: 'tutorialAnalytics',
+    section: 'summary'
+  });
 
-  console.log('%c Summary', 'font-weight: bold; color: #d4af37');
-  console.table({
-    'Total Skips': report.summary.totalSkips,
-    'Completed Sections': report.summary.completedSections.length,
-    'Avg Progress at Skip': `${report.summary.averageProgressAtSkip.toFixed(1)}%`,
-    'Avg Time Before Skip': `${Math.round(report.summary.averageTimeBeforeSkipMs / 1000)}s`,
+  logger.info('Summary', {
+    context: 'tutorialAnalytics',
+    totalSkips: report.summary.totalSkips,
+    completedSections: report.summary.completedSections.length,
+    avgProgressAtSkip: `${report.summary.averageProgressAtSkip.toFixed(1)}%`,
+    avgTimeBeforeSkip: `${Math.round(report.summary.averageTimeBeforeSkipMs / 1000)}s`
   });
 
   if (Object.keys(report.summary.skipsBySection).length > 0) {
-    console.log('%c Skips by Section', 'font-weight: bold; color: #d4af37');
-    console.table(report.summary.skipsBySection);
+    logger.info('Skips by Section', {
+      context: 'tutorialAnalytics',
+      skipsBySection: report.summary.skipsBySection
+    });
   }
 
   if (Object.keys(report.summary.sectionCompletionTimes).length > 0) {
-    console.log('%c Section Completion Times', 'font-weight: bold; color: #d4af37');
     const completionTimes = Object.entries(report.summary.sectionCompletionTimes).reduce(
       (acc, [section, timeMs]) => {
         acc[section] = `${Math.round(timeMs / 1000)}s`;
@@ -75,23 +79,25 @@ export function logAnalyticsSummary() {
       },
       {} as Record<string, string>
     );
-    console.table(completionTimes);
+    logger.info('Section Completion Times', {
+      context: 'tutorialAnalytics',
+      completionTimes
+    });
   }
 
   if (report.details.skipEvents.length > 0) {
-    console.log('%c Skip Events Detail', 'font-weight: bold; color: #d4af37');
-    console.table(
-      report.details.skipEvents.map(event => ({
-        Section: event.sectionId,
-        Step: event.stepId,
-        Progress: `${event.progress}%`,
-        'Time Spent': `${Math.round(event.timeSpentMs / 1000)}s`,
-        Timestamp: new Date(event.timestamp).toLocaleTimeString(),
-      }))
-    );
+    const skipEventsFormatted = report.details.skipEvents.map(event => ({
+      Section: event.sectionId,
+      Step: event.stepId,
+      Progress: `${event.progress}%`,
+      'Time Spent': `${Math.round(event.timeSpentMs / 1000)}s`,
+      Timestamp: new Date(event.timestamp).toLocaleTimeString(),
+    }));
+    logger.info('Skip Events Detail', {
+      context: 'tutorialAnalytics',
+      skipEvents: skipEventsFormatted
+    });
   }
-
-  console.groupEnd();
 }
 
 /**
@@ -107,7 +113,6 @@ export function identifyPainPoints() {
   }> = [];
 
   // Check for sections with high skip rates
-  const totalSectionCount = Object.keys(report.summary.skipsBySection).length;
   for (const [section, skipCount] of Object.entries(report.summary.skipsBySection)) {
     if (skipCount >= 3) {
       painPoints.push({
@@ -178,50 +183,39 @@ export function logPainPoints() {
   const painPoints = identifyPainPoints();
 
   if (painPoints.length === 0) {
-    console.log('%c No tutorial pain points detected', 'color: #00ff00; font-weight: bold');
+    logger.info('No tutorial pain points detected', { context: 'tutorialAnalytics' });
     return;
   }
 
-  console.group('%c Tutorial Pain Points Detected', 'font-weight: bold; font-size: 14px; color: #ff6b6b');
+  logger.info('Tutorial Pain Points Detected', { context: 'tutorialAnalytics' });
 
   const highPriority = painPoints.filter(p => p.severity === 'high');
   const mediumPriority = painPoints.filter(p => p.severity === 'medium');
   const lowPriority = painPoints.filter(p => p.severity === 'low');
 
   if (highPriority.length > 0) {
-    console.group('%c High Priority', 'color: #ff0000; font-weight: bold');
-    highPriority.forEach(point => {
-      console.log(`Section: ${point.section}`);
-      console.log(`Reason: ${point.reason}`);
-      console.log('Data:', point.data);
-      console.log('---');
+    logger.warn('High Priority Pain Points', {
+      context: 'tutorialAnalytics',
+      priority: 'high',
+      points: highPriority
     });
-    console.groupEnd();
   }
 
   if (mediumPriority.length > 0) {
-    console.group('%c Medium Priority', 'color: #ffa500; font-weight: bold');
-    mediumPriority.forEach(point => {
-      console.log(`Section: ${point.section}`);
-      console.log(`Reason: ${point.reason}`);
-      console.log('Data:', point.data);
-      console.log('---');
+    logger.warn('Medium Priority Pain Points', {
+      context: 'tutorialAnalytics',
+      priority: 'medium',
+      points: mediumPriority
     });
-    console.groupEnd();
   }
 
   if (lowPriority.length > 0) {
-    console.group('%c Low Priority', 'color: #ffff00; font-weight: bold');
-    lowPriority.forEach(point => {
-      console.log(`Section: ${point.section}`);
-      console.log(`Reason: ${point.reason}`);
-      console.log('Data:', point.data);
-      console.log('---');
+    logger.info('Low Priority Pain Points', {
+      context: 'tutorialAnalytics',
+      priority: 'low',
+      points: lowPriority
     });
-    console.groupEnd();
   }
-
-  console.groupEnd();
 }
 
 /**
@@ -231,8 +225,8 @@ export async function sendAnalyticsToAPI() {
   const report = getTutorialAnalyticsReport();
 
   // TODO: Implement API endpoint
-  console.warn('API endpoint not yet implemented');
-  console.log('Would send:', report);
+  logger.warn('API endpoint not yet implemented', { context: 'tutorialAnalytics' });
+  logger.info('Would send analytics report', { context: 'tutorialAnalytics', report });
 
   // Example implementation:
   /*
@@ -251,7 +245,7 @@ export async function sendAnalyticsToAPI() {
 
     return await response.json();
   } catch (error) {
-    console.error('Failed to send tutorial analytics:', error);
+    logger.error('Failed to send tutorial analytics', error as Error, { context: 'tutorialAnalytics' });
     throw error;
   }
   */
@@ -270,15 +264,16 @@ export function exposeAnalyticsToDevTools() {
       identify: identifyPainPoints,
     };
 
-    console.log(
-      '%c Tutorial Analytics Tools Available',
-      'font-weight: bold; font-size: 14px; color: #d4af37'
-    );
-    console.log('Access via window.tutorialAnalytics:');
-    console.log('  - getReport()    - Get full analytics report');
-    console.log('  - export()       - Export to JSON file');
-    console.log('  - log()          - Log formatted summary');
-    console.log('  - painPoints()   - Log identified pain points');
-    console.log('  - identify()     - Get pain points array');
+    logger.info('Tutorial Analytics Tools Available', {
+      context: 'tutorialAnalytics',
+      message: 'Access via window.tutorialAnalytics',
+      methods: {
+        getReport: 'Get full analytics report',
+        export: 'Export to JSON file',
+        log: 'Log formatted summary',
+        painPoints: 'Log identified pain points',
+        identify: 'Get pain points array'
+      }
+    });
   }
 }

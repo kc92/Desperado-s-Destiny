@@ -5,7 +5,8 @@
 
 import { create } from 'zustand';
 import type { Notification } from '@desperados/shared';
-import { api } from '@/services/api';
+import { notificationService } from '@/services/notification.service';
+import { logger } from '@/services/logger.service';
 
 // Import sound system (we'll play sounds directly from the store)
 let playNotificationSound: ((type: 'notification' | 'message' | 'whisper' | 'mention') => void) | null = null;
@@ -48,16 +49,19 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await api.get('/notifications', {
-        params: { limit, offset }
-      });
+      const response = await notificationService.getNotifications({ limit, offset });
 
       set({
-        notifications: response.data.data,
-        unreadCount: response.data.unreadCount,
+        notifications: response.data,
+        unreadCount: response.unreadCount,
         isLoading: false
       });
     } catch (error: any) {
+      logger.error('Failed to fetch notifications', error as Error, {
+        context: 'useNotificationStore.fetchNotifications',
+        limit,
+        offset
+      });
       set({
         isLoading: false,
         error: error.response?.data?.message || 'Failed to fetch notifications'
@@ -67,16 +71,16 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   fetchUnreadCount: async () => {
     try {
-      const response = await api.get('/notifications/unread-count');
-      set({ unreadCount: response.data.data.count });
+      const count = await notificationService.getUnreadCount();
+      set({ unreadCount: count });
     } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+      logger.error('Failed to fetch unread count', error as Error, { context: 'useNotificationStore.fetchUnreadCount' });
     }
   },
 
   markAsRead: async (notificationId: string) => {
     try {
-      await api.patch(`/notifications/${notificationId}/read`);
+      await notificationService.markAsRead(notificationId);
 
       const updatedNotifications = get().notifications.map(n =>
         n._id === notificationId ? { ...n, isRead: true } : n
@@ -87,6 +91,10 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
         unreadCount: Math.max(0, get().unreadCount - 1)
       });
     } catch (error: any) {
+      logger.error('Failed to mark notification as read', error as Error, {
+        context: 'useNotificationStore.markAsRead',
+        notificationId
+      });
       set({
         error: error.response?.data?.message || 'Failed to mark notification as read'
       });
@@ -97,7 +105,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.patch('/notifications/mark-all-read');
+      await notificationService.markAllAsRead();
 
       const updatedNotifications = get().notifications.map(n => ({
         ...n,
@@ -110,6 +118,9 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
         isLoading: false
       });
     } catch (error: any) {
+      logger.error('Failed to mark all as read', error as Error, {
+        context: 'useNotificationStore.markAllAsRead'
+      });
       set({
         isLoading: false,
         error: error.response?.data?.message || 'Failed to mark all as read'
@@ -119,7 +130,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   deleteNotification: async (notificationId: string) => {
     try {
-      await api.delete(`/notifications/${notificationId}`);
+      await notificationService.deleteNotification(notificationId);
 
       const updatedNotifications = get().notifications.filter(
         n => n._id !== notificationId
@@ -127,6 +138,10 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
       set({ notifications: updatedNotifications });
     } catch (error: any) {
+      logger.error('Failed to delete notification', error as Error, {
+        context: 'useNotificationStore.deleteNotification',
+        notificationId
+      });
       set({
         error: error.response?.data?.message || 'Failed to delete notification'
       });

@@ -9,7 +9,9 @@ import { WorldEvent, IWorldEvent, WorldEventType, EventStatus } from '../models/
 import { WorldState, IWorldState, WeatherType, TimeOfDay, WEATHER_EFFECTS } from '../models/WorldState.model';
 import { Character } from '../models/Character.model';
 import { WeatherService } from './weather.service';
+import { SecureRNG } from './base/SecureRNG';
 import logger from '../utils/logger';
+import { GoldService, TransactionSource } from './gold.service';
 
 // Event templates for random generation
 const EVENT_TEMPLATES: Partial<Record<WorldEventType, any>> = {
@@ -199,7 +201,7 @@ export class WorldEventService {
    */
   static async createRandomEvent(locationId?: string): Promise<IWorldEvent> {
     const eventTypes = Object.keys(EVENT_TEMPLATES) as WorldEventType[];
-    const randomType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+    const randomType = SecureRNG.select(eventTypes);
     const template = EVENT_TEMPLATES[randomType];
 
     if (!template) {
@@ -207,7 +209,7 @@ export class WorldEventService {
     }
 
     const now = new Date();
-    const startTime = new Date(now.getTime() + Math.random() * 30 * 60 * 1000); // Start within 30 min
+    const startTime = new Date(now.getTime() + SecureRNG.float(0, 1) * 30 * 60 * 1000); // Start within 30 min
     const endTime = new Date(startTime.getTime() + template.duration * 60 * 1000);
 
     const event = await WorldEvent.create({
@@ -223,7 +225,7 @@ export class WorldEventService {
       participationRewards: template.rewards,
       newsHeadline: template.newsHeadline,
       gossipRumors: template.gossip,
-      priority: Math.floor(Math.random() * 5) + 1,
+      priority: SecureRNG.range(1, 5),
     });
 
     logger.info(`Created world event: ${event.name} starting at ${startTime}`);
@@ -354,8 +356,13 @@ export class WorldEventService {
 
     for (const reward of event.participationRewards) {
       switch (reward.type) {
-        case 'gold':
-          character.gold += reward.amount;
+        case 'dollars':
+          await GoldService.addGold(
+            characterId,
+            reward.amount,
+            TransactionSource.QUEST_REWARD,
+            { eventId: event._id.toString(), eventName: event.name, eventType: event.type }
+          );
           break;
         case 'xp':
           await character.addExperience(reward.amount);
@@ -364,7 +371,6 @@ export class WorldEventService {
       }
     }
 
-    await character.save();
     logger.info(`Rewarded character ${characterId} for event ${event.name}`);
   }
 

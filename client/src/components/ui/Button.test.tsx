@@ -4,7 +4,7 @@
  * Tests rendering, variants, sizes, states, interactions, and accessibility
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Button } from './Button';
 
@@ -398,14 +398,14 @@ describe('Button Component', () => {
     });
 
     it('can be focused via ref', () => {
-      const ref = { current: null };
+      const ref = { current: null as HTMLButtonElement | null };
       render(<Button ref={ref}>Button</Button>);
       ref.current?.focus();
       expect(ref.current).toHaveFocus();
     });
 
     it('can access button methods via ref', () => {
-      const ref = { current: null };
+      const ref = { current: null as HTMLButtonElement | null };
       render(<Button ref={ref}>Button</Button>);
       expect(ref.current?.click).toBeDefined();
     });

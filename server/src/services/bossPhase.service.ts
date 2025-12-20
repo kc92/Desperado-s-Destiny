@@ -4,6 +4,7 @@
  * Handles boss phase transitions, ability selection, and combat rounds
  */
 
+import { SecureRNG } from './base/SecureRNG';
 import mongoose from 'mongoose';
 import { IBossEncounter } from '../models/BossEncounter.model';
 import {
@@ -82,7 +83,7 @@ export class BossPhaseService {
 
     // Weighted random selection based on priority
     const totalPriority = availableAbilities.reduce((sum, a) => sum + a.priority, 0);
-    let roll = Math.random() * totalPriority;
+    let roll = SecureRNG.float(0, 1) * totalPriority;
 
     for (const ability of availableAbilities) {
       roll -= ability.priority;
@@ -134,7 +135,7 @@ export class BossPhaseService {
     }
 
     // Add variance
-    const variance = Math.floor(Math.random() * 20) - 10; // -10 to +10
+    const variance = SecureRNG.range(-10, 10);
     damage += variance;
 
     return Math.max(1, damage);
@@ -358,7 +359,7 @@ export class BossPhaseService {
     switch (ability.targetType) {
       case 'single':
         // Target random alive player
-        return [alivePlayers[Math.floor(Math.random() * alivePlayers.length)]];
+        return [SecureRNG.select(alivePlayers)];
 
       case 'all':
         // Target all alive players
@@ -366,8 +367,8 @@ export class BossPhaseService {
 
       case 'random':
         // Target 1-3 random players
-        const count = Math.min(Math.floor(Math.random() * 3) + 1, alivePlayers.length);
-        const shuffled = alivePlayers.sort(() => Math.random() - 0.5);
+        const count = Math.min(SecureRNG.range(1, 3), alivePlayers.length);
+        const shuffled = SecureRNG.shuffle([...alivePlayers]);
         return shuffled.slice(0, count);
 
       default:

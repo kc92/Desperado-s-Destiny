@@ -9,6 +9,7 @@
  */
 
 import { GossipCategory } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 // ============================================================================
 // TYPES
@@ -1121,6 +1122,993 @@ export const WARNING_TEMPLATES: GossipExpansionTemplate[] = [
 ];
 
 // ============================================================================
+// SUPERNATURAL GOSSIP TEMPLATES (50+) - AAA COSMIC HORROR INTEGRATION
+// Fallout New Vegas style - darkness woven naturally into the world
+// ============================================================================
+
+export const SUPERNATURAL_TEMPLATES: GossipExpansionTemplate[] = [
+  // === GHOST SIGHTINGS (10) ===
+  {
+    id: 'supernatural_ghost_rider_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "The Ghost Riders were seen at Dead Man's Canyon again last {TIME_PERIOD}. {NPC} said the lead rider looked right at 'em with eyes like burnin' coals. Horses left no tracks come mornin'.",
+    variables: ['TIME_PERIOD', 'NPC'],
+    spreadRate: 7,
+    truthValue: 0.9,
+    interestDecay: 14,
+    embellishments: [
+      "They was wearin' Confederate gray, torn and bloodied.",
+      "The horses was screamin' but made no sound.",
+      "They vanished when the church bell struck midnight.",
+    ],
+    degradations: [
+      "Might've been a dust devil playin' tricks.",
+      "{NPC} had been drinkin' that night.",
+    ],
+    triggerEvents: ['supernatural_event', 'midnight_activity'],
+  },
+  {
+    id: 'supernatural_ghost_woman_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'rumor',
+    template:
+      "There's a woman in white been seen walkin' the ridge near {LOCATION}. {NPC} swears it's the spirit of {DECEASED} who died there back in '62. She's searchin' for somethin'.",
+    variables: ['LOCATION', 'NPC', 'DECEASED'],
+    spreadRate: 6,
+    truthValue: 0.4,
+    interestDecay: 30,
+    embellishments: [
+      "She was cryin' tears of blood.",
+      "Anyone who follows her disappears for three days.",
+      "She only appears when someone's 'bout to die.",
+    ],
+    degradations: [
+      "Probably just mist off the river.",
+      "Could've been an owl in the moonlight.",
+    ],
+  },
+  {
+    id: 'supernatural_phantom_stage_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "The phantom stagecoach was spotted on the old road to {LOCATION}. {NPC} heard the horses and wheels but couldn't see nothin' - just felt the wind as it passed. Carries the souls of them murdered in the '58 massacre.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 5,
+    truthValue: 0.3,
+    interestDecay: 45,
+    embellishments: [
+      "If you hear it, don't look - your eyes'll burn out.",
+      "The driver has no head.",
+      "Gold coins fall from the wheels but turn to dust at dawn.",
+    ],
+    degradations: [
+      "The road plays tricks with sound at night.",
+    ],
+  },
+  {
+    id: 'supernatural_mirror_ghost_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'secret',
+    template:
+      "The mirror in {LOCATION}'s back room shows things that ain't there. {NPC} looked into it and saw themselves dead - hangin' from a tree. Week later, {RELATED_NPC} found 'em the same way.",
+    variables: ['LOCATION', 'NPC', 'RELATED_NPC'],
+    spreadRate: 8,
+    truthValue: 0.2,
+    interestDecay: 60,
+    embellishments: [
+      "The mirror came from a witch's estate.",
+      "It shows how you'll die.",
+      "They covered it but the cloth keeps fallin' off by itself.",
+    ],
+    degradations: [
+      "Probably just a warped reflection.",
+      "Coincidence and superstition.",
+    ],
+  },
+  {
+    id: 'supernatural_cold_spot_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'rumor',
+    template:
+      "There's a spot behind {LOCATION} where it's always cold, even in summer. Dogs won't go near it. {NPC} says that's where they buried the bodies after the {EVENT}.",
+    variables: ['LOCATION', 'NPC', 'EVENT'],
+    spreadRate: 5,
+    truthValue: 0.6,
+    interestDecay: 90,
+    embellishments: [
+      "Flowers won't grow there.",
+      "You can hear whisperin' if you stand still.",
+      "Ground's always wet like blood that won't dry.",
+    ],
+    degradations: [
+      "Might just be underground water.",
+    ],
+  },
+  {
+    id: 'supernatural_death_omen_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "{NPC} saw a black dog with glowin' eyes outside {PERSON}'s house three nights runnin'. That's the death omen - someone in that house ain't long for this world.",
+    variables: ['NPC', 'PERSON'],
+    spreadRate: 6,
+    truthValue: 0.2,
+    interestDecay: 7,
+    embellishments: [
+      "Same dog was seen before {DECEASED} died.",
+      "It don't leave tracks.",
+      "Bullets pass right through it.",
+    ],
+    degradations: [
+      "Just a stray from the Kaiowa lands.",
+      "Seen a lot of black dogs lately.",
+    ],
+  },
+  {
+    id: 'supernatural_hanged_man_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'scandal',
+    template:
+      "The ghost of {EXECUTED} still swings from the hangin' tree at {LOCATION}. {NPC} saw him clear as day - rope around his neck, face all purple, mouthin' the name of whoever really done the crime.",
+    variables: ['EXECUTED', 'LOCATION', 'NPC'],
+    spreadRate: 7,
+    truthValue: 0.4,
+    interestDecay: 60,
+    embellishments: [
+      "He points at someone different each night.",
+      "The rope's still there even though they cut it down.",
+      "He was innocent - hanged an innocent man.",
+    ],
+    degradations: [
+      "Wind makes strange shapes at night.",
+    ],
+  },
+  {
+    id: 'supernatural_crying_baby_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "If you hear a baby cryin' out in the desert near {LOCATION}, don't follow the sound. It's La Llorona - the weeping woman. {NPC}'s cousin followed it once and was found three days later, drowned in two inches of water.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 8,
+    truthValue: 0.3,
+    interestDecay: 45,
+    factionRelevance: ['frontera'],
+    embellishments: [
+      "She's searchin' for her own children she killed.",
+      "She wears all white and floats above the ground.",
+      "If she catches you, she drowns you in your own tears.",
+    ],
+    degradations: [
+      "Just coyotes - sound like babies at night.",
+    ],
+  },
+  {
+    id: 'supernatural_piano_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'rumor',
+    template:
+      "The piano at {LOCATION} plays by itself at 3 AM. Same song every night - a waltz {DECEASED} used to play before they was murdered. {NPC} heard it clear as day.",
+    variables: ['LOCATION', 'DECEASED', 'NPC'],
+    spreadRate: 5,
+    truthValue: 0.3,
+    interestDecay: 30,
+    embellishments: [
+      "The keys move but nobody's there.",
+      "It stops the second you open the door.",
+      "Sometimes you hear a woman singin' along.",
+    ],
+    degradations: [
+      "Old building settlin'.",
+      "Mice on the keys.",
+    ],
+  },
+  {
+    id: 'supernatural_burial_ground_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "{LOCATION} was built on an old burial ground. The Kaiowa warned 'em, but they built anyway. Now the dead walk at night - {NPC} seen 'em, shadows with no faces diggin' at the earth.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 6,
+    truthValue: 0.5,
+    interestDecay: 90,
+    factionRelevance: ['kaiowa'],
+    embellishments: [
+      "Animals won't go near it after dark.",
+      "Plants grow twisted and wrong.",
+      "Strange voices come up from the ground.",
+    ],
+    degradations: [
+      "Just old wives' tales.",
+    ],
+  },
+
+  // === COSMIC HORROR (15) ===
+  {
+    id: 'supernatural_whispering_dark_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'secret',
+    template:
+      "There's somethin' in the old mine at {LOCATION}. {NPC} went down there to prospect and came back different. Won't say what they saw, but they stopped sleepin'. Draws strange symbols now. Whispers about 'the hunger below.'",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 4,
+    truthValue: 0.7,
+    interestDecay: 60,
+    embellishments: [
+      "The symbols match Aztec death glyphs.",
+      "Three others who went down never came back.",
+      "You can hear somethin' breathin' at the tunnel mouth.",
+    ],
+    degradations: [
+      "Mine gas makes people see things.",
+    ],
+    triggerEvents: ['mine_exploration', 'madness'],
+  },
+  {
+    id: 'supernatural_stars_wrong_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "The stars ain't right tonight. {NPC} says there's a constellation that wasn't there last month - looks like a hand reachin' down. Old {ELDER} won't come out of their cabin. Says somethin's wakin' up.",
+    variables: ['NPC', 'ELDER'],
+    spreadRate: 3,
+    truthValue: 0.1,
+    interestDecay: 7,
+    embellishments: [
+      "Animals are actin' strange all over town.",
+      "The well water tastes like copper.",
+      "People been havin' the same nightmare.",
+    ],
+    degradations: [
+      "Just seasonal changes.",
+    ],
+  },
+  {
+    id: 'supernatural_mass_nightmare_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "Half the town had the same dream last night. A city made of black stone under the desert. Somethin' with too many eyes askin' questions in a language that hurts to hear. {NPC} woke up with their nose bleedin'.",
+    variables: ['NPC'],
+    spreadRate: 9,
+    truthValue: 0.8,
+    interestDecay: 3,
+    embellishments: [
+      "The preacher says it's the Devil's work.",
+      "Children are the worst affected.",
+      "Some folks are afraid to sleep now.",
+    ],
+    degradations: [
+      "Shared hysteria from bad water.",
+    ],
+    triggerEvents: ['supernatural_event', 'cosmic_horror'],
+  },
+  {
+    id: 'supernatural_time_slip_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'rumor',
+    template:
+      "{NPC} went into {LOCATION} for ten minutes and came out three days later. Aged ten years. Won't talk about where they was. Just says 'it's bigger inside' over and over.",
+    variables: ['NPC', 'LOCATION'],
+    spreadRate: 4,
+    truthValue: 0.2,
+    interestDecay: 30,
+    embellishments: [
+      "Their hair turned white overnight.",
+      "They can see things now - things we can't.",
+      "Clocks stop working when they're nearby.",
+    ],
+    degradations: [
+      "Probably just got lost and confused.",
+    ],
+  },
+  {
+    id: 'supernatural_skin_walker_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "The Kaiowa say a yee naaldlooshii is near {LOCATION}. {NPC} saw what looked like {PERSON} walkin' in the desert at midnight - but {PERSON} was asleep in their bed. Don't look at it. Don't say its name.",
+    variables: ['LOCATION', 'NPC', 'PERSON'],
+    spreadRate: 7,
+    truthValue: 0.4,
+    interestDecay: 14,
+    factionRelevance: ['kaiowa'],
+    embellishments: [
+      "It can wear any face it wants.",
+      "If it learns your name, you're marked.",
+      "Only silver and turquoise can hurt it.",
+    ],
+    degradations: [
+      "Just someone's twin or relative.",
+    ],
+    triggerEvents: ['supernatural_event', 'skinwalker'],
+  },
+  {
+    id: 'supernatural_ancient_language_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'secret',
+    template:
+      "{NPC} found markings in the cave near {LOCATION}. Not Kaiowa, not Spanish, not nothin' human. Took rubbings of 'em. Now they talk in their sleep - in a language nobody knows - and their eyes bleed in the mornin'.",
+    variables: ['NPC', 'LOCATION'],
+    spreadRate: 4,
+    truthValue: 0.3,
+    interestDecay: 45,
+    embellishments: [
+      "The markings glow when there's no moon.",
+      "Doc says their brain is changin'.",
+      "They know things they shouldn't - secrets.",
+    ],
+    degradations: [
+      "Probably just old miner's marks.",
+    ],
+  },
+  {
+    id: 'supernatural_thing_below_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "Somethin' lives under {LOCATION}. The ground shakes at night - not earthquakes, too regular. Like breathin'. {NPC} put their ear to the dirt and heard a heartbeat. Old as the hills. Hungry.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 5,
+    truthValue: 0.2,
+    interestDecay: 60,
+    embellishments: [
+      "The Kaiowa knew about it - that's why they never built there.",
+      "It's been asleep for thousands of years.",
+      "Somethin's tryin' to wake it up.",
+    ],
+    degradations: [
+      "Underground river makes strange sounds.",
+    ],
+  },
+  {
+    id: 'supernatural_blood_moon_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "There's gonna be a blood moon in {TIME_PERIOD}. {NPC} says last time that happened, folks went mad. Three murders in one night. People doin' things they don't remember. Stay inside that night.",
+    variables: ['TIME_PERIOD', 'NPC'],
+    spreadRate: 8,
+    truthValue: 0.7,
+    interestDecay: 7,
+    embellishments: [
+      "The veil between worlds gets thin.",
+      "The dead can walk free that night.",
+      "Whatever you dream that night comes true.",
+    ],
+    degradations: [
+      "Just superstition.",
+    ],
+  },
+  {
+    id: 'supernatural_possessed_preacher_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'scandal',
+    template:
+      "Something's wrong with {PREACHER}. Started speakin' in tongues during service - but it weren't the Holy Spirit. {NPC} recognized some words - ancient Kaiowa curses. The cross burned their hands.",
+    variables: ['PREACHER', 'NPC'],
+    spreadRate: 9,
+    truthValue: 0.3,
+    interestDecay: 14,
+    embellishments: [
+      "Their eyes turned black during the sermon.",
+      "The church dog won't go near 'em.",
+      "They know everyone's sins without confessin'.",
+    ],
+    degradations: [
+      "Just exhaustion and fever.",
+    ],
+  },
+  {
+    id: 'supernatural_not_alone_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'secret',
+    template:
+      "We ain't alone out here. {NPC} found tracks in the desert - humanlike but wrong. Too many toes. Walks on all fours sometimes. The old-timers call 'em the First People. They was here before us. They're still here.",
+    variables: ['NPC'],
+    spreadRate: 4,
+    truthValue: 0.2,
+    interestDecay: 90,
+    embellishments: [
+      "They live in the deep caves.",
+      "They watch from the shadows at night.",
+      "They're waitin' for us to leave.",
+    ],
+    degradations: [
+      "Just bear tracks distorted by rain.",
+    ],
+  },
+  {
+    id: 'supernatural_doorway_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'secret',
+    template:
+      "There's a doorway carved into the rock at {LOCATION}. Goes nowhere - just solid stone behind it. But {NPC} swears on their mother's grave they saw it open once. Saw what was on the other side. Won't say what.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 3,
+    truthValue: 0.2,
+    interestDecay: 90,
+    embellishments: [
+      "The carvin's older than the Kaiowa.",
+      "There's dried blood in the grooves.",
+      "At certain times, you can hear the other side.",
+    ],
+    degradations: [
+      "Old Spanish missionary decoration.",
+    ],
+  },
+  {
+    id: 'supernatural_doppelganger_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "If you see yourself walkin' toward you, run. Don't talk to it. {NPC} saw their own self comin' down the road, smiled at 'em. Was dead within the week. The thing wearin' their face is still out there.",
+    variables: ['NPC'],
+    spreadRate: 6,
+    truthValue: 0.1,
+    interestDecay: 30,
+    embellishments: [
+      "It's lookin' for the next face to wear.",
+      "It knows everything you know.",
+      "The only way to kill it is to die yourself.",
+    ],
+    degradations: [
+      "Heatstroke makes you see double.",
+    ],
+  },
+  {
+    id: 'supernatural_well_whispers_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'rumor',
+    template:
+      "Don't drink from the well at {LOCATION}. {NPC} heard voices comin' up from it - offerin' things. Power. Gold. Answers. All you gotta do is climb down. Three people have. None came back up.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 5,
+    truthValue: 0.4,
+    interestDecay: 60,
+    embellishments: [
+      "The water tastes like honey.",
+      "You can see faces in the reflection.",
+      "It's deeper than any well should be.",
+    ],
+    degradations: [
+      "Echo playin' tricks.",
+    ],
+  },
+  {
+    id: 'supernatural_changed_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "{NPC} came back from {LOCATION} different. Same face, same voice, but somethin' behind the eyes ain't {NPC} no more. Knows things they shouldn't. Don't sleep. Don't blink. {WITNESS} says they ain't human no more.",
+    variables: ['NPC', 'LOCATION', 'WITNESS'],
+    spreadRate: 7,
+    truthValue: 0.3,
+    interestDecay: 21,
+    embellishments: [
+      "Their shadow moves wrong.",
+      "Dogs howl when they walk by.",
+      "Mirrors crack when they look in 'em.",
+    ],
+    degradations: [
+      "Traumatic experience changed 'em is all.",
+    ],
+    triggerEvents: ['supernatural_event', 'possession'],
+  },
+  {
+    id: 'supernatural_ritual_site_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'secret',
+    template:
+      "{NPC} found a clearing at {LOCATION} with stones arranged in a circle. Fresh blood on 'em. Symbols carved that hurt to look at. Someone's been worshippin' somethin' out there. Somethin' that answers.",
+    variables: ['NPC', 'LOCATION'],
+    spreadRate: 6,
+    truthValue: 0.7,
+    interestDecay: 30,
+    embellishments: [
+      "Bones was found nearby - human and animal mixed.",
+      "The grass won't grow in the circle.",
+      "Whoever's doin' it wears the town's face by day.",
+    ],
+    degradations: [
+      "Outlaws leavin' false trails.",
+    ],
+    triggerEvents: ['ritual_discovery', 'cult_activity'],
+  },
+
+  // === CURSED OBJECTS & PLACES (10) ===
+  {
+    id: 'supernatural_cursed_gold_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "Don't touch the gold from {LOCATION}. It's cursed - everyone who's spent it has died within a month. {NPC} bought a horse with some of it. Horse went mad. {NPC}'s in the ground now.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 7,
+    truthValue: 0.4,
+    interestDecay: 45,
+    embellishments: [
+      "The gold was stolen from a temple.",
+      "It belongs to somethin' that wants it back.",
+      "You can hear it callin' to be spent.",
+    ],
+    degradations: [
+      "Coincidence is all.",
+    ],
+  },
+  {
+    id: 'supernatural_haunted_gun_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'rumor',
+    template:
+      "The gun that killed {DECEASED} is cursed. {CURRENT_OWNER} has it now and they've killed {NUMBER} men since - can't seem to miss. But {NPC} says the gun's pullin' the trigger, not them. Wants more blood.",
+    variables: ['DECEASED', 'CURRENT_OWNER', 'NUMBER', 'NPC'],
+    spreadRate: 6,
+    truthValue: 0.2,
+    interestDecay: 30,
+    embellishments: [
+      "It fires even when it's empty.",
+      "The barrel always points at someone.",
+      "Previous owners all died holdin' it.",
+    ],
+    degradations: [
+      "Just a skilled shooter.",
+    ],
+  },
+  {
+    id: 'supernatural_cursed_land_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "That plot of land outside {LOCATION} is cursed. Four families have tried to settle it - all dead within a year. Different causes, but all dead. {NPC} says the Kaiowa wouldn't even hunt there.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 5,
+    truthValue: 0.6,
+    interestDecay: 90,
+    factionRelevance: ['kaiowa', 'settlerAlliance'],
+    embellishments: [
+      "Crops grow but they're poison.",
+      "At night, you can hear diggin'.",
+      "Somethin's buried there that don't want company.",
+    ],
+    degradations: [
+      "Bad soil, bad luck.",
+    ],
+  },
+  {
+    id: 'supernatural_dead_mans_hand_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "{NPC} drew the Dead Man's Hand at {LOCATION} last night - aces and eights. Same hand Wild Bill was holdin' when he died. {WITNESS} says their face went white. Death comes in threes now.",
+    variables: ['NPC', 'LOCATION', 'WITNESS'],
+    spreadRate: 8,
+    truthValue: 0.3,
+    interestDecay: 7,
+    embellishments: [
+      "A cold wind blew through the room.",
+      "The cards were ice cold to touch.",
+      "They saw Bill's ghost behind them in the mirror.",
+    ],
+    degradations: [
+      "Just bad luck at cards.",
+    ],
+  },
+  {
+    id: 'supernatural_music_box_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'secret',
+    template:
+      "{NPC} bought an old music box from a dead woman's estate. Plays by itself at night - a lullaby no one recognizes. Their child started seein' a woman in their room. Singin' along.",
+    variables: ['NPC'],
+    spreadRate: 5,
+    truthValue: 0.3,
+    interestDecay: 30,
+    embellishments: [
+      "The dead woman had no children.",
+      "The box was made for someone specific.",
+      "It's lookin' for the child it was meant for.",
+    ],
+    degradations: [
+      "Children have active imaginations.",
+    ],
+  },
+  {
+    id: 'supernatural_medicine_bundle_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "A soldier stole a medicine bundle from a Kaiowa shaman. Within a week, everyone in his unit was dead - sickness, accidents, their own guns misfirin'. The bundle was never returned. Now it's at {LOCATION}. Bad things follow it.",
+    variables: ['LOCATION'],
+    spreadRate: 6,
+    truthValue: 0.5,
+    interestDecay: 60,
+    factionRelevance: ['kaiowa'],
+    embellishments: [
+      "The bundle hums at night.",
+      "Touch it and your skin blackens.",
+      "Only a shaman can safely destroy it.",
+    ],
+    degradations: [
+      "Coincidental deaths.",
+    ],
+  },
+  {
+    id: 'supernatural_portrait_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'rumor',
+    template:
+      "The portrait at {LOCATION} - the one of {DECEASED} - its eyes follow you. {NPC} swears they saw it smile when {RELATIVE} walked in. Same smile {DECEASED} had before they killed their family.",
+    variables: ['LOCATION', 'DECEASED', 'NPC', 'RELATIVE'],
+    spreadRate: 5,
+    truthValue: 0.2,
+    interestDecay: 45,
+    embellishments: [
+      "The portrait bleeds on the anniversary.",
+      "Anyone who owns it dies like {DECEASED} died.",
+      "You can hear whispers comin' from it.",
+    ],
+    degradations: [
+      "Just a trick of the light.",
+    ],
+  },
+  {
+    id: 'supernatural_compass_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'secret',
+    template:
+      "{NPC} has a compass that don't point north. Points to somethin' else - somethin' it wants 'em to find. They followed it once to {LOCATION}. Found bones. Human bones. The compass was happy.",
+    variables: ['NPC', 'LOCATION'],
+    spreadRate: 3,
+    truthValue: 0.2,
+    interestDecay: 60,
+    embellishments: [
+      "The bones arranged themselves into words.",
+      "The compass belonged to a killer.",
+      "It's leadin' to more bodies.",
+    ],
+    degradations: [
+      "Broken compass is all.",
+    ],
+  },
+  {
+    id: 'supernatural_rope_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "That hangin' rope they used on {EXECUTED} - it weren't thrown out. It's at {LOCATION} now. {NPC} says they saw it movin' by itself. Coilin'. Waitin'. Wants to hang someone else.",
+    variables: ['EXECUTED', 'LOCATION', 'NPC'],
+    spreadRate: 6,
+    truthValue: 0.1,
+    interestDecay: 30,
+    embellishments: [
+      "It's already killed two more.",
+      "The knot ties itself.",
+      "You can hear the executed man's last words near it.",
+    ],
+    degradations: [
+      "Rope don't move on its own.",
+    ],
+  },
+  {
+    id: 'supernatural_chair_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'rumor',
+    template:
+      "Don't sit in the chair by the window at {LOCATION}. {DECEASED} died in it - just stopped breathin'. Now {NPC} says anyone who sits there gets dizzy. Sees {DECEASED}'s memories. Feels their last moments.",
+    variables: ['LOCATION', 'DECEASED', 'NPC'],
+    spreadRate: 4,
+    truthValue: 0.2,
+    interestDecay: 45,
+    embellishments: [
+      "{DECEASED} was murdered in that chair.",
+      "The cushion's always warm.",
+      "People have left their own memories in it.",
+    ],
+    degradations: [
+      "Old chair, bad ventilation.",
+    ],
+  },
+
+  // === CREATURES & MONSTERS (10) ===
+  {
+    id: 'supernatural_wendigo_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "The Wendigo's been spotted near {LOCATION}. {NPC} found what was left of some travelers - eaten, but not by any animal. The bites was human. The hunger drives men mad, turns 'em into somethin' else.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 8,
+    truthValue: 0.4,
+    interestDecay: 21,
+    factionRelevance: ['kaiowa'],
+    embellishments: [
+      "It used to be human before the hunger took it.",
+      "It can mimic voices.",
+      "Fire's the only thing that stops it.",
+    ],
+    degradations: [
+      "Mountain lion attack.",
+    ],
+    triggerEvents: ['animal_attack', 'missing_persons'],
+  },
+  {
+    id: 'supernatural_thunderbird_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'rumor',
+    template:
+      "A bird big as a house flew over {LOCATION} durin' the storm. {NPC} saw its shadow blot out the lightnin'. The Kaiowa call it Thunderbird - a spirit that only appears when great change is comin'.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 5,
+    truthValue: 0.2,
+    interestDecay: 30,
+    factionRelevance: ['kaiowa'],
+    embellishments: [
+      "Its feathers are pure silver.",
+      "Where it lands, lightning strikes.",
+      "It carries messages from the spirit world.",
+    ],
+    degradations: [
+      "Condor, maybe, distorted by the storm.",
+    ],
+  },
+  {
+    id: 'supernatural_pale_horse_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "There's a pale horse been seen ridin' the range - no rider, white as death, eyes like red stars. {NPC} tried to catch it. Horse outran the fastest mount in the territory. They say it's Death's horse, lookin' for passengers.",
+    variables: ['NPC'],
+    spreadRate: 6,
+    truthValue: 0.3,
+    interestDecay: 45,
+    embellishments: [
+      "Anyone who rides it don't come back.",
+      "It only appears before someone important dies.",
+      "Its hoofprints smoke.",
+    ],
+    degradations: [
+      "Albino mustang, rare but real.",
+    ],
+  },
+  {
+    id: 'supernatural_lake_monster_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'rumor',
+    template:
+      "Somethin' lives in the lake at {LOCATION}. {NPC} was fishin' and saw it - serpent-like, long as three wagons, scales that glinted like copper. It looked at 'em. Intelligent-like. Then it sank back down.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 5,
+    truthValue: 0.2,
+    interestDecay: 60,
+    embellishments: [
+      "The Kaiowa leave offerings for it.",
+      "It protects treasure at the bottom.",
+      "Fishermen who anger it disappear.",
+    ],
+    degradations: [
+      "Large catfish, nothin' more.",
+    ],
+  },
+  {
+    id: 'supernatural_night_crawler_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "Stay off the roads at night near {LOCATION}. {NPC} saw somethin' crossin' - walked like a man but bent wrong, too many joints. Turned its head all the way around when it heard 'em. They rode like hell and didn't look back.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 6,
+    truthValue: 0.2,
+    interestDecay: 21,
+    embellishments: [
+      "It wears human skin.",
+      "Its eyes reflect like a cat's.",
+      "It's been followin' travelers for weeks.",
+    ],
+    degradations: [
+      "Drunk seein' things.",
+    ],
+  },
+  {
+    id: 'supernatural_shadow_people_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'secret',
+    template:
+      "The shadow people are real. {NPC} sees 'em every night now - shapes movin' in the corner of their eye. They don't have faces. They're watchin'. Waitin'. {NPC} says they're gonna come for 'em soon.",
+    variables: ['NPC'],
+    spreadRate: 4,
+    truthValue: 0.1,
+    interestDecay: 30,
+    embellishments: [
+      "They come closer every night.",
+      "They whisper things that make sense.",
+      "Mirrors show 'em clear.",
+    ],
+    degradations: [
+      "Lack of sleep makes the mind play tricks.",
+    ],
+  },
+  {
+    id: 'supernatural_demon_dog_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "That ain't no ordinary dog been killin' livestock near {LOCATION}. {NPC} shot it three times - it just looked at 'em and walked away. Black as midnight, eyes like fire. Hellhound, mark my words.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 7,
+    truthValue: 0.3,
+    interestDecay: 14,
+    embellishments: [
+      "Bullets pass through it.",
+      "It leaves sulfur smell behind.",
+      "It's huntin' someone specific.",
+    ],
+    degradations: [
+      "Wild dog with mange.",
+    ],
+  },
+  {
+    id: 'supernatural_faceless_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "{NPC} saw a man standin' at the edge of town at midnight. Normal lookin' from behind. But when he turned around... no face. Just smooth skin where the features should be. Then he pointed at {NPC}. Hasn't spoken since.",
+    variables: ['NPC'],
+    spreadRate: 5,
+    truthValue: 0.1,
+    interestDecay: 14,
+    embellishments: [
+      "Whoever it points at disappears.",
+      "It's lookin' for someone who stole its face.",
+      "Only sinners can see it.",
+    ],
+    degradations: [
+      "Terror makes the mind see things wrong.",
+    ],
+  },
+  {
+    id: 'supernatural_desert_siren_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "Travelers near {LOCATION} have been hearin' the most beautiful singin' - comin' from nowhere. {NPC} almost followed it into a ravine. Somethin' in the desert calls to lost souls. Feeds on 'em.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 6,
+    truthValue: 0.3,
+    interestDecay: 30,
+    embellishments: [
+      "Bones line the bottom of that ravine.",
+      "The singin' knows your name.",
+      "Those who follow never return.",
+    ],
+    degradations: [
+      "Wind through the rocks sounds strange.",
+    ],
+  },
+  {
+    id: 'supernatural_child_lure_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "Don't let your children play near {LOCATION} at dusk. {NPC}'s boy saw another child there - pale, dressed old-fashioned. Asked him to play. {NPC} screamed at him to run. That child's been dead fifty years.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 8,
+    truthValue: 0.3,
+    interestDecay: 21,
+    embellishments: [
+      "It's lonely. Wants playmates that never leave.",
+      "Children who follow don't grow up.",
+      "You can hear children laughin' from the empty field.",
+    ],
+    degradations: [
+      "Children make up stories.",
+    ],
+  },
+
+  // === PROPHECY & WARNINGS (5) ===
+  {
+    id: 'supernatural_prophecy_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "The Kaiowa medicine woman had a vision. A black wind's comin' - gonna sweep across the territory, bringin' death. She says {TIME_PERIOD} will decide whether we all live or die. The choice falls on someone nobody expects.",
+    variables: ['TIME_PERIOD'],
+    spreadRate: 6,
+    truthValue: 0.5,
+    interestDecay: 30,
+    factionRelevance: ['kaiowa'],
+    embellishments: [
+      "The animals know - they're leavin'.",
+      "The vision showed a specific person.",
+      "There's a way to stop it, but at terrible cost.",
+    ],
+    degradations: [
+      "Prophets have been wrong before.",
+    ],
+  },
+  {
+    id: 'supernatural_end_times_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "The signs are all there. Rivers runnin' backward at {LOCATION}. Cattle born with extra legs. The sun went red for an hour last week. {NPC} says the end times are upon us. The veil between worlds is thinnin'.",
+    variables: ['LOCATION', 'NPC'],
+    spreadRate: 7,
+    truthValue: 0.2,
+    interestDecay: 14,
+    embellishments: [
+      "The preacher's been prayin' non-stop.",
+      "More people seein' their dead relatives.",
+      "The old gods are wakin' up.",
+    ],
+    degradations: [
+      "Coincidence and fear.",
+    ],
+  },
+  {
+    id: 'supernatural_seventh_son_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'secret',
+    template:
+      "{NPC}'s the seventh son of a seventh son. Born with the sight. They know things before they happen. Been real quiet lately - scared. Says somethin' big is comin'. Won't say what. Just keeps apologizin' in advance.",
+    variables: ['NPC'],
+    spreadRate: 4,
+    truthValue: 0.4,
+    interestDecay: 30,
+    embellishments: [
+      "They predicted the last three deaths in town.",
+      "They see the dead walk among us.",
+      "They know when someone's lyin'.",
+    ],
+    degradations: [
+      "Cold readin' and lucky guesses.",
+    ],
+  },
+  {
+    id: 'supernatural_comet_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'warning',
+    template:
+      "That streak in the sky ain't no shootin' star. {NPC} says it's gettin' bigger every night. The last time a comet like that appeared, the war started. The time before that, the plague. Somethin's about to change everything.",
+    variables: ['NPC'],
+    spreadRate: 6,
+    truthValue: 0.7,
+    interestDecay: 14,
+    embellishments: [
+      "It's been predicted in old texts.",
+      "When it reaches peak brightness, IT happens.",
+      "Some say it's a message from God. Others say worse.",
+    ],
+    degradations: [
+      "Just another comet.",
+    ],
+  },
+  {
+    id: 'supernatural_dream_walker_1',
+    category: GossipCategory.SUPERNATURAL,
+    tone: 'secret',
+    template:
+      "{NPC} is a dream walker - can enter other people's dreams. They've seen things inside folks' heads. Secrets. Fears. Future. They're worried now. Says they saw the same nightmare in dozens of people. Somethin' puttin' it there. Spreadin' like a plague.",
+    variables: ['NPC'],
+    spreadRate: 3,
+    truthValue: 0.2,
+    interestDecay: 45,
+    embellishments: [
+      "They can show you your own death.",
+      "The nightmare's gettin' stronger.",
+      "Whatever's sendin' it is lookin' for somethin'.",
+    ],
+    degradations: [
+      "Charlatans claim all sorts of powers.",
+    ],
+  },
+];
+
+// ============================================================================
 // CONSOLIDATED TEMPLATES EXPORT
 // ============================================================================
 
@@ -1130,6 +2118,7 @@ export const ALL_GOSSIP_TEMPLATES: GossipExpansionTemplate[] = [
   ...NEWS_TEMPLATES,
   ...SECRET_TEMPLATES,
   ...WARNING_TEMPLATES,
+  ...SUPERNATURAL_TEMPLATES,
 ];
 
 // ============================================================================
@@ -1251,7 +2240,7 @@ export function getRandomGossipVariable(
   poolName: keyof typeof GOSSIP_VARIABLE_POOLS
 ): string {
   const pool = GOSSIP_VARIABLE_POOLS[poolName];
-  return pool[Math.floor(Math.random() * pool.length)];
+  return SecureRNG.select(pool);
 }
 
 /**
@@ -1261,9 +2250,7 @@ export function getRandomEmbellishment(template: GossipExpansionTemplate): strin
   if (!template.embellishments || template.embellishments.length === 0) {
     return null;
   }
-  return template.embellishments[
-    Math.floor(Math.random() * template.embellishments.length)
-  ];
+  return SecureRNG.select(template.embellishments);
 }
 
 /**
@@ -1273,9 +2260,7 @@ export function getRandomDegradation(template: GossipExpansionTemplate): string 
   if (!template.degradations || template.degradations.length === 0) {
     return null;
   }
-  return template.degradations[
-    Math.floor(Math.random() * template.degradations.length)
-  ];
+  return SecureRNG.select(template.degradations);
 }
 
 /**

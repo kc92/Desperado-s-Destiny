@@ -121,7 +121,7 @@ export const gunslingerChain: LegendaryQuestChain = {
       milestone: 6,
       description: 'Claimed all six legendary weapons',
       rewards: [
-        { type: 'gold', amount: 20000 },
+        { type: 'dollars', amount: 20000 },
         { type: 'skill_points', amount: 25 },
       ],
     },

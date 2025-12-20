@@ -9,6 +9,7 @@ import { rateLimiter as rateLimiterFn, authRateLimiter as authRateLimiterFn, api
 import { requestLogger as requestLoggerFn } from './requestLogger';
 import { sanitizeInput as sanitizeInputFn } from './sanitize.middleware';
 import { requireCharacterOwnership as requireCharacterOwnershipFn, requireCharacter as requireCharacterFn, characterOwnership as characterOwnershipFn } from './characterOwnership.middleware';
+import { checkTokenBlacklist as checkTokenBlacklistFn } from './checkTokenBlacklist.middleware';
 
 export { errorHandlerFn as errorHandler, notFoundHandlerFn as notFoundHandler };
 export { asyncHandlerFn as asyncHandler };
@@ -16,6 +17,7 @@ export { rateLimiterFn as rateLimiter, authRateLimiterFn as authRateLimiter, api
 export { requestLoggerFn as requestLogger };
 export { sanitizeInputFn as sanitizeInput };
 export { requireCharacterOwnershipFn as requireCharacterOwnership, requireCharacterFn as requireCharacter, characterOwnershipFn as characterOwnership };
+export { checkTokenBlacklistFn as checkTokenBlacklist };
 
 export default {
   errorHandler: errorHandlerFn,
@@ -28,4 +30,5 @@ export default {
   requireCharacterOwnership: requireCharacterOwnershipFn,
   requireCharacter: requireCharacterFn,
   characterOwnership: characterOwnershipFn,
+  checkTokenBlacklist: checkTokenBlacklistFn,
 };

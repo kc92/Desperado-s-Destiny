@@ -18,7 +18,7 @@ export interface DamageFlashProps {
 export const DamageFlash: React.FC<DamageFlashProps> = ({
   type,
   onComplete,
-  id,
+  id: _id,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
 

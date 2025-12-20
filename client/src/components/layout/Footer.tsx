@@ -12,7 +12,7 @@ export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-wood-dark border-t-4 border-wood-medium mt-auto">
+    <footer className="bg-wood-dark border-t-4 border-wood-medium mt-auto" role="contentinfo" aria-label="Site footer">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-desert-sand">
           {/* About */}
@@ -27,11 +27,11 @@ export const Footer: React.FC = () => {
           </div>
 
           {/* Quick Links */}
-          <div>
+          <nav aria-label="Footer navigation">
             <h3 className="font-western text-lg mb-3 text-gold-light">
               Quick Links
             </h3>
-            <ul className="space-y-2 text-sm text-desert-stone font-serif">
+            <ul className="space-y-2 text-sm text-desert-stone font-serif" role="list">
               <li>
                 <a href="#" className="hover:text-gold-light transition-colors">
                   Game Rules
@@ -53,7 +53,7 @@ export const Footer: React.FC = () => {
                 </a>
               </li>
             </ul>
-          </div>
+          </nav>
 
           {/* Credits */}
           <div>

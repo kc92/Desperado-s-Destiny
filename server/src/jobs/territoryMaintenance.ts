@@ -1,48 +1,51 @@
 /**
  * Territory Maintenance Job
  *
- * Daily cron job for territory control system:
+ * Daily job for territory control system:
  * - Apply influence decay
  * - Collect daily income for gangs
  * - Update contested zones
+ *
+ * NOTE: Scheduling is handled by Bull queues in queues.ts
+ * This file only contains job logic functions
  */
 
-import cron from 'node-cron';
 import { TerritoryControlService } from '../services/territoryControl.service';
+import { withLock } from '../utils/distributedLock';
 import logger from '../utils/logger';
 
 /**
  * Run territory maintenance tasks
+ * Called by Bull queue - scheduling handled in queues.ts
  */
-async function runTerritoryMaintenance(): Promise<void> {
+export async function runTerritoryMaintenance(): Promise<void> {
+  const lockKey = 'job:territory-maintenance';
+
   try {
-    logger.info('=== Territory Maintenance Job Started ===');
+    await withLock(lockKey, async () => {
+      logger.info('=== Territory Maintenance Job Started ===');
 
-    // Apply influence decay
-    logger.info('Applying influence decay...');
-    await TerritoryControlService.applyInfluenceDecay();
+      // Apply influence decay
+      logger.info('Applying influence decay...');
+      await TerritoryControlService.applyInfluenceDecay();
 
-    // Collect daily income
-    logger.info('Collecting daily territory income...');
-    await TerritoryControlService.collectDailyIncome();
+      // Collect daily income
+      logger.info('Collecting daily territory income...');
+      await TerritoryControlService.collectDailyIncome();
 
-    logger.info('=== Territory Maintenance Job Completed ===');
+      logger.info('=== Territory Maintenance Job Completed ===');
+    }, {
+      ttl: 1800, // 30 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('Territory maintenance job already running on another instance, skipping');
+      return;
+    }
     logger.error('Error in territory maintenance job:', error);
+    throw error;
   }
-}
-
-/**
- * Schedule territory maintenance job
- * Runs daily at 00:00 (midnight server time)
- */
-export function scheduleTerritoryMaintenance(): void {
-  // Run daily at midnight
-  cron.schedule('0 0 * * *', async () => {
-    await runTerritoryMaintenance();
-  });
-
-  logger.info('Territory maintenance job scheduled (daily at 00:00)');
 }
 
 /**
@@ -51,3 +54,5 @@ export function scheduleTerritoryMaintenance(): void {
 export async function runTerritoryMaintenanceNow(): Promise<void> {
   await runTerritoryMaintenance();
 }
+
+// NOTE: Scheduling is now handled by Bull queues in queues.ts

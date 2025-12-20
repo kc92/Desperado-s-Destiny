@@ -141,8 +141,12 @@ export class ChatRateLimiter {
     } catch (error) {
       logger.error('Error checking rate limit:', error);
 
-      // Fail open - allow the message if rate limiting fails
-      return { allowed: true };
+      // SECURITY FIX: Fail CLOSED - deny the message if rate limiting fails
+      // This prevents abuse when Redis is unavailable
+      return {
+        allowed: false,
+        remaining: 0
+      };
     }
   }
 
@@ -267,7 +271,11 @@ export class ChatRateLimiter {
       };
     } catch (error) {
       logger.error('Error checking mute status:', error);
-      return { isMuted: false };
+      // SECURITY FIX: Fail CLOSED - assume muted if check fails
+      return {
+        isMuted: true,
+        reason: 'Unable to verify mute status - please try again'
+      };
     }
   }
 
@@ -350,7 +358,11 @@ export class ChatRateLimiter {
       };
     } catch (error) {
       logger.error('Error checking ban status:', error);
-      return { isBanned: false };
+      // SECURITY FIX: Fail CLOSED - assume banned if check fails
+      return {
+        isBanned: true,
+        reason: 'Unable to verify ban status - please try again'
+      };
     }
   }
 
@@ -401,6 +413,112 @@ export class ChatRateLimiter {
       logger.debug(`Rate limit cleared for user ${userId}`);
     } catch (error) {
       logger.error('Error clearing rate limit:', error);
+    }
+  }
+
+  /**
+   * Check rate limit for history fetch (socket event)
+   * Prevents rapid history fetching that could overload the server
+   *
+   * @param userId - User's ID
+   * @returns Rate limit result with retryAfter in seconds
+   */
+  static async checkHistoryFetchLimit(userId: string): Promise<RateLimitResult & { retryAfter?: number }> {
+    try {
+      const redis = getRedisClient();
+      const key = `chat:history:${userId}`;
+      const maxRequests = 30;
+      const windowSeconds = 60;
+
+      // Get current timestamps
+      const timestamps = await redis.lRange(key, 0, -1);
+      const now = Date.now();
+      const windowStart = now - (windowSeconds * 1000);
+
+      // Filter out expired timestamps
+      const validTimestamps = timestamps
+        .map(ts => parseInt(ts, 10))
+        .filter(ts => ts > windowStart);
+
+      // Check if rate limit exceeded
+      if (validTimestamps.length >= maxRequests) {
+        const oldestTimestamp = Math.min(...validTimestamps);
+        const resetAt = new Date(oldestTimestamp + (windowSeconds * 1000));
+        const retryAfter = Math.ceil((resetAt.getTime() - now) / 1000);
+
+        return {
+          allowed: false,
+          resetAt,
+          remaining: 0,
+          retryAfter
+        };
+      }
+
+      // Allow the request - add timestamp
+      await redis
+        .multi()
+        .rPush(key, now.toString())
+        .expire(key, windowSeconds)
+        .exec();
+
+      return {
+        allowed: true,
+        remaining: maxRequests - (validTimestamps.length + 1)
+      };
+    } catch (error) {
+      logger.error('Error checking history fetch limit:', error);
+      // SECURITY: Fail closed
+      return { allowed: false, remaining: 0, retryAfter: 60 };
+    }
+  }
+
+  /**
+   * Check rate limit for typing indicator (socket event)
+   * Prevents typing indicator spam
+   *
+   * @param userId - User's ID
+   * @returns Rate limit result
+   */
+  static async checkTypingLimit(userId: string): Promise<RateLimitResult> {
+    try {
+      const redis = getRedisClient();
+      const key = `chat:typing:${userId}`;
+      const maxRequests = 10;
+      const windowSeconds = 5;
+
+      // Get current timestamps
+      const timestamps = await redis.lRange(key, 0, -1);
+      const now = Date.now();
+      const windowStart = now - (windowSeconds * 1000);
+
+      // Filter out expired timestamps
+      const validTimestamps = timestamps
+        .map(ts => parseInt(ts, 10))
+        .filter(ts => ts > windowStart);
+
+      // Check if rate limit exceeded
+      if (validTimestamps.length >= maxRequests) {
+        return {
+          allowed: false,
+          remaining: 0
+        };
+      }
+
+      // Allow - add timestamp
+      await redis
+        .multi()
+        .rPush(key, now.toString())
+        .expire(key, windowSeconds)
+        .exec();
+
+      return {
+        allowed: true,
+        remaining: maxRequests - (validTimestamps.length + 1)
+      };
+    } catch (error) {
+      logger.error('Error checking typing limit:', error);
+      // SECURITY: Fail closed - silently drop typing indicators on error
+      return { allowed: false, remaining: 0 };
     }
   }
 }

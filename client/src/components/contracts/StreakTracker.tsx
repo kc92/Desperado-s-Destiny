@@ -102,7 +102,7 @@ export const StreakTracker: React.FC<StreakTrackerProps> = ({
 
         {/* Milestone markers */}
         <div className="relative mt-1">
-          {visibleMilestones.slice(0, 7).map((milestone, index) => {
+          {visibleMilestones.slice(0, 7).map((milestone, _index) => {
             const position = (milestone.day / Math.max(nextBonusDay, visibleMilestones[6]?.day || 7)) * 100;
             const isReached = currentStreak >= milestone.day;
             const isCurrent = currentStreak === milestone.day;
@@ -175,7 +175,7 @@ export const StreakTracker: React.FC<StreakTrackerProps> = ({
         <Button
           onClick={onClaimBonus}
           disabled={isLoading}
-          variant="success"
+          variant="primary"
           fullWidth
           className="animate-pulse"
         >

@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Faction type
 export type FactionId = 'settler' | 'nahi' | 'frontera' | 'outlaw' | 'neutral';
@@ -175,7 +176,7 @@ export const useFactionWar = (): UseFactionWarReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch active events';
       setError(errorMessage);
-      console.error('[useFactionWar] Fetch active events error:', err);
+      logger.error('Fetch active events error', err as Error, { context: 'useFactionWar' });
     } finally {
       setIsLoading(false);
     }
@@ -192,7 +193,7 @@ export const useFactionWar = (): UseFactionWarReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch upcoming events';
       setError(errorMessage);
-      console.error('[useFactionWar] Fetch upcoming events error:', err);
+      logger.error('Fetch upcoming events error', err as Error, { context: 'useFactionWar' });
     } finally {
       setIsLoading(false);
     }
@@ -211,7 +212,7 @@ export const useFactionWar = (): UseFactionWarReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch event details';
       setError(errorMessage);
-      console.error('[useFactionWar] Fetch event details error:', err);
+      logger.error('Fetch event details error', err as Error, { context: 'useFactionWar' });
       return null;
     } finally {
       setIsLoading(false);
@@ -226,7 +227,7 @@ export const useFactionWar = (): UseFactionWarReturn => {
       );
       return response.data.data.statistics;
     } catch (err: any) {
-      console.error('[useFactionWar] Fetch statistics error:', err);
+      logger.error('Fetch statistics error', err as Error, { context: 'useFactionWar' });
       return null;
     }
   }, []);
@@ -252,7 +253,7 @@ export const useFactionWar = (): UseFactionWarReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to join war event';
       setError(errorMessage);
-      console.error('[useFactionWar] Join war event error:', err);
+      logger.error('Join war event error', err as Error, { context: 'useFactionWar' });
       return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
@@ -279,7 +280,7 @@ export const useFactionWar = (): UseFactionWarReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to create war event';
       setError(errorMessage);
-      console.error('[useFactionWar] Create war event error:', err);
+      logger.error('Create war event error', err as Error, { context: 'useFactionWar' });
       return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);

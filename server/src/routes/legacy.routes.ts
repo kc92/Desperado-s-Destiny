@@ -15,7 +15,8 @@ import {
   getCharacterContributions,
   updateStat,
 } from '../controllers/legacy.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
@@ -58,7 +59,7 @@ router.get('/rewards', asyncHandler(getAvailableRewards));
  * Claim a legacy reward for a character
  * Body: { rewardId: string, characterId: string }
  */
-router.post('/claim-reward', asyncHandler(claimReward));
+router.post('/claim-reward', requireCsrfToken, asyncHandler(claimReward));
 
 /**
  * GET /api/legacy/stats
@@ -77,6 +78,6 @@ router.get('/contributions', asyncHandler(getCharacterContributions));
  * Admin/Dev endpoint to manually update a stat (for testing)
  * Body: { statKey: string, value: number, increment?: boolean }
  */
-router.post('/admin/update-stat', asyncHandler(updateStat));
+router.post('/admin/update-stat', requireCsrfToken, asyncHandler(updateStat));
 
 export default router;

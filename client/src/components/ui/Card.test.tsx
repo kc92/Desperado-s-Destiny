@@ -435,7 +435,7 @@ describe('Card Component', () => {
 
     it('supports keyboard navigation when clickable', () => {
       const handleClick = vi.fn();
-      const { container } = render(
+      render(
         <Card onClick={handleClick} data-testid="card">
           Keyboard accessible
         </Card>

@@ -311,7 +311,7 @@ export async function seedNewRecipes(): Promise<void> {
     await Recipe.insertMany(newRecipes, { ordered: false });
     logger.info(`Seeded ${newRecipes.length} new recipes`);
 
-  } catch (error) {
+  } catch (error: any) {
     if (error.code === 11000) {
         logger.warn('Some new recipes already existed, skipping duplicate entries.');
     } else {

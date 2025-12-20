@@ -5,6 +5,8 @@
  * Use in production to track API response times, database queries, etc.
  */
 
+import logger from './logger';
+
 interface PerformanceMetric {
   operation: string;
   duration: number;
@@ -28,7 +30,7 @@ class PerformanceMonitor {
 
       // Log slow operations (> 1 second)
       if (duration > 1000) {
-        console.warn(`[PERFORMANCE] Slow operation: ${operation} took ${duration}ms`, metadata);
+        logger.warn(`[PERFORMANCE] Slow operation: ${operation} took ${duration}ms`, metadata);
       }
     };
   }
@@ -146,21 +148,21 @@ class PerformanceMonitor {
   printSummary(): void {
     const stats = this.getAllStats();
 
-    console.log('\n========================================');
-    console.log('PERFORMANCE SUMMARY');
-    console.log('========================================\n');
+    logger.info('\n========================================');
+    logger.info('PERFORMANCE SUMMARY');
+    logger.info('========================================\n');
 
     for (const [operation, stat] of Object.entries(stats)) {
       if (!stat) continue;
 
-      console.log(`${operation}:`);
-      console.log(`  Count: ${stat.count}`);
-      console.log(`  Avg: ${stat.avg.toFixed(2)}ms`);
-      console.log(`  Min: ${stat.min}ms`);
-      console.log(`  P50: ${stat.p50}ms`);
-      console.log(`  P95: ${stat.p95}ms`);
-      console.log(`  P99: ${stat.p99}ms`);
-      console.log(`  Max: ${stat.max}ms\n`);
+      logger.info(`${operation}:`);
+      logger.info(`  Count: ${stat.count}`);
+      logger.info(`  Avg: ${stat.avg.toFixed(2)}ms`);
+      logger.info(`  Min: ${stat.min}ms`);
+      logger.info(`  P50: ${stat.p50}ms`);
+      logger.info(`  P95: ${stat.p95}ms`);
+      logger.info(`  P99: ${stat.p99}ms`);
+      logger.info(`  Max: ${stat.max}ms\n`);
     }
   }
 

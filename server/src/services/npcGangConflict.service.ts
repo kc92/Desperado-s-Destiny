@@ -28,6 +28,7 @@ import {
 import { ALL_NPC_GANGS, getNPCGangById } from '../data/npcGangs';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 export class NPCGangConflictService {
   /**
@@ -383,7 +384,7 @@ export class NPCGangConflictService {
       const gangStrength = gang.level * gang.members.length;
       const npcStrength = npcGang.strength;
       const victoryChance = Math.min(0.9, gangStrength / (gangStrength + npcStrength));
-      const victory = Math.random() < victoryChance;
+      const victory = SecureRNG.chance(victoryChance);
 
       let rewards = {
         gold: 0,
@@ -507,7 +508,7 @@ export class NPCGangConflictService {
       const zones = await TerritoryZone.findControlledByGang(playerGangId);
       let influenceLost = 0;
       if (zones.length > 0) {
-        const randomZone = zones[Math.floor(Math.random() * zones.length)];
+        const randomZone = SecureRNG.select(zones);
         const lossAmount = attackPattern.damage.influenceLoss;
         randomZone.removeInfluence(playerGangId, lossAmount);
         await randomZone.save({ session });

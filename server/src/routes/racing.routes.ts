@@ -15,32 +15,34 @@ import {
   getRacingLeaderboard,
   getRaceOdds,
 } from '../controllers/racing.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken, requireCsrfTokenWithRotation } from '../middleware/csrf.middleware';
 
 const router = Router();
 
 // Public routes
-router.get('/races', getRaces);
-router.get('/events', getPrestigiousEvents);
-router.get('/leaderboard', getRacingLeaderboard);
-router.get('/races/:raceId', getRaceDetails);
-router.get('/races/:raceId/odds', getRaceOdds);
+router.get('/races', asyncHandler(getRaces));
+router.get('/events', asyncHandler(getPrestigiousEvents));
+router.get('/leaderboard', asyncHandler(getRacingLeaderboard));
+router.get('/races/:raceId', asyncHandler(getRaceDetails));
+router.get('/races/:raceId/odds', asyncHandler(getRaceOdds));
 
 // Protected routes - require auth and character
 router.use(requireAuth);
 router.use(requireCharacter);
 
 // Get character's eligible horses
-router.get('/my-horses', getMyRaceHorses);
+router.get('/my-horses', asyncHandler(getMyRaceHorses));
 
 // Get race history
-router.get('/history', getRaceHistory);
+router.get('/history', asyncHandler(getRaceHistory));
 
 // Enter a race
-router.post('/races/:raceId/enter', enterRace);
+router.post('/races/:raceId/enter', requireCsrfToken, asyncHandler(enterRace));
 
-// Place a bet
-router.post('/races/:raceId/bet', placeBet);
+// Place a bet - CSRF rotation for wager placement
+router.post('/races/:raceId/bet', requireCsrfTokenWithRotation, asyncHandler(placeBet));
 
 export default router;

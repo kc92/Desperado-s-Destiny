@@ -17,7 +17,8 @@
       "@controllers/*": ["controllers/*"],
       "@services/*": ["services/*"],
       "@utils/*": ["utils/*"],
-      "@types/*": ["types/*"]
+      "@types/*": ["types/*"],
+      "@desperados/shared": ["../shared", "../../shared"]
     },
     "resolveJsonModule": true,
 

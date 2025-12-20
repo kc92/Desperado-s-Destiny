@@ -6,6 +6,7 @@
  */
 
 import { Newspaper } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 export const NEWSPAPERS: Record<string, Newspaper> = {
   'red-gulch-gazette': {
@@ -170,5 +171,5 @@ export function getRandomByline(newspaperId: string): string {
   if (!bylines || bylines.length === 0) {
     return 'By Staff Writer';
   }
-  return bylines[Math.floor(Math.random() * bylines.length)];
+  return SecureRNG.select(bylines);
 }

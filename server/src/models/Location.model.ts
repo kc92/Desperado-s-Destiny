@@ -15,6 +15,7 @@ import type {
   TownTier,
   OperatingHours,
   SecretContent,
+  WorldZoneType,
 } from '@desperados/shared';
 
 export interface ILocation extends Document {
@@ -25,6 +26,9 @@ export interface ILocation extends Document {
   type: LocationType;
   region: RegionType;
   parentId?: mongoose.Types.ObjectId;
+  // Zone system fields
+  zone?: WorldZoneType;
+  isZoneHub?: boolean;
   // Building system fields
   tier?: TownTier;
   dominantFaction?: 'settler' | 'nahi' | 'frontera' | 'neutral';
@@ -317,6 +321,24 @@ const LocationSchema = new Schema<ILocation>(
       ref: 'Location',
     },
 
+    // Zone system fields
+    zone: {
+      type: String,
+      enum: [
+        'settler_territory',
+        'sangre_canyon',
+        'coalition_lands',
+        'outlaw_territory',
+        'frontier',
+        'ranch_country',
+        'sacred_mountains',
+      ],
+    },
+    isZoneHub: {
+      type: Boolean,
+      default: false,
+    },
+
     // Building system fields
     tier: {
       type: Number,
@@ -392,7 +414,10 @@ const LocationSchema = new Schema<ILocation>(
 // Indexes
 LocationSchema.index({ type: 1 });
 LocationSchema.index({ region: 1 });
+LocationSchema.index({ zone: 1 });
 LocationSchema.index({ 'connections.targetLocationId': 1 });
+// H8 FIX: Index for hierarchical location queries
+LocationSchema.index({ parentId: 1 });
 
 // Virtual for id
 LocationSchema.virtual('id').get(function () {

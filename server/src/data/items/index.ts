@@ -4,6 +4,7 @@
  */
 
 import { IItem } from '../../models/Item.model';
+import logger from '../../utils/logger';
 import { weapons } from './weapons';
 import { armor } from './armor';
 import { consumables } from './consumables';
@@ -98,4 +99,4 @@ export const itemCounts = {
   total: allItems.length
 };
 
-console.log('Items Database Loaded:', itemCounts);
+logger.info('Items Database Loaded:', itemCounts);

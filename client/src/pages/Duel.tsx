@@ -7,9 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { LoadingSpinner } from '@/components/ui';
-import { CardHand } from '@/components/game/CardHand';
-import { HandEvaluation } from '@/components/game/HandEvaluation';
+import { LoadingSpinner, ListItemSkeleton, CardGridSkeleton } from '@/components/ui';
 import api from '@/services/api';
 
 interface DuelOpponent {
@@ -43,7 +41,9 @@ export const Duel: React.FC = () => {
   const [opponents, setOpponents] = useState<DuelOpponent[]>([]);
   const [pendingRequests, setPendingRequests] = useState<DuelRequest[]>([]);
   const [activeDuel, setActiveDuel] = useState<ActiveDuel | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadingOpponents, setLoadingOpponents] = useState(true);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+  const [loadingActiveDuel, setLoadingActiveDuel] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedOpponent, setSelectedOpponent] = useState<DuelOpponent | null>(null);
@@ -59,22 +59,45 @@ export const Duel: React.FC = () => {
   }, [currentCharacter]);
 
   const loadDuelData = async () => {
-    setIsLoading(true);
-    try {
-      const [opponentsRes, requestsRes, activeRes] = await Promise.all([
-        api.get('/duels/opponents'),
-        api.get('/duels/requests'),
-        api.get('/duels/active')
-      ]);
+    setLoadingOpponents(true);
+    setLoadingRequests(true);
+    setLoadingActiveDuel(true);
 
-      setOpponents(opponentsRes.data.data || []);
-      setPendingRequests(requestsRes.data.data || []);
-      setActiveDuel(activeRes.data.data || null);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load duel data');
-    } finally {
-      setIsLoading(false);
-    }
+    // Load each section independently for better UX
+    Promise.all([
+      api.get('/duels/opponents')
+        .then(res => {
+          setOpponents(res.data.data || []);
+        })
+        .catch(err => {
+          setError(err.response?.data?.error || 'Failed to load opponents');
+        })
+        .finally(() => {
+          setLoadingOpponents(false);
+        }),
+
+      api.get('/duels/requests')
+        .then(res => {
+          setPendingRequests(res.data.data || []);
+        })
+        .catch(err => {
+          setError(err.response?.data?.error || 'Failed to load requests');
+        })
+        .finally(() => {
+          setLoadingRequests(false);
+        }),
+
+      api.get('/duels/active')
+        .then(res => {
+          setActiveDuel(res.data.data || null);
+        })
+        .catch(err => {
+          setError(err.response?.data?.error || 'Failed to load active duel');
+        })
+        .finally(() => {
+          setLoadingActiveDuel(false);
+        })
+    ]);
   };
 
   const handleChallenge = async () => {
@@ -169,16 +192,18 @@ export const Duel: React.FC = () => {
         </div>
       )}
 
-      {isLoading && (
-        <div className="flex justify-center py-12">
-          <LoadingSpinner />
-        </div>
-      )}
+      {/* Removed global loading spinner - each section now has its own loading state */}
 
-      {!isLoading && (
-        <>
+      <>
           {/* Active Duel */}
-          {activeDuel && (
+          {loadingActiveDuel ? (
+            <div className="mb-8 parchment p-6">
+              <h2 className="text-2xl font-western text-wood-dark mb-4">Active Duel</h2>
+              <div className="flex justify-center py-8">
+                <LoadingSpinner />
+              </div>
+            </div>
+          ) : activeDuel && (
             <div className="mb-8 parchment p-6">
               <h2 className="text-2xl font-western text-wood-dark mb-4">Active Duel</h2>
 
@@ -238,7 +263,12 @@ export const Duel: React.FC = () => {
           )}
 
           {/* Pending Challenges */}
-          {pendingRequests.length > 0 && (
+          {loadingRequests ? (
+            <div className="mb-8">
+              <h2 className="text-2xl font-western text-wood-dark mb-4">Pending Challenges</h2>
+              <ListItemSkeleton count={2} />
+            </div>
+          ) : pendingRequests.length > 0 && (
             <div className="mb-8">
               <h2 className="text-2xl font-western text-wood-dark mb-4">Pending Challenges</h2>
               <div className="space-y-3">
@@ -268,7 +298,9 @@ export const Duel: React.FC = () => {
           <div>
             <h2 className="text-2xl font-western text-wood-dark mb-4">Available Opponents</h2>
 
-            {opponents.length === 0 ? (
+            {loadingOpponents ? (
+              <CardGridSkeleton count={6} columns={3} />
+            ) : opponents.length === 0 ? (
               <div className="text-center py-8 parchment">
                 <p className="text-wood-medium">No opponents available right now.</p>
               </div>
@@ -300,7 +332,6 @@ export const Duel: React.FC = () => {
             )}
           </div>
         </>
-      )}
 
       {/* Challenge Confirmation Modal */}
       <Modal

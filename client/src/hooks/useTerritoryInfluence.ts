@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Faction type
 export type FactionId = 'settler' | 'nahi' | 'frontera' | 'outlaw' | 'neutral';
@@ -207,7 +208,7 @@ export const useTerritoryInfluence = (): UseTerritoryInfluenceReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch territories';
       setError(errorMessage);
-      console.error('[useTerritoryInfluence] Fetch all territories error:', err);
+      logger.error('Fetch all territories error', err as Error, { context: 'useTerritoryInfluence' });
     } finally {
       setIsLoading(false);
     }
@@ -230,7 +231,7 @@ export const useTerritoryInfluence = (): UseTerritoryInfluenceReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch territory';
       setError(errorMessage);
-      console.error('[useTerritoryInfluence] Fetch territory error:', err);
+      logger.error('Fetch territory error', err as Error, { context: 'useTerritoryInfluence' });
       return null;
     } finally {
       setIsLoading(false);
@@ -249,7 +250,7 @@ export const useTerritoryInfluence = (): UseTerritoryInfluenceReturn => {
       );
       return response.data.data.history || [];
     } catch (err: any) {
-      console.error('[useTerritoryInfluence] Fetch history error:', err);
+      logger.error('Fetch history error', err as Error, { context: 'useTerritoryInfluence' });
       return [];
     }
   }, []);
@@ -266,7 +267,7 @@ export const useTerritoryInfluence = (): UseTerritoryInfluenceReturn => {
       );
       return response.data.data.benefits;
     } catch (err: any) {
-      console.error('[useTerritoryInfluence] Fetch benefits error:', err);
+      logger.error('Fetch benefits error', err as Error, { context: 'useTerritoryInfluence' });
       return null;
     }
   }, []);
@@ -279,7 +280,7 @@ export const useTerritoryInfluence = (): UseTerritoryInfluenceReturn => {
       );
       return response.data.data.overview;
     } catch (err: any) {
-      console.error('[useTerritoryInfluence] Fetch faction overview error:', err);
+      logger.error('Fetch faction overview error', err as Error, { context: 'useTerritoryInfluence' });
       return null;
     }
   }, []);
@@ -296,7 +297,7 @@ export const useTerritoryInfluence = (): UseTerritoryInfluenceReturn => {
       );
       return response.data.data.contributions || [];
     } catch (err: any) {
-      console.error('[useTerritoryInfluence] Fetch character contributions error:', err);
+      logger.error('Fetch character contributions error', err as Error, { context: 'useTerritoryInfluence' });
       return [];
     }
   }, []);
@@ -323,7 +324,7 @@ export const useTerritoryInfluence = (): UseTerritoryInfluenceReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to contribute influence';
       setError(errorMessage);
-      console.error('[useTerritoryInfluence] Contribute influence error:', err);
+      logger.error('Contribute influence error', err as Error, { context: 'useTerritoryInfluence' });
       return { success: false, message: errorMessage, influenceGained: 0, previousInfluence: 0, newInfluence: 0, controlChanged: false };
     } finally {
       setIsLoading(false);
@@ -352,7 +353,7 @@ export const useTerritoryInfluence = (): UseTerritoryInfluenceReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to donate for influence';
       setError(errorMessage);
-      console.error('[useTerritoryInfluence] Donate for influence error:', err);
+      logger.error('Donate for influence error', err as Error, { context: 'useTerritoryInfluence' });
       return { success: false, message: errorMessage, influenceGained: 0, previousInfluence: 0, newInfluence: 0, controlChanged: false };
     } finally {
       setIsLoading(false);
@@ -373,7 +374,7 @@ export const useTerritoryInfluence = (): UseTerritoryInfluenceReturn => {
       );
       return response.data.data;
     } catch (err: any) {
-      console.error('[useTerritoryInfluence] Apply quest influence error:', err);
+      logger.error('Apply quest influence error', err as Error, { context: 'useTerritoryInfluence' });
       return { success: false, message: err.message, influenceGained: 0, previousInfluence: 0, newInfluence: 0, controlChanged: false };
     }
   }, []);
@@ -390,7 +391,7 @@ export const useTerritoryInfluence = (): UseTerritoryInfluenceReturn => {
       );
       return response.data.data;
     } catch (err: any) {
-      console.error('[useTerritoryInfluence] Apply crime influence error:', err);
+      logger.error('Apply crime influence error', err as Error, { context: 'useTerritoryInfluence' });
       return { success: false, message: err.message, influenceGained: 0, previousInfluence: 0, newInfluence: 0, controlChanged: false };
     }
   }, []);

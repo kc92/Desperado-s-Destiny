@@ -28,7 +28,7 @@ export const FIRST_STEPS: QuestSeedData = {
     },
     {
       id: 'complete-job',
-      description: 'Complete a job to earn your first gold',
+      description: 'Complete a job to earn your first dollars',
       type: 'gold',
       target: 'any',
       required: 10
@@ -36,7 +36,7 @@ export const FIRST_STEPS: QuestSeedData = {
   ],
   rewards: [
     { type: 'xp', amount: 50 },
-    { type: 'gold', amount: 25 },
+    { type: 'dollars', amount: 25 },
     { type: 'item', itemId: 'worn-hat' }
   ],
   repeatable: false,
@@ -75,7 +75,7 @@ export const LEARNING_THE_ROPES: QuestSeedData = {
   ],
   rewards: [
     { type: 'xp', amount: 100 },
-    { type: 'gold', amount: 50 }
+    { type: 'dollars', amount: 50 }
   ],
   repeatable: false,
   isActive: true
@@ -119,7 +119,7 @@ export const RARE_ORE_RETRIEVAL: QuestSeedData = {
   ],
   rewards: [
     { type: 'xp', amount: 250 },
-    { type: 'gold', amount: 100 },
+    { type: 'dollars', amount: 100 },
     { type: 'item', itemId: 'steel-ingot' },
     { type: 'reputation', faction: 'settler', amount: 10 }
   ],
@@ -166,7 +166,7 @@ export const GUILD_SECRETS: QuestSeedData = {
   ],
   rewards: [
     { type: 'xp', amount: 500 },
-    { type: 'gold', amount: 200 },
+    { type: 'dollars', amount: 200 },
     { type: 'item', itemId: 'guild-weapon-schematic' },
     { type: 'reputation', faction: 'settler', amount: 25 }
   ],
@@ -213,7 +213,7 @@ export const MASTERWORK_WEAPON: QuestSeedData = {
   ],
   rewards: [
     { type: 'xp', amount: 1000 },
-    { type: 'gold', amount: 500 },
+    { type: 'dollars', amount: 500 },
     { type: 'item', itemId: 'custom-masterwork-weapon' },
     { type: 'reputation', faction: 'settler', amount: 50 }
   ],
@@ -266,7 +266,7 @@ export const SKINWALKER_HUNT: QuestSeedData = {
   ],
   rewards: [
     { type: 'xp', amount: 600 },
-    { type: 'gold', amount: 150 },
+    { type: 'dollars', amount: 150 },
     { type: 'item', itemId: 'skinwalker-charm' },
     { type: 'reputation', faction: 'kaiowa', amount: 50 }
   ],
@@ -413,7 +413,7 @@ export const INFORMATION_NETWORK: QuestSeedData = {
   ],
   rewards: [
     { type: 'xp', amount: 400 },
-    { type: 'gold', amount: 200 },
+    { type: 'dollars', amount: 200 },
     { type: 'item', itemId: 'information-brokers-mark' },
     { type: 'reputation', faction: 'neutral', amount: 25 }
   ],
@@ -460,7 +460,7 @@ export const SECRET_IDENTITY: QuestSeedData = {
   ],
   rewards: [
     { type: 'xp', amount: 800 },
-    { type: 'gold', amount: 350 },
+    { type: 'dollars', amount: 350 },
     { type: 'item', itemId: 'scarletts-secret-journal' }
   ],
   repeatable: false,
@@ -506,7 +506,7 @@ export const COMING_WAR: QuestSeedData = {
   ],
   rewards: [
     { type: 'xp', amount: 2000 },
-    { type: 'gold', amount: 500 },
+    { type: 'dollars', amount: 500 },
     { type: 'item', itemId: 'faction-war-token' },
     { type: 'reputation', faction: 'chosen', amount: 100 }
   ],
@@ -545,7 +545,7 @@ export const DAILY_HUNTING: QuestSeedData = {
   ],
   rewards: [
     { type: 'xp', amount: 150 },
-    { type: 'gold', amount: 75 }
+    { type: 'dollars', amount: 75 }
   ],
   repeatable: true,
   isActive: true
@@ -576,7 +576,7 @@ export const DAILY_LAW_WORK: QuestSeedData = {
   ],
   rewards: [
     { type: 'xp', amount: 200 },
-    { type: 'gold', amount: 100 },
+    { type: 'dollars', amount: 100 },
     { type: 'reputation', faction: 'settler', amount: 10 }
   ],
   repeatable: true,

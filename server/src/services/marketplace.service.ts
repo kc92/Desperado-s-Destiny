@@ -21,9 +21,11 @@ import {
 import { PriceHistory, IPriceHistory } from '../models/PriceHistory.model';
 import { Character, ICharacter, InventoryItem } from '../models/Character.model';
 import { Item, IItem } from '../models/Item.model';
-import { GoldService, TransactionSource } from './gold.service';
+import { DollarService, TransactionSource } from './dollar.service';
 import { NotificationService } from './notification.service';
+import { withLock } from '../utils/distributedLock';
 import logger from '../utils/logger';
+import { logEconomyEvent, EconomyEvent } from './base';
 
 /**
  * Configuration constants
@@ -265,14 +267,14 @@ export class MarketplaceService {
 
       // Handle featured listing cost
       if (options.featured) {
-        if (seller.gold < MARKETPLACE_CONFIG.FEATURED_LISTING_COST) {
-          throw new Error(`Insufficient gold for featured listing (requires ${MARKETPLACE_CONFIG.FEATURED_LISTING_COST} gold)`);
+        if (seller.dollars < MARKETPLACE_CONFIG.FEATURED_LISTING_COST) {
+          throw new Error(`Insufficient dollars for featured listing (requires ${MARKETPLACE_CONFIG.FEATURED_LISTING_COST} dollars)`);
         }
-        await GoldService.deductGold(
+        await DollarService.deductDollars(
           sellerId,
           MARKETPLACE_CONFIG.FEATURED_LISTING_COST,
           TransactionSource.MARKETPLACE_LISTING_FEE,
-          { listingId: listing._id, type: 'featured' },
+          { listingId: listing._id, type: 'featured', currencyType: 'DOLLAR' },
           session
         );
       }
@@ -285,7 +287,8 @@ export class MarketplaceService {
         itemData.itemId,
         masterItem.name,
         options.category,
-        masterItem.rarity
+        masterItem.rarity,
+        session
       );
 
       // Update active listings count in price history
@@ -297,6 +300,26 @@ export class MarketplaceService {
       await session.commitTransaction();
 
       logger.info(`Marketplace listing created: ${listing._id} by ${seller.name} for ${marketItem.name}`);
+
+      // Audit log the marketplace listing creation
+      await logEconomyEvent({
+        event: EconomyEvent.MARKETPLACE_LISTING,
+        characterId: sellerId,
+        amount: options.startingPrice,
+        metadata: {
+          listingId: listing._id.toString(),
+          itemId: itemData.itemId,
+          itemName: marketItem.name,
+          quantity: itemData.quantity,
+          listingType: options.listingType,
+          startingPrice: options.startingPrice,
+          buyoutPrice: options.buyoutPrice,
+          category: options.category,
+          subcategory: options.subcategory,
+          expiresAt: expiresAt,
+          featured: options.featured || false
+        }
+      });
 
       return listing;
     } catch (error) {
@@ -529,14 +552,14 @@ export class MarketplaceService {
       // Handle featuring update
       if (updates.featured && !listing.featured) {
         const seller = await Character.findById(sellerId).session(session);
-        if (!seller || seller.gold < MARKETPLACE_CONFIG.FEATURED_LISTING_COST) {
-          throw new Error(`Insufficient gold for featured listing (requires ${MARKETPLACE_CONFIG.FEATURED_LISTING_COST} gold)`);
+        if (!seller || seller.dollars < MARKETPLACE_CONFIG.FEATURED_LISTING_COST) {
+          throw new Error(`Insufficient dollars for featured listing (requires ${MARKETPLACE_CONFIG.FEATURED_LISTING_COST} dollars)`);
         }
-        await GoldService.deductGold(
+        await DollarService.deductDollars(
           sellerId,
           MARKETPLACE_CONFIG.FEATURED_LISTING_COST,
           TransactionSource.MARKETPLACE_LISTING_FEE,
-          { listingId: listing._id, type: 'featured_upgrade' },
+          { listingId: listing._id, type: 'featured_upgrade', currencyType: 'DOLLAR' },
           session
         );
         listing.featured = true;
@@ -567,11 +590,15 @@ export class MarketplaceService {
     listingId: string,
     amount: number
   ): Promise<IMarketListing> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    // PHASE 3 FIX: Add distributed lock to prevent race conditions on concurrent bids
+    const lockKey = `lock:listing:${listingId}`;
 
-    try {
-      const listing = await MarketListing.findById(listingId).session(session);
+    return withLock(lockKey, async () => {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        const listing = await MarketListing.findById(listingId).session(session);
       if (!listing) {
         throw new Error('Listing not found');
       }
@@ -598,12 +625,12 @@ export class MarketplaceService {
         : listing.startingPrice;
 
       if (amount < minBid) {
-        throw new Error(`Bid must be at least ${minBid} gold (current: ${listing.currentBid || 0})`);
+        throw new Error(`Bid must be at least ${minBid} dollars (current: ${listing.currentBid || 0})`);
       }
 
       // If there's a buyout price and bid exceeds it, reject (they should use buyNow)
       if (listing.buyoutPrice && amount >= listing.buyoutPrice) {
-        throw new Error(`Bid exceeds buyout price. Use buyNow at ${listing.buyoutPrice} gold instead.`);
+        throw new Error(`Bid exceeds buyout price. Use buyNow at ${listing.buyoutPrice} dollars instead.`);
       }
 
       // Get bidder
@@ -612,21 +639,21 @@ export class MarketplaceService {
         throw new Error('Bidder not found');
       }
 
-      // Calculate how much additional gold needs to be reserved
+      // Calculate how much additional dollars needs to be reserved
       const previousBidReserve = listing.reservedBids.get(bidderId) || 0;
       const additionalReserve = amount - previousBidReserve;
 
       if (additionalReserve > 0) {
-        if (bidder.gold < additionalReserve) {
-          throw new Error(`Insufficient gold. Need ${additionalReserve} more gold to place this bid.`);
+        if (bidder.dollars < additionalReserve) {
+          throw new Error(`Insufficient dollars. Need ${additionalReserve} more dollars to place this bid.`);
         }
 
         // Reserve the bid amount
-        await GoldService.deductGold(
+        await DollarService.deductDollars(
           bidderId,
           additionalReserve,
           TransactionSource.MARKETPLACE_BID_RESERVE,
-          { listingId: listing._id, bidAmount: amount },
+          { listingId: listing._id, bidAmount: amount, currencyType: 'DOLLAR' },
           session
         );
       }
@@ -638,11 +665,11 @@ export class MarketplaceService {
         const previousBidder = listing.currentBidderId.toString();
         const previousBidAmount = listing.reservedBids.get(previousBidder) || listing.currentBid;
 
-        await GoldService.addGold(
+        await DollarService.addDollars(
           previousBidder,
           previousBidAmount,
           TransactionSource.MARKETPLACE_BID_REFUND,
-          { listingId: listing._id, reason: 'outbid' },
+          { listingId: listing._id, reason: 'outbid', currencyType: 'DOLLAR' },
           session
         );
 
@@ -653,7 +680,7 @@ export class MarketplaceService {
         await NotificationService.sendNotification(
           previousBidder,
           'outbid',
-          `Someone placed a higher bid of ${amount} gold on ${listing.item.name}`,
+          `Someone placed a higher bid of ${amount} dollars on ${listing.item.name}`,
           { listingId: listing._id.toString(), link: '/market/my/bids' }
         );
       }
@@ -677,33 +704,56 @@ export class MarketplaceService {
 
       logger.info(`Bid placed: ${amount} gold on listing ${listingId} by ${bidder.name}`);
 
+      // Audit log the marketplace bid
+      await logEconomyEvent({
+        event: EconomyEvent.MARKETPLACE_BID,
+        characterId: bidderId,
+        amount: amount,
+        metadata: {
+          listingId: listing._id.toString(),
+          itemId: listing.item.itemId,
+          itemName: listing.item.name,
+          sellerId: listing.sellerId.toString(),
+          sellerName: listing.sellerName,
+          previousBid: listing.currentBid ? listing.currentBid - amount : undefined,
+          previousBidderId: listing.currentBidderId?.toString(),
+          bidNumber: listing.bidHistory.length,
+          additionalReserve
+        }
+      });
+
       // Notify seller
       await NotificationService.sendNotification(
         listing.sellerId.toString(),
         'new_bid',
-        `${bidder.name} bid ${amount} gold on your ${listing.item.name}`,
+        `${bidder.name} bid ${amount} dollars on your ${listing.item.name}`,
         { listingId: listing._id.toString(), link: '/market/my/listings' }
       );
 
-      return listing;
-    } catch (error) {
-      await session.abortTransaction();
-      logger.error('Error placing bid:', error);
-      throw error;
-    } finally {
-      session.endSession();
-    }
+        return listing;
+      } catch (error) {
+        await session.abortTransaction();
+        logger.error('Error placing bid:', error);
+        throw error;
+      } finally {
+        session.endSession();
+      }
+    }, { ttl: 30, retries: 10 });
   }
 
   /**
    * Buy now - instant purchase at buyout price
    */
   static async buyNow(buyerId: string, listingId: string): Promise<PurchaseResult> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    // PHASE 3 FIX: Add distributed lock to prevent race conditions on concurrent purchases
+    const lockKey = `lock:listing:${listingId}`;
 
-    try {
-      const listing = await MarketListing.findById(listingId).session(session);
+    return withLock(lockKey, async () => {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        const listing = await MarketListing.findById(listingId).session(session);
       if (!listing) {
         throw new Error('Listing not found');
       }
@@ -740,17 +790,17 @@ export class MarketplaceService {
       if (!buyer) throw new Error('Buyer not found');
       if (!seller) throw new Error('Seller not found');
 
-      // Check buyer has enough gold
-      if (buyer.gold < purchasePrice) {
-        throw new Error(`Insufficient gold. Need ${purchasePrice} gold.`);
+      // Check buyer has enough dollars
+      if (buyer.dollars < purchasePrice) {
+        throw new Error(`Insufficient dollars. Need ${purchasePrice} dollars.`);
       }
 
       // Calculate tax
       const tax = Math.floor(purchasePrice * MARKETPLACE_CONFIG.TAX_RATE);
       const sellerReceives = purchasePrice - tax;
 
-      // Transfer gold from buyer
-      await GoldService.deductGold(
+      // Transfer dollars from buyer
+      await DollarService.deductDollars(
         buyerId,
         purchasePrice,
         TransactionSource.MARKETPLACE_PURCHASE,
@@ -758,13 +808,14 @@ export class MarketplaceService {
           listingId: listing._id,
           itemId: listing.item.itemId,
           itemName: listing.item.name,
-          sellerId: listing.sellerId
+          sellerId: listing.sellerId,
+          currencyType: 'DOLLAR'
         },
         session
       );
 
-      // Give gold to seller (minus tax)
-      await GoldService.addGold(
+      // Give dollars to seller (minus tax)
+      await DollarService.addDollars(
         listing.sellerId.toString(),
         sellerReceives,
         TransactionSource.MARKETPLACE_SALE,
@@ -773,22 +824,26 @@ export class MarketplaceService {
           itemId: listing.item.itemId,
           itemName: listing.item.name,
           buyerId,
-          taxPaid: tax
+          taxPaid: tax,
+          currencyType: 'DOLLAR'
         },
         session
       );
 
-      // Refund any existing bidders
+      // H8 FIX: Batch refund existing bidders instead of N individual queries
+      const bidRefunds: Array<{ characterId: string; amount: number }> = [];
       for (const [bidderId, reservedAmount] of listing.reservedBids.entries()) {
         if (bidderId !== buyerId) {
-          await GoldService.addGold(
-            bidderId,
-            reservedAmount,
-            TransactionSource.MARKETPLACE_BID_REFUND,
-            { listingId: listing._id, reason: 'bought_out' },
-            session
-          );
+          bidRefunds.push({ characterId: bidderId, amount: reservedAmount });
         }
+      }
+      if (bidRefunds.length > 0) {
+        await DollarService.batchRefundDollars(
+          bidRefunds,
+          TransactionSource.MARKETPLACE_BID_REFUND,
+          { listingId: listing._id, reason: 'bought_out', currencyType: 'DOLLAR' },
+          session
+        );
       }
 
       // Transfer item to buyer
@@ -822,7 +877,8 @@ export class MarketplaceService {
         listing.item.quantity,
         listing._id.toString(),
         listing.sellerId.toString(),
-        buyerId
+        buyerId,
+        session
       );
 
       // Update active listings count
@@ -833,31 +889,52 @@ export class MarketplaceService {
 
       await session.commitTransaction();
 
-      logger.info(`Marketplace sale: ${listing.item.name} sold for ${purchasePrice} gold (tax: ${tax})`);
+      logger.info(`Marketplace sale: ${listing.item.name} sold for ${purchasePrice} dollars (tax: ${tax})`);
+
+      // Audit log the marketplace sale
+      await logEconomyEvent({
+        event: EconomyEvent.MARKETPLACE_SALE,
+        characterId: buyerId,
+        amount: purchasePrice,
+        metadata: {
+          listingId: listing._id.toString(),
+          itemId: listing.item.itemId,
+          itemName: listing.item.name,
+          quantity: listing.item.quantity,
+          sellerId: listing.sellerId.toString(),
+          sellerName: listing.sellerName,
+          purchasePrice,
+          sellerReceived: sellerReceives,
+          taxPaid: tax,
+          taxRate: MARKETPLACE_CONFIG.TAX_RATE,
+          purchaseType: 'buyout'
+        }
+      });
 
       // Notify seller
       await NotificationService.sendNotification(
         listing.sellerId.toString(),
         'item_sold',
-        `${buyer.name} bought your ${listing.item.name} for ${purchasePrice} gold. You received ${sellerReceives} gold after tax.`,
+        `${buyer.name} bought your ${listing.item.name} for ${purchasePrice} dollars. You received ${sellerReceives} dollars after tax.`,
         { listingId: listing._id.toString(), link: '/market/my/sales' }
       );
 
-      return {
-        listing,
-        buyer,
-        seller,
-        totalPaid: purchasePrice,
-        sellerReceived: sellerReceives,
-        taxPaid: tax
-      };
-    } catch (error) {
-      await session.abortTransaction();
-      logger.error('Error buying item:', error);
-      throw error;
-    } finally {
-      session.endSession();
-    }
+        return {
+          listing,
+          buyer,
+          seller,
+          totalPaid: purchasePrice,
+          sellerReceived: sellerReceives,
+          taxPaid: tax
+        };
+      } catch (error) {
+        await session.abortTransaction();
+        logger.error('Error buying item:', error);
+        throw error;
+      } finally {
+        session.endSession();
+      }
+    }, { ttl: 30, retries: 10 });
   }
 
   // ==========================================
@@ -1259,17 +1336,17 @@ export class MarketplaceService {
     // Refund any excess if they bid multiple times
     const reservedAmount = listing.reservedBids.get(winnerId) || winningBid;
     if (reservedAmount > winningBid) {
-      await GoldService.addGold(
+      await DollarService.addDollars(
         winnerId,
         reservedAmount - winningBid,
         TransactionSource.MARKETPLACE_BID_REFUND,
-        { listingId: listing._id, reason: 'excess_refund' },
+        { listingId: listing._id, reason: 'excess_refund', currencyType: 'DOLLAR' },
         session
       );
     }
 
-    // Give gold to seller
-    await GoldService.addGold(
+    // Give dollars to seller
+    await DollarService.addDollars(
       listing.sellerId.toString(),
       sellerReceives,
       TransactionSource.MARKETPLACE_AUCTION_WIN,
@@ -1278,22 +1355,26 @@ export class MarketplaceService {
         itemId: listing.item.itemId,
         itemName: listing.item.name,
         buyerId: winnerId,
-        taxPaid: tax
+        taxPaid: tax,
+        currencyType: 'DOLLAR'
       },
       session
     );
 
-    // Refund other bidders
+    // H8 FIX: Batch refund other bidders instead of N individual queries
+    const otherBidRefunds: Array<{ characterId: string; amount: number }> = [];
     for (const [bidderId, reservedAmount] of listing.reservedBids.entries()) {
       if (bidderId !== winnerId) {
-        await GoldService.addGold(
-          bidderId,
-          reservedAmount,
-          TransactionSource.MARKETPLACE_BID_REFUND,
-          { listingId: listing._id, reason: 'auction_ended' },
-          session
-        );
+        otherBidRefunds.push({ characterId: bidderId, amount: reservedAmount });
       }
+    }
+    if (otherBidRefunds.length > 0) {
+      await DollarService.batchRefundDollars(
+        otherBidRefunds,
+        TransactionSource.MARKETPLACE_BID_REFUND,
+        { listingId: listing._id, reason: 'auction_ended', currencyType: 'DOLLAR' },
+        session
+      );
     }
 
     // Transfer item to winner
@@ -1326,7 +1407,8 @@ export class MarketplaceService {
       listing.item.quantity,
       listing._id.toString(),
       listing.sellerId.toString(),
-      winnerId
+      winnerId,
+      session
     );
 
     // Update active listings count
@@ -1335,13 +1417,34 @@ export class MarketplaceService {
       { $inc: { activeListings: -1 }, lastUpdated: new Date() }
     ).session(session);
 
-    logger.info(`Auction completed: ${listing._id} won by ${winner.name} for ${winningBid} gold`);
+    logger.info(`Auction completed: ${listing._id} won by ${winner.name} for ${winningBid} dollars`);
+
+    // Audit log the auction sale
+    await logEconomyEvent({
+      event: EconomyEvent.MARKETPLACE_SALE,
+      characterId: winnerId,
+      amount: winningBid,
+      metadata: {
+        listingId: listing._id.toString(),
+        itemId: listing.item.itemId,
+        itemName: listing.item.name,
+        quantity: listing.item.quantity,
+        sellerId: listing.sellerId.toString(),
+        sellerName: listing.sellerName,
+        purchasePrice: winningBid,
+        sellerReceived: sellerReceives,
+        taxPaid: tax,
+        taxRate: MARKETPLACE_CONFIG.TAX_RATE,
+        purchaseType: 'auction',
+        totalBids: listing.bidHistory.length
+      }
+    });
 
     // Notify winner
     await NotificationService.sendNotification(
       winnerId,
       'auction_won',
-      `You won the auction for ${listing.item.name} with a bid of ${winningBid} gold.`,
+      `You won the auction for ${listing.item.name} with a bid of ${winningBid} dollars.`,
       { listingId: listing._id.toString(), link: '/market/my/purchases' }
     );
 
@@ -1349,7 +1452,7 @@ export class MarketplaceService {
     await NotificationService.sendNotification(
       listing.sellerId.toString(),
       'auction_sold',
-      `${winner.name} won your auction for ${listing.item.name} at ${winningBid} gold. You received ${sellerReceives} gold after tax.`,
+      `${winner.name} won your auction for ${listing.item.name} at ${winningBid} dollars. You received ${sellerReceives} dollars after tax.`,
       { listingId: listing._id.toString(), link: '/market/my/sales' }
     );
   }
@@ -1452,7 +1555,7 @@ export class MarketplaceService {
 
     // Validate prices
     if (options.startingPrice < 1) {
-      throw new Error('Starting price must be at least 1 gold');
+      throw new Error('Starting price must be at least 1 dollar');
     }
 
     if (options.listingType === 'buyout' && !options.buyoutPrice) {

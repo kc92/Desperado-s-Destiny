@@ -7,6 +7,8 @@
 import mongoose from 'mongoose';
 import { Character } from '../models/Character.model';
 import { CharacterCorruption } from '../models/CharacterCorruption.model';
+import { RitualSession } from '../models/RitualSession.model';
+import { TransactionSource } from '../models/GoldTransaction.model';
 import { RITUALS, getRitualById } from '../data/rituals';
 import {
   Ritual,
@@ -16,18 +18,9 @@ import {
   COSMIC_HORROR_CONSTANTS
 } from '@desperados/shared';
 import { CorruptionService } from './corruption.service';
+import { EnergyService } from './energy.service';
+import { SecureRNG } from './base/SecureRNG';
 import logger from '../utils/logger';
-
-/**
- * Active ritual tracking (in-memory for now, could be database)
- */
-const activeRituals = new Map<string, {
-  ritualId: string;
-  characterId: string;
-  startedAt: Date;
-  completesAt: Date;
-  participants: string[];
-}>();
 
 export class RitualService {
   /**
@@ -90,7 +83,7 @@ export class RitualService {
     if (ritual.goldCost && character.gold < ritual.goldCost) {
       return {
         canPerform: false,
-        reason: `Requires ${ritual.goldCost} gold`
+        reason: `Requires ${ritual.goldCost} dollars`
       };
     }
 
@@ -138,10 +131,10 @@ export class RitualService {
     }
 
     // Pay costs
-    character.spendEnergy(ritual.energyCost);
+    await EnergyService.spendEnergy(character._id.toString(), ritual.energyCost);
 
     if (ritual.goldCost) {
-      await character.deductGold(ritual.goldCost, 'ritual' as any, { ritualId });
+      await character.deductDollars(ritual.goldCost, TransactionSource.RITUAL, { ritualId });
     }
 
     // Apply sanity cost (would integrate with sanity service)
@@ -154,13 +147,22 @@ export class RitualService {
 
     // Schedule completion
     const completesAt = new Date(Date.now() + ritual.timeRequired * 60 * 1000);
+    const startedAt = new Date();
+    const expiresAt = new Date(completesAt.getTime() + 60 * 60 * 1000);
 
-    activeRituals.set(characterId, {
+    // Convert participant strings to ObjectIds
+    const participantObjectIds = participants.map(id => new mongoose.Types.ObjectId(id));
+
+    // Create ritual session
+    await RitualSession.create({
+      sessionId: characterId, // Using characterId as sessionId for uniqueness
       ritualId,
-      characterId,
-      startedAt: new Date(),
+      characterId: new mongoose.Types.ObjectId(characterId),
+      participants: participantObjectIds,
+      startedAt,
       completesAt,
-      participants
+      status: 'in_progress',
+      expiresAt
     });
 
     logger.info(
@@ -184,7 +186,11 @@ export class RitualService {
     failure?: RitualFailure;
     message: string;
   }> {
-    const activeRitual = activeRituals.get(characterId);
+    const activeRitual = await RitualSession.findOne({
+      characterId: new mongoose.Types.ObjectId(characterId),
+      status: 'in_progress'
+    });
+
     if (!activeRitual) {
       return {
         success: false,
@@ -205,7 +211,10 @@ export class RitualService {
 
     const ritual = getRitualById(activeRitual.ritualId);
     if (!ritual) {
-      activeRituals.delete(characterId);
+      await RitualSession.findOneAndUpdate(
+        { _id: activeRitual._id },
+        { status: 'failed' }
+      );
       return {
         success: false,
         failed: true,
@@ -213,8 +222,8 @@ export class RitualService {
       };
     }
 
-    // Roll for success
-    const roll = Math.random();
+    // Roll for success (0-1 range)
+    const roll = SecureRNG.d100() / 100;
     const corruption = await CorruptionService.getOrCreateTracker(characterId);
 
     // Knowledge bonuses
@@ -230,7 +239,10 @@ export class RitualService {
 
     // Critical success
     if (roll < criticalChance && ritual.criticalSuccess) {
-      activeRituals.delete(characterId);
+      await RitualSession.findOneAndUpdate(
+        { _id: activeRitual._id },
+        { status: 'completed' }
+      );
       await this.applyRitualResults(characterId, ritual.criticalSuccess);
 
       logger.info(`Character ${characterId} achieved CRITICAL SUCCESS on ritual ${ritual.id}`);
@@ -245,7 +257,10 @@ export class RitualService {
 
     // Normal success
     if (roll < finalSuccessChance) {
-      activeRituals.delete(characterId);
+      await RitualSession.findOneAndUpdate(
+        { _id: activeRitual._id },
+        { status: 'completed' }
+      );
       await this.applyRitualResults(characterId, ritual.successResults);
 
       logger.info(`Character ${characterId} succeeded on ritual ${ritual.id}`);
@@ -260,7 +275,10 @@ export class RitualService {
 
     // Failure
     if (ritual.canFail) {
-      activeRituals.delete(characterId);
+      await RitualSession.findOneAndUpdate(
+        { _id: activeRitual._id },
+        { status: 'failed' }
+      );
       await this.applyFailureConsequences(characterId, ritual.failureConsequence);
 
       logger.info(`Character ${characterId} FAILED ritual ${ritual.id}`);
@@ -274,7 +292,10 @@ export class RitualService {
     }
 
     // Shouldn't reach here, but just in case
-    activeRituals.delete(characterId);
+    await RitualSession.findOneAndUpdate(
+      { _id: activeRitual._id },
+      { status: 'completed' }
+    );
     return {
       success: false,
       failed: false,
@@ -290,7 +311,11 @@ export class RitualService {
     message: string;
     backlash?: boolean;
   }> {
-    const activeRitual = activeRituals.get(characterId);
+    const activeRitual = await RitualSession.findOne({
+      characterId: new mongoose.Types.ObjectId(characterId),
+      status: 'in_progress'
+    });
+
     if (!activeRitual) {
       return {
         success: false,
@@ -300,7 +325,10 @@ export class RitualService {
 
     const ritual = getRitualById(activeRitual.ritualId);
     if (!ritual) {
-      activeRituals.delete(characterId);
+      await RitualSession.findOneAndUpdate(
+        { _id: activeRitual._id },
+        { status: 'cancelled' }
+      );
       return { success: true, message: 'Ritual cancelled' };
     }
 
@@ -314,7 +342,10 @@ export class RitualService {
       await CorruptionService.gainCorruption(characterId, 10, 'Ritual Interruption');
     }
 
-    activeRituals.delete(characterId);
+    await RitualSession.findOneAndUpdate(
+      { _id: activeRitual._id },
+      { status: 'cancelled' }
+    );
 
     logger.info(`Character ${characterId} cancelled ritual ${ritual.id} with backlash`);
 
@@ -468,8 +499,12 @@ export class RitualService {
   /**
    * Get active ritual status
    */
-  static getActiveRitual(characterId: string) {
-    const active = activeRituals.get(characterId);
+  static async getActiveRitual(characterId: string) {
+    const active = await RitualSession.findOne({
+      characterId: new mongoose.Types.ObjectId(characterId),
+      status: 'in_progress'
+    });
+
     if (!active) return null;
 
     const ritual = getRitualById(active.ritualId);
@@ -480,7 +515,7 @@ export class RitualService {
       startedAt: active.startedAt,
       completesAt: active.completesAt,
       remainingMinutes: Math.ceil(remaining / 60000),
-      participants: active.participants
+      participants: active.participants.map(id => id.toString())
     };
   }
 

@@ -10,6 +10,7 @@ import {
   HallucinationType,
   HORROR_CONSTANTS
 } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Hallucination subdocument interface
@@ -279,7 +280,7 @@ SanityTrackerSchema.methods.loseSanity = async function(
   if (this.currentSanity <= HORROR_CONSTANTS.TRAUMA_SANITY_THRESHOLD) {
     if (this.permanentTraumas.length < HORROR_CONSTANTS.MAX_TRAUMAS) {
       // Random chance of gaining trauma when very low sanity
-      if (Math.random() < 0.3) {
+      if (SecureRNG.chance(0.3)) {
         traumaGained = true;
         // Trauma would be added separately by the calling service
       }
@@ -343,13 +344,13 @@ SanityTrackerSchema.methods.getSanityState = function(this: ISanityTracker): San
  */
 SanityTrackerSchema.methods.rollForHallucination = function(this: ISanityTracker): IHallucination | null {
   const chance = HORROR_CONSTANTS.HALLUCINATION_CHANCE[this.sanityState];
-  if (Math.random() > chance) {
+  if (!SecureRNG.chance(chance)) {
     return null;
   }
 
   // Generate random hallucination
   const types = Object.values(HallucinationType);
-  const type = types[Math.floor(Math.random() * types.length)];
+  const type = SecureRNG.select(types);
   const severity = Math.max(1, Math.ceil((100 - this.currentSanity) / 10));
   const duration = 5 + severity * 2; // Minutes
 
@@ -387,7 +388,7 @@ SanityTrackerSchema.methods.rollForHallucination = function(this: ISanityTracker
   };
 
   const possibleDescriptions = descriptions[type];
-  const description = possibleDescriptions[Math.floor(Math.random() * possibleDescriptions.length)];
+  const description = SecureRNG.select(possibleDescriptions);
 
   const expiresAt = new Date(Date.now() + duration * 60 * 1000);
 

@@ -5,7 +5,7 @@
  */
 
 import { Response } from 'express';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import { Character } from '../models/Character.model';
 import { CrimeService } from '../services/crime.service';
 import logger from '../utils/logger';
@@ -69,7 +69,7 @@ export async function payBail(req: AuthRequest, res: Response): Promise<void> {
       success: true,
       data: {
         message: result.message,
-        goldSpent: result.goldSpent
+        dollarsSpent: result.dollarsSpent
       }
     });
   } catch (error) {

@@ -19,9 +19,10 @@ import {
   BOUNTY_HUNTER_SCALING,
   BountyBoardEntry,
 } from '@desperados/shared';
-import { TransactionSource } from '../models/GoldTransaction.model';
-import { GoldService } from './gold.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 export class BountyService {
   /**
@@ -53,7 +54,7 @@ export class BountyService {
 
       const min = crimeConfig?.min || 25;
       const max = crimeConfig?.max || 100;
-      const amount = Math.floor(Math.random() * (max - min + 1)) + min;
+      const amount = SecureRNG.range(min, max);
 
       // Create bounty
       const bounty = new Bounty({
@@ -119,25 +120,27 @@ export class BountyService {
         throw new Error('Cannot place bounty on yourself');
       }
 
-      // Minimum bounty is 100 gold
+      // Minimum bounty is 100 dollars
       if (amount < 100) {
-        throw new Error('Minimum bounty is 100 gold');
+        throw new Error('Minimum bounty is 100 dollars');
       }
 
-      // Check if issuer has enough gold
-      if (!issuer.hasGold(amount)) {
-        throw new Error(`Insufficient gold. Need ${amount} gold, have ${issuer.gold}.`);
+      // Check if issuer has enough dollars
+      const issuerBalance = issuer.dollars ?? issuer.gold ?? 0;
+      if (issuerBalance < amount) {
+        throw new Error(`Insufficient dollars. Need ${amount} dollars, have ${issuerBalance}.`);
       }
 
-      // Deduct gold from issuer
-      await GoldService.deductGold(
+      // Deduct dollars from issuer
+      await DollarService.deductDollars(
         issuer._id as any,
         amount,
         TransactionSource.BOUNTY_PLACED,
         {
           targetCharacterId: target._id,
           targetName: target.name,
-          description: `Placed ${amount} gold bounty on ${target.name}`,
+          description: `Placed ${amount} dollar bounty on ${target.name}`,
+          currencyType: CurrencyType.DOLLAR,
         },
         session
       );
@@ -169,7 +172,7 @@ export class BountyService {
       session.endSession();
 
       logger.info(
-        `Player bounty placed: ${amount} gold on ${target.name} by ${issuer.name}`
+        `Player bounty placed: ${amount} dollars on ${target.name} by ${issuer.name}`
       );
 
       return bounty;
@@ -218,8 +221,19 @@ export class BountyService {
         throw new Error('You are not authorized to collect this bounty');
       }
 
-      // Award gold to hunter
-      await GoldService.addGold(
+      // Get target and verify they were defeated
+      const target = await Character.findById(bounty.targetId).session(session);
+      if (!target) {
+        throw new Error('Target character not found');
+      }
+
+      const isDefeated = target.isDead || target.isJailed || target.isKnockedOut;
+      if (!isDefeated) {
+        throw new Error('Cannot collect bounty - target has not been defeated');
+      }
+
+      // Award dollars to hunter
+      await DollarService.addDollars(
         hunter._id as any,
         bounty.amount,
         TransactionSource.BOUNTY_REWARD,
@@ -227,7 +241,8 @@ export class BountyService {
           bountyId: bounty._id,
           targetCharacterId: bounty.targetId,
           targetName: bounty.targetName,
-          description: `Collected ${bounty.amount} gold bounty on ${bounty.targetName}`,
+          description: `Collected ${bounty.amount} dollar bounty on ${bounty.targetName}`,
+          currencyType: CurrencyType.DOLLAR,
         },
         session
       );
@@ -245,12 +260,12 @@ export class BountyService {
       session.endSession();
 
       logger.info(
-        `Bounty collected: ${hunter.name} earned ${bounty.amount} gold for capturing ${bounty.targetName}`
+        `Bounty collected: ${hunter.name} earned ${bounty.amount} dollars for capturing ${bounty.targetName}`
       );
 
       return {
         goldEarned: bounty.amount,
-        message: `You brought ${bounty.targetName} to justice and earned ${bounty.amount} gold!`,
+        message: `You brought ${bounty.targetName} to justice and earned ${bounty.amount} dollars!`,
       };
     } catch (error) {
       await session.abortTransaction();
@@ -444,7 +459,7 @@ export class BountyService {
    */
   static shouldSpawnBountyHunter(wantedRank: WantedRank): boolean {
     const spawnRate = BOUNTY_HUNTER_SPAWN_RATES[wantedRank];
-    return Math.random() < spawnRate;
+    return SecureRNG.chance(spawnRate);
   }
 
   /**

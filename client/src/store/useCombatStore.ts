@@ -6,6 +6,8 @@
 import { create } from 'zustand';
 import type { NPC, CombatEncounter, CombatResult, CombatStats } from '@desperados/shared';
 import { combatService } from '@/services/combat.service';
+import { logger } from '@/services/logger.service';
+import { dispatchCombatStarted } from '@/utils/tutorialEvents';
 
 interface CombatStore {
   // State
@@ -59,7 +61,7 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
         throw new Error(response.error || 'Failed to load NPCs');
       }
     } catch (error: any) {
-      console.error('Failed to fetch NPCs:', error);
+      logger.error('Failed to fetch NPCs', error, { locationId });
       set({
         npcs: [],
         isLoading: false,
@@ -79,7 +81,7 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
     try {
       const response = await combatService.startCombat(npcId, characterId);
 
-      console.log('Combat API Response:', response); // Debug log
+      logger.debug('Combat API Response', { response, npcId, characterId });
 
       if (response.success && response.data) {
         set({
@@ -88,13 +90,15 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
           isProcessingCombat: false,
           error: null,
         });
+        // Dispatch tutorial event for combat initiation
+        dispatchCombatStarted(npcId);
       } else {
         const errorMsg = response.error || 'Failed to start combat';
-        console.error('Combat start failed:', errorMsg, response); // More detailed error
+        logger.error('Combat start failed', new Error(errorMsg), { response, npcId, characterId });
         throw new Error(errorMsg);
       }
     } catch (error: any) {
-      console.error('Failed to start combat:', error);
+      logger.error('Failed to start combat', error, { npcId, characterId });
       set({
         isProcessingCombat: false,
         error: error.message || 'Failed to start combat',
@@ -123,7 +127,7 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
 
       if (response.success && response.data) {
         set({
-          activeCombat: response.data.encounter,
+          activeCombat: response.data.result.encounter,
           isProcessingCombat: false,
           error: null,
         });
@@ -131,7 +135,7 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
         throw new Error(response.error || 'Failed to play turn');
       }
     } catch (error: any) {
-      console.error('Failed to play turn:', error);
+      logger.error('Failed to play turn', error, { combatId: activeCombat._id });
       set({
         isProcessingCombat: false,
         error: error.message || 'Failed to play turn',
@@ -169,7 +173,7 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
         throw new Error(response.error || 'Failed to flee combat');
       }
     } catch (error: any) {
-      console.error('Failed to flee combat:', error);
+      logger.error('Failed to flee combat', error, { combatId: activeCombat._id });
       set({
         isProcessingCombat: false,
         error: error.message || 'Failed to flee combat',
@@ -196,7 +200,7 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
         });
       }
     } catch (error: any) {
-      console.error('Failed to fetch combat history:', error);
+      logger.error('Failed to fetch combat history', error);
     }
   },
 
@@ -210,7 +214,7 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
         });
       }
     } catch (error: any) {
-      console.error('Failed to fetch combat stats:', error);
+      logger.error('Failed to fetch combat stats', error);
     }
   },
 
@@ -225,7 +229,7 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
         });
       }
     } catch (error: any) {
-      console.error('Failed to check active combat:', error);
+      logger.error('Failed to check active combat', error);
     }
   },
 

@@ -6,6 +6,8 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import {
   startGame,
   gameAction,
@@ -24,25 +26,25 @@ router.use(requireCharacter);
  * Start a new deck game
  * Body: { gameType, difficulty?, relevantSuit?, timeLimit? }
  */
-router.post('/start', startGame);
+router.post('/start', requireCsrfToken, asyncHandler(startGame));
 
 /**
  * POST /api/deck/action
  * Process a player action
  * Body: { gameId, action: { type, cardIndices? } }
  */
-router.post('/action', gameAction);
+router.post('/action', requireCsrfToken, asyncHandler(gameAction));
 
 /**
  * GET /api/deck/:gameId
  * Get current game state
  */
-router.get('/:gameId', getGameState);
+router.get('/:gameId', asyncHandler(getGameState));
 
 /**
  * POST /api/deck/:gameId/forfeit
  * Abandon a game
  */
-router.post('/:gameId/forfeit', forfeitGame);
+router.post('/:gameId/forfeit', requireCsrfToken, asyncHandler(forfeitGame));
 
 export default router;

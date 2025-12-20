@@ -3,13 +3,14 @@
  * View contests, register, participate in shooting rounds, and view leaderboards
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
-import { Card, Button, Modal, EmptyState, LoadingSpinner } from '@/components/ui';
+import { Card, Button, Modal, EmptyState } from '@/components/ui';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/store/useToastStore';
-import { formatGold, formatTimeAgo } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 import api from '@/services/api';
+import { logger } from '@/services/logger.service';
 
 // Types
 interface Target {
@@ -160,8 +161,8 @@ export const ShootingContest: React.FC = () => {
       const response = await api.get('/shooting/contests');
       setContests(response.data.data?.contests || []);
     } catch (err: any) {
-      console.error('Failed to load contests:', err);
-      setContests(getMockContests());
+      logger.error('Failed to load contests', err as Error, { context: 'ShootingContest' });
+      setContests([]);
     }
   };
 
@@ -170,8 +171,8 @@ export const ShootingContest: React.FC = () => {
       const response = await api.get('/shooting/stats');
       setPlayerStats(response.data.data?.stats || null);
     } catch (err: any) {
-      console.error('Failed to load stats:', err);
-      setPlayerStats(getMockPlayerStats());
+      logger.error('Failed to load stats', err as Error, { context: 'ShootingContest' });
+      setPlayerStats(null);
     }
   };
 
@@ -180,8 +181,8 @@ export const ShootingContest: React.FC = () => {
       const response = await api.get('/shooting/leaderboard');
       setLeaderboard(response.data.data?.leaderboard || []);
     } catch (err: any) {
-      console.error('Failed to load leaderboard:', err);
-      setLeaderboard(getMockLeaderboard());
+      logger.error('Failed to load leaderboard', err as Error, { context: 'ShootingContest' });
+      setLeaderboard([]);
     }
   };
 
@@ -206,8 +207,7 @@ export const ShootingContest: React.FC = () => {
     if (!currentCharacter) return;
 
     try {
-      const response = await api.get(`/shooting/contests/${contest._id}`);
-      const contestData = response.data.data;
+      await api.get(`/shooting/contests/${contest._id}`);
 
       // Initialize shooting session
       setActiveSession({
@@ -387,9 +387,9 @@ export const ShootingContest: React.FC = () => {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-desert-stone">Your Gold</p>
+              <p className="text-sm text-desert-stone">Your Dollars</p>
               <p className="text-2xl font-western text-gold-light">
-                {formatGold(currentCharacter.gold)}
+                {formatDollars(currentCharacter.gold)}
               </p>
             </div>
           </div>
@@ -508,11 +508,11 @@ export const ShootingContest: React.FC = () => {
                         </div>
                         <div>
                           <span className="text-wood-grain">Entry Fee:</span>
-                          <p className="font-bold text-gold-dark">{formatGold(contest.entryFee)}</p>
+                          <p className="font-bold text-gold-dark">{formatDollars(contest.entryFee)}</p>
                         </div>
                         <div>
                           <span className="text-wood-grain">Prize Pool:</span>
-                          <p className="font-bold text-gold-dark">{formatGold(contest.prizePool)}</p>
+                          <p className="font-bold text-gold-dark">{formatDollars(contest.prizePool)}</p>
                         </div>
                         <div>
                           <span className="text-wood-grain">Participants:</span>
@@ -713,7 +713,7 @@ export const ShootingContest: React.FC = () => {
                 </div>
                 <div className="bg-wood-grain/10 rounded-lg p-4 text-center">
                   <div className="text-3xl font-bold text-gold-light">
-                    {formatGold(playerStats.totalEarnings)}
+                    {formatDollars(playerStats.totalEarnings)}
                   </div>
                   <div className="text-sm text-wood-grain">Total Earnings</div>
                 </div>
@@ -772,7 +772,7 @@ export const ShootingContest: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <div className="font-bold text-gold-dark">
-                          {formatGold(entry.earnings)}
+                          {formatDollars(entry.earnings)}
                         </div>
                         <div className="text-xs text-wood-grain">earnings</div>
                       </div>
@@ -808,11 +808,11 @@ export const ShootingContest: React.FC = () => {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-wood-grain">Entry Fee:</span>
-                  <p className="font-bold text-gold-dark">{formatGold(selectedContest.entryFee)}</p>
+                  <p className="font-bold text-gold-dark">{formatDollars(selectedContest.entryFee)}</p>
                 </div>
                 <div>
                   <span className="text-wood-grain">Prize Pool:</span>
-                  <p className="font-bold text-gold-dark">{formatGold(selectedContest.prizePool)}</p>
+                  <p className="font-bold text-gold-dark">{formatDollars(selectedContest.prizePool)}</p>
                 </div>
                 <div>
                   <span className="text-wood-grain">Participants:</span>
@@ -829,13 +829,13 @@ export const ShootingContest: React.FC = () => {
 
             <div className="bg-wood-grain/5 p-3 rounded text-sm">
               <p>
-                <span className="text-wood-grain">Your Gold:</span>{' '}
-                <span className="font-bold">{formatGold(currentCharacter.gold)}</span>
+                <span className="text-wood-grain">Your Dollars:</span>{' '}
+                <span className="font-bold">{formatDollars(currentCharacter.gold)}</span>
               </p>
             </div>
 
             {currentCharacter.gold < selectedContest.entryFee && (
-              <p className="text-red-500 text-sm">Insufficient gold for entry fee!</p>
+              <p className="text-red-500 text-sm">Insufficient dollars for entry fee!</p>
             )}
 
             <div className="flex gap-3">
@@ -857,7 +857,7 @@ export const ShootingContest: React.FC = () => {
                 isLoading={isSubmitting}
                 loadingText="Registering..."
               >
-                Register ({formatGold(selectedContest.entryFee)})
+                Register ({formatDollars(selectedContest.entryFee)})
               </Button>
             </div>
           </div>
@@ -891,11 +891,11 @@ export const ShootingContest: React.FC = () => {
               </div>
               <div className="bg-wood-grain/10 p-3 rounded">
                 <span className="text-wood-grain">Entry Fee:</span>
-                <p className="font-bold text-gold-dark">{formatGold(selectedContest.entryFee)}</p>
+                <p className="font-bold text-gold-dark">{formatDollars(selectedContest.entryFee)}</p>
               </div>
               <div className="bg-wood-grain/10 p-3 rounded">
                 <span className="text-wood-grain">Prize Pool:</span>
-                <p className="font-bold text-gold-dark">{formatGold(selectedContest.prizePool)}</p>
+                <p className="font-bold text-gold-dark">{formatDollars(selectedContest.prizePool)}</p>
               </div>
               <div className="bg-wood-grain/10 p-3 rounded">
                 <span className="text-wood-grain">Rounds:</span>
@@ -974,134 +974,6 @@ function generateTargets(type: Contest['type']): Target[] {
   }
 
   return targets;
-}
-
-// Mock data functions
-function getMockContests(): Contest[] {
-  return [
-    {
-      _id: '1',
-      name: 'Quick Draw Championship',
-      description: 'Test your reflexes in this fast-paced competition',
-      type: 'quick_draw',
-      status: 'registering',
-      entryFee: 500,
-      prizePool: 2500,
-      maxParticipants: 16,
-      participants: [
-        { characterId: 'c1', characterName: 'Quick Pete', totalScore: 0, accuracy: 0, roundsCompleted: 0 },
-        { characterId: 'c2', characterName: 'Dusty Dan', totalScore: 0, accuracy: 0, roundsCompleted: 0 },
-      ],
-      totalRounds: 3,
-      currentRound: 0,
-      startTime: new Date(Date.now() + 3600000).toISOString(),
-    },
-    {
-      _id: '2',
-      name: 'Precision Masters',
-      description: 'Accuracy is everything in this demanding contest',
-      type: 'precision',
-      status: 'active',
-      entryFee: 1000,
-      prizePool: 5000,
-      maxParticipants: 8,
-      participants: [
-        { characterId: 'c1', characterName: 'Quick Pete', totalScore: 450, accuracy: 0.92, roundsCompleted: 2 },
-        { characterId: 'c3', characterName: 'Sage Sarah', totalScore: 420, accuracy: 0.88, roundsCompleted: 2 },
-      ],
-      totalRounds: 5,
-      currentRound: 3,
-      startTime: new Date(Date.now() - 1800000).toISOString(),
-    },
-    {
-      _id: '3',
-      name: 'Rapid Fire Showdown',
-      description: 'Speed and volume - hit as many targets as you can!',
-      type: 'rapid_fire',
-      status: 'completed',
-      entryFee: 750,
-      prizePool: 3750,
-      maxParticipants: 12,
-      participants: [
-        { characterId: 'c1', characterName: 'Quick Pete', totalScore: 890, accuracy: 0.78, roundsCompleted: 3, rank: 1 },
-        { characterId: 'c2', characterName: 'Dusty Dan', totalScore: 820, accuracy: 0.75, roundsCompleted: 3, rank: 2 },
-      ],
-      totalRounds: 3,
-      currentRound: 3,
-      startTime: new Date(Date.now() - 7200000).toISOString(),
-      endTime: new Date(Date.now() - 3600000).toISOString(),
-      winner: {
-        characterId: 'c1',
-        characterName: 'Quick Pete',
-        score: 890,
-      },
-    },
-  ];
-}
-
-function getMockPlayerStats(): PlayerStats {
-  return {
-    totalContests: 15,
-    wins: 5,
-    avgAccuracy: 0.82,
-    bestScore: 950,
-    totalEarnings: 12500,
-  };
-}
-
-function getMockLeaderboard(): LeaderboardEntry[] {
-  return [
-    {
-      rank: 1,
-      characterId: 'c1',
-      characterName: 'Quick Pete',
-      wins: 25,
-      totalContests: 40,
-      avgAccuracy: 0.92,
-      bestScore: 1250,
-      earnings: 75000,
-    },
-    {
-      rank: 2,
-      characterId: 'c2',
-      characterName: 'Sage Sarah',
-      wins: 22,
-      totalContests: 38,
-      avgAccuracy: 0.89,
-      bestScore: 1180,
-      earnings: 62000,
-    },
-    {
-      rank: 3,
-      characterId: 'c3',
-      characterName: 'Iron Mike',
-      wins: 18,
-      totalContests: 35,
-      avgAccuracy: 0.85,
-      bestScore: 1100,
-      earnings: 48000,
-    },
-    {
-      rank: 4,
-      characterId: 'c4',
-      characterName: 'Dusty Dan',
-      wins: 15,
-      totalContests: 32,
-      avgAccuracy: 0.82,
-      bestScore: 980,
-      earnings: 35000,
-    },
-    {
-      rank: 5,
-      characterId: 'c5',
-      characterName: 'Wild Will',
-      wins: 12,
-      totalContests: 28,
-      avgAccuracy: 0.78,
-      bestScore: 920,
-      earnings: 28000,
-    },
-  ];
 }
 
 export default ShootingContest;

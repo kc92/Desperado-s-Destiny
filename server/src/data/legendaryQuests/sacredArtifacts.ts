@@ -293,7 +293,7 @@ export const sacredArtifactsChain: LegendaryQuestChain = {
 
       questRewards: [
         { type: 'experience', amount: 12000 },
-        { type: 'gold', amount: 800 },
+        { type: 'dollars', amount: 800 },
         { type: 'item', itemId: 'artifact_sun_stone', quantity: 1, unique: true },
       ],
 
@@ -516,7 +516,7 @@ export const sacredArtifactsChain: LegendaryQuestChain = {
 
       questRewards: [
         { type: 'experience', amount: 15000 },
-        { type: 'gold', amount: 1000 },
+        { type: 'dollars', amount: 1000 },
         { type: 'item', itemId: 'artifact_flame_heart', quantity: 1, unique: true },
       ],
 
@@ -575,7 +575,7 @@ export const sacredArtifactsChain: LegendaryQuestChain = {
       milestone: 7,
       description: 'Recovered all seven sacred artifacts',
       rewards: [
-        { type: 'gold', amount: 10000 },
+        { type: 'dollars', amount: 10000 },
         { type: 'skill_points', amount: 20 },
       ],
     },

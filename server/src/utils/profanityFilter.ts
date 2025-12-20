@@ -2,7 +2,14 @@
  * Profanity Filter Utility
  *
  * Filters profanity and offensive language from chat messages
+ * H6 SECURITY FIX: Protected against ReDoS attacks with input limits and optimizations
  */
+
+import logger from './logger';
+
+// H6 SECURITY FIX: Constants to prevent DoS attacks
+const MAX_INPUT_LENGTH = 2000; // Maximum message length to process
+const MAX_PROCESSING_TIME_MS = 100; // Maximum time to spend filtering (soft limit)
 
 /**
  * Comprehensive list of profanity and offensive terms
@@ -95,8 +102,15 @@ const SIMPLE_PATTERNS: RegExp[] = PROFANITY_LIST.map(word => {
 });
 
 /**
+ * H6 SECURITY FIX: Fast lookup set for initial filtering
+ * Allows O(1) word checks before running expensive regex
+ */
+const PROFANITY_SET: Set<string> = new Set(PROFANITY_LIST.map(w => w.toLowerCase()));
+
+/**
  * Filter profanity from content
  * Replaces profane words with asterisks
+ * H6 SECURITY FIX: Protected against ReDoS with input length limits
  *
  * @param content - The message content to filter
  * @returns Filtered content with profanity replaced by asterisks
@@ -106,13 +120,35 @@ export function filterProfanity(content: string): string {
     return content;
   }
 
+  // H6 SECURITY FIX: Truncate excessively long input to prevent DoS
   let filtered = content;
+  if (filtered.length > MAX_INPUT_LENGTH) {
+    logger.warn(`[SECURITY] Profanity filter input truncated from ${content.length} to ${MAX_INPUT_LENGTH} chars`);
+    filtered = filtered.substring(0, MAX_INPUT_LENGTH);
+  }
+
+  const startTime = Date.now();
+
+  // H6 SECURITY FIX: Fast pre-check using Set - only run full regex if potential match found
+  const words = filtered.toLowerCase().split(/\s+/);
+  const hasPotentialProfanity = words.some(word => PROFANITY_SET.has(word));
+
+  // If no obvious profanity, skip expensive regex (optimization)
+  if (!hasPotentialProfanity && !containsLeetSpeak(filtered)) {
+    return filtered;
+  }
 
   // First pass: simple exact matches (faster)
   for (const pattern of SIMPLE_PATTERNS) {
     filtered = filtered.replace(pattern, (match) => {
       return '*'.repeat(match.length);
     });
+
+    // H6 SECURITY FIX: Soft timeout check to prevent excessive processing
+    if (Date.now() - startTime > MAX_PROCESSING_TIME_MS) {
+      logger.warn(`[SECURITY] Profanity filter timeout exceeded, returning partial result`);
+      return filtered;
+    }
   }
 
   // Second pass: l33t speak variations (more thorough)
@@ -120,13 +156,29 @@ export function filterProfanity(content: string): string {
     filtered = filtered.replace(pattern, (match) => {
       return '*'.repeat(match.length);
     });
+
+    // H6 SECURITY FIX: Soft timeout check
+    if (Date.now() - startTime > MAX_PROCESSING_TIME_MS) {
+      logger.warn(`[SECURITY] Profanity filter timeout exceeded during l33t check, returning partial result`);
+      return filtered;
+    }
   }
 
   return filtered;
 }
 
 /**
+ * H6 SECURITY FIX: Quick check for l33t speak characters
+ * Avoids running expensive regex if no l33t characters present
+ */
+function containsLeetSpeak(content: string): boolean {
+  // Check for common l33t substitution characters
+  return /[0-9@$!|+]/.test(content);
+}
+
+/**
  * Check if content contains profanity
+ * H6 SECURITY FIX: Protected against ReDoS with input length limits
  *
  * @param content - The message content to check
  * @returns True if profanity detected, false otherwise
@@ -136,17 +188,47 @@ export function containsProfanity(content: string): boolean {
     return false;
   }
 
+  // H6 SECURITY FIX: Truncate excessively long input
+  const checkContent = content.length > MAX_INPUT_LENGTH
+    ? content.substring(0, MAX_INPUT_LENGTH)
+    : content;
+
+  // H6 SECURITY FIX: Fast pre-check using Set
+  const words = checkContent.toLowerCase().split(/\s+/);
+  if (words.some(word => PROFANITY_SET.has(word))) {
+    return true;
+  }
+
+  // If no l33t speak characters, no need for expensive regex
+  if (!containsLeetSpeak(checkContent)) {
+    return false;
+  }
+
+  const startTime = Date.now();
+
   // Check simple patterns first (faster)
   for (const pattern of SIMPLE_PATTERNS) {
-    if (pattern.test(content)) {
+    if (pattern.test(checkContent)) {
       return true;
+    }
+
+    // H6 SECURITY FIX: Timeout check
+    if (Date.now() - startTime > MAX_PROCESSING_TIME_MS) {
+      logger.warn(`[SECURITY] Profanity check timeout, assuming no profanity`);
+      return false;
     }
   }
 
   // Check l33t speak variations
   for (const pattern of PROFANITY_PATTERNS) {
-    if (pattern.test(content)) {
+    if (pattern.test(checkContent)) {
       return true;
+    }
+
+    // H6 SECURITY FIX: Timeout check
+    if (Date.now() - startTime > MAX_PROCESSING_TIME_MS) {
+      logger.warn(`[SECURITY] Profanity check timeout during l33t check, assuming no profanity`);
+      return false;
     }
   }
 

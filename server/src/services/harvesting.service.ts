@@ -17,7 +17,9 @@ import {
   HUNTING_CONSTANTS,
   HarvestResource
 } from '@desperados/shared';
+import { EnergyService } from './energy.service';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 export class HarvestingService {
   /**
@@ -139,13 +141,13 @@ export class HarvestingService {
         }
 
         // Roll for success
-        const successRoll = Math.random();
+        const successRoll = SecureRNG.float(0, 1);
         const adjustedChance = resource.successChance + (skinningBonus / 100);
 
         if (successRoll <= adjustedChance) {
           // Calculate quantity with variation
           const baseQty = resource.baseQuantity;
-          const variation = Math.floor(Math.random() * (resource.quantityVariation * 2 + 1)) - resource.quantityVariation;
+          const variation = SecureRNG.range(-resource.quantityVariation, resource.quantityVariation);
           const quantity = Math.max(1, baseQty + variation);
 
           // Calculate value with quality multiplier
@@ -177,12 +179,12 @@ export class HarvestingService {
       }
 
       // Spend energy
-      character.spendEnergy(HUNTING_CONSTANTS.HARVESTING_ENERGY);
+      await EnergyService.spendEnergy(character._id.toString(), HUNTING_CONSTANTS.HARVESTING_ENERGY, 'harvest_animal', session);
       trip.energySpent += HUNTING_CONSTANTS.HARVESTING_ENERGY;
 
-      // Award gold and XP
+      // Award dollars and XP
       const xpGained = Math.floor(animalDef.xpReward * qualityMultiplier);
-      await character.addGold(totalValue, 'HUNTING' as any, { animalSpecies: trip.targetAnimal, quality });
+      await character.addDollars(totalValue, 'HUNTING' as any, { animalSpecies: trip.targetAnimal, quality });
       await character.addExperience(xpGained);
 
       trip.goldEarned = totalValue;
@@ -229,7 +231,7 @@ export class HarvestingService {
 
       logger.info(
         `Character ${characterId} harvested ${trip.targetAnimal} with ${quality} quality, ` +
-        `earning ${totalValue} gold and ${xpGained} XP`
+        `earning ${totalValue} dollars and ${xpGained} XP`
       );
 
       return result;

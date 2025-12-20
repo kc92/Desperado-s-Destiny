@@ -6,6 +6,7 @@
 
 import { Component, ErrorInfo, ReactNode } from 'react';
 import * as Sentry from '@sentry/react';
+import { logger } from '@/services/logger.service';
 
 interface Props {
   children: ReactNode;
@@ -37,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log to console for development
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ErrorBoundary caught an error', error, { context: 'ErrorBoundary', componentStack: errorInfo.componentStack });
 
     // Capture exception with Sentry and include component stack
     Sentry.withScope((scope) => {

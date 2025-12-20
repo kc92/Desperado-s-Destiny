@@ -6,6 +6,7 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 import { WorkerSpecialization, WorkerTrait } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Property Worker document interface
@@ -371,8 +372,7 @@ PropertyWorkerSchema.methods.updateMorale = function (
 
   // Very low morale may trigger strike
   if (this.morale < 10 && !this.isOnStrike) {
-    const strikeChance = Math.random();
-    if (strikeChance < 0.5) {
+    if (SecureRNG.chance(0.5)) {
       this.isOnStrike = true;
       this.strikeReason = 'Low morale - worker demands better conditions';
     }

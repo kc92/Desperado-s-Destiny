@@ -1,31 +1,27 @@
 /**
- * Bounty Cleanup CRON Job
+ * Bounty Cleanup Job Functions
  *
  * Handles periodic bounty maintenance:
  * - Expires old bounties
  * - Decays faction bounties over time
- * - Updates wanted levels
+ *
+ * NOTE: Scheduling is handled by Bull queues in queues.ts
+ * This file only contains job logic functions
  */
 
-import cron, { ScheduledTask } from 'node-cron';
 import { BountyService } from '../services/bounty.service';
+import { withLock } from '../utils/distributedLock';
 import logger from '../utils/logger';
 
-let cleanupJob: ScheduledTask | null = null;
-let decayJob: ScheduledTask | null = null;
-
 /**
- * Initialize bounty expiration job
- * Runs every 15 minutes to expire old bounties
+ * Run bounty expiration job
+ * Called by Bull queue - scheduling handled in queues.ts
  */
-export function initializeBountyExpirationJob(): void {
-  if (cleanupJob) {
-    logger.warn('Bounty expiration job already initialized');
-    return;
-  }
+export async function runBountyExpiration(): Promise<number> {
+  const lockKey = 'job:bounty-expiration';
 
-  cleanupJob = cron.schedule('*/15 * * * *', async () => {
-    try {
+  try {
+    return await withLock(lockKey, async () => {
       logger.info('Running bounty expiration job...');
       const startTime = Date.now();
 
@@ -35,29 +31,31 @@ export function initializeBountyExpirationJob(): void {
       logger.info(
         `Bounty expiration complete. Expired ${expired} bounties in ${duration}ms`
       );
-    } catch (error) {
-      logger.error('Bounty expiration job failed:', error);
-    }
-  }, {
-    timezone: 'UTC',
-  });
 
-  logger.info('Bounty expiration CRON job initialized (runs every 15 minutes)');
+      return expired;
+    }, {
+      ttl: 900, // 15 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
+  } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('Bounty expiration job already running on another instance, skipping');
+      return 0;
+    }
+    logger.error('Bounty expiration job failed:', error);
+    throw error;
+  }
 }
 
 /**
- * Initialize bounty decay job
- * Runs once per day at midnight to decay faction bounties
+ * Run bounty decay job
+ * Called by Bull queue - scheduling handled in queues.ts
  */
-export function initializeBountyDecayJob(): void {
-  if (decayJob) {
-    logger.warn('Bounty decay job already initialized');
-    return;
-  }
+export async function runBountyDecay(): Promise<{ bountiesDecayed: number; totalReduced: number }> {
+  const lockKey = 'job:bounty-decay';
 
-  // Run at midnight UTC every day
-  decayJob = cron.schedule('0 0 * * *', async () => {
-    try {
+  try {
+    return await withLock(lockKey, async () => {
       logger.info('Running bounty decay job...');
       const startTime = Date.now();
 
@@ -68,46 +66,21 @@ export function initializeBountyDecayJob(): void {
         `Bounty decay complete. Decayed ${result.bountiesDecayed} bounties, ` +
         `reduced ${result.totalReduced} gold in ${duration}ms`
       );
-    } catch (error) {
-      logger.error('Bounty decay job failed:', error);
+
+      return result;
+    }, {
+      ttl: 1800, // 30 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
+  } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('Bounty decay job already running on another instance, skipping');
+      return { bountiesDecayed: 0, totalReduced: 0 };
     }
-  }, {
-    timezone: 'UTC',
-  });
-
-  logger.info('Bounty decay CRON job initialized (runs daily at midnight UTC)');
-}
-
-/**
- * Initialize all bounty CRON jobs
- */
-export function initializeBountyJobs(): void {
-  initializeBountyExpirationJob();
-  initializeBountyDecayJob();
-  logger.info('All bounty CRON jobs initialized');
-}
-
-/**
- * Stop all bounty CRON jobs
- * Called during graceful shutdown
- */
-export function stopBountyJobs(): void {
-  if (cleanupJob) {
-    cleanupJob.stop();
-    cleanupJob = null;
-    logger.info('Bounty expiration CRON job stopped');
-  }
-
-  if (decayJob) {
-    decayJob.stop();
-    decayJob = null;
-    logger.info('Bounty decay CRON job stopped');
+    logger.error('Bounty decay job failed:', error);
+    throw error;
   }
 }
 
-/**
- * Check if CRON jobs are running
- */
-export function areBountyJobsRunning(): boolean {
-  return cleanupJob !== null && decayJob !== null;
-}
+// NOTE: Scheduling is now handled by Bull queues in queues.ts
+// Bull calls BountyService.expireOldBounties() and BountyService.decayBounties() directly

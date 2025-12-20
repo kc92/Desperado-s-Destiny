@@ -8,13 +8,12 @@ import { Modal, Button, Card } from '@/components/ui';
 import {
   ListingType,
   ListingDuration,
-  MarketItem,
   ItemRarity,
   MARKETPLACE_TAX_RATE,
   DURATION_HOURS,
 } from '@/hooks/useMarketplace';
 import { InventoryItemWithDetails } from '@/hooks/useShop';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 
 interface CreateListingModalProps {
   isOpen: boolean;
@@ -376,7 +375,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
             <div className="flex justify-between">
               <span className="text-wood-grain">Marketplace Tax (5%):</span>
               <span className="text-blood-red font-semibold">
-                -{formatGold(listingFee)}
+                -{formatDollars(listingFee)}
               </span>
             </div>
             <div className="flex justify-between border-t border-wood-grain/30 pt-2">
@@ -384,7 +383,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                 {listingType === 'auction' ? 'Min. Earnings (if sold at start)' : 'Your Earnings'}:
               </span>
               <span className="text-green-600 font-bold">
-                {formatGold(Math.max(0, potentialEarnings))}
+                {formatDollars(Math.max(0, potentialEarnings))}
               </span>
             </div>
           </div>

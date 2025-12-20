@@ -18,6 +18,7 @@ import {
 import { getAllHolidays, getHolidayForDate } from '../data/holidays';
 import { getSeasonalEffects } from '../data/seasonalEffects';
 import { calculateMoonPhase } from '../data/moonPhases';
+import logger from '../utils/logger';
 
 /**
  * Time conversion constants
@@ -136,7 +137,7 @@ class CalendarService {
 
     await calendar.save();
 
-    console.log(
+    logger.info(
       `[Calendar] Advanced to ${this.formatDate(calendar.getCurrentDate())} (${calendar.currentSeason})`
     );
   }
@@ -152,7 +153,7 @@ class CalendarService {
 
     if (holiday) {
       calendar.activeHolidayId = holiday.id;
-      console.log(`[Calendar] Holiday active: ${holiday.name}`);
+      logger.info(`[Calendar] Holiday active: ${holiday.name}`);
     } else {
       calendar.activeHolidayId = undefined;
     }
@@ -257,7 +258,7 @@ class CalendarService {
       calendar.currentMonth !== expected.expectedMonth ||
       calendar.currentWeek !== expected.expectedWeek
     ) {
-      console.log('[Calendar] Syncing calendar with real time...');
+      logger.info('[Calendar] Syncing calendar with real time...');
 
       calendar.currentYear = expected.expectedYear;
       calendar.currentMonth = expected.expectedMonth;
@@ -289,7 +290,7 @@ class CalendarService {
 
       await calendar.save();
 
-      console.log(`[Calendar] Synced to ${this.formatDate(calendar.getCurrentDate())}`);
+      logger.info(`[Calendar] Synced to ${this.formatDate(calendar.getCurrentDate())}`);
     }
   }
 
@@ -302,7 +303,7 @@ class CalendarService {
     calendar.scheduledEvents.push(event);
     await calendar.save();
 
-    console.log(`[Calendar] Added scheduled event: ${event.name}`);
+    logger.info(`[Calendar] Added scheduled event: ${event.name}`);
   }
 
   /**
@@ -403,7 +404,7 @@ class CalendarService {
     calendar.advanceTime(days);
     await calendar.save();
 
-    console.log(`[Calendar] Force advanced ${days} days`);
+    logger.info(`[Calendar] Force advanced ${days} days`);
   }
 }
 

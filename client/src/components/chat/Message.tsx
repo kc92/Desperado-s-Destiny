@@ -1,20 +1,23 @@
 /**
  * Message Component
  *
- * Displays individual chat messages with faction styling and context menu
+ * Displays individual chat messages with faction styling and context menu.
+ * Supports optimistic updates with pending/failed status indicators.
  */
 
 import { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '@desperados/shared';
+import type { ClientChatMessage } from '@/store/useChatStore';
 import { formatRelativeTime, formatAbsoluteTime, getFactionBgClass, getUserInitials } from '@/utils/chat.utils';
 
 interface MessageProps {
-  message: ChatMessage;
+  message: ChatMessage | ClientChatMessage;
   isGrouped: boolean;
   currentUsername?: string;
   timestampFormat: 'relative' | 'absolute';
   onReport: (messageId: string) => void;
   onWhisper: (userId: string, username: string, faction?: string) => void;
+  onRetry?: (clientId: string) => void;
 }
 
 export function Message({
@@ -24,11 +27,19 @@ export function Message({
   timestampFormat,
   onReport,
   onWhisper,
+  onRetry,
 }: MessageProps) {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
   const isOwnMessage = message.senderName === currentUsername;
+
+  // Check for optimistic update status
+  const clientMessage = message as ClientChatMessage;
+  const isPending = clientMessage._status === 'pending';
+  const isFailed = clientMessage._status === 'failed';
+  const clientId = clientMessage._clientId;
+  const errorMessage = clientMessage._error;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -99,14 +110,21 @@ export function Message({
     );
   }
 
+  // Handle retry for failed messages
+  const handleRetry = () => {
+    if (clientId && onRetry) {
+      onRetry(clientId);
+    }
+  };
+
   return (
     <div
       className={`px-4 py-2 hover:bg-wood-darker hover:bg-opacity-10 transition-colors ${
         isGrouped ? 'pt-1' : 'pt-3'
-      }`}
+      } ${isPending ? 'opacity-60' : ''} ${isFailed ? 'bg-blood-red/5' : ''}`}
       onContextMenu={handleContextMenu}
       role="article"
-      aria-label={`Message from ${message.senderName}`}
+      aria-label={`Message from ${message.senderName}${isPending ? ', sending' : ''}${isFailed ? ', failed to send' : ''}`}
     >
       <div className="flex gap-3">
         {!isGrouped && (
@@ -148,6 +166,34 @@ export function Message({
           <div className="text-sm text-wood-dark break-words whitespace-pre-wrap">
             {highlightMentions(message.content)}
           </div>
+
+          {/* Optimistic update status indicators */}
+          {isPending && (
+            <div className="flex items-center gap-1 mt-1 text-xs text-wood-grain">
+              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>Sending...</span>
+            </div>
+          )}
+
+          {isFailed && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-blood-red">
+                Failed to send{errorMessage ? `: ${errorMessage}` : ''}
+              </span>
+              {onRetry && clientId && (
+                <button
+                  onClick={handleRetry}
+                  className="text-xs text-gold-medium hover:text-gold-light underline"
+                  aria-label="Retry sending message"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

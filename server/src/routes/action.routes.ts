@@ -8,6 +8,7 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { requireAuth } from '../middleware/auth.middleware';
 import { preventActionsWhileJailed } from '../middleware/jail.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
 import {
   performChallenge,
   getActions,
@@ -21,6 +22,8 @@ import {
   forfeitActionGame
 } from '../controllers/actionDeck.controller';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { detectSuspiciousEarning } from '../middleware/antiExploit.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -45,25 +48,25 @@ const challengeLimiter = rateLimit({
  */
 
 // Perform a Destiny Deck challenge (jail check applied)
-router.post('/challenge', requireAuth, preventActionsWhileJailed, challengeLimiter, performChallenge);
+router.post('/challenge', requireAuth, requireCsrfToken, preventActionsWhileJailed, challengeLimiter, asyncHandler(performChallenge));
 
 // Get all available actions
-router.get('/', requireAuth, getActions);
+router.get('/', requireAuth, asyncHandler(getActions));
 
 // Get single action by ID
-router.get('/:id', requireAuth, getAction);
+router.get('/:id', requireAuth, asyncHandler(getAction));
 
 // Get action history for a character
-router.get('/history/:characterId', requireAuth, getActionHistory);
+router.get('/history/:characterId', requireAuth, asyncHandler(getActionHistory));
 
 /**
  * Interactive Deck Game Action Routes
  * New system with player agency
  */
 
-router.post('/start', requireAuth, requireCharacter, preventActionsWhileJailed, challengeLimiter, startAction);
-router.post('/play', requireAuth, requireCharacter, challengeLimiter, playAction);
-router.get('/game/:gameId', requireAuth, requireCharacter, getActionGame);
-router.post('/game/:gameId/forfeit', requireAuth, requireCharacter, forfeitActionGame);
+router.post('/start', requireAuth, requireCsrfToken, requireCharacter, preventActionsWhileJailed, challengeLimiter, detectSuspiciousEarning(), asyncHandler(startAction));
+router.post('/play', requireAuth, requireCsrfToken, requireCharacter, challengeLimiter, detectSuspiciousEarning(), asyncHandler(playAction));
+router.get('/game/:gameId', requireAuth, requireCharacter, asyncHandler(getActionGame));
+router.post('/game/:gameId/forfeit', requireAuth, requireCsrfToken, requireCharacter, asyncHandler(forfeitActionGame));
 
 export default router;

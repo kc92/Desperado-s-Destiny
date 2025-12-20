@@ -1,30 +1,34 @@
 /**
  * Energy Store
- * Manages energy state and regeneration
+ * Manages energy state synchronized with server
+ *
+ * IMPORTANT: Server is authoritative for energy values.
+ * This store is for UI display and optimistic updates only.
+ * All energy changes must go through the server.
  */
 
 import { create } from 'zustand';
 import { characterService } from '@/services/character.service';
+import { logger } from '@/services/logger.service';
 
 interface EnergyState {
   currentEnergy: number;
   maxEnergy: number;
   regenRate: number;
-  lastUpdate: Date;
+  lastUpdate: Date; // Server's last update time, not client time
   isPremium: boolean;
+  isOptimistic: boolean; // True if showing optimistic update, awaiting server confirmation
 }
 
 interface EnergyStore {
   // State
   energy: EnergyState | null;
-  energyTimerId: NodeJS.Timeout | null;
 
   // Actions
-  initializeEnergy: (current: number, max: number, regenRate: number, isPremium?: boolean) => void;
-  updateEnergy: (current: number) => void;
-  deductEnergy: (cost: number) => void;
-  startEnergyTimer: () => void;
-  stopEnergyTimer: () => void;
+  initializeEnergy: (current: number, max: number, regenRate: number, lastUpdate?: Date, isPremium?: boolean) => void;
+  updateEnergy: (current: number, serverTimestamp?: Date) => void;
+  applyOptimisticDeduct: (cost: number) => void;
+  confirmServerState: (current: number, max: number, serverTimestamp: Date) => void;
   syncEnergyWithBackend: (characterId: string) => Promise<void>;
   clearEnergyState: () => void;
 }
@@ -32,23 +36,27 @@ interface EnergyStore {
 export const useEnergyStore = create<EnergyStore>((set, get) => ({
   // Initial state
   energy: null,
-  energyTimerId: null,
 
-  initializeEnergy: (current: number, max: number, regenRate: number, isPremium: boolean = false) => {
+  initializeEnergy: (
+    current: number,
+    max: number,
+    regenRate: number,
+    lastUpdate?: Date,
+    isPremium: boolean = false
+  ) => {
     set({
       energy: {
         currentEnergy: current,
         maxEnergy: max,
         regenRate,
-        lastUpdate: new Date(),
+        lastUpdate: lastUpdate || new Date(),
         isPremium,
+        isOptimistic: false,
       },
     });
-
-    get().startEnergyTimer();
   },
 
-  updateEnergy: (current: number) => {
+  updateEnergy: (current: number, serverTimestamp?: Date) => {
     set((state) => {
       if (!state.energy) return state;
 
@@ -56,13 +64,18 @@ export const useEnergyStore = create<EnergyStore>((set, get) => ({
         energy: {
           ...state.energy,
           currentEnergy: current,
-          lastUpdate: new Date(),
+          lastUpdate: serverTimestamp || state.energy.lastUpdate,
+          isOptimistic: false,
         },
       };
     });
   },
 
-  deductEnergy: (cost: number) => {
+  /**
+   * Apply an optimistic deduction for immediate UI feedback.
+   * This will be overwritten when server confirms the actual value.
+   */
+  applyOptimisticDeduct: (cost: number) => {
     set((state) => {
       if (!state.energy) return state;
 
@@ -70,53 +83,30 @@ export const useEnergyStore = create<EnergyStore>((set, get) => ({
         energy: {
           ...state.energy,
           currentEnergy: Math.max(0, state.energy.currentEnergy - cost),
-          lastUpdate: new Date(),
+          isOptimistic: true,
         },
       };
     });
   },
 
-  startEnergyTimer: () => {
-    const { energyTimerId, stopEnergyTimer } = get();
+  /**
+   * Confirm energy state from server response.
+   * This replaces any optimistic updates with actual values.
+   */
+  confirmServerState: (current: number, max: number, serverTimestamp: Date) => {
+    set((state) => {
+      if (!state.energy) return state;
 
-    if (energyTimerId) {
-      stopEnergyTimer();
-    }
-
-    const timer = setInterval(() => {
-      set((state) => {
-        if (!state.energy) return state;
-
-        const { currentEnergy, maxEnergy, regenRate, lastUpdate } = state.energy;
-
-        if (currentEnergy >= maxEnergy) return state;
-
-        const now = new Date();
-        const elapsedMs = now.getTime() - lastUpdate.getTime();
-        const regenPerMs = regenRate / (60 * 60 * 1000);
-        const regenAmount = elapsedMs * regenPerMs;
-        const newEnergy = Math.min(currentEnergy + regenAmount, maxEnergy);
-
-        return {
-          energy: {
-            ...state.energy,
-            currentEnergy: newEnergy,
-            lastUpdate: now,
-          },
-        };
-      });
-    }, 1000);
-
-    set({ energyTimerId: timer });
-  },
-
-  stopEnergyTimer: () => {
-    const { energyTimerId } = get();
-
-    if (energyTimerId) {
-      clearInterval(energyTimerId);
-      set({ energyTimerId: null });
-    }
+      return {
+        energy: {
+          ...state.energy,
+          currentEnergy: current,
+          maxEnergy: max,
+          lastUpdate: serverTimestamp,
+          isOptimistic: false,
+        },
+      };
+    });
   },
 
   syncEnergyWithBackend: async (characterId: string) => {
@@ -128,29 +118,28 @@ export const useEnergyStore = create<EnergyStore>((set, get) => ({
       if (response.success && response.data) {
         const character = response.data.character;
 
-        set((state) => {
-          if (!state.energy) return state;
-
-          return {
-            energy: {
-              ...state.energy,
-              currentEnergy: character.energy,
-              maxEnergy: character.maxEnergy,
-              lastUpdate: new Date(),
-            },
-          };
+        set({
+          energy: {
+            currentEnergy: character.energy,
+            maxEnergy: character.maxEnergy,
+            regenRate: character.energyRegenRate || 1,
+            // Use server's lastEnergyUpdate timestamp if available
+            lastUpdate: character.lastEnergyUpdate
+              ? new Date(character.lastEnergyUpdate)
+              : new Date(),
+            isPremium: character.isPremium || false,
+            isOptimistic: false,
+          },
         });
       }
     } catch (error) {
-      console.error('Failed to sync energy with backend:', error);
+      logger.error('Failed to sync energy with backend', error as Error, { characterId });
     }
   },
 
   clearEnergyState: () => {
-    get().stopEnergyTimer();
     set({
       energy: null,
-      energyTimerId: null,
     });
   },
 }));

@@ -6,6 +6,8 @@
  */
 
 import { ContractType, ContractDifficulty, ContractTarget, ContractRequirements, ContractRewards } from '../models/DailyContract.model';
+import logger from '../utils/logger';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Contract template definition
@@ -940,7 +942,7 @@ export function getTemplatesByDifficulty(difficulty: ContractDifficulty): Contra
  * Get random element from array
  */
 export function getRandomElement<T>(array: T[]): T {
-  return array[Math.floor(Math.random() * array.length)];
+  return SecureRNG.select(array);
 }
 
 /**
@@ -1025,4 +1027,4 @@ export function scaleRewards(
 
 // Export template count for verification
 export const TEMPLATE_COUNT = ALL_CONTRACT_TEMPLATES.length;
-console.log(`Contract Templates Loaded: ${TEMPLATE_COUNT} templates (Expected: 67)`);
+logger.info(`Contract Templates Loaded: ${TEMPLATE_COUNT} templates (Expected: 67)`);

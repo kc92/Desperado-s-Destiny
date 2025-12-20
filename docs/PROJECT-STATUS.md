@@ -1,15 +1,15 @@
 # PROJECT STATUS DASHBOARD
 ## Desperados Destiny MMORPG
 
-**Last Updated:** November 24, 2025 (Post-Audit)
-**Current Phase:** Launch Preparation
-**Backend Progress:** ~98% to MVP (Production-ready)
-**Frontend Progress:** ~97% to MVP (Nearly all features complete!)
-**Overall Progress:** ~97-98% to MVP
+**Last Updated:** December 14, 2025
+**Current Phase:** Production Hardening Complete - Ready for Beta
+**Overall Progress:** 97% to Launch
+**Backend Progress:** 98% Complete
+**Frontend Progress:** 97% Complete
 
 ---
 
-## 🎮 PROJECT OVERVIEW
+## PROJECT OVERVIEW
 
 **Game:** Browser-based persistent MMORPG
 **Setting:** Mythic Wild West, 1875 Sangre Territory
@@ -20,447 +20,391 @@
 
 ---
 
-## ✅ COMPLETED FEATURES
+## VERIFIED CODEBASE METRICS (December 14, 2025)
 
-### Sprint 1: Foundation ✅ (100% Complete)
-- [x] Complete Docker development environment (4 services)
-- [x] Backend foundation (Express, MongoDB, Redis, TypeScript)
-- [x] Frontend foundation (React, Vite, TailwindCSS)
-- [x] Western UI theme (custom colors, fonts, animations)
-- [x] Shared types package (@desperados/shared)
-- [x] **Destiny Deck poker engine** (42 tests passing)
-- [x] Testing infrastructure (Jest, Vitest, helpers)
-- [x] One-command setup (npm run dev)
-- [x] MongoDB replica set for transactions
-- [x] Production-ready infrastructure
+### Backend Implementation
+| Category | Count | Lines of Code |
+|----------|-------|---------------|
+| Services | 149+ | ~80,000 |
+| Controllers | 91 | ~32,000 |
+| Models | 101 | ~37,000 |
+| Routes | 87 | ~5,000 |
+| Socket Handlers | 2 | ~2,000 |
+| Middleware | 21 | ~3,000 |
+| Background Jobs | 16 | ~2,000 |
+| **Backend Total** | **467+ files** | **~160,000 LOC** |
 
-### Sprint 2: Auth & Characters ✅ (100% Complete)
-- [x] User authentication (7 endpoints)
-- [x] JWT in httpOnly cookies
-- [x] Email verification flow
-- [x] Password reset flow
-- [x] Character creation (5 endpoints)
-- [x] 3-faction system (Settler, Nahi, Frontera)
-- [x] Energy system with regeneration
-- [x] Beautiful character creator UI
-- [x] Character management (CRUD)
-- [x] Integration tests (60+ scenarios)
-- [x] Verified test user with character
+### Frontend Implementation
+| Category | Count |
+|----------|-------|
+| Pages | 52 |
+| Zustand Stores | 23 |
+| Custom Hooks | 50+ |
+| Services | 15 |
+| Component Directories | 28 |
+| **Frontend Total** | **~300 files** |
 
-### Sprint 3: Destiny Deck & Skills ✅ (100% Backend, 100% Frontend)
-#### Backend Complete:
-- [x] Action system with Destiny Deck resolution
-- [x] Action model and controller
-- [x] Skill system backend (15+ skills)
-- [x] Time-based offline skill training
-- [x] Skill bonuses integrated with Destiny Deck
-- [x] Action routes and services
-- [x] 30+ tests
+### Shared Package
+| Category | Count |
+|----------|-------|
+| Type Files | 73 |
+| Constant Files | 6 |
 
-#### Frontend Complete:
-- [x] Skills page with beautiful western UI
-- [x] SkillCard component with progress tracking
-- [x] Real-time training countdown
-- [x] Skill bonus summary
-- [x] Category filtering
-- [x] Actions page with energy management
-- [x] Success rate calculation
-
-#### Frontend Complete:
-- [x] Destiny Deck card UI with flip animations ✅ NEW
-- [x] Card hand display after action ✅ NEW
-- [x] Poker hand evaluation visualization ✅ NEW
-- [x] Hand strength banner component ✅ NEW
-- [x] Suit bonus indicators ✅ NEW
-- [x] Victory/defeat celebration effects ✅ NEW
-- [x] Sound infrastructure (ready for audio assets) ✅ NEW
-- [x] Screen reader accessibility ✅ NEW
-- [x] Animation preferences system ✅ NEW
-
-### Sprint 4: Combat, Crimes & Gold ✅ (100% Backend, 90% Frontend)
-#### Backend Complete:
-- [x] Combat system (PvE)
-- [x] NPC encounters with AI
-- [x] Combat damage and HP system
-- [x] Loot/rewards system
-- [x] Crime system (10+ crime types)
-- [x] Wanted level system
-- [x] Jail mechanics with bail
-- [x] Bounty hunting system
-- [x] Gold economy with transaction audit
-- [x] 15+ transaction sources
-- [x] 50+ tests
-
-#### Frontend Complete:
-- [x] Combat page with NPC selection
-- [x] Crimes page **connected to real backend** ✅ NEW
-- [x] Wanted level display
-- [x] Jail screen overlay
-- [x] Bounty board
-- [x] Lay low mechanics
-- [x] Gold transaction history
-
-### Sprint 5: Social Features ✅ (100% Backend, 95% Frontend)
-#### Backend Complete:
-- [x] Real-time chat (Socket.io)
-- [x] 4 chat room types (global, faction, gang, local)
-- [x] Gang system (create, join, manage)
-- [x] Gang hierarchy (leader, officer, member, recruit)
-- [x] Gang treasury with 4 upgrades
-- [x] Territory system (12 territories)
-- [x] Gang wars with contribution tracking
-- [x] Mail system with gold transfers
-- [x] Friend system with online status
-- [x] Notification system (8 types)
-- [x] Real-time presence tracking
-- [x] Profanity filter
-- [x] Chat rate limiting
-- [x] 280+ tests
-
-#### Frontend Complete:
-- [x] Chat system **fully functional with Socket.io** ✅
-- [x] Gang page **production-ready with war system** ✅
-- [x] Territory page **production-ready** ✅
-- [x] Leaderboard page **production-ready** ✅
-- [x] Mail system **production-ready** (inbox, sent, gold attachments) ✅
-- [x] Friends system **production-ready** (requests, online status, block) ✅
-- [x] Notification system **complete** ✅
-- [x] Real-time presence tracking ✅
-
-### Sprint 6: Economy & Progression ✅ (100% Backend, 100% Frontend)
-**Status:** PRODUCTION READY (Previously undocumented!)
-
-#### Shop & Inventory System ✅
-- [x] Complete shop page (7 backend endpoints)
-- [x] Complete inventory page (420 lines)
-- [x] Equipment system (6 slots: weapon, head, body, feet, mount, accessory)
-- [x] Item types: weapon, armor, consumable, mount, material, quest
-- [x] Rarity system: common → uncommon → rare → epic → legendary
-- [x] Buy/sell functionality with level requirements
-- [x] Equip/unequip system with stat bonuses
-- [x] Use consumables (health potions, buffs)
-- [x] Beautiful rarity-based UI with visual effects
-
-#### Quest System ✅
-- [x] Complete quest log page (5 backend endpoints)
-- [x] 3 tabs: active, available, completed
-- [x] Quest types: main, side, daily, weekly, event
-- [x] Objective tracking with progress bars
-- [x] Quest acceptance/abandonment
-- [x] Reward system (gold, XP, items, reputation)
-- [x] Time-limited quests with countdowns
-- [x] Repeatable quests
-
-#### Achievement System ✅
-- [x] Complete achievements page (2 backend endpoints)
-- [x] 6 categories: combat, crime, social, economy, exploration, special
-- [x] 4 tiers: bronze, silver, gold, legendary
-- [x] Progress tracking with visual bars
-- [x] Claim rewards system
-- [x] Recently completed section
-- [x] Achievement notifications
-
-### Sprint 7: World & Exploration ✅ (100% Backend, 100% Frontend)
-**Status:** PRODUCTION READY (Previously undocumented!)
-
-#### Town & Location System ✅
-- [x] Town page with building interactions
-- [x] Location system with NPC dialogue
-- [x] Travel between locations
-- [x] Location-specific events
-- [x] Building types: saloon, bank, general store, sheriff
-
-#### Profile & Settings ✅
-- [x] Profile page with character statistics
-- [x] Settings page for preferences
-- [x] Tutorial system with overlay
-- [x] Tutorial progression tracking
-
----
-
-## 🎯 CURRENT SESSION ACCOMPLISHMENTS (Session 8)
-
-### Destiny Deck Animation System ✅ **COMPLETE**
-- [x] Built complete card animation system (9 components)
-- [x] Arc trajectory card dealing with blur effects
-- [x] Sequential card flip reveals with tension building
-- [x] Dramatic hand strength banner (tier-based styling)
-- [x] Suit bonus indicators (floating + overlay)
-- [x] Victory celebration effects (particles, gold burst, screen flash)
-- [x] Defeat effects (subtle dust, desaturation)
-- [x] CSS-based particle system for performance
-- [x] GPU acceleration hints for smooth animations
-- [x] Sound infrastructure (no-op, ready for audio assets)
-
-### Accessibility & Performance ✅
-- [x] Screen reader announcer (ARIA live regions)
-- [x] ARIA labels on all cards ("Ace of Spades")
-- [x] Keyboard navigation support (Enter/Space)
-- [x] Animation preferences context (3-tier system)
-- [x] Respects prefers-reduced-motion
-- [x] Wired into App.tsx for global access
-
-### Previous Session (Session 7) ✅
-- [x] Split monolithic useGameStore.ts into 6 domain stores
-- [x] Fixed ESLint configuration and circular dependencies
-- [x] Full codebase analysis and architecture documentation
-
----
-
-## 🏗️ REMAINING WORK TO MVP
-
-### Critical Path (4-6 hours)
-1. ~~**Destiny Deck Card UI**~~ ✅ **COMPLETE**
-2. ~~**Combat Page Integration**~~ ✅ **COMPLETE**
-3. **E2E Testing Suite** - Test all critical flows
-   - Estimated: 2-3 hours
-   - Register → Character → Actions flow
-   - Combat system end-to-end
-   - Gang and territory mechanics
-   - Social features (chat, mail, friends)
-
-4. **Visual Verification** - Ensure everything renders correctly
-   - Estimated: 1-2 hours
-   - Verify Destiny Deck animations
-   - Test all pages visually
-   - Mobile responsiveness check
-
-5. **Deployment Preparation** - Production readiness
-   - Estimated: 1-2 hours
-   - Environment configuration
-   - Docker production setup
-   - SSL/HTTPS configuration
-
-### Optional Polish (2-4 hours)
-6. **Navigation & UX** - Breadcrumbs, back buttons, tooltips
-7. **Sound Effects** - Add actual audio files to sound infrastructure
-8. **Loading States** - Skeleton screens and spinners
-9. **Minor Backend Fixes** - Use backend loot in Combat page
-
----
-
-## 📊 METRICS
-
-### Code Statistics
+### Total Project
 | Metric | Value |
 |--------|-------|
-| Backend Code | ~25,000 lines |
-| Frontend Code | ~21,000 lines |
-| Test Code | ~8,500 lines |
-| Documentation | ~15,000 lines |
-| **Total** | **~69,500 lines** |
-| TypeScript Files | 191 files |
-| Test Files | 61 files |
-| Backend Routes | 25 route files |
-| Page Components | 39+ pages |
-| Tests Written | 400+ tests |
-| Tests Passing | 380+ tests |
-| Zustand Stores | 18 stores |
+| Total Lines of Code | ~200,000+ |
+| TypeScript Files | 800+ |
+| Test Files | 88 |
+| Documentation Files | 100+ |
+| TypeScript Errors | 0 |
+| ESLint Errors | 0 |
 
-### Quality Metrics
+---
+
+## FEATURE COMPLETION STATUS
+
+### Sprint 1: Foundation - 100% Complete
+- [x] Docker development environment (MongoDB, Redis)
+- [x] Backend (Express, TypeScript, Mongoose)
+- [x] Frontend (React 18, Vite, TailwindCSS)
+- [x] Shared types package (@desperados/shared)
+- [x] Destiny Deck poker engine (2,305 LOC, 42 tests)
+- [x] Western UI theme
+- [x] One-command setup
+
+### Sprint 2: Auth & Characters - 100% Complete
+- [x] User authentication (7 endpoints)
+- [x] JWT with refresh tokens (1-hour expiry)
+- [x] Email verification flow
+- [x] Password reset flow
+- [x] Character creation (3 factions)
+- [x] Energy system with regeneration
+- [x] 60+ integration tests
+
+### Sprint 3: Destiny Deck & Skills - 100% Complete
+- [x] Action system with Deck resolution
+- [x] 27 trainable skills (4 categories)
+- [x] Time-based offline training
+- [x] Skill bonuses integrated with Deck
+- [x] Card UI with flip animations
+- [x] Poker hand visualization
+- [x] Victory/defeat effects
+- [x] Accessibility (ARIA, reduced motion)
+
+### Sprint 4: Combat, Crimes & Gold - 100% Complete
+- [x] Turn-based combat system (PvE)
+- [x] NPC encounters with AI
+- [x] HP and damage calculations
+- [x] 10+ crime types
+- [x] Wanted level system
+- [x] Jail mechanics with bail
+- [x] Bounty hunting
+- [x] Gold economy with audit trail
+- [x] 50+ tests
+
+### Sprint 5: Social Features - 100% Complete
+- [x] Real-time chat (Socket.io, 4 room types)
+- [x] Gang system (hierarchy, bank, upgrades)
+- [x] Gang wars with contribution tracking
+- [x] Territory control (12 territories)
+- [x] Mail system with attachments
+- [x] Friend system with online status
+- [x] Notification system (8 types)
+- [x] Profanity filter
+- [x] 280+ tests
+
+### Sprint 6: Economy & Progression - 100% Complete
+- [x] Shop system (7 endpoints)
+- [x] Inventory (6 equipment slots)
+- [x] Item rarity system (5 tiers)
+- [x] Quest system (14 quests + templates)
+- [x] Achievement system (6 categories)
+- [x] Marketplace (auctions, buy-now)
+- [x] Property system (ownership, taxes)
+
+### Sprint 7: World & Exploration - 100% Complete
+- [x] 40+ location types
+- [x] 9 world regions
+- [x] NPC AI (schedules, moods, gossip)
+- [x] Travel mechanics (train, stagecoach, horse)
+- [x] Dynamic weather
+- [x] Day/night cycle
+- [x] Seasonal calendar
+- [x] Tutorial system
+
+### Production Hardening - 100% Complete
+- [x] Security audit (134+ issues resolved)
+- [x] JWT expiry reduced to 1 hour
+- [x] Input validation on all endpoints
+- [x] Database indexes for performance
+- [x] Centralized logging (164+ console.log replaced)
+- [x] Error handling unification
+- [x] Socket.io type safety
+- [x] TypeScript strict compliance
+
+---
+
+## REMAINING WORK (~8-12 hours)
+
+### Primary: PvP Duel Real-Time Frontend (6-8 hours)
+| Task | Estimate | Status |
+|------|----------|--------|
+| Socket.io duel handlers | 2-3 hrs | Pending |
+| DuelGameArena.tsx interface | 2-3 hrs | Pending |
+| Combat feedback integration | 1 hr | Pending |
+
+**Already Complete:**
+- Backend duel service
+- API routes (10 endpoints)
+- useDuels hook
+- useDuelSocket hook
+- DuelArena.tsx page structure
+
+### Secondary: Docker Production Files (1 hour)
+- [ ] docker-compose.staging.yml
+- [ ] docker-compose.prod.yml
+
+### Optional: Load Testing (2-3 hours)
+- [ ] 500+ concurrent socket connections
+- [ ] Database query performance
+
+---
+
+## ARCHITECTURE STATUS
+
+### Backend - Production Ready
+| Component | Status |
+|-----------|--------|
+| Express.js | Complete |
+| TypeScript (strict) | Complete |
+| MongoDB (Mongoose) | Complete |
+| Redis caching | Complete |
+| Socket.io | Complete |
+| Jest testing (400+) | Complete |
+| Security (OWASP) | Complete |
+| Rate limiting | Complete |
+| Audit logging | Complete |
+
+### Frontend - Production Ready
+| Component | Status |
+|-----------|--------|
+| React 18 | Complete |
+| TypeScript | Complete |
+| Vite build | Complete |
+| TailwindCSS | Complete |
+| Zustand (22 stores) | Complete |
+| React Router 6 | Complete |
+| Socket.io client | Complete |
+| Error boundaries | Complete |
+| Accessibility | Complete |
+
+### Infrastructure
+| Component | Status |
+|-----------|--------|
+| Docker Compose | Complete |
+| MongoDB replica set | Complete |
+| Redis | Complete |
+| GitHub Actions CI | Complete |
+| Health checks | Complete |
+
+---
+
+## QUALITY METRICS
+
 | Metric | Status |
 |--------|--------|
-| TypeScript Errors | 0 🟢 |
-| ESLint Errors | 0 🟢 |
-| Circular Dependencies | Resolved 🟢 |
-| Known Vulnerabilities | 0 🟢 |
-| Test Coverage | 92% on critical paths 🟢 |
-| Security Compliance | OWASP compliant 🟢 |
-| Infrastructure | All services running 🟢 |
-| Store Architecture | Modernized (domain-specific) 🟢 |
-
-### Feature Completion by Sprint
-| Sprint | Backend | Frontend | Overall | Status |
-|--------|---------|----------|---------|--------|
-| Sprint 1: Foundation | 100% | 100% | 100% | ✅ Complete |
-| Sprint 2: Auth & Characters | 100% | 100% | 100% | ✅ Complete |
-| Sprint 3: Destiny Deck & Skills | 100% | 100% | 100% | ✅ Complete |
-| Sprint 4: Combat, Crimes & Gold | 100% | 100% | 100% | ✅ Complete |
-| Sprint 5: Social Features | 100% | 95% | 97% | ✅ Complete |
-| Sprint 6: Economy & Progression | 100% | 100% | 100% | ✅ Complete |
-| Sprint 7: World & Exploration | 100% | 100% | 100% | ✅ Complete |
-| **Total** | **98%** | **97%** | **97-98%** | **🟢 MVP Ready** |
+| TypeScript Errors | 0 |
+| ESLint Errors | 0 |
+| Console Statements | 4 (logger only) |
+| Circular Dependencies | 0 |
+| Security Vulnerabilities | 0 |
+| Test Coverage | 92% critical paths |
 
 ---
 
-## 🏗️ ARCHITECTURE STATUS
+## DEVELOPMENT ENVIRONMENT
 
-### Backend ✅ Production Ready
-- **Framework:** Express.js ✅
-- **Language:** TypeScript (strict mode) ✅
-- **Database:** MongoDB (Mongoose) with replica set ✅
-- **Cache:** Redis ✅
-- **Real-time:** Socket.io configured ✅
-- **Testing:** Jest + Supertest (380+ tests) ✅
-- **Security:** Helmet, rate limiting, bcrypt, JWT ✅
-- **CRON Jobs:** Gang war resolution ✅
+### Quick Start
+```bash
+# Start databases
+docker-compose -f docker-compose.dev.simple.yml up -d
 
-### Frontend ✅ Production Ready
-- **Framework:** React 18 ✅
-- **Language:** TypeScript ✅
-- **Build:** Vite ✅
-- **Styling:** TailwindCSS (western theme) ✅
-- **State:** Zustand (18 domain-specific stores) ✅
-- **Routing:** React Router 6 ✅
-- **Testing:** Vitest + React Testing Library ✅
-- **HTTP:** Axios with interceptors ✅
-- **Real-time:** Socket.io client fully functional ✅
-- **Architecture:** Modernized store pattern ✅
-- **Animations:** Complete Destiny Deck system ✅
-- **Accessibility:** ARIA, keyboard nav, screen reader ✅
+# Start application
+npm run dev:local
+```
 
-### Infrastructure ✅ Running
-- **Docker:** 2 containers (MongoDB, Redis) ✅
-- **MongoDB:** Replica set initialized ✅
-- **Redis:** Connected and caching ✅
-- **Backend:** Port 5000, all routes working ✅
-- **Frontend:** Port 3000, hot reload working ✅
+### Service URLs
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:5173 |
+| Backend | http://localhost:5001 |
+| MongoDB | mongodb://localhost:27017 |
+| Redis | redis://localhost:6379 |
 
----
-
-## 🎯 PATH TO LAUNCH
-
-### Completed This Session ✅
-1. ✅ Create verified test user - **COMPLETE**
-2. ✅ Update PROJECT-STATUS.md - **COMPLETE**
-3. ✅ Implement Destiny Deck card UI (Sprint 3) - **COMPLETE**
-4. ✅ Verify Combat page integration (Sprint 4) - **COMPLETE**
-5. ✅ Infrastructure analysis - **COMPLETE**
-6. ✅ Feature completeness audit - **COMPLETE**
-
-### Testing & Launch Prep (4-6 hours)
-7. **E2E Testing** - Critical user flows (2-3 hours)
-8. **Visual Verification** - All pages and animations (1-2 hours)
-9. **Deployment Preparation** - Production configuration (1-2 hours)
-
-### Optional Polish (2-4 hours)
-10. Add sound effect audio files
-11. Navigation improvements (breadcrumbs, tooltips)
-12. Loading state polish
-13. Mobile responsiveness optimization
-
-**Estimated Time to Launch:** 4-10 hours remaining
-
----
-
-## 🚀 DEPLOYMENT READINESS
-
-### Backend: 98% Ready ✅
-- [x] Production code complete
-- [x] Comprehensive tests (380+ passing)
-- [x] Error handling throughout
-- [x] Security hardened (OWASP compliant)
-- [x] Transaction safety (MongoDB sessions)
-- [ ] Performance optimization (optional)
-- [ ] Monitoring/logging setup (needed)
-
-### Frontend: 97% Ready ✅
-- [x] All core features implemented
-- [x] Beautiful western UI with custom theme
-- [x] Responsive design
-- [x] All backend connections integrated
-- [x] Complete Destiny Deck animations
-- [x] Accessibility features
-- [ ] Comprehensive E2E tests (needed)
-- [ ] Production build optimization (optional)
-
-### Infrastructure: 90% Ready ✅
-- [x] Docker compose working
-- [x] MongoDB replica set configured
-- [x] Redis caching working
-- [x] Socket.io real-time functional
-- [ ] Production deployment scripts (needed)
-- [ ] SSL/HTTPS setup (needed)
-- [ ] CDN configuration (optional)
-
----
-
-## 📈 PROGRESS VELOCITY
-
-### Development Stats
-- **Days Active:** 8 sessions
-- **Sprints Completed:** 7 sprints (all complete!)
-- **Lines of Code:** 69,500+
-- **Features Implemented:** 80+ major features
-- **Average Velocity:** ~1 sprint per session
-
-### Major Accomplishments This Session
-1. ✅ Destiny Deck animation system (11 components, ~3,000 lines)
-2. ✅ Accessibility features (ARIA, keyboard nav, screen reader)
-3. ✅ Infrastructure verification (already working)
-4. ✅ Combat page verification (already integrated)
-5. ✅ Feature completeness audit (discovered 3 undocumented systems)
-6. ✅ Documentation updates (accurate completion tracking)
-
----
-
-## 🎮 TEST CREDENTIALS
-
+### Test Account
 ```
 Email:    test@test.com
 Password: Test123!
-Character: Quick Draw McGraw (Level 5)
-Faction: Setter Alliance
-Gold: $1000
-Location: Red Gulch
 ```
 
 ---
 
-## 🔥 KEY ACHIEVEMENTS
+## IMPLEMENTED GAME SYSTEMS
 
-1. **Production Infrastructure** - Full Docker setup with replica set
-2. **Comprehensive Backend** - 25 route files, 50+ endpoints
-3. **Real-time Features** - Socket.io chat and presence (fully functional)
-4. **Beautiful Western UI** - Custom Tailwind theme throughout
-5. **Complete Game Systems** - Combat, crimes, gangs, territories, shop, quests, achievements
-6. **Robust Testing** - 400+ tests, 95% core coverage
-7. **No Placeholders** - All UI shows real or demo data
-8. **Transaction Safety** - MongoDB sessions for data integrity
-9. **Destiny Deck Animations** - Complete card system with accessibility
-10. **Feature Complete** - 7 sprints, 80+ features, 97-98% to launch
+### Core Systems (30 total)
+1. Authentication (JWT 1h + refresh tokens 7d)
+2. Account Security (brute-force protection, lockout)
+3. Character Management (3 factions)
+4. Energy System (regeneration, tiers)
+5. Destiny Deck Engine (2,305 LOC, poker-based)
+6. Skill Training (28 skills, 4 categories)
+7. Combat (PvE with NPC AI)
+8. PvP Duels (real-time Socket.io, perception system)
+9. Crime System (10+ crime types)
+10. Jail/Bail/Bounty System
+11. Gang System (hierarchy, bank, perks)
+12. Territory Control (12 territories)
+13. Gang Wars (contributions, deck-based)
+14. Faction Wars (large-scale conflicts)
+15. NPC Gang Conflicts (tributes, challenges)
+16. Real-time Chat (Socket.io, 4 room types)
+17. Mail System (gold/item attachments)
+18. Friend System (online presence)
+19. Notifications (8 types)
+20. Shop/Inventory (6 equipment slots)
+21. Marketplace (auctions, buy-now)
+22. Property System (ownership, taxes, foreclosure)
+23. Quest System (14+ quests, procedural templates)
+24. Legendary Quest System (branching, choices)
+25. Achievements (6 categories, 4 tiers)
+26. Leaderboards (multiple categories)
+27. Weather System (dynamic)
+28. Day/Night Cycle (time-based events)
+29. Calendar/Events (seasonal, holidays)
+30. Tutorial System (core + deep-dive modules)
+
+### Economy & Production (15 systems)
+- Gold Economy (audit trail, transactions)
+- Banking System (loans, savings)
+- Property Tax System (delinquency stages, foreclosure)
+- Crafting System (raw → refined → components)
+- Production System (slots, batching)
+- Workshop System (repairs, upgrades)
+- Masterwork System (Shoddy → Legendary quality)
+- Specialization Paths (profession mastery)
+- Wandering Merchants (schedules, trust)
+- Gambling Games (6 types: Blackjack, Roulette, Craps, Faro, Monte, Wheel)
+- High Stakes Events (tournaments)
+- Horse Racing (betting, breeding, equipment)
+- Shooting Contests (competitions)
+- Daily Contracts (streak bonuses)
+- Login Rewards (daily calendar)
+
+### Combat & Adventure (15 systems)
+- Turn-based Combat (NPC AI, hand-based damage)
+- Real-time PvP Duels (perception, abilities, betting)
+- World Boss Encounters (5 bosses, multi-player)
+- Boss Phase System (multi-phase mechanics)
+- Legendary Hunts (rare creatures)
+- Legendary Combat (specialized encounters)
+- Bounty Hunter System (tracking, hourly updates)
+- Train Robbery (heist mechanics)
+- Stagecoach Ambush (travel encounters)
+- Heist System (gang heists with roles)
+- Hunting System (tracking, trophies)
+- Fishing System (fish fighting)
+- Animal Companion System (combat, bonding)
+- Taming System (wild animals)
+- Conquest System (territory siege)
+
+### Social & World (20 systems)
+- NPC Relationships (trust, mood, schedules)
+- NPC Gossip System (reputation spreading)
+- NPC Reaction System (dynamic responses)
+- Reputation System (faction standing)
+- Mentor System (training, abilities)
+- Chinese Diaspora Network (secret quests, trust)
+- Newspaper System (dynamic headlines)
+- Secrets Discovery System
+- Crowd System (witnesses)
+- World Events (dynamic)
+- Frontier Zodiac (signs, peak days, bonuses)
+- Holiday Events (seasonal rewards)
+- Wandering Entertainers (performances, skill learning)
+- Mysterious Figure Encounters
+- Disguise System (stealth)
+- Bribe System (NPC manipulation)
+- Sanity System (corruption effects)
+- Ritual System (ceremonies)
+- Death & Resurrection System
+- Perception System (reading opponents)
+
+### End-Game Content (10 systems)
+- Cosmic Horror Storyline (The Scar)
+- Cosmic Quest System (multi-act, endings)
+- Cosmic Ending System (corruption-based)
+- Reality Distortion (spatial anomalies)
+- Scar Content (elite enemies, challenges)
+- Legacy Progression (cross-character)
+- Permanent Unlocks (account-wide)
+- Balance Validation (economic health)
+- Content Validation (integrity checks)
+- Cheating Detection (gambling security)
 
 ---
 
-## 🎯 DEFINITION OF MVP
+## PROJECT TIMELINE
 
-### Core Features (100% Complete!) ✅
-- [x] User authentication with email verification
-- [x] Character creation (3 factions)
-- [x] Energy system with regeneration
-- [x] Gold economy with transactions
-- [x] Skills and training (15+ skills)
-- [x] Actions with Destiny Deck resolution
-- [x] Destiny Deck card animations ✅ **NEW**
-- [x] Combat system (PvE with NPCs)
-- [x] Crime system with wanted levels
-- [x] Gang system with wars
-- [x] Territory control (12 territories)
-- [x] Real-time chat (4 room types)
-- [x] Friend system with online status
-- [x] Mail system with gold transfers
-
-### Additional Complete Systems ✅
-- [x] Shop & Inventory (6 equipment slots, 5 rarity tiers)
-- [x] Quest system (5 quest types)
-- [x] Achievement system (6 categories, 4 tiers)
-- [x] Town & Location system
-- [x] Leaderboard system
-- [x] Notification system
-- [x] Profile & Settings
-
-### MVP Status: ACHIEVED! 🚀
-
-All core features are complete and production-ready. Remaining work:
-1. ~~UI polish and animations~~ ✅ **COMPLETE**
-2. ~~Final backend integrations~~ ✅ **COMPLETE**
-3. E2E testing (2-3 hours)
-4. Deployment preparation (1-2 hours)
-
-**Estimated to Launch: 4-6 hours**
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 0 | Documentation & Design | Complete |
+| Phase 1 | Foundation (Docker, TypeScript, Express) | Complete |
+| Phase 2 | Auth & Characters | Complete |
+| Phase 3 | Destiny Deck Engine | Complete |
+| Phase 4 | Combat & Crimes | Complete |
+| Phase 5 | Social Features (Chat, Mail, Friends) | Complete |
+| Phase 6 | Economy (Shop, Marketplace, Bank) | Complete |
+| Phase 7 | World & Exploration | Complete |
+| Phase 8 | Property System (taxes, foreclosure) | Complete |
+| Phase 9 | Travel (Train, Stagecoach, Companions) | Complete |
+| Phase 10 | Activities (Hunting, Fishing, Legendary) | Complete |
+| Phase 11 | Territory Warfare & Influence | Complete |
+| Phase 12 | World Systems (Newspaper, Calendar, Holidays) | Complete |
+| Phase 13 | Games (Gambling, Racing, Shooting) | Complete |
+| Phase 14 | End-Game (Cosmic Horror, Bosses, Quests) | Complete |
+| Phase 15 | Legacy & Validation Systems | Complete |
+| Phase 16 | PvP Duel System (Socket.io) | Backend Complete |
+| Production Hardening | Security, Performance, Logging | Complete |
+| **PvP Duel Frontend** | **Real-time UI Integration** | **~50%** |
 
 ---
 
-**Last Build:** November 24, 2025
-**Status:** 🟢 MVP Achieved - 97-98% Complete
-**Next Milestone:** E2E Testing & Launch Preparation
+## NEXT STEPS
+
+1. **Complete PvP Duel** (6-8 hours)
+   - Socket.io integration
+   - Live game interface
+   - Combat feedback
+
+2. **Docker Production Files** (1 hour)
+   - Staging configuration
+   - Production configuration
+
+3. **Beta Testing** (ongoing)
+   - User testing
+   - Bug fixes
+   - Balance adjustments
+
+4. **Launch** (Q2 2026)
+   - Public beta
+   - Marketing
+   - Community building
+
+---
+
+**Status:** 97% Complete - Production Hardening Done
+**Next Milestone:** PvP Duel Frontend
+**Target Launch:** Q2 2026
+
+*Last Updated: December 14, 2025*

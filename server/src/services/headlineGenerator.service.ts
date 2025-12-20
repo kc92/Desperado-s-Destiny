@@ -13,6 +13,7 @@ import {
 } from '@desperados/shared';
 import { getTemplatesForEvent } from '../data/headlineTemplates';
 import { getNewspaperById, getRandomByline } from '../data/newspapers';
+import { SecureRNG } from './base/SecureRNG';
 import { ObjectId } from 'mongodb';
 
 interface TemplateVars {
@@ -78,7 +79,7 @@ export class HeadlineGeneratorService {
     }
 
     // Pick random template
-    const templateStr = templates[Math.floor(Math.random() * templates.length)];
+    const templateStr = SecureRNG.select(templates) as string;
 
     // Replace variables
     return this.replaceTemplateVars(templateStr, details);

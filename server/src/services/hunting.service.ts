@@ -21,7 +21,11 @@ import {
   HuntingGround,
   HarvestResourceType
 } from '@desperados/shared';
+import { EnergyService } from './energy.service';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 
 export class HuntingService {
   /**
@@ -158,7 +162,7 @@ export class HuntingService {
       }
 
       // Spend energy
-      character.spendEnergy(huntingGround.energyCost);
+      await EnergyService.spendEnergy(character._id.toString(), huntingGround.energyCost, 'start_hunt', session);
       await character.save({ session });
 
       // Create hunting trip
@@ -200,14 +204,14 @@ export class HuntingService {
    * Get hunting statistics for character
    */
   static async getHuntingStatistics(characterId: string) {
-    const trips = await HuntingTrip.find({ characterId, status: 'complete' });
+    const trips = await HuntingTrip.find({ characterId, status: 'complete' }).lean();
 
     const stats = {
       totalHunts: trips.length,
       successfulHunts: trips.filter(t => t.harvestResult?.success).length,
       killsBySpecies: {} as Record<AnimalSpecies, number>,
       perfectKills: trips.filter(t => t.harvestResult?.quality === KillQuality.PERFECT).length,
-      totalGoldEarned: trips.reduce((sum, t) => sum + (t.goldEarned || 0), 0),
+      totalDollarsEarned: trips.reduce((sum, t) => sum + (t.goldEarned || 0), 0),
       totalXpEarned: trips.reduce((sum, t) => sum + (t.xpEarned || 0), 0),
       favoriteHuntingGround: undefined as string | undefined,
       largestKill: undefined as any
@@ -281,20 +285,11 @@ export class HuntingService {
     if (availableAnimals.length === 0) return null;
 
     // Weighted random selection based on spawn rates
-    const totalWeight = availableAnimals.reduce(
-      (sum, species) => sum + ground.spawnRates[species],
-      0
-    );
-
-    let random = Math.random() * totalWeight;
-    for (const species of availableAnimals) {
-      random -= ground.spawnRates[species];
-      if (random <= 0) {
-        return species;
-      }
-    }
-
-    return availableAnimals[0];
+    const weightedItems = availableAnimals.map(species => ({
+      item: species,
+      weight: ground.spawnRates[species]
+    }));
+    return SecureRNG.weightedSelect(weightedItems);
   }
 
   /**
@@ -360,7 +355,7 @@ export class HuntingService {
     qualityScore += skinningBonus;
 
     // Add some randomness
-    qualityScore += Math.random() * 20 - 10;
+    qualityScore += SecureRNG.range(-10, 10);
 
     // Determine quality tier
     if (qualityScore >= 95) return KillQuality.PERFECT;
@@ -374,8 +369,359 @@ export class HuntingService {
    * Helper: Roll for success based on difficulty and bonus
    */
   static rollSuccess(difficulty: number, bonus: number): boolean {
-    const roll = Math.random() * 100 + bonus;
+    const roll = SecureRNG.d100() + bonus;
     const target = difficulty * 10;
     return roll >= target;
+  }
+
+  // ============================================
+  // CRITICAL FIX: Missing hunt progression methods
+  // These methods were missing, causing hunts to be stuck in 'tracking' forever
+  // ============================================
+
+  /**
+   * Track animal - Advance hunt from 'tracking' to 'aiming' phase
+   * This is called when the player attempts to find and track an animal
+   */
+  static async trackAnimal(characterId: string, direction?: string): Promise<{
+    success: boolean;
+    error?: string;
+    animalFound?: boolean;
+    animal?: AnimalSpecies;
+    distance?: number;
+    trackingProgress?: number;
+  }> {
+    const trip = await HuntingTrip.findOne({
+      characterId,
+      status: 'tracking'
+    });
+
+    if (!trip) {
+      return { success: false, error: 'No active tracking session' };
+    }
+
+    const character = await Character.findById(characterId);
+    if (!character) {
+      return { success: false, error: 'Character not found' };
+    }
+
+    const ground = getHuntingGround(trip.huntingGroundId);
+    if (!ground) {
+      return { success: false, error: 'Hunting ground not found' };
+    }
+
+    // Calculate tracking success
+    const trackingBonus = this.getTrackingBonus(character);
+    const stealthBonus = this.getStealthBonus(character);
+
+    // Increment tracking progress
+    const progressGain = 20 + SecureRNG.range(0, 19) + Math.floor(trackingBonus / 2);
+    const currentProgress = (trip.trackingProgress || 0) + progressGain;
+
+    // Update trip
+    trip.trackingProgress = currentProgress;
+
+    // Check if animal is found (100% progress = animal found)
+    if (currentProgress >= 100) {
+      // Select random animal from this hunting ground
+      const animal = this.selectRandomAnimal(ground);
+      if (!animal) {
+        trip.status = 'failed';
+        trip.completedAt = new Date();
+        await trip.save();
+        return { success: false, error: 'No animals found in this area' };
+      }
+
+      trip.targetAnimal = animal;
+      trip.status = 'aiming';
+      trip.trackingProgress = 100;
+      await trip.save();
+
+      logger.info(`Character ${characterId} found a ${animal} to hunt`);
+
+      return {
+        success: true,
+        animalFound: true,
+        animal,
+        distance: SecureRNG.range(30, 99), // Random distance 30-100 yards
+        trackingProgress: 100
+      };
+    }
+
+    await trip.save();
+
+    return {
+      success: true,
+      animalFound: false,
+      trackingProgress: currentProgress
+    };
+  }
+
+  /**
+   * Take a shot at the animal - Core hunting action
+   * Called when player is in 'aiming' phase and fires at the animal
+   */
+  static async takeShot(
+    characterId: string,
+    shotPlacement: ShotPlacement
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    hit?: boolean;
+    quality?: KillQuality;
+    harvestResult?: {
+      success: boolean;
+      quality: KillQuality;
+      resources: Array<{ type: HarvestResourceType; quantity: number; value: number }>;
+      totalValue: number;
+    };
+    xpEarned?: number;
+    goldEarned?: number;
+  }> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const trip = await HuntingTrip.findOne({
+        characterId,
+        status: 'aiming'
+      }).session(session);
+
+      if (!trip) {
+        await session.abortTransaction();
+        session.endSession();
+        return { success: false, error: 'Not aiming at any animal' };
+      }
+
+      const character = await Character.findById(characterId).session(session);
+      if (!character) {
+        await session.abortTransaction();
+        session.endSession();
+        return { success: false, error: 'Character not found' };
+      }
+
+      const animal = trip.targetAnimal;
+      if (!animal) {
+        await session.abortTransaction();
+        session.endSession();
+        return { success: false, error: 'No target animal' };
+      }
+
+      const animalDef = getAnimalDefinition(animal);
+      if (!animalDef) {
+        await session.abortTransaction();
+        session.endSession();
+        return { success: false, error: 'Unknown animal' };
+      }
+
+      // Calculate hit chance based on marksmanship and shot placement
+      const marksmanshipBonus = this.getMarksmanshipBonus(character);
+      let baseHitChance = 50;
+
+      // Difficulty modifiers based on shot placement
+      switch (shotPlacement) {
+        case ShotPlacement.HEAD:
+          baseHitChance -= 20; // Hard shot
+          break;
+        case ShotPlacement.HEART:
+          baseHitChance -= 10; // Medium shot
+          break;
+        case ShotPlacement.LUNGS:
+          baseHitChance += 0; // Normal shot
+          break;
+        case ShotPlacement.BODY:
+          baseHitChance += 20; // Easy shot but lower quality
+          break;
+      }
+
+      // Use killDifficulty as the difficulty modifier
+      const hitChance = baseHitChance + marksmanshipBonus + (animalDef.killDifficulty || 5) * -3;
+      const hitRoll = SecureRNG.d100();
+      const isHit = hitRoll < hitChance;
+
+      trip.shotPlacement = shotPlacement;
+
+      if (!isHit) {
+        // Missed - animal escapes
+        trip.status = 'failed';
+        trip.completedAt = new Date();
+        await trip.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        logger.info(`Character ${characterId} missed shot at ${animal}`);
+
+        return {
+          success: true,
+          hit: false,
+          error: 'Shot missed - animal escaped'
+        };
+      }
+
+      // Hit! Calculate quality and harvest
+      const skinningBonus = this.getSkinningBonus(character);
+      const quality = this.determineKillQuality(shotPlacement, skinningBonus);
+
+      // Calculate harvest resources
+      const harvestResult = this.calculateHarvest(animalDef, quality);
+
+      // Calculate XP and gold earned
+      const baseXp = animalDef.xpReward || 25;
+      const baseGold = harvestResult.totalValue;
+
+      const qualityMultiplier = {
+        [KillQuality.PERFECT]: 2.0,
+        [KillQuality.EXCELLENT]: 1.5,
+        [KillQuality.GOOD]: 1.0,
+        [KillQuality.COMMON]: 0.75,
+        [KillQuality.POOR]: 0.5
+      }[quality];
+
+      const xpEarned = Math.floor(baseXp * qualityMultiplier);
+      const dollarsEarned = Math.floor(baseGold * qualityMultiplier);
+
+      // Update trip
+      trip.status = 'complete';
+      trip.completedAt = new Date();
+      trip.harvestResult = {
+        success: harvestResult.success,
+        message: `Successfully harvested ${animalDef.name}`,
+        quality: harvestResult.quality,
+        qualityMultiplier,
+        resources: harvestResult.resources.map(r => ({
+          type: r.type,
+          itemId: `${r.type.toLowerCase()}_${animalDef.species}`,
+          name: `${animalDef.name} ${r.type}`,
+          quantity: r.quantity,
+          quality: harvestResult.quality,
+          value: r.value
+        })),
+        totalValue: harvestResult.totalValue,
+        skinningBonus,
+        xpGained: xpEarned
+      };
+      trip.xpEarned = xpEarned;
+      trip.goldEarned = dollarsEarned;
+      await trip.save({ session });
+
+      // Award XP to character
+      character.experience += xpEarned;
+      await character.save({ session });
+
+      // Award dollars through DollarService
+      await DollarService.addDollars(
+        character._id.toString(),
+        dollarsEarned,
+        TransactionSource.HUNTING,
+        {
+          animal,
+          quality,
+          harvestValue: harvestResult.totalValue,
+          shotPlacement,
+          currencyType: CurrencyType.DOLLAR
+        },
+        session
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      logger.info(`Character ${characterId} successfully hunted a ${animal} (${quality} quality)`);
+
+      return {
+        success: true,
+        hit: true,
+        quality,
+        harvestResult,
+        xpEarned,
+        goldEarned: dollarsEarned
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      logger.error('Error in takeShot:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate harvest resources based on animal and kill quality
+   */
+  static calculateHarvest(
+    animal: AnimalDefinition,
+    quality: KillQuality
+  ): {
+    success: boolean;
+    quality: KillQuality;
+    resources: Array<{ type: HarvestResourceType; quantity: number; value: number }>;
+    totalValue: number;
+  } {
+    const resources: Array<{ type: HarvestResourceType; quantity: number; value: number }> = [];
+
+    // Quality affects yield
+    const yieldMultiplier = {
+      [KillQuality.PERFECT]: 1.0,
+      [KillQuality.EXCELLENT]: 0.9,
+      [KillQuality.GOOD]: 0.7,
+      [KillQuality.COMMON]: 0.5,
+      [KillQuality.POOR]: 0.3
+    }[quality];
+
+    // Base resources from animal
+    const baseResources = animal.harvestResources || [];
+    let totalValue = 0;
+
+    for (const resource of baseResources) {
+      // Calculate max yield from baseQuantity and quantityVariation
+      const maxYield = resource.baseQuantity + resource.quantityVariation;
+      const quantity = Math.max(1, Math.floor(maxYield * yieldMultiplier));
+      const value = resource.baseValue * quantity;
+
+      resources.push({
+        type: resource.type,
+        quantity,
+        value
+      });
+
+      totalValue += value;
+    }
+
+    return {
+      success: true,
+      quality,
+      resources,
+      totalValue
+    };
+  }
+
+  /**
+   * Get active hunt status for a character
+   * Returns current hunt state for the player
+   */
+  static async getHuntStatus(characterId: string): Promise<{
+    hasActiveHunt: boolean;
+    trip?: IHuntingTrip;
+    phase?: string;
+    animal?: AnimalSpecies;
+    trackingProgress?: number;
+    timeRemaining?: number;
+  }> {
+    const trip = await HuntingTrip.findOne({
+      characterId,
+      status: { $nin: ['complete', 'failed'] }
+    });
+
+    if (!trip) {
+      return { hasActiveHunt: false };
+    }
+
+    return {
+      hasActiveHunt: true,
+      trip,
+      phase: trip.status,
+      animal: trip.targetAnimal,
+      trackingProgress: trip.trackingProgress || 0
+    };
   }
 }

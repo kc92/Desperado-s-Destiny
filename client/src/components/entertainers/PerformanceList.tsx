@@ -47,7 +47,6 @@ const moodEffectColors: Record<string, string> = {
 export const PerformanceList: React.FC<PerformanceListProps> = ({
   performances,
   onWatch,
-  isLoading = false,
 }) => {
   const { currentCharacter } = useCharacterStore();
   const { success, error: showError } = useToast();

@@ -12,6 +12,7 @@
  */
 
 import mongoose from 'mongoose';
+import logger from '../utils/logger';
 import { Location } from '../models/Location.model';
 import { LOCATION_IDS } from './locations.seed';
 
@@ -1440,7 +1441,7 @@ export async function seedFronteraBuildings(): Promise<void> {
 
     console.log(`Successfully seeded ${fronteraBuildings.length} Frontera buildings`);
   } catch (error) {
-    console.error('Error seeding Frontera buildings:', error);
+    logger.error('Error seeding Frontera buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }

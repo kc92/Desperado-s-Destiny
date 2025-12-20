@@ -6,7 +6,8 @@
 
 import mongoose from 'mongoose';
 import { Character, ICharacter } from '../models/Character.model';
-import { GoldService, TransactionSource } from './gold.service';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import { NotificationService } from './notification.service';
 import {
   JailState,
@@ -25,6 +26,7 @@ import {
   BOUNTY_TURN_IN_MULTIPLIER
 } from '@desperados/shared';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Activity cooldown tracking
@@ -203,8 +205,7 @@ export class JailService {
 
       // Calculate escape chance
       const escapeChance = this.calculateEscapeChance(character);
-      const roll = Math.random();
-      const success = roll < escapeChance;
+      const success = SecureRNG.chance(escapeChance);
 
       if (success) {
         // Successful escape
@@ -279,8 +280,8 @@ export class JailService {
       }
 
       // Check if player can afford bribe
-      if (character.gold < amount) {
-        throw new Error(`Insufficient gold. Need ${amount}, have ${character.gold}`);
+      if (character.dollars < amount) {
+        throw new Error(`Insufficient dollars. Need $${amount}, have $${character.dollars}`);
       }
 
       // Calculate minimum bribe amount
@@ -288,7 +289,7 @@ export class JailService {
       const minBribe = remainingMinutes * JAIL_ACTIVITIES.bribe_guard.costPerMinute;
 
       if (amount < minBribe) {
-        throw new Error(`Bribe too low. Minimum bribe: ${minBribe} gold`);
+        throw new Error(`Bribe too low. Minimum bribe: $${minBribe}`);
       }
 
       // Calculate acceptance chance (more gold = higher chance)
@@ -296,19 +297,18 @@ export class JailService {
       const baseChance = JAIL_ACTIVITIES.bribe_guard.baseAcceptChance;
       const acceptChance = Math.min(0.90, baseChance + (bribeRatio - 1) * 0.15);
 
-      const roll = Math.random();
-      const accepted = roll < acceptChance;
+      const accepted = SecureRNG.chance(acceptChance);
 
       // Record bribe attempt
       this.recordActivityAttempt(character, JailActivity.BRIBE_GUARD);
 
       if (accepted) {
-        // Bribe accepted - deduct gold and release
-        await GoldService.deductGold(
+        // Bribe accepted - deduct dollars and release
+        await DollarService.deductDollars(
           character._id as string,
           amount,
           TransactionSource.BRIBE,
-          { description: `Bribed guard for early jail release (${remainingMinutes} minutes remaining)` },
+          { description: `Bribed guard for early jail release (${remainingMinutes} minutes remaining)`, currencyType: CurrencyType.DOLLAR },
           session
         );
 
@@ -316,23 +316,23 @@ export class JailService {
         await session.commitTransaction();
         session.endSession();
 
-        logger.info(`Bribe accepted: ${character.name} bribed guard for ${amount} gold`);
+        logger.info(`Bribe accepted: ${character.name} bribed guard for $${amount}`);
 
         return {
           success: true,
           accepted: true,
           goldSpent: amount,
           released: true,
-          message: `The guard accepts your bribe of ${amount} gold and lets you out!`
+          message: `The guard accepts your bribe of $${amount} and lets you out!`
         };
       } else {
-        // Bribe rejected - lose half the gold
-        const lostGold = Math.floor(amount * 0.5);
-        await GoldService.deductGold(
+        // Bribe rejected - lose half the dollars
+        const lostDollars = Math.floor(amount * 0.5);
+        await DollarService.deductDollars(
           character._id as string,
-          lostGold,
+          lostDollars,
           TransactionSource.BRIBE,
-          { description: `Failed bribe attempt, guard took ${lostGold} gold` },
+          { description: `Failed bribe attempt, guard took $${lostDollars}`, currencyType: CurrencyType.DOLLAR },
           session
         );
 
@@ -340,14 +340,14 @@ export class JailService {
         await session.commitTransaction();
         session.endSession();
 
-        logger.info(`Bribe rejected: ${character.name} lost ${lostGold} gold in failed bribe`);
+        logger.info(`Bribe rejected: ${character.name} lost $${lostDollars} in failed bribe`);
 
         return {
           success: true,
           accepted: false,
-          goldSpent: lostGold,
+          goldSpent: lostDollars,
           released: false,
-          message: `The guard refuses your bribe and takes ${lostGold} gold for himself!`
+          message: `The guard refuses your bribe and takes $${lostDollars} for himself!`
         };
       }
     } catch (error) {
@@ -391,18 +391,19 @@ export class JailService {
       }
 
       // Check if payer can afford bail
-      if (payer.gold < bailCost) {
-        throw new Error(`Insufficient gold. Bail costs ${bailCost}, payer has ${payer.gold}`);
+      if (payer.dollars < bailCost) {
+        throw new Error(`Insufficient dollars. Bail costs $${bailCost}, payer has $${payer.dollars}`);
       }
 
-      // Deduct gold from payer
-      await GoldService.deductGold(
+      // Deduct dollars from payer
+      await DollarService.deductDollars(
         payer._id as string,
         bailCost,
         TransactionSource.BAIL_PAYMENT,
         {
-          description: `Paid bail of ${bailCost} for ${character.name}`,
-          targetCharacterId: character._id
+          description: `Paid bail of $${bailCost} for ${character.name}`,
+          targetCharacterId: character._id,
+          currencyType: CurrencyType.DOLLAR,
         },
         session
       );
@@ -415,7 +416,7 @@ export class JailService {
         await NotificationService.sendNotification(
           character._id.toString(),
           'BAIL_PAID',
-          `${payer.name} paid your bail of ${bailCost} gold!`,
+          `${payer.name} paid your bail of $${bailCost}!`,
           { paidBy: payer.name, amount: bailCost }
         );
       }
@@ -424,7 +425,7 @@ export class JailService {
       session.endSession();
 
       logger.info(
-        `Bail paid: ${payer.name} paid ${bailCost} gold bail for ${character.name}`
+        `Bail paid: ${payer.name} paid $${bailCost} bail for ${character.name}`
       );
 
       return {
@@ -432,7 +433,7 @@ export class JailService {
         goldSpent: bailCost,
         released: true,
         paidBy: payer._id.toString(),
-        message: `Bail of ${bailCost} gold has been paid. ${character.name} is released.`
+        message: `Bail of $${bailCost} has been paid. ${character.name} is released.`
       };
     } catch (error) {
       await session.abortTransaction();
@@ -535,14 +536,15 @@ export class JailService {
       const jailMinutes = target.wantedLevel * 15; // 15 minutes per wanted level
 
       // Award bounty to hunter
-      await GoldService.addGold(
+      await DollarService.addDollars(
         hunter._id as string,
         bountyReward,
         TransactionSource.BOUNTY_REWARD,
         {
           description: `Bounty reward for turning in ${target.name}`,
           targetCharacterId: target._id,
-          wantedLevel: target.wantedLevel
+          wantedLevel: target.wantedLevel,
+          currencyType: CurrencyType.DOLLAR,
         },
         session
       );
@@ -552,7 +554,7 @@ export class JailService {
         target._id.toString(),
         jailMinutes,
         JailReason.TURNED_IN,
-        target.wantedLevel * 100, // 100 gold bail per wanted level
+        target.wantedLevel * 100, // $100 bail per wanted level
         true,
         session
       );
@@ -570,7 +572,7 @@ export class JailService {
       await NotificationService.sendNotification(
         hunter._id.toString(),
         'BOUNTY_COLLECTED',
-        `You turned in ${target.name} and collected ${bountyReward} gold bounty!`,
+        `You turned in ${target.name} and collected $${bountyReward} bounty!`,
         { reward: bountyReward, targetName: target.name }
       );
 
@@ -578,7 +580,7 @@ export class JailService {
       session.endSession();
 
       logger.info(
-        `Player turned in: ${hunter.name} turned in ${target.name} for ${bountyReward} gold. ` +
+        `Player turned in: ${hunter.name} turned in ${target.name} for $${bountyReward}. ` +
         `Target jailed for ${jailMinutes} minutes`
       );
 
@@ -587,7 +589,7 @@ export class JailService {
         bountyReward,
         targetJailed: true,
         jailSentence: jailMinutes,
-        message: `You turned in ${target.name} and received ${bountyReward} gold bounty!`
+        message: `You turned in ${target.name} and received $${bountyReward} bounty!`
       };
     } catch (error) {
       await session.abortTransaction();
@@ -754,19 +756,15 @@ export class JailService {
 
     // Calculate rewards
     const config = JAIL_ACTIVITIES.prison_labor;
-    const goldEarned = Math.floor(
-      Math.random() * (config.goldReward.max - config.goldReward.min + 1) + config.goldReward.min
-    );
-    const xpEarned = Math.floor(
-      Math.random() * (config.xpReward.max - config.xpReward.min + 1) + config.xpReward.min
-    );
+    const dollarsEarned = SecureRNG.range(config.goldReward.min, config.goldReward.max);
+    const xpEarned = SecureRNG.range(config.xpReward.min, config.xpReward.max);
 
-    // Award gold
-    await GoldService.addGold(
+    // Award dollars
+    await DollarService.addDollars(
       character._id as string,
-      goldEarned,
+      dollarsEarned,
       TransactionSource.JOB_INCOME,
-      { description: 'Prison labor work', jailActivity: true },
+      { description: 'Prison labor work', jailActivity: true, currencyType: CurrencyType.DOLLAR },
       session
     );
 
@@ -779,8 +777,8 @@ export class JailService {
     return {
       success: true,
       activity: JailActivity.PRISON_LABOR,
-      message: `You worked hard and earned ${goldEarned} gold and ${xpEarned} XP.`,
-      goldEarned,
+      message: `You worked hard and earned $${dollarsEarned} and ${xpEarned} XP.`,
+      goldEarned: dollarsEarned,
       xpEarned
     };
   }
@@ -801,10 +799,10 @@ export class JailService {
       'Someone mentions a loose bar in cell block C...'
     ];
 
-    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+    const randomMessage = SecureRNG.select(messages);
 
     // Small chance to get a useful tip (future quest hook)
-    const gotTip = Math.random() < 0.1;
+    const gotTip = SecureRNG.chance(0.1);
 
     return {
       success: true,

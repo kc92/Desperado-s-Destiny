@@ -9,6 +9,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { FactionCard } from './FactionCard';
 import apiClient from '@/services/api';
+import { logger } from '@/services/logger.service';
 
 interface NameAndFactionStepProps {
   name: string;
@@ -68,7 +69,7 @@ export const NameAndFactionStep: React.FC<NameAndFactionStepProps> = ({
       const response = await apiClient.get(`/characters/check-name?name=${encodeURIComponent(characterName)}`);
       setNameAvailable(response.data.available);
     } catch (err) {
-      console.error('Failed to check character name:', err);
+      logger.error('Failed to check character name', err as Error, { context: 'NameAndFactionStep.checkNameAvailability', characterName });
       setNameAvailable(null);
     } finally {
       setCheckingName(false);
@@ -195,6 +196,7 @@ export const NameAndFactionStep: React.FC<NameAndFactionStepProps> = ({
           size="lg"
           onClick={onNext}
           disabled={!canProceed()}
+          data-testid="character-next-button"
         >
           Next Step
         </Button>

@@ -11,8 +11,9 @@ import { ListItemSkeleton, CardGridSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { WarCard, DeclareWarModal, WarDetailModal, WarHistoryTable, NPCGangPanel } from '@/components/gang';
 import { useGangWars, GangWar } from '@/hooks/useGangWars';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 import apiClient from '@/services/api';
+import { logger } from '@/services/logger.service';
 
 interface GangMember {
   id: string;
@@ -107,7 +108,7 @@ export const Gang: React.FC = () => {
         setAvailableGangs(gangsResponse.data.gangs || []);
       }
     } catch (error) {
-      console.error('Failed to load gang data:', error);
+      logger.error('Failed to load gang data', error as Error, { context: 'Gang.loadGangData' });
       // Use mock data for now
       setAvailableGangs(getMockGangs());
     }
@@ -257,7 +258,7 @@ export const Gang: React.FC = () => {
       const response = await apiClient.get(`/gangs/check-name?name=${encodeURIComponent(gangName)}`);
       setGangNameAvailable(response.data.available);
     } catch (err) {
-      console.error('Failed to check gang name:', err);
+      logger.error('Failed to check gang name', err as Error, { context: 'Gang.checkGangNameAvailability', gangName });
       setGangNameAvailable(null);
     } finally {
       setCheckingGangName(false);
@@ -316,7 +317,7 @@ export const Gang: React.FC = () => {
         await loadGangData();
       }
     } catch (error: any) {
-      console.error('Failed to create gang:', error);
+      logger.error('Failed to create gang', error as Error, { context: 'Gang.handleCreateGang', gangName: createForm.name });
       showError(error.message || 'Failed to create gang. Please try again.');
     }
   };
@@ -328,7 +329,7 @@ export const Gang: React.FC = () => {
       setShowJoinModal(false);
       showSuccess('Successfully joined the gang!');
     } catch (error: any) {
-      console.error('Failed to join gang:', error);
+      logger.error('Failed to join gang', error as Error, { context: 'Gang.handleJoinGang', gangId });
       showError(error.message || 'Failed to join gang. Please try again.');
     }
   };
@@ -348,7 +349,7 @@ export const Gang: React.FC = () => {
       showSuccess('You have left the gang');
       await loadGangData();
     } catch (error) {
-      console.error('Failed to leave gang:', error);
+      logger.error('Failed to leave gang', error as Error, { context: 'Gang.confirmLeaveGang', gangId: currentGang.id });
       showError('Failed to leave gang. Please try again.');
     } finally {
       setIsLeaving(false);
@@ -399,7 +400,7 @@ const _getRoleColor = (role: string) => {
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-gold-light">
-                  💰 {formatGold(currentGang.treasury)}
+                  💰 {formatDollars(currentGang.treasury)}
                 </div>
                 <div className="text-sm text-desert-sand mt-1">
                   Gang Treasury

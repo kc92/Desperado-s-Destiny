@@ -44,13 +44,23 @@ export const Landing: React.FC = () => {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
             <Link to="/register">
-              <Button variant="primary" size="lg" className="min-w-[200px]">
+              <Button
+                variant="primary"
+                size="lg"
+                className="min-w-[200px]"
+                data-testid="register-button-hero"
+              >
                 Enter the Territory
               </Button>
             </Link>
 
             <Link to="/login">
-              <Button variant="secondary" size="lg" className="min-w-[200px]">
+              <Button
+                variant="secondary"
+                size="lg"
+                className="min-w-[200px]"
+                data-testid="login-button"
+              >
                 Returning Player
               </Button>
             </Link>
@@ -150,7 +160,11 @@ export const Landing: React.FC = () => {
               </div>
 
               <Link to="/register">
-                <Button variant="primary" size="lg">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  data-testid="register-button-cta"
+                >
                   Claim Your Destiny
                 </Button>
               </Link>
@@ -203,7 +217,12 @@ export const Landing: React.FC = () => {
 
           <div className="pt-4">
             <Link to="/register">
-              <Button variant="secondary" size="lg" className="min-w-[250px]">
+              <Button
+                variant="secondary"
+                size="lg"
+                className="min-w-[250px]"
+                data-testid="register-button-footer"
+              >
                 Begin Your Journey
               </Button>
             </Link>

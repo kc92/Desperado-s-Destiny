@@ -107,9 +107,16 @@ Each faction offers unique abilities, territories, and moral perspectives on the
 - 🔐 **Security audit complete** (13 critical endpoints secured, audit logging)
 
 ### ⏳ Coming Next (Final Polish to Beta Launch)
-- 🎨 **Visual polish** (screen shake, particle effects, card animations)
+- ⚔️ **PvP Duel Real-Time Frontend** (~6 hours - Socket.io integration, live game interface)
+- 🐳 **Docker Compose Production Files** (~1 hour - staging/prod configs)
 - 🧪 **Load testing** (500+ concurrent socket connections)
 - 💳 **Payment integration** (Stripe for premium subscriptions - deferred)
+
+### ✅ Recently Verified Complete (Session 9 Audit)
+- 🎴 **Destiny Deck Animations** - 99% complete (3D flips, particles, victory effects)
+- 📜 **Quest System** - 100% complete (14 quests + procedural templates)
+- 🏆 **Tournament UI** - 90% complete (bracket visualization, registration)
+- 🧪 **E2E Testing** - 112 tests ready (Puppeteer + intelligent bots)
 
 ### 🗺️ Completed Sprints
 - **Sprint 1-2:** ✅ Foundation (Auth, Character, Energy, Deck Engine)
@@ -189,7 +196,7 @@ npm run dev
 
 **Services:**
 - 🌐 **Frontend:** http://localhost:5173
-- 🔧 **Backend:** http://localhost:5000
+- 🔧 **Backend:** http://localhost:5001
 - 🗄️ **MongoDB:** mongodb://localhost:27017
 - 💾 **Redis:** redis://localhost:6379
 
@@ -352,7 +359,7 @@ The Settler vs Native conflict is portrayed with moral complexity, not simplisti
 ## ❓ FAQ
 
 **Q: When will the game launch?**
-A: We're at 75-80% completion with 7/8 sprints complete. Final sprint focuses on payment integration and admin tools. Aiming for Q2 2026 beta launch (April-June).
+A: We're at ~95% completion with all major sprints complete. Primary remaining work is PvP Duel real-time frontend (~6-8 hours). Aiming for Q2 2026 beta launch (April-June).
 
 **Q: Will this be pay-to-win?**
 A: Absolutely not. Premium provides convenience (more energy) but free players can compete through skill and strategy.
@@ -417,4 +424,4 @@ We're building a world worth settling, where every player's tale becomes part of
 
 *— Ezra "Hawk" Hawthorne*
 *Digital Frontiersman*
-*November 15, 2025*
+*Last Updated: December 2, 2025*

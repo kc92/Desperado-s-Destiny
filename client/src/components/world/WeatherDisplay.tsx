@@ -44,19 +44,19 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ compact = false 
     );
   }
 
-  const weatherConfig = WEATHER_CONFIG[worldState.currentWeather] || WEATHER_CONFIG.CLEAR;
-  const timeConfig = TIME_CONFIG[worldState.timeOfDay] || TIME_CONFIG.NOON;
+  const weatherConfig = WEATHER_CONFIG[worldState.currentWeather || 'CLEAR'] || WEATHER_CONFIG.CLEAR;
+  const timeConfig = TIME_CONFIG[worldState.timeOfDay || 'NOON'] || TIME_CONFIG.NOON;
 
   if (compact) {
     return (
       <div className="flex items-center gap-3 bg-stone-800/80 rounded-lg px-3 py-2">
-        <span className="text-xl" title={worldState.currentWeather}>
+        <span className="text-xl" title={worldState.currentWeather || 'CLEAR'}>
           {weatherConfig.icon}
         </span>
         <div className="text-sm">
-          <div className={timeConfig.color}>{worldState.timeOfDay}</div>
+          <div className={timeConfig.color}>{worldState.timeOfDay || 'NOON'}</div>
           <div className="text-stone-400 text-xs">
-            {worldState.gameHour}:00 • Day {worldState.gameDay}
+            {worldState.gameHour || 12}:00 • Day {worldState.gameDay || 1}
           </div>
         </div>
       </div>
@@ -69,7 +69,7 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ compact = false 
       <div className={`${weatherConfig.bgClass} p-4 text-center`}>
         <span className="text-4xl block mb-2">{weatherConfig.icon}</span>
         <h3 className="text-lg font-bold text-stone-900">
-          {worldState.currentWeather.replace('_', ' ')}
+          {(worldState.currentWeather || 'CLEAR').replace('_', ' ')}
         </h3>
       </div>
 
@@ -79,15 +79,15 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ compact = false 
           <div className="flex items-center gap-2">
             <span className="text-xl">{timeConfig.icon}</span>
             <span className={`font-semibold ${timeConfig.color}`}>
-              {worldState.timeOfDay}
+              {worldState.timeOfDay || 'NOON'}
             </span>
           </div>
           <div className="text-stone-400 text-sm">
-            {worldState.gameHour}:00
+            {worldState.gameHour || 12}:00
           </div>
         </div>
         <div className="text-stone-500 text-xs mt-1">
-          {worldState.gameMonth}/{worldState.gameDay}/{worldState.gameYear}
+          {worldState.gameMonth || 1}/{worldState.gameDay || 1}/{worldState.gameYear || 1885}
         </div>
       </div>
 
@@ -97,43 +97,43 @@ export const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ compact = false 
           Current Effects
         </h4>
 
-        {worldState.weatherEffects.travelTimeModifier !== 1 && (
+        {worldState.weatherEffects?.travelTimeModifier !== 1 && (
           <EffectRow
             label="Travel Time"
-            value={worldState.weatherEffects.travelTimeModifier}
+            value={worldState.weatherEffects?.travelTimeModifier || 1}
             icon="🚶"
           />
         )}
-        {worldState.weatherEffects.combatModifier !== 1 && (
+        {worldState.weatherEffects?.combatModifier !== 1 && (
           <EffectRow
             label="Combat"
-            value={worldState.weatherEffects.combatModifier}
+            value={worldState.weatherEffects?.combatModifier || 1}
             icon="⚔️"
           />
         )}
-        {worldState.weatherEffects.energyCostModifier !== 1 && (
+        {worldState.weatherEffects?.energyCostModifier !== 1 && (
           <EffectRow
             label="Energy Cost"
-            value={worldState.weatherEffects.energyCostModifier}
+            value={worldState.weatherEffects?.energyCostModifier || 1}
             icon="⚡"
           />
         )}
-        {worldState.weatherEffects.visibilityModifier !== 1 && (
+        {worldState.weatherEffects?.visibilityModifier !== 1 && (
           <EffectRow
             label="Visibility"
-            value={worldState.weatherEffects.visibilityModifier}
+            value={worldState.weatherEffects?.visibilityModifier || 1}
             icon="👁️"
           />
         )}
-        {worldState.weatherEffects.encounterModifier !== 1 && (
+        {worldState.weatherEffects?.encounterModifier !== 1 && (
           <EffectRow
             label="Encounters"
-            value={worldState.weatherEffects.encounterModifier}
+            value={worldState.weatherEffects?.encounterModifier || 1}
             icon="🎲"
           />
         )}
 
-        {Object.values(worldState.weatherEffects).every(v => v === 1) && (
+        {(!worldState.weatherEffects || Object.values(worldState.weatherEffects).every(v => v === 1)) && (
           <div className="text-stone-500 text-sm text-center py-2">
             No active weather effects
           </div>

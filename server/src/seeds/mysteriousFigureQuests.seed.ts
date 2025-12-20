@@ -7,6 +7,7 @@
  * the quest system.
  */
 
+import logger from '../utils/logger';
 import { QuestDefinition, IQuestDefinition } from '../models/Quest.model';
 import { MYSTERIOUS_FIGURES } from '../data/mysteriousFigures';
 
@@ -197,7 +198,7 @@ export const MYSTERIOUS_FIGURE_QUEST_SEEDS: Partial<IQuestDefinition>[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 200 },
+      { type: 'dollars', amount: 200 },
       { type: 'item', itemId: 'prometheus_device' },
       { type: 'xp', amount: 400 }
     ],
@@ -221,7 +222,7 @@ export const MYSTERIOUS_FIGURE_QUEST_SEEDS: Partial<IQuestDefinition>[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 150 },
+      { type: 'dollars', amount: 150 },
       { type: 'xp', amount: 300 }
     ],
     repeatable: false,
@@ -359,7 +360,7 @@ export const MYSTERIOUS_FIGURE_QUEST_SEEDS: Partial<IQuestDefinition>[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 300 },
+      { type: 'dollars', amount: 300 },
       { type: 'item', itemId: 'protection_gris_gris' },
       { type: 'xp', amount: 500 },
       { type: 'reputation', faction: 'FRONTERA', amount: 50 }
@@ -393,7 +394,7 @@ export const MYSTERIOUS_FIGURE_QUEST_SEEDS: Partial<IQuestDefinition>[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 1000 },
+      { type: 'dollars', amount: 1000 },
       { type: 'item', itemId: 'collectors_token' },
       { type: 'xp', amount: 500 }
     ],
@@ -615,7 +616,7 @@ export async function seedMysteriousFigureQuests(): Promise<void> {
     console.log(`  Skipped: ${skipped}`);
     console.log(`  Total: ${MYSTERIOUS_FIGURE_QUEST_SEEDS.length}`);
   } catch (error) {
-    console.error('Error seeding mysterious figure quests:', error);
+    logger.error('Error seeding mysterious figure quests', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }
@@ -629,7 +630,7 @@ export async function removeMysteriousFigureQuests(): Promise<void> {
     const result = await QuestDefinition.deleteMany({ questId: { $in: questIds } });
     console.log(`Removed ${result.deletedCount} mysterious figure quests`);
   } catch (error) {
-    console.error('Error removing mysterious figure quests:', error);
+    logger.error('Error removing mysterious figure quests', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }

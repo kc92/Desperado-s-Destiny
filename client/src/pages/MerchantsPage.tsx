@@ -5,8 +5,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
-import { useMerchants, WanderingMerchant, MerchantState } from '@/hooks/useMerchants';
-import { Card, Button, Modal, EmptyState } from '@/components/ui';
+import { useMerchants, WanderingMerchant } from '@/hooks/useMerchants';
+import { Card, Modal, EmptyState } from '@/components/ui';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import {
   MerchantCard,
@@ -98,7 +98,8 @@ export const MerchantsPage: React.FC = () => {
     clearSelectedMerchant();
   }, [clearSelectedMerchant]);
 
-  const handleDiscover = useCallback(
+  // Merchant discovery functionality (used in upcoming feature)
+  const handleDiscoverMerchant = useCallback(
     async (merchantId: string) => {
       const result = await discoverMerchant(merchantId);
       if (result.success) {
@@ -107,9 +108,13 @@ export const MerchantsPage: React.FC = () => {
       } else {
         showError('Discovery Failed', result.message);
       }
+      return result;
     },
     [discoverMerchant, fetchAvailableMerchants, success, showError]
   );
+
+  // Export for future use in undiscovered merchants list
+  void handleDiscoverMerchant;
 
   const handleBuyItem = useCallback(
     async (item: any) => {

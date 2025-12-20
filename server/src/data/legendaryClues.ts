@@ -6,6 +6,7 @@
  */
 
 import { LegendaryCategory } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Rumor text templates by NPC type
@@ -408,7 +409,7 @@ export function getRumorsForLegendary(legendaryId: string): typeof LEGENDARY_RUM
 export function getRandomRumor(legendaryId: string): typeof LEGENDARY_RUMORS[string][number] | null {
   const rumors = getRumorsForLegendary(legendaryId);
   if (rumors.length === 0) return null;
-  return rumors[Math.floor(Math.random() * rumors.length)];
+  return SecureRNG.select(rumors);
 }
 
 /**

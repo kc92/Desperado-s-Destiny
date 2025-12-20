@@ -7,10 +7,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAdminStore } from '@/store/useAdminStore';
-import { Card } from '@/components/ui';
+import { Card, Button } from '@/components/ui';
 import { UserManagement } from './UserManagement';
 import { EconomyMonitor } from './EconomyMonitor';
 import { ServerHealth } from './ServerHealth';
+import { logger } from '@/services/logger.service';
 
 type Tab = 'overview' | 'users' | 'characters' | 'economy' | 'gangs' | 'server';
 
@@ -36,7 +37,7 @@ export const AdminDashboard: React.FC = () => {
     }
 
     // Load analytics on mount
-    fetchAnalytics().catch(console.error);
+    fetchAnalytics().catch((err) => logger.error('Failed to fetch analytics on admin dashboard mount', err as Error, { context: 'AdminDashboard.fetchAnalytics' }));
   }, [isAuthenticated, user, navigate, fetchAnalytics]);
 
   // Redirect non-admins
@@ -241,20 +242,24 @@ const StatCard: React.FC<{
 const CharactersTab: React.FC = () => {
   const { characters, fetchCharacters, deleteCharacter, isLoading } = useAdminStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteCharacterConfirm, setDeleteCharacterConfirm] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchCharacters().catch(console.error);
+    fetchCharacters().catch((err) => logger.error('Failed to fetch characters for admin dashboard', err as Error, { context: 'AdminDashboard.CharactersTab.fetchCharacters' }));
   }, []);
 
-  const handleDelete = async (characterId: string) => {
-    if (!confirm('Are you sure you want to delete this character? This action cannot be undone.')) {
-      return;
-    }
+  const handleDeleteClick = (characterId: string) => {
+    setDeleteCharacterConfirm(characterId);
+  };
+
+  const confirmDeleteCharacter = async () => {
+    if (!deleteCharacterConfirm) return;
 
     try {
-      await deleteCharacter(characterId);
+      await deleteCharacter(deleteCharacterConfirm);
+      setDeleteCharacterConfirm(null);
     } catch (error) {
-      console.error('Failed to delete character:', error);
+      logger.error('Failed to delete character', error as Error, { context: 'AdminDashboard.CharactersTab.deleteCharacter', characterId: deleteCharacterConfirm });
     }
   };
 
@@ -294,7 +299,7 @@ const CharactersTab: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleDelete(char._id)}
+                  onClick={() => handleDeleteClick(char._id)}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                 >
                   Delete
@@ -304,6 +309,32 @@ const CharactersTab: React.FC = () => {
           </div>
         )}
       </Card>
+
+      {/* Delete Character Confirmation Modal */}
+      {deleteCharacterConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="p-6 w-full max-w-md">
+            <h3 className="text-xl font-western text-frontier-gold mb-4">Confirm Delete</h3>
+            <p className="text-frontier-silver mb-4">
+              Are you sure you want to delete this character? This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="ghost"
+                onClick={() => setDeleteCharacterConfirm(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={confirmDeleteCharacter}
+              >
+                Delete Character
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
@@ -313,20 +344,24 @@ const CharactersTab: React.FC = () => {
  */
 const GangsTab: React.FC = () => {
   const { gangs, fetchGangs, disbandGang, isLoading } = useAdminStore();
+  const [disbandGangConfirm, setDisbandGangConfirm] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchGangs().catch(console.error);
+    fetchGangs().catch((err) => logger.error('Failed to fetch gangs for admin dashboard', err as Error, { context: 'AdminDashboard.GangsTab.fetchGangs' }));
   }, []);
 
-  const handleDisband = async (gangId: string) => {
-    if (!confirm('Are you sure you want to disband this gang? This action cannot be undone.')) {
-      return;
-    }
+  const handleDisbandClick = (gangId: string) => {
+    setDisbandGangConfirm(gangId);
+  };
+
+  const confirmDisbandGang = async () => {
+    if (!disbandGangConfirm) return;
 
     try {
-      await disbandGang(gangId);
+      await disbandGang(disbandGangConfirm);
+      setDisbandGangConfirm(null);
     } catch (error) {
-      console.error('Failed to disband gang:', error);
+      logger.error('Failed to disband gang', error as Error, { context: 'AdminDashboard.GangsTab.disbandGang', gangId: disbandGangConfirm });
     }
   };
 
@@ -354,7 +389,7 @@ const GangsTab: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleDisband(gang._id)}
+                  onClick={() => handleDisbandClick(gang._id)}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                 >
                   Disband
@@ -364,6 +399,32 @@ const GangsTab: React.FC = () => {
           </div>
         )}
       </Card>
+
+      {/* Disband Gang Confirmation Modal */}
+      {disbandGangConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="p-6 w-full max-w-md">
+            <h3 className="text-xl font-western text-frontier-gold mb-4">Confirm Disband</h3>
+            <p className="text-frontier-silver mb-4">
+              Are you sure you want to disband this gang? This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="ghost"
+                onClick={() => setDisbandGangConfirm(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={confirmDisbandGang}
+              >
+                Disband Gang
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

@@ -27,14 +27,14 @@ describe('Gold Transaction Atomicity', () => {
       username: 'atomicity_user1',
       email: 'atomicity1@test.com',
       passwordHash: 'hashedPassword123',
-      isVerified: true,
+      emailVerified: true,
     });
 
     testUser2 = await User.create({
       username: 'atomicity_user2',
       email: 'atomicity2@test.com',
       passwordHash: 'hashedPassword456',
-      isVerified: true,
+      emailVerified: true,
     });
 
     // Create test characters
@@ -236,7 +236,7 @@ describe('Gold Transaction Atomicity', () => {
         username: 'atomicity_user3',
         email: 'atomicity3@test.com',
         passwordHash: 'hashedPassword789',
-        isVerified: true,
+        emailVerified: true,
       });
 
       character3 = await Character.create({
@@ -512,7 +512,7 @@ describe('Gold Transaction Atomicity', () => {
         username: 'user3',
         email: 'user3@test.com',
         passwordHash: 'pass',
-        isVerified: true,
+        emailVerified: true,
       });
 
       const char3 = await Character.create({

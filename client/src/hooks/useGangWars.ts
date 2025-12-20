@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/services/api';
 import { socketService } from '@/services/socket.service';
+import { logger } from '@/services/logger.service';
 
 export type WarStatus = 'ACTIVE' | 'ATTACKER_WON' | 'DEFENDER_WON' | 'CANCELLED';
 
@@ -79,7 +80,7 @@ export const useGangWars = (gangId?: string): UseGangWarsReturn => {
       setActiveWars(response.data.data.wars || []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch active wars');
-      console.error('[useGangWars] Fetch active wars error:', err);
+      logger.error('Fetch active wars error', err as Error, { context: 'useGangWars' });
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +93,7 @@ export const useGangWars = (gangId?: string): UseGangWarsReturn => {
       const allWars = response.data.data.wars || [];
       setWarHistory(allWars.filter(w => w.status !== 'ACTIVE'));
     } catch (err: any) {
-      console.error('[useGangWars] Fetch war history error:', err);
+      logger.error('Fetch war history error', err as Error, { context: 'useGangWars' });
     }
   }, []);
 
@@ -102,7 +103,7 @@ export const useGangWars = (gangId?: string): UseGangWarsReturn => {
       const response = await api.get<{ data: { territories: Territory[] } }>('/territory');
       setAvailableTerritories(response.data.data.territories || []);
     } catch (err: any) {
-      console.error('[useGangWars] Fetch territories error:', err);
+      logger.error('Fetch territories error', err as Error, { context: 'useGangWars' });
     }
   }, []);
 
@@ -114,7 +115,7 @@ export const useGangWars = (gangId?: string): UseGangWarsReturn => {
       return true;
     } catch (err: any) {
       setError(err.message || 'Failed to declare war');
-      console.error('[useGangWars] Declare war error:', err);
+      logger.error('Declare war error', err as Error, { context: 'useGangWars' });
       return false;
     }
   }, [fetchActiveWars]);
@@ -130,7 +131,7 @@ export const useGangWars = (gangId?: string): UseGangWarsReturn => {
       return true;
     } catch (err: any) {
       setError(err.message || 'Failed to contribute to war');
-      console.error('[useGangWars] Contribute error:', err);
+      logger.error('Contribute error', err as Error, { context: 'useGangWars' });
       return false;
     }
   }, []);
@@ -141,7 +142,7 @@ export const useGangWars = (gangId?: string): UseGangWarsReturn => {
       const response = await api.get<{ data: { war: GangWar } }>(`/wars/${warId}`);
       return response.data.data.war;
     } catch (err: any) {
-      console.error('[useGangWars] Get war error:', err);
+      logger.error('Get war error', err as Error, { context: 'useGangWars' });
       return null;
     }
   }, []);
@@ -174,7 +175,7 @@ export const useGangWars = (gangId?: string): UseGangWarsReturn => {
       );
     };
 
-    const handleWarDeclared = (data: {
+    const handleWarDeclared = (_data: {
       warId: string;
       territory: string;
       attacker: string;
@@ -184,7 +185,7 @@ export const useGangWars = (gangId?: string): UseGangWarsReturn => {
       fetchActiveWars();
     };
 
-    const handleTerritoryConquered = (data: {
+    const handleTerritoryConquered = (_data: {
       territory: string;
       winner: string;
       loser: string;
@@ -194,7 +195,7 @@ export const useGangWars = (gangId?: string): UseGangWarsReturn => {
       if (gangId) fetchWarHistory(gangId);
     };
 
-    const handleTerritoryDefended = (data: {
+    const handleTerritoryDefended = (_data: {
       territory: string;
       defender: string;
       attacker: string;

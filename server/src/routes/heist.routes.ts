@@ -9,6 +9,10 @@ import { HeistController } from '../controllers/heist.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { checkGoldDuplication, detectSuspiciousEarning } from '../middleware/antiExploit.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
+import { validate, validateObjectId } from '../validation/middleware';
+import { HeistSchemas } from '../validation/schemas';
 
 const router = Router();
 
@@ -36,32 +40,64 @@ router.get('/', asyncHandler(HeistController.getGangHeists));
  * Start planning a new heist
  * Body: { target: HeistTarget, roleAssignments?: [{ role: HeistRole, characterId: string }] }
  */
-router.post('/plan', asyncHandler(HeistController.planHeist));
+router.post(
+  '/plan',
+  requireCsrfToken,
+  validate(HeistSchemas.planHeist),
+  checkGoldDuplication(),
+  asyncHandler(HeistController.planHeist)
+);
 
 /**
  * POST /api/heists/:heistId/progress
  * Increase planning progress for a heist
  * Body: { amount?: number } (default 10)
  */
-router.post('/:heistId/progress', asyncHandler(HeistController.increasePlanning));
+router.post(
+  '/:heistId/progress',
+  requireCsrfToken,
+  validateObjectId('heistId'),
+  validate(HeistSchemas.increaseProgress),
+  asyncHandler(HeistController.increasePlanning)
+);
 
 /**
  * POST /api/heists/:heistId/execute
- * Execute a planned heist (leader only)
+ * Execute a planned heist (leader only) - protect against gold duplication and suspicious earning
  */
-router.post('/:heistId/execute', asyncHandler(HeistController.executeHeist));
+router.post(
+  '/:heistId/execute',
+  requireCsrfToken,
+  validateObjectId('heistId'),
+  validate(HeistSchemas.heistIdParam),
+  checkGoldDuplication(),
+  detectSuspiciousEarning(),
+  asyncHandler(HeistController.executeHeist)
+);
 
 /**
  * POST /api/heists/:heistId/cancel
  * Cancel a heist in planning (leader only)
  */
-router.post('/:heistId/cancel', asyncHandler(HeistController.cancelHeist));
+router.post(
+  '/:heistId/cancel',
+  requireCsrfToken,
+  validateObjectId('heistId'),
+  validate(HeistSchemas.heistIdParam),
+  asyncHandler(HeistController.cancelHeist)
+);
 
 /**
  * POST /api/heists/:heistId/roles
  * Assign a role to a gang member
  * Body: { role: HeistRole, targetCharacterId: string }
  */
-router.post('/:heistId/roles', asyncHandler(HeistController.assignRole));
+router.post(
+  '/:heistId/roles',
+  requireCsrfToken,
+  validateObjectId('heistId'),
+  validate(HeistSchemas.assignRole),
+  asyncHandler(HeistController.assignRole)
+);
 
 export default router;

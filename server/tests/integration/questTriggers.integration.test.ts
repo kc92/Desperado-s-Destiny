@@ -22,7 +22,7 @@ describe('Quest Triggers Integration', () => {
       email: `quest-trigger-test-${Date.now()}@test.com`,
       username: `questtrigger${Date.now()}`,
       passwordHash: 'hashedpassword123',
-      isVerified: true
+      emailVerified: true
     });
 
     // Create test character

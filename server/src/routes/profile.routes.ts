@@ -6,13 +6,14 @@
 import { Router } from 'express';
 import { getPublicProfile, searchCharacters } from '../controllers/profile.controller';
 import { authenticate } from '../middleware/auth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
 
 // Search characters by name (requires auth)
-router.get('/search', authenticate, searchCharacters);
+router.get('/search', authenticate, asyncHandler(searchCharacters));
 
 // Get public profile by character name (requires auth)
-router.get('/:name', authenticate, getPublicProfile);
+router.get('/:name', authenticate, asyncHandler(getPublicProfile));
 
 export default router;

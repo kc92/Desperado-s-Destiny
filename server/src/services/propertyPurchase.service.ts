@@ -9,6 +9,7 @@ import { Property, IProperty } from '../models/Property.model';
 import { PropertyLoan, IPropertyLoan } from '../models/PropertyLoan.model';
 import { Character } from '../models/Character.model';
 import { TransactionSource } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
 import mongoose from 'mongoose';
 import {
   PROPERTY_TIER_INFO,
@@ -40,6 +41,7 @@ import type {
   UpgradeCategory,
 } from '@desperados/shared';
 import { PropertyStatus, PurchaseSource } from '@desperados/shared';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Property Purchase Service
@@ -167,18 +169,20 @@ export class PropertyPurchaseService {
         await loan.save({ session });
       }
 
-      // Check if character has enough gold
-      if (!character.hasGold(downPayment)) {
-        throw new Error('Insufficient gold for down payment');
-      }
-
-      // Deduct gold
-      await character.deductGold(downPayment, TransactionSource.SHOP_PURCHASE, {
-        propertyId: property._id,
-        propertyName: property.name,
-        usedLoan: request.useLoan,
+      // Deduct dollars using DollarService (handles insufficient funds check internally)
+      await DollarService.deductDollars(
+        character._id as any,
         downPayment,
-      });
+        TransactionSource.PROPERTY_PURCHASE,
+        {
+          propertyId: property._id,
+          propertyName: property.name,
+          usedLoan: request.useLoan,
+          downPayment,
+          currencyType: 'DOLLAR',
+        },
+        session
+      );
 
       // Transfer ownership
       property.ownerId = character._id as any;
@@ -250,17 +254,20 @@ export class PropertyPurchaseService {
       const tierInfo = PROPERTY_TIER_INFO[property.tier as PropertyTier];
       const upgradeCost = tierInfo.upgradeCost;
 
-      if (!character.hasGold(upgradeCost)) {
-        throw new Error('Insufficient gold for tier upgrade');
-      }
-
-      // Deduct gold
-      await character.deductGold(upgradeCost, TransactionSource.SHOP_PURCHASE, {
-        propertyId: property._id,
-        upgradeType: 'tier',
-        fromTier: property.tier,
-        toTier: property.tier + 1,
-      });
+      // Deduct dollars using DollarService (handles insufficient funds check internally)
+      await DollarService.deductDollars(
+        character._id as any,
+        upgradeCost,
+        TransactionSource.PROPERTY_PURCHASE,
+        {
+          propertyId: property._id,
+          upgradeType: 'tier',
+          fromTier: property.tier,
+          toTier: property.tier + 1,
+          currencyType: 'DOLLAR',
+        },
+        session
+      );
 
       // Upgrade tier
       property.tier = (property.tier + 1) as PropertyTier;
@@ -331,15 +338,18 @@ export class PropertyPurchaseService {
       // For now, use placeholder cost
       const upgradeCost = 500 * property.tier;
 
-      if (!character.hasGold(upgradeCost)) {
-        throw new Error('Insufficient gold for upgrade');
-      }
-
-      // Deduct gold
-      await character.deductGold(upgradeCost, TransactionSource.SHOP_PURCHASE, {
-        propertyId: property._id,
-        upgradeType: request.upgradeType,
-      });
+      // Deduct dollars using DollarService (handles insufficient funds check internally)
+      await DollarService.deductDollars(
+        character._id as any,
+        upgradeCost,
+        TransactionSource.PROPERTY_PURCHASE,
+        {
+          propertyId: property._id,
+          upgradeType: request.upgradeType,
+          currencyType: 'DOLLAR',
+        },
+        session
+      );
 
       // Add upgrade
       const upgrade: PropertyUpgrade = {
@@ -409,15 +419,18 @@ export class PropertyPurchaseService {
       // Hiring cost (1 week wages upfront)
       const hiringCost = dailyWage * 7;
 
-      if (!character.hasGold(hiringCost)) {
-        throw new Error('Insufficient gold to hire worker');
-      }
-
-      // Deduct gold
-      await character.deductGold(hiringCost, TransactionSource.SHOP_PURCHASE, {
-        propertyId: property._id,
-        workerType: request.workerType,
-      });
+      // Deduct dollars using DollarService (handles insufficient funds check internally)
+      await DollarService.deductDollars(
+        character._id as any,
+        hiringCost,
+        TransactionSource.PROPERTY_PURCHASE,
+        {
+          propertyId: property._id,
+          workerType: request.workerType,
+          currencyType: 'DOLLAR',
+        },
+        session
+      );
 
       // Generate worker name
       const workerName = this.generateWorkerName(request.workerType);
@@ -576,16 +589,19 @@ export class PropertyPurchaseService {
         totalPayment += loan.calculatePenalty();
       }
 
-      if (!character.hasGold(totalPayment)) {
-        throw new Error('Insufficient gold for payment');
-      }
-
-      // Deduct gold
-      await character.deductGold(totalPayment, TransactionSource.SHOP_PURCHASE, {
-        loanId: loan._id,
-        paymentAmount,
-        penalty: loan.isOverdue() ? loan.calculatePenalty() : 0,
-      });
+      // Deduct dollars using DollarService (handles insufficient funds check internally)
+      await DollarService.deductDollars(
+        character._id as any,
+        totalPayment,
+        TransactionSource.PROPERTY_PURCHASE,
+        {
+          loanId: loan._id,
+          paymentAmount,
+          penalty: loan.isOverdue() ? loan.calculatePenalty() : 0,
+          currencyType: 'DOLLAR',
+        },
+        session
+      );
 
       // Make payment
       loan.makePayment(paymentAmount);
@@ -638,20 +654,37 @@ export class PropertyPurchaseService {
 
       if (price > 0) {
         // Handle sale
-        if (!buyer.hasGold(price)) {
-          throw new Error('Buyer has insufficient gold');
+        // CRITICAL FIX: Use DollarService methods instead of non-existent Character methods
+        if (buyer.dollars < price) {
+          throw new Error('Buyer has insufficient dollars');
         }
 
-        // Transfer gold
-        await buyer.deductGold(price, TransactionSource.PLAYER_TRADE, {
-          propertyId: property._id,
-          sellerId: seller._id,
-        });
+        // Transfer dollars using DollarService (transaction-safe with audit trail)
+        await DollarService.deductDollars(
+          buyer._id.toString(),
+          price,
+          TransactionSource.PLAYER_TRADE,
+          {
+            propertyId: property._id.toString(),
+            sellerId: seller._id.toString(),
+            description: 'Property purchase transfer',
+            currencyType: 'DOLLAR'
+          },
+          session
+        );
 
-        await seller.addGold(price, TransactionSource.PLAYER_TRADE, {
-          propertyId: property._id,
-          buyerId: buyer._id,
-        });
+        await DollarService.addDollars(
+          seller._id.toString(),
+          price,
+          TransactionSource.PLAYER_TRADE,
+          {
+            propertyId: property._id.toString(),
+            buyerId: buyer._id.toString(),
+            description: 'Property sale proceeds',
+            currencyType: 'DOLLAR'
+          },
+          session
+        );
       }
 
       // Transfer ownership
@@ -714,8 +747,8 @@ export class PropertyPurchaseService {
       'Thomas',
     ];
 
-    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+    const firstName = SecureRNG.select(firstNames);
+    const lastName = SecureRNG.select(lastNames);
 
     return `${firstName} ${lastName}`;
   }

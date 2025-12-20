@@ -5,6 +5,7 @@
  */
 
 import { StagecoachEncounter, EncounterChoice } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Encounter probability by danger level
@@ -413,7 +414,7 @@ export const STAGECOACH_ENCOUNTERS: Record<string, StagecoachEncounter[]> = {
 export function getRandomEncounter(dangerLevel: number): StagecoachEncounter | null {
   // Roll for encounter
   const encounterRate = ENCOUNTER_RATES[dangerLevel as keyof typeof ENCOUNTER_RATES] || 0.20;
-  if (Math.random() > encounterRate) {
+  if (!SecureRNG.chance(encounterRate)) {
     return null; // No encounter
   }
 
@@ -428,8 +429,7 @@ export function getRandomEncounter(dangerLevel: number): StagecoachEncounter | n
   }
 
   // Return random encounter from pool
-  const randomIndex = Math.floor(Math.random() * encounterPool.length);
-  return { ...encounterPool[randomIndex] }; // Clone to avoid mutation
+  return { ...SecureRNG.select(encounterPool) }; // Clone to avoid mutation
 }
 
 /**
@@ -456,11 +456,11 @@ export function resolveEncounterChoice(
 
   // Check if skill check is required
   if (choice.skillCheck && characterSkillLevel !== undefined) {
-    const roll = Math.floor(Math.random() * 20) + 1 + characterSkillLevel;
+    const roll = SecureRNG.range(1, 20) + characterSkillLevel;
     success = roll >= choice.skillCheck.difficulty;
   } else if (choice.skillCheck) {
     // No skill level provided, 50/50 chance
-    success = Math.random() > 0.5;
+    success = SecureRNG.chance(0.5);
   }
 
   const message = success ? choice.consequences.success : choice.consequences.failure;

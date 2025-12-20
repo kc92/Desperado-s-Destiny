@@ -69,7 +69,7 @@ export interface WorldEffect {
  * Event reward for participation
  */
 export interface EventReward {
-  type: 'gold' | 'xp' | 'item' | 'reputation' | 'achievement';
+  type: 'dollars' | 'xp' | 'item' | 'reputation' | 'achievement';
   amount: number;
   itemId?: string;
   faction?: string;

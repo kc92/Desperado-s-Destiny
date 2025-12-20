@@ -6,8 +6,12 @@
 
 import { Router } from 'express';
 import { GangEconomyController } from '../controllers/gangEconomy.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { characterOwnership } from '../middleware/characterOwnership.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { rateLimitGoldTransactions, checkGoldDuplication, logEconomicTransaction } from '../middleware/antiExploit.middleware';
+import { requireCsrfToken, requireCsrfTokenWithRotation } from '../middleware/csrf.middleware';
+import { validate, GangSchemas } from '../validation';
 
 const router = Router();
 
@@ -20,37 +24,37 @@ router.use(characterOwnership);
 /**
  * Economy Overview
  */
-router.get('/:gangId/economy', GangEconomyController.getEconomy);
+router.get('/:gangId/economy', asyncHandler(GangEconomyController.getEconomy));
 
 /**
  * Bank Routes
  */
-router.get('/:gangId/bank', GangEconomyController.getBank);
-router.post('/:gangId/bank/deposit', GangEconomyController.deposit);
-router.post('/:gangId/bank/withdraw', GangEconomyController.withdraw);
-router.post('/:gangId/bank/transfer', GangEconomyController.transfer);
+router.get('/:gangId/bank', asyncHandler(GangEconomyController.getBank));
+router.post('/:gangId/bank/deposit', requireCsrfToken, validate(GangSchemas.deposit), rateLimitGoldTransactions(20), asyncHandler(GangEconomyController.deposit));
+router.post('/:gangId/bank/withdraw', requireCsrfTokenWithRotation, validate(GangSchemas.withdraw), rateLimitGoldTransactions(10), checkGoldDuplication(), asyncHandler(GangEconomyController.withdraw));
+router.post('/:gangId/bank/transfer', requireCsrfTokenWithRotation, validate(GangSchemas.withdraw), rateLimitGoldTransactions(10), checkGoldDuplication(), asyncHandler(GangEconomyController.transfer));
 
 /**
  * Business Routes
  */
-router.get('/:gangId/businesses', GangEconomyController.getBusinesses);
-router.post('/:gangId/businesses/buy', GangEconomyController.buyBusiness);
-router.post('/:gangId/businesses/:businessId/sell', GangEconomyController.sellBusiness);
+router.get('/:gangId/businesses', asyncHandler(GangEconomyController.getBusinesses));
+router.post('/:gangId/businesses/buy', requireCsrfToken, checkGoldDuplication(), asyncHandler(GangEconomyController.buyBusiness));
+router.post('/:gangId/businesses/:businessId/sell', requireCsrfToken, asyncHandler(GangEconomyController.sellBusiness));
 
 /**
  * Heist Routes
  */
-router.get('/:gangId/heists/available', GangEconomyController.getAvailableHeists);
-router.get('/:gangId/heists', GangEconomyController.getHeists);
-router.post('/:gangId/heists/plan', GangEconomyController.planHeist);
-router.post('/:gangId/heists/:heistId/plan', GangEconomyController.increasePlanning);
-router.post('/:gangId/heists/:heistId/execute', GangEconomyController.executeHeist);
-router.post('/:gangId/heists/:heistId/cancel', GangEconomyController.cancelHeist);
+router.get('/:gangId/heists/available', asyncHandler(GangEconomyController.getAvailableHeists));
+router.get('/:gangId/heists', asyncHandler(GangEconomyController.getHeists));
+router.post('/:gangId/heists/plan', requireCsrfToken, checkGoldDuplication(), asyncHandler(GangEconomyController.planHeist));
+router.post('/:gangId/heists/:heistId/plan', requireCsrfToken, checkGoldDuplication(), asyncHandler(GangEconomyController.increasePlanning));
+router.post('/:gangId/heists/:heistId/execute', requireCsrfToken, checkGoldDuplication(), asyncHandler(GangEconomyController.executeHeist));
+router.post('/:gangId/heists/:heistId/cancel', requireCsrfToken, asyncHandler(GangEconomyController.cancelHeist));
 
 /**
  * Payroll Routes
  */
-router.get('/:gangId/payroll', GangEconomyController.getPayroll);
-router.post('/:gangId/payroll', GangEconomyController.setPayroll);
+router.get('/:gangId/payroll', asyncHandler(GangEconomyController.getPayroll));
+router.post('/:gangId/payroll', requireCsrfToken, asyncHandler(GangEconomyController.setPayroll));
 
 export default router;

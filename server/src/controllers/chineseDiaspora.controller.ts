@@ -6,7 +6,7 @@
 
 import { Request, Response } from 'express';
 import { ChineseDiasporaService } from '../services/chineseDiaspora.service';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import {
   DiscoveryMethodRep,
   DiasporaReputationAction,

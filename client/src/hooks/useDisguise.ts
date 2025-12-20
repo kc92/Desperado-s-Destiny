@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Disguise type definition
 export interface DisguiseType {
@@ -89,7 +90,7 @@ export const useDisguise = (): UseDisguiseReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch disguise status';
       setError(errorMessage);
-      console.error('[useDisguise] Fetch status error:', err);
+      logger.error('[useDisguise] Fetch status error:', err as Error, { context: 'fetchStatus' });
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +102,7 @@ export const useDisguise = (): UseDisguiseReturn => {
       const response = await api.get<{ data: { types: DisguiseType[] } }>('/disguise/types');
       setDisguiseTypes(response.data.data.types || []);
     } catch (err: any) {
-      console.error('[useDisguise] Fetch types error:', err);
+      logger.error('[useDisguise] Fetch types error:', err as Error, { context: 'fetchTypes' });
     }
   }, []);
 
@@ -116,7 +117,7 @@ export const useDisguise = (): UseDisguiseReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch available disguises';
       setError(errorMessage);
-      console.error('[useDisguise] Fetch available error:', err);
+      logger.error('[useDisguise] Fetch available error:', err as Error, { context: 'fetchAvailable' });
     } finally {
       setIsLoading(false);
     }
@@ -150,7 +151,7 @@ export const useDisguise = (): UseDisguiseReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to apply disguise';
       setError(errorMessage);
-      console.error('[useDisguise] Apply error:', err);
+      logger.error('[useDisguise] Apply error:', err as Error, { context: 'apply', disguiseId });
       return { success: false, message: errorMessage };
     }
   }, [disguiseTypes, refreshCharacter]);
@@ -173,7 +174,7 @@ export const useDisguise = (): UseDisguiseReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to remove disguise';
       setError(errorMessage);
-      console.error('[useDisguise] Remove error:', err);
+      logger.error('[useDisguise] Remove error:', err as Error, { context: 'remove' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -199,7 +200,7 @@ export const useDisguise = (): UseDisguiseReturn => {
 
       return result;
     } catch (err: any) {
-      console.error('[useDisguise] Check detection error:', err);
+      logger.error('[useDisguise] Check detection error:', err as Error, { context: 'checkDetection', dangerLevel });
       return { detected: false };
     }
   }, [refreshCharacter]);

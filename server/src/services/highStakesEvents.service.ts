@@ -165,13 +165,13 @@ export async function joinEvent(
     throw new Error('Event is full');
   }
 
-  // Check gold for entry fee
-  if (!character.hasGold(event.entryFee)) {
-    throw new Error(`Insufficient gold. Entry fee: ${event.entryFee} gold`);
+  // Check dollars for entry fee
+  if (!character.hasDollars(event.entryFee)) {
+    throw new Error(`Insufficient dollars. Entry fee: ${event.entryFee} dollars`);
   }
 
   // Charge entry fee
-  await character.deductGold(event.entryFee, TransactionSource.GAMBLING_ENTRY_FEE);
+  await character.deductDollars(event.entryFee, TransactionSource.GAMBLING_ENTRY_FEE);
   await character.save();
 
   // Add to participants
@@ -316,9 +316,9 @@ async function awardPrize(characterId: string, prize: GamblingPrize): Promise<vo
 
   switch (prize.type) {
     case 'GOLD':
-      await character.addGold(prize.amount!, TransactionSource.GAMBLING_EVENT_PRIZE);
+      await character.addDollars(prize.amount!, TransactionSource.GAMBLING_EVENT_PRIZE);
       await character.save();
-      logger.info(`Awarded ${prize.amount} gold to ${character.name}`);
+      logger.info(`Awarded ${prize.amount} dollars to ${character.name}`);
       break;
 
     case 'ITEM':

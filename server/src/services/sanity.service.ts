@@ -16,7 +16,10 @@ import {
   HORROR_CONSTANTS,
   SANITY_RESTORATION_METHODS
 } from '@desperados/shared';
+import { SecureRNG } from './base/SecureRNG';
 import logger from '../utils/logger';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
 
 export class SanityService {
   /**
@@ -128,11 +131,11 @@ export class SanityService {
   ): Promise<SanityCheck> {
     const tracker = await this.getOrCreateTracker(characterId);
 
-    const roll = Math.floor(Math.random() * 100) + 1;
+    const roll = SecureRNG.d100();
     const totalModifier = tracker.currentSanity + tracker.horrorResistance;
     const success = roll + totalModifier >= difficulty * 10;
 
-    const sanityLoss = success ? 0 : Math.floor(difficulty * (Math.random() * 3 + 2));
+    const sanityLoss = success ? 0 : Math.floor(difficulty * SecureRNG.range(2, 5));
 
     const check: SanityCheck = {
       difficulty,
@@ -283,11 +286,11 @@ export class SanityService {
     }
 
     // Check costs
-    if (method.cost && character.gold < method.cost) {
+    if (method.cost && character.dollars < method.cost) {
       return {
         success: false,
         newSanity: 0,
-        message: `Insufficient gold. Need ${method.cost} gold.`
+        message: `Insufficient dollars. Need ${method.cost} dollars.`
       };
     }
 
@@ -301,14 +304,19 @@ export class SanityService {
 
     // Deduct costs
     if (method.cost) {
-      character.gold -= method.cost;
+      await DollarService.deductDollars(
+        character._id.toString(),
+        method.cost,
+        TransactionSource.RITUAL,
+        { methodId, methodName: method.name },
+        session || undefined
+      );
     }
 
     if (method.energyCost) {
       character.energy -= method.energyCost;
+      await character.save({ session: session || undefined });
     }
-
-    await character.save({ session: session || undefined });
 
     // Restore sanity
     const result = await this.restoreSanity(characterId, method.sanityRestored, methodId);
@@ -359,7 +367,7 @@ export class SanityService {
     };
 
     const stateMessages = messages[state];
-    return stateMessages[Math.floor(Math.random() * stateMessages.length)];
+    return SecureRNG.select(stateMessages);
   }
 
   /**

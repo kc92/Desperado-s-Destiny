@@ -8,6 +8,7 @@
  */
 
 import mongoose from 'mongoose';
+import logger from '../../utils/logger';
 import { Location } from '../../models/Location.model';
 import { LOCATION_IDS } from '../locations.seed';
 
@@ -71,6 +72,7 @@ const fortAshfordBuildings = [
         description: 'Join a cavalry patrol around Fort Ashford perimeter. Keep watch for hostile activity and report any suspicious movement.',
         energyCost: 20,
         cooldownMinutes: 60,
+        jobCategory: 'dangerous',
         rewards: { goldMin: 40, goldMax: 60, xp: 50, items: ['military_rations'] },
         requirements: { minLevel: 5 },
       },
@@ -80,6 +82,7 @@ const fortAshfordBuildings = [
         description: "Accept an official Army bounty contract. Track down wanted criminals and bring them to military justice. The Colonel doesn't care if they're breathing when you deliver them.",
         energyCost: 35,
         cooldownMinutes: 120,
+        jobCategory: 'dangerous',
         rewards: { goldMin: 100, goldMax: 150, xp: 120, items: ['bounty_warrant', 'army_commendation'] },
         requirements: { minLevel: 8 },
       },
@@ -89,6 +92,7 @@ const fortAshfordBuildings = [
         description: 'High-risk classified missions for experienced operatives only. The Colonel will brief you personally. Extreme danger, extreme pay.',
         energyCost: 50,
         cooldownMinutes: 240,
+        jobCategory: 'dangerous',
         rewards: { goldMin: 200, goldMax: 300, xp: 250, items: ['classified_orders', 'special_ops_pay'] },
         requirements: { minLevel: 15 },
       },
@@ -1398,7 +1402,7 @@ export async function seedFortAshfordBuildings(): Promise<void> {
 
     console.log(`Successfully seeded ${fortAshfordBuildings.length} Fort Ashford buildings`);
   } catch (error) {
-    console.error('Error seeding Fort Ashford buildings:', error);
+    logger.error('Error seeding Fort Ashford buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }

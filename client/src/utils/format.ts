@@ -3,13 +3,102 @@
  * Helper functions for formatting numbers, currency, dates, etc.
  */
 
+import { CURRENCY_CONSTANTS } from '@desperados/shared';
+
+// =============================================================================
+// CURRENCY FORMATTERS
+// =============================================================================
+
 /**
- * Format gold amount with proper separators
- * @param amount - Gold amount to format
+ * Format dollar amount with proper separators
+ * Dollars are the primary currency for all transactions
+ * @param amount - Dollar amount to format
  * @returns Formatted string like "$1,234"
  */
-export function formatGold(amount: number): string {
-  return `$${amount.toLocaleString()}`;
+export function formatDollars(amount: number): string {
+  return `${CURRENCY_CONSTANTS.SYMBOLS.DOLLARS}${amount.toLocaleString()}`;
+}
+
+/**
+ * Format gold resource amount
+ * Gold is a valuable mined resource (~$100 base value)
+ * @param amount - Gold amount to format
+ * @param verbose - If true, returns "X Gold" instead of "Xg"
+ * @returns Formatted string like "50g" or "50 Gold"
+ */
+export function formatGoldResource(amount: number, verbose = false): string {
+  if (verbose) {
+    return `${amount.toLocaleString()} ${CURRENCY_CONSTANTS.NAMES.GOLD}`;
+  }
+  return `${amount.toLocaleString()}${CURRENCY_CONSTANTS.SYMBOLS.GOLD}`;
+}
+
+/**
+ * Format silver resource amount
+ * Silver is a common mined resource (~$10 base value)
+ * @param amount - Silver amount to format
+ * @param verbose - If true, returns "X Silver" instead of "Xs"
+ * @returns Formatted string like "100s" or "100 Silver"
+ */
+export function formatSilver(amount: number, verbose = false): string {
+  if (verbose) {
+    return `${amount.toLocaleString()} ${CURRENCY_CONSTANTS.NAMES.SILVER}`;
+  }
+  return `${amount.toLocaleString()}${CURRENCY_CONSTANTS.SYMBOLS.SILVER}`;
+}
+
+/**
+ * Format any currency/resource type
+ * @param amount - Amount to format
+ * @param type - Currency type ('dollars', 'gold', 'silver')
+ * @param verbose - If true, use verbose format for resources
+ * @returns Formatted string
+ */
+export function formatCurrency(
+  amount: number,
+  type: 'dollars' | 'gold' | 'silver',
+  verbose = false
+): string {
+  switch (type) {
+    case 'dollars':
+      return formatDollars(amount);
+    case 'gold':
+      return formatGoldResource(amount, verbose);
+    case 'silver':
+      return formatSilver(amount, verbose);
+    default:
+      return amount.toLocaleString();
+  }
+}
+
+/**
+ * Format exchange rate display
+ * @param rate - Exchange rate (dollars per resource unit)
+ * @param type - Resource type ('gold' or 'silver')
+ * @returns Formatted string like "1g = $105.50"
+ */
+export function formatExchangeRate(
+  rate: number,
+  type: 'gold' | 'silver'
+): string {
+  const symbol = type === 'gold' ? CURRENCY_CONSTANTS.SYMBOLS.GOLD : CURRENCY_CONSTANTS.SYMBOLS.SILVER;
+  return `1${symbol} = $${rate.toFixed(2)}`;
+}
+
+/**
+ * Format price change percentage with color indicator
+ * @param changePercent - Percentage change (-100 to +100)
+ * @returns Object with formatted string and color class
+ */
+export function formatPriceChange(changePercent: number): {
+  text: string;
+  colorClass: string;
+} {
+  const sign = changePercent >= 0 ? '+' : '';
+  return {
+    text: `${sign}${changePercent.toFixed(1)}%`,
+    colorClass: changePercent >= 0 ? 'text-green-500' : 'text-red-500',
+  };
 }
 
 /**

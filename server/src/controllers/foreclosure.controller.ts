@@ -6,7 +6,7 @@
 
 import { Response } from 'express';
 import { ForeclosureService } from '../services/foreclosure.service';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import logger from '../utils/logger';
 
 export class ForeclosureController {

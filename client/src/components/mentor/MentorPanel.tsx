@@ -13,6 +13,7 @@ import mentorService, {
   MentorAbility,
   MentorEligibility,
 } from '@/services/mentor.service';
+import { logger } from '@/services/logger.service';
 
 /**
  * Get specialty icon
@@ -359,7 +360,7 @@ export const MentorPanel: React.FC = () => {
       setMentorship(current.mentorship);
       setUnlockedAbilities(abilities);
     } catch (error) {
-      console.error('Failed to load mentor data:', error);
+      logger.error('Failed to load mentor data', error as Error, { context: 'MentorPanel.loadData' });
       showMessage('error', 'Failed to load mentor data');
     } finally {
       setIsLoading(false);
@@ -387,7 +388,7 @@ export const MentorPanel: React.FC = () => {
       const { eligibility } = await mentorService.getMentorDetails(mentor.mentorId);
       setMentorEligibility(eligibility);
     } catch (error) {
-      console.error('Failed to get mentor details:', error);
+      logger.error('Failed to get mentor details', error as Error, { context: 'MentorPanel.handleSelectMentor', mentorId: mentor.mentorId });
       setMentorEligibility(null);
     }
   };

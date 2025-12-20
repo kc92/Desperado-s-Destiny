@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button, NavLink, GameClock } from '@/components/ui';
 import { NotificationBell } from '@/components/notifications';
+import { DeityRelationship, BlessingCurseBar } from '@/components/karma';
 import { useTutorialStore } from '@/store/useTutorialStore';
 import { completeTutorialAction } from '@/utils/tutorialActionHandlers';
 
@@ -49,6 +50,7 @@ export const Header: React.FC = React.memo(() => {
           <Link
             to="/"
             className="flex items-center gap-3 group"
+            aria-label="Desperados Destiny - Home"
           >
             <div className="text-4xl text-gold-light group-hover:text-gold-medium transition-colors">
               ★
@@ -64,7 +66,7 @@ export const Header: React.FC = React.memo(() => {
           </Link>
 
           {/* Navigation */}
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-4" role="navigation" aria-label="Main navigation">
             {isAuthenticated ? (
               <>
                 {/* Game Clock - visible when authenticated */}
@@ -79,9 +81,11 @@ export const Header: React.FC = React.memo(() => {
                   Actions
                 </NavLink>
 
-                <NavLink to="/game/skills" exact onClick={() => handleNavLinkClick('navigate-skills', '/game/skills')}>
-                  Skills
-                </NavLink>
+                <span data-tutorial-target="skills-link">
+                  <NavLink to="/game/skills" exact onClick={() => handleNavLinkClick('navigate-skills', '/game/skills')}>
+                    Skills
+                  </NavLink>
+                </span>
 
                 <NavLink to="/game/combat" exact onClick={() => handleNavLinkClick('navigate-combat', '/game/combat')}>
                   Combat
@@ -92,6 +96,10 @@ export const Header: React.FC = React.memo(() => {
                 </NavLink>
 
                 <div className="flex items-center gap-3 ml-4 pl-4 border-l-2 border-wood-medium">
+                  {/* Deity Relationship & Active Effects - Karma HUD */}
+                  <DeityRelationship variant="minimal" />
+                  <BlessingCurseBar variant="icons" maxVisible={3} />
+
                   {/* Notification Bell */}
                   <NotificationBell />
 
@@ -118,6 +126,7 @@ export const Header: React.FC = React.memo(() => {
                     variant="ghost"
                     size="sm"
                     onClick={handleLogout}
+                    aria-label="Logout from your account"
                   >
                     Logout
                   </Button>

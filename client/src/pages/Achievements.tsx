@@ -5,67 +5,37 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, Button, LoadingSpinner } from '@/components/ui';
-import { api } from '@/services/api';
-
-type AchievementCategory = 'combat' | 'crime' | 'social' | 'economy' | 'exploration' | 'special';
-
-interface Achievement {
-  _id: string;
-  achievementType: string;
-  title: string;
-  description: string;
-  category: AchievementCategory;
-  tier: 'bronze' | 'silver' | 'gold' | 'legendary';
-  progress: number;
-  target: number;
-  completed: boolean;
-  completedAt?: string;
-  reward: {
-    gold?: number;
-    experience?: number;
-    item?: string;
-  };
-}
-
-interface AchievementData {
-  achievements: Record<AchievementCategory, Achievement[]>;
-  stats: {
-    completed: number;
-    total: number;
-    percentage: number;
-  };
-  recentlyCompleted: Achievement[];
-}
+import { useAchievementStore } from '@/store/useAchievementStore';
+import { logger } from '@/services/logger.service';
+import type { AchievementCategory } from '@/services/achievement.service';
 
 export const Achievements: React.FC = () => {
-  const [data, setData] = useState<AchievementData | null>(null);
   const [activeCategory, setActiveCategory] = useState<AchievementCategory>('combat');
-  const [isLoading, setIsLoading] = useState(true);
   const [claimingId, setClaimingId] = useState<string | null>(null);
 
+  // Get state and actions from store
+  const {
+    achievementsByCategory,
+    stats,
+    recentlyCompleted,
+    isLoading,
+    error,
+    fetchAchievements,
+    claimReward: claimRewardAction,
+  } = useAchievementStore();
+
   useEffect(() => {
-    loadAchievements();
-  }, []);
+    fetchAchievements();
+  }, [fetchAchievements]);
 
-  const loadAchievements = async () => {
-    try {
-      const response = await api.get('/achievements');
-      setData(response.data.data);
-    } catch (error) {
-      console.error('Failed to load achievements:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const claimReward = async (achievementId: string) => {
+  const handleClaimReward = async (achievementId: string) => {
     setClaimingId(achievementId);
     try {
-      await api.post(`/achievements/${achievementId}/claim`);
-      // Reload to update data
-      loadAchievements();
+      await claimRewardAction(achievementId);
+      // Refresh achievements to update the UI
+      await fetchAchievements();
     } catch (error) {
-      console.error('Failed to claim reward:', error);
+      logger.error('Failed to claim reward', error as Error, { context: 'Achievements.handleClaimReward', achievementId });
     } finally {
       setClaimingId(null);
     }
@@ -119,11 +89,11 @@ export const Achievements: React.FC = () => {
     );
   }
 
-  if (!data) {
+  if (error || !achievementsByCategory || !stats) {
     return (
       <Card variant="leather" className="p-6 text-center">
-        <p className="text-desert-sand">Failed to load achievements</p>
-        <Button onClick={loadAchievements} className="mt-4">
+        <p className="text-desert-sand">{error || 'Failed to load achievements'}</p>
+        <Button onClick={fetchAchievements} className="mt-4">
           Retry
         </Button>
       </Card>
@@ -146,10 +116,10 @@ export const Achievements: React.FC = () => {
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold text-gold-light">
-                {data.stats.completed}/{data.stats.total}
+                {stats.completed}/{stats.total}
               </div>
               <div className="text-sm text-desert-stone">
-                {data.stats.percentage}% Complete
+                {stats.percentage}% Complete
               </div>
             </div>
           </div>
@@ -158,21 +128,21 @@ export const Achievements: React.FC = () => {
           <div className="mt-4 h-3 bg-wood-dark rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-gold-dark to-gold-light transition-all duration-500"
-              style={{ width: `${data.stats.percentage}%` }}
+              style={{ width: `${stats.percentage}%` }}
             />
           </div>
         </div>
       </Card>
 
       {/* Recently Completed */}
-      {data.recentlyCompleted.length > 0 && (
+      {recentlyCompleted.length > 0 && (
         <Card variant="parchment">
           <div className="p-4">
             <h3 className="text-lg font-western text-wood-dark mb-3">
               Recently Completed
             </h3>
             <div className="flex gap-3 overflow-x-auto pb-2">
-              {data.recentlyCompleted.map(achievement => (
+              {recentlyCompleted.map(achievement => (
                 <div
                   key={achievement._id}
                   className={`flex-shrink-0 px-4 py-2 rounded-lg border ${getTierBg(achievement.tier)}`}
@@ -206,8 +176,8 @@ export const Achievements: React.FC = () => {
           >
             {getCategoryIcon(cat.id)} {cat.label}
             <span className="ml-2 text-xs">
-              ({data.achievements[cat.id]?.filter(a => a.completed).length || 0}/
-              {data.achievements[cat.id]?.length || 0})
+              ({achievementsByCategory[cat.id]?.filter(a => a.completed).length || 0}/
+              {achievementsByCategory[cat.id]?.length || 0})
             </span>
           </button>
         ))}
@@ -216,12 +186,12 @@ export const Achievements: React.FC = () => {
       {/* Achievement List */}
       <Card variant="parchment">
         <div className="p-6 space-y-4">
-          {data.achievements[activeCategory]?.length === 0 ? (
+          {achievementsByCategory[activeCategory]?.length === 0 ? (
             <p className="text-center text-wood-grain py-8">
               No achievements in this category yet
             </p>
           ) : (
-            data.achievements[activeCategory]?.map(achievement => (
+            achievementsByCategory[activeCategory]?.map(achievement => (
               <div
                 key={achievement._id}
                 className={`
@@ -281,16 +251,21 @@ export const Achievements: React.FC = () => {
                         +{achievement.reward.experience} XP
                       </div>
                     )}
-                    {achievement.completed && (
+                    {achievement.completed && !achievement.claimedAt && (
                       <Button
                         size="sm"
                         variant="primary"
                         className="mt-2"
-                        onClick={() => claimReward(achievement._id)}
+                        onClick={() => handleClaimReward(achievement._id)}
                         disabled={claimingId === achievement._id}
                       >
                         {claimingId === achievement._id ? 'Claiming...' : 'Claim'}
                       </Button>
+                    )}
+                    {achievement.claimedAt && (
+                      <div className="text-xs text-green-500 mt-2">
+                        Claimed
+                      </div>
                     )}
                   </div>
                 </div>

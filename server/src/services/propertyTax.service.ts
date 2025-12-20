@@ -23,14 +23,27 @@ import {
 import logger from '../utils/logger';
 
 /**
+ * Options for service methods that support transactions
+ */
+interface TransactionOptions {
+  session?: mongoose.ClientSession;
+}
+
+/**
  * Property Tax Service
  */
 export class PropertyTaxService {
   /**
    * Create or update tax record for a gang base
+   * @param gangBaseId - The gang base ID
+   * @param options - Optional transaction options (pass session for outer transaction support)
    */
-  static async createGangBaseTaxRecord(gangBaseId: string): Promise<IPropertyTax> {
-    const gangBase = await GangBase.findById(gangBaseId).populate('gangId');
+  static async createGangBaseTaxRecord(
+    gangBaseId: string,
+    options: TransactionOptions = {}
+  ): Promise<IPropertyTax> {
+    const { session } = options;
+    const gangBase = await GangBase.findById(gangBaseId).populate('gangId').session(session ?? null);
 
     if (!gangBase) {
       throw new Error('Gang base not found');
@@ -58,8 +71,10 @@ export class PropertyTaxService {
     // Calculate property value estimate
     const propertyValue = gangBase.tier * 10000; // Simple estimate
 
-    // Check for existing tax record
-    const existingTax = await PropertyTax.findByPropertyId(gangBaseId);
+    // Check for existing tax record (use session if provided)
+    const existingTaxQuery = PropertyTax.findOne({ propertyId: gangBaseId });
+    if (session) existingTaxQuery.session(session);
+    const existingTax = await existingTaxQuery;
 
     if (existingTax) {
       // Update existing record
@@ -77,11 +92,11 @@ export class PropertyTaxService {
       existingTax.taxCalculation = calculation;
       existingTax.dueDate = calculation.dueDate;
 
-      await existingTax.save();
+      await existingTax.save({ session });
       return existingTax;
     }
 
-    // Create new tax record
+    // Create new tax record (pass session for transaction support)
     const taxRecord = await PropertyTax.createTaxRecord(
       new mongoose.Types.ObjectId(gangBaseId),
       'gang_base',
@@ -99,11 +114,12 @@ export class PropertyTaxService {
         specialTaxType,
         location: gangBase.location.region,
         insuranceEnabled: false,
-      }
+      },
+      { session } // Pass session for outer transaction support
     );
 
     logger.info(
-      `Created tax record for gang base ${gangBaseId}: ${taxRecord.taxCalculation.totalTax} gold due`
+      `Created tax record for gang base ${gangBaseId}: ${taxRecord.taxCalculation.totalTax} dollars due`
     );
 
     return taxRecord;
@@ -181,7 +197,7 @@ export class PropertyTaxService {
         if (debtPaid) {
           // Delinquency fully resolved
           logger.info(
-            `Delinquency resolved for property ${propertyId} with payment of ${amount} gold`
+            `Delinquency resolved for property ${propertyId} with payment of ${amount} dollars`
           );
         }
 
@@ -212,14 +228,14 @@ export class PropertyTaxService {
           throw new Error('Character not found');
         }
 
-        if (!character.hasGold(amountToDeduct)) {
-          throw new Error('Insufficient gold');
+        if (!character.hasDollars(amountToDeduct)) {
+          throw new Error('Insufficient dollars');
         }
 
-        await character.deductGold(
+        await character.deductDollars(
           amountToDeduct,
           TransactionSource.GANG_DEPOSIT, // TODO: Add TAX_PAYMENT source
-          { propertyId, taxType: 'property_tax' }
+          { propertyId, taxType: 'property_tax', currencyType: 'DOLLAR' }
         );
       }
 
@@ -234,7 +250,7 @@ export class PropertyTaxService {
         message:
           amount >= totalTaxDue
             ? 'Tax payment successful'
-            : `Partial payment of ${amount} gold applied`,
+            : `Partial payment of ${amount} dollars applied`,
         taxRecord,
       };
     } catch (error) {
@@ -307,7 +323,7 @@ export class PropertyTaxService {
         } else {
           const character = await Character.findById(taxRecord.ownerId);
           if (character) {
-            hasEnoughFunds = character.hasGold(totalTax);
+            hasEnoughFunds = character.hasDollars(totalTax);
           }
         }
 
@@ -320,7 +336,7 @@ export class PropertyTaxService {
           );
           successful++;
           logger.info(
-            `Auto-paid ${totalTax} gold for property ${taxRecord.propertyId} (${taxRecord.ownerName})`
+            `Auto-paid ${totalTax} dollars for property ${taxRecord.propertyId} (${taxRecord.ownerName})`
           );
         } else {
           failed++;
@@ -376,7 +392,7 @@ export class PropertyTaxService {
     await taxRecord.save();
 
     logger.info(
-      `Created delinquency for property ${taxRecord.propertyId}: ${taxRecord.taxCalculation.totalTax} gold overdue`
+      `Created delinquency for property ${taxRecord.propertyId}: ${taxRecord.taxCalculation.totalTax} dollars overdue`
     );
 
     return delinquency;

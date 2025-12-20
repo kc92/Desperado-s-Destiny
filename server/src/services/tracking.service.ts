@@ -10,6 +10,7 @@ import { HuntingTrip } from '../models/HuntingTrip.model';
 import { getAnimalDefinition } from '../data/huntableAnimals';
 import { getHuntingGround } from '../data/huntingGrounds';
 import { HuntingService } from './hunting.service';
+import { EnergyService } from './energy.service';
 import {
   TrackingResult,
   TrackFreshness,
@@ -19,6 +20,7 @@ import {
   AnimalSpecies
 } from '@desperados/shared';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 export class TrackingService {
   /**
@@ -126,7 +128,7 @@ export class TrackingService {
       const success = HuntingService.rollSuccess(animalDef.trackingDifficulty, totalBonus);
 
       // Spend energy
-      character.spendEnergy(HUNTING_CONSTANTS.TRACKING_ENERGY);
+      await EnergyService.spendEnergy(character._id.toString(), HUNTING_CONSTANTS.TRACKING_ENERGY, 'track_animal');
       trip.energySpent += HUNTING_CONSTANTS.TRACKING_ENERGY;
 
       if (!success) {
@@ -207,7 +209,7 @@ export class TrackingService {
    * Determine track freshness
    */
   private static determineFreshness(): TrackFreshness {
-    const roll = Math.random();
+    const roll = SecureRNG.float(0, 1);
     if (roll < 0.3) return TrackFreshness.FRESH;
     if (roll < 0.6) return TrackFreshness.RECENT;
     if (roll < 0.85) return TrackFreshness.OLD;
@@ -228,7 +230,7 @@ export class TrackingService {
       TrackDirection.WEST,
       TrackDirection.NORTHWEST
     ];
-    return directions[Math.floor(Math.random() * directions.length)];
+    return SecureRNG.select(directions);
   }
 
   /**
@@ -237,11 +239,11 @@ export class TrackingService {
   private static determineDistance(freshness: TrackFreshness): TrackDistance {
     switch (freshness) {
       case TrackFreshness.FRESH:
-        return Math.random() < 0.7 ? TrackDistance.NEAR : TrackDistance.MEDIUM;
+        return SecureRNG.chance(0.7) ? TrackDistance.NEAR : TrackDistance.MEDIUM;
       case TrackFreshness.RECENT:
-        return Math.random() < 0.6 ? TrackDistance.MEDIUM : TrackDistance.FAR;
+        return SecureRNG.chance(0.6) ? TrackDistance.MEDIUM : TrackDistance.FAR;
       case TrackFreshness.OLD:
-        return Math.random() < 0.3 ? TrackDistance.MEDIUM : TrackDistance.FAR;
+        return SecureRNG.chance(0.3) ? TrackDistance.MEDIUM : TrackDistance.FAR;
       case TrackFreshness.COLD:
         return TrackDistance.FAR;
     }

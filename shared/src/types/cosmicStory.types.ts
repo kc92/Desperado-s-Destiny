@@ -244,7 +244,7 @@ export interface ChoiceReward {
  * Cosmic quest rewards
  */
 export interface CosmicReward {
-  type: 'gold' | 'xp' | 'item' | 'reputation' | 'artifact' | 'power' | 'knowledge';
+  type: 'dollars' | 'xp' | 'item' | 'reputation' | 'artifact' | 'power' | 'knowledge';
   amount?: number;
   itemId?: string;
   artifactId?: string;          // Special cosmic artifacts

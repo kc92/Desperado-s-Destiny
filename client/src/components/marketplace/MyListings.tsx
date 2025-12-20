@@ -3,10 +3,11 @@
  * Manage own marketplace listings
  */
 
-import React, { useState, useEffect } from 'react';
-import { Button, Card, EmptyState, ConfirmDialog } from '@/components/ui';
+import React, { useState } from 'react';
+import { Card, EmptyState, ConfirmDialog } from '@/components/ui';
+import { ListItemSkeleton } from '@/components/ui/Skeleton';
 import { MarketListing, ItemRarity } from '@/hooks/useMarketplace';
-import { formatGold, formatTimeAgo } from '@/utils/format';
+import { formatDollars, formatTimeAgo } from '@/utils/format';
 
 interface MyListingsProps {
   listings: MarketListing[];
@@ -131,6 +132,17 @@ export const MyListings: React.FC<MyListingsProps> = ({
     setError('');
   };
 
+  // Show loading skeleton while fetching data
+  if (isLoading) {
+    return (
+      <div>
+        <h3 className="text-lg font-western text-gold-light mb-4">My Listings</h3>
+        <ListItemSkeleton count={5} />
+      </div>
+    );
+  }
+
+  // Show empty state if no listings
   if (listings.length === 0) {
     return (
       <EmptyState
@@ -263,21 +275,21 @@ export const MyListings: React.FC<MyListingsProps> = ({
                             {listing.currentBid ? (
                               <>
                                 <p className="font-bold text-gold-light">
-                                  {formatGold(listing.currentBid)}
+                                  {formatDollars(listing.currentBid)}
                                 </p>
                                 <p className="text-xs text-desert-stone">Current Bid</p>
                               </>
                             ) : listing.buyoutPrice ? (
                               <>
                                 <p className="font-bold text-emerald-400">
-                                  {formatGold(listing.buyoutPrice)}
+                                  {formatDollars(listing.buyoutPrice)}
                                 </p>
                                 <p className="text-xs text-desert-stone">Buy Now</p>
                               </>
                             ) : (
                               <>
                                 <p className="font-bold text-gold-light">
-                                  {formatGold(listing.startingPrice)}
+                                  {formatDollars(listing.startingPrice)}
                                 </p>
                                 <p className="text-xs text-desert-stone">Starting</p>
                               </>
@@ -377,7 +389,7 @@ export const MyListings: React.FC<MyListingsProps> = ({
                 </span>
                 {listing.status === 'sold' && listing.currentBid && (
                   <span className="font-bold text-gold-light">
-                    {formatGold(listing.currentBid)}
+                    {formatDollars(listing.currentBid)}
                   </span>
                 )}
               </Card>
@@ -389,13 +401,13 @@ export const MyListings: React.FC<MyListingsProps> = ({
       {/* Cancel Confirmation Dialog */}
       <ConfirmDialog
         isOpen={!!cancelConfirm}
-        onClose={() => setCancelConfirm(null)}
+        onCancel={() => setCancelConfirm(null)}
         onConfirm={handleCancel}
         title="Cancel Listing"
         message={`Are you sure you want to cancel your listing for "${cancelConfirm?.item.name}"? The item will be returned to your inventory.`}
         confirmText="Cancel Listing"
         cancelText="Keep Listing"
-        variant="danger"
+        confirmVariant="danger"
         isLoading={processingId === cancelConfirm?._id}
       />
     </div>

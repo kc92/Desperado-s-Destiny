@@ -154,30 +154,6 @@ export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
     return null;
   }
 
-  // Calculate clip path for spotlight cutout
-  const getClipPath = () => {
-    const { top, left, width, height } = spotlightRect;
-
-    if (shape === 'circle') {
-      const centerX = left + width / 2;
-      const centerY = top + height / 2;
-      const radius = Math.max(width, height) / 2;
-      return `
-        polygon(
-          0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
-          ${centerX}px ${centerY - radius}px,
-          ${centerX + radius}px ${centerY}px,
-          ${centerX}px ${centerY + radius}px,
-          ${centerX - radius}px ${centerY}px,
-          ${centerX}px ${centerY - radius}px
-        )
-      `;
-    }
-
-    // Rectangle cutout using box-shadow instead
-    return undefined;
-  };
-
   return (
     <>
       {/* Dark overlay with cutout - blocks all interaction except spotlight area */}

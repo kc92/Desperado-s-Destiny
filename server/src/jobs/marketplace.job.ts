@@ -1,195 +1,145 @@
 /**
  * Marketplace Jobs
  *
- * Cron jobs for processing marketplace operations:
- * - Processing ended auctions (every 1 minute)
- * - Updating price history statistics (every 5 minutes)
- * - Cleaning up old expired listings (every hour)
+ * Job functions for processing marketplace operations:
+ * - Processing ended auctions
+ * - Updating price history statistics
+ * - Cleaning up old expired listings
+ *
+ * NOTE: Scheduling is handled by Bull queues in queues.ts
+ * This file only contains job logic functions
  */
 
-import * as cron from 'node-cron';
 import { MarketplaceService } from '../services/marketplace.service';
 import { PriceHistory } from '../models/PriceHistory.model';
+import { withLock } from '../utils/distributedLock';
 import logger from '../utils/logger';
-
-// Type for cron scheduled task
-type ScheduledTask = ReturnType<typeof cron.schedule>;
-
-/**
- * Cron job instances
- */
-let auctionProcessingJob: ScheduledTask | null = null;
-let priceHistoryJob: ScheduledTask | null = null;
-let cleanupJob: ScheduledTask | null = null;
-
-/**
- * Job status tracking
- */
-let isAuctionProcessingRunning = false;
-let isPriceHistoryRunning = false;
-let isCleanupRunning = false;
 
 /**
  * Process ended auctions and expired listings
- * Runs every 1 minute
+ * Called by Bull queue - scheduling handled in queues.ts
  */
-async function processAuctions(): Promise<void> {
-  // Prevent concurrent runs
-  if (isAuctionProcessingRunning) {
-    logger.debug('[Marketplace Jobs] Auction processing already running, skipping...');
-    return;
-  }
-
-  isAuctionProcessingRunning = true;
+export async function processAuctions(): Promise<{
+  auctionsProcessed: number;
+  expiredProcessed: number;
+}> {
+  const lockKey = 'job:marketplace-auctions';
 
   try {
-    logger.debug('[Marketplace Jobs] Starting auction processing...');
+    return await withLock(lockKey, async () => {
+      logger.debug('[Marketplace Jobs] Starting auction processing...');
 
-    // Process ended auctions (award to highest bidder)
-    const auctionsProcessed = await MarketplaceService.processEndedAuctions();
-    if (auctionsProcessed > 0) {
-      logger.info(`[Marketplace Jobs] Processed ${auctionsProcessed} ended auctions`);
-    }
+      // Process ended auctions (award to highest bidder)
+      const auctionsProcessed = await MarketplaceService.processEndedAuctions();
+      if (auctionsProcessed > 0) {
+        logger.info(`[Marketplace Jobs] Processed ${auctionsProcessed} ended auctions`);
+      }
 
-    // Process expired buyout listings (return items to sellers)
-    const expiredProcessed = await MarketplaceService.processExpiredListings();
-    if (expiredProcessed > 0) {
-      logger.info(`[Marketplace Jobs] Processed ${expiredProcessed} expired listings`);
-    }
+      // Process expired buyout listings (return items to sellers)
+      const expiredProcessed = await MarketplaceService.processExpiredListings();
+      if (expiredProcessed > 0) {
+        logger.info(`[Marketplace Jobs] Processed ${expiredProcessed} expired listings`);
+      }
 
-    logger.debug('[Marketplace Jobs] Auction processing completed');
+      logger.debug('[Marketplace Jobs] Auction processing completed');
+
+      return { auctionsProcessed, expiredProcessed };
+    }, {
+      ttl: 120, // 2 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('[Marketplace Jobs] Auction processing already running on another instance, skipping');
+      return { auctionsProcessed: 0, expiredProcessed: 0 };
+    }
     logger.error('[Marketplace Jobs] Error processing auctions:', error);
-  } finally {
-    isAuctionProcessingRunning = false;
+    throw error;
   }
 }
 
 /**
  * Update price history statistics for all items with recent sales
- * Runs every 5 minutes
+ * Called by Bull queue - scheduling handled in queues.ts
  */
-async function updatePriceHistory(): Promise<void> {
-  // Prevent concurrent runs
-  if (isPriceHistoryRunning) {
-    logger.debug('[Marketplace Jobs] Price history update already running, skipping...');
-    return;
-  }
-
-  isPriceHistoryRunning = true;
+export async function updatePriceHistory(): Promise<number> {
+  const lockKey = 'job:marketplace-price-history';
 
   try {
-    logger.debug('[Marketplace Jobs] Starting price history update...');
+    return await withLock(lockKey, async () => {
+      logger.debug('[Marketplace Jobs] Starting price history update...');
 
-    // Get all price histories that need updating (have sales in last 24h)
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const recentHistories = await PriceHistory.find({
-      lastSaleAt: { $gte: cutoff }
-    }).select('itemId');
+      // Get all price histories that need updating (have sales in last 24h)
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const recentHistories = await PriceHistory.find({
+        lastSaleAt: { $gte: cutoff }
+      }).select('itemId');
 
-    let updated = 0;
-    for (const history of recentHistories) {
-      try {
-        // Use the static method through the model
-        await (PriceHistory as any).updateStats(history.itemId);
-        updated++;
-      } catch (error) {
-        logger.error(`[Marketplace Jobs] Error updating price history for ${history.itemId}:`, error);
+      let updated = 0;
+      for (const history of recentHistories) {
+        try {
+          // Use the static method through the model
+          await (PriceHistory as any).updateStats(history.itemId);
+          updated++;
+        } catch (error) {
+          logger.error(`[Marketplace Jobs] Error updating price history for ${history.itemId}:`, error);
+        }
       }
-    }
 
-    if (updated > 0) {
-      logger.info(`[Marketplace Jobs] Updated price history for ${updated} items`);
-    }
+      if (updated > 0) {
+        logger.info(`[Marketplace Jobs] Updated price history for ${updated} items`);
+      }
 
-    logger.debug('[Marketplace Jobs] Price history update completed');
+      logger.debug('[Marketplace Jobs] Price history update completed');
+
+      return updated;
+    }, {
+      ttl: 360, // 6 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('[Marketplace Jobs] Price history update already running on another instance, skipping');
+      return 0;
+    }
     logger.error('[Marketplace Jobs] Error updating price history:', error);
-  } finally {
-    isPriceHistoryRunning = false;
+    throw error;
   }
 }
 
 /**
  * Clean up old expired/sold listings
- * Runs every hour
+ * Called by Bull queue - scheduling handled in queues.ts
  */
-async function cleanupListings(): Promise<void> {
-  // Prevent concurrent runs
-  if (isCleanupRunning) {
-    logger.debug('[Marketplace Jobs] Cleanup already running, skipping...');
-    return;
-  }
-
-  isCleanupRunning = true;
+export async function cleanupListings(daysOld: number = 30): Promise<number> {
+  const lockKey = 'job:marketplace-cleanup';
 
   try {
-    logger.debug('[Marketplace Jobs] Starting listing cleanup...');
+    return await withLock(lockKey, async () => {
+      logger.debug('[Marketplace Jobs] Starting listing cleanup...');
 
-    // Clean up listings older than 30 days
-    const deleted = await MarketplaceService.cleanupOldListings(30);
+      // Clean up listings older than specified days
+      const deleted = await MarketplaceService.cleanupOldListings(daysOld);
 
-    if (deleted > 0) {
-      logger.info(`[Marketplace Jobs] Cleaned up ${deleted} old listings`);
-    }
+      if (deleted > 0) {
+        logger.info(`[Marketplace Jobs] Cleaned up ${deleted} old listings`);
+      }
 
-    logger.debug('[Marketplace Jobs] Listing cleanup completed');
+      logger.debug('[Marketplace Jobs] Listing cleanup completed');
+
+      return deleted;
+    }, {
+      ttl: 600, // 10 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('[Marketplace Jobs] Cleanup already running on another instance, skipping');
+      return 0;
+    }
     logger.error('[Marketplace Jobs] Error during cleanup:', error);
-  } finally {
-    isCleanupRunning = false;
+    throw error;
   }
-}
-
-/**
- * Initialize all marketplace cron jobs
- */
-export function initializeMarketplaceJobs(): void {
-  logger.info('[Marketplace Jobs] Initializing marketplace cron jobs...');
-
-  // Process ended auctions every minute
-  // Cron: "* * * * *" = every minute
-  auctionProcessingJob = cron.schedule('* * * * *', () => {
-    void processAuctions();
-  });
-
-  // Update price history every 5 minutes
-  // Cron: "*/5 * * * *" = every 5 minutes
-  priceHistoryJob = cron.schedule('*/5 * * * *', () => {
-    void updatePriceHistory();
-  });
-
-  // Clean up old listings every hour
-  // Cron: "0 * * * *" = at minute 0 of every hour
-  cleanupJob = cron.schedule('0 * * * *', () => {
-    void cleanupListings();
-  });
-
-  logger.info('[Marketplace Jobs] All marketplace cron jobs started');
-}
-
-/**
- * Stop all marketplace cron jobs
- */
-export function stopMarketplaceJobs(): void {
-  logger.info('[Marketplace Jobs] Stopping marketplace cron jobs...');
-
-  if (auctionProcessingJob) {
-    auctionProcessingJob.stop();
-    auctionProcessingJob = null;
-  }
-
-  if (priceHistoryJob) {
-    priceHistoryJob.stop();
-    priceHistoryJob = null;
-  }
-
-  if (cleanupJob) {
-    cleanupJob.stop();
-    cleanupJob = null;
-  }
-
-  logger.info('[Marketplace Jobs] All marketplace cron jobs stopped');
 }
 
 /**
@@ -199,70 +149,31 @@ export async function manualProcessAuctions(): Promise<{
   auctionsProcessed: number;
   expiredProcessed: number;
 }> {
-  const auctionsProcessed = await MarketplaceService.processEndedAuctions();
-  const expiredProcessed = await MarketplaceService.processExpiredListings();
-
-  return { auctionsProcessed, expiredProcessed };
+  return processAuctions();
 }
 
 /**
  * Manually trigger price history update (for testing/admin)
  */
 export async function manualUpdatePriceHistory(): Promise<number> {
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const recentHistories = await PriceHistory.find({
-    lastSaleAt: { $gte: cutoff }
-  }).select('itemId');
-
-  let updated = 0;
-  for (const history of recentHistories) {
-    try {
-      await (PriceHistory as any).updateStats(history.itemId);
-      updated++;
-    } catch (error) {
-      logger.error(`Error updating price history for ${history.itemId}:`, error);
-    }
-  }
-
-  return updated;
+  return updatePriceHistory();
 }
 
 /**
  * Manually trigger cleanup (for testing/admin)
  */
 export async function manualCleanup(daysOld: number = 30): Promise<number> {
-  return MarketplaceService.cleanupOldListings(daysOld);
-}
-
-/**
- * Get job status
- */
-export function getJobStatus(): {
-  auctionProcessing: { running: boolean; scheduled: boolean };
-  priceHistory: { running: boolean; scheduled: boolean };
-  cleanup: { running: boolean; scheduled: boolean };
-} {
-  return {
-    auctionProcessing: {
-      running: isAuctionProcessingRunning,
-      scheduled: auctionProcessingJob !== null
-    },
-    priceHistory: {
-      running: isPriceHistoryRunning,
-      scheduled: priceHistoryJob !== null
-    },
-    cleanup: {
-      running: isCleanupRunning,
-      scheduled: cleanupJob !== null
-    }
-  };
+  return cleanupListings(daysOld);
 }
 
 export default {
-  initializeMarketplaceJobs,
-  stopMarketplaceJobs,
+  processAuctions,
+  updatePriceHistory,
+  cleanupListings,
   manualProcessAuctions,
   manualUpdatePriceHistory,
-  manualCleanup,
-  getJobStatus
+  manualCleanup
 };
+
+// NOTE: Scheduling is now handled by Bull queues in queues.ts
+// Bull calls MarketplaceService methods directly

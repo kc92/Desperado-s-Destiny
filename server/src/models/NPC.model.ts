@@ -6,6 +6,7 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 import { NPCType, PersonalityType, MoodType } from '@desperados/shared';
+import logger from '../utils/logger';
 
 /**
  * NPC document interface
@@ -145,6 +146,8 @@ const NPCSchema = new Schema<INPC>(
 NPCSchema.index({ type: 1, isActive: 1 });
 NPCSchema.index({ location: 1, isActive: 1 });
 NPCSchema.index({ level: 1 });
+// H8 FIX: Compound index for boss queries (type + level combination)
+NPCSchema.index({ type: 1, level: 1 });
 
 /**
  * Static method: Find all active NPCs
@@ -534,6 +537,6 @@ export async function initializeNPCs(): Promise<void> {
 
   if (count === 0) {
     await NPC.insertMany(STARTER_NPCS);
-    console.log(`Initialized ${STARTER_NPCS.length} starter NPCs`);
+    logger.info(`Initialized ${STARTER_NPCS.length} starter NPCs`);
   }
 }

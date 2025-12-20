@@ -93,6 +93,7 @@ export class BankService {
 
   /**
    * Open or upgrade vault tier
+   * Uses atomic operations to prevent race conditions
    */
   static async upgradeVault(
     characterId: string,
@@ -106,7 +107,9 @@ export class BankService {
         await session.startTransaction();
       }
 
-      const characterQuery = Character.findById(characterId);
+      // First, get character info for validation
+      const characterQuery = Character.findById(characterId)
+        .select('name gold bankVaultTier');
       const character = session ? await characterQuery.session(session) : await characterQuery;
 
       if (!character) {
@@ -128,25 +131,54 @@ export class BankService {
       }
 
       const upgradeCost = VAULT_TIERS[targetTier].upgradeCost;
+      const balanceBefore = character.gold;
 
-      // Check if character can afford upgrade
-      if (character.gold < upgradeCost) {
-        throw new AppError(`Insufficient gold. Need ${upgradeCost} gold to upgrade.`, 400);
+      // ATOMIC OPERATION: Check gold and upgrade vault in one operation
+      const updateOperation: Record<string, unknown> = {
+        $set: { bankVaultTier: targetTier }
+      };
+
+      // Build query with gold check if there's a cost
+      const query: Record<string, unknown> = {
+        _id: characterId,
+        bankVaultTier: currentTier  // Ensure tier hasn't changed
+      };
+
+      if (upgradeCost > 0) {
+        query.gold = { $gte: upgradeCost };
+        updateOperation.$inc = { gold: -upgradeCost };
       }
 
-      // Deduct upgrade cost if any
-      if (upgradeCost > 0) {
-        const balanceBefore = character.gold;
-        character.gold -= upgradeCost;
+      const result = await Character.findOneAndUpdate(
+        query,
+        updateOperation,
+        {
+          new: true,
+          session: session || undefined
+        }
+      );
 
-        // Record transaction
+      if (!result) {
+        // The atomic check failed - check why
+        const currentChar = await Character.findById(characterId).select('gold bankVaultTier');
+        if (currentChar?.bankVaultTier !== currentTier) {
+          throw new AppError('Vault tier has already changed. Please refresh and try again.', 400);
+        }
+        if (upgradeCost > 0 && currentChar && currentChar.gold < upgradeCost) {
+          throw new AppError(`Insufficient gold. Need ${upgradeCost} gold to upgrade.`, 400);
+        }
+        throw new AppError('Upgrade failed. Please try again.', 400);
+      }
+
+      // Record transaction if there was a cost
+      if (upgradeCost > 0) {
         await GoldTransaction.create([{
-          characterId: character._id,
+          characterId: result._id,
           amount: -upgradeCost,
           type: TransactionType.SPENT,
           source: TransactionSource.BANK_VAULT_UPGRADE,
           balanceBefore,
-          balanceAfter: character.gold,
+          balanceAfter: result.gold,
           metadata: {
             fromTier: currentTier,
             toTier: targetTier,
@@ -156,16 +188,12 @@ export class BankService {
         }], session ? { session } : {});
       }
 
-      // Upgrade vault tier
-      character.bankVaultTier = targetTier;
-      await character.save(session ? { session } : undefined);
-
       if (session) {
         await session.commitTransaction();
       }
 
       logger.info(
-        `Vault upgraded: ${character.name} upgraded from ${currentTier} to ${targetTier} ` +
+        `Vault upgraded: ${result.name} upgraded from ${currentTier} to ${targetTier} ` +
         `(cost: ${upgradeCost} gold)`
       );
 
@@ -188,6 +216,7 @@ export class BankService {
 
   /**
    * Deposit gold into vault
+   * Uses atomic $inc operations to prevent race conditions
    */
   static async deposit(
     characterId: string,
@@ -195,6 +224,10 @@ export class BankService {
   ): Promise<{ success: boolean; vaultBalance: number; walletBalance: number }> {
     if (amount <= 0) {
       throw new AppError('Deposit amount must be positive', 400);
+    }
+
+    if (!Number.isFinite(amount) || !Number.isInteger(amount)) {
+      throw new AppError('Deposit amount must be a valid integer', 400);
     }
 
     const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
@@ -205,7 +238,9 @@ export class BankService {
         await session.startTransaction();
       }
 
-      const characterQuery = Character.findById(characterId);
+      // First, get character info for validation (non-atomic checks)
+      const characterQuery = Character.findById(characterId)
+        .select('name gold bankVaultBalance bankVaultTier');
       const character = session ? await characterQuery.session(session) : await characterQuery;
 
       if (!character) {
@@ -223,7 +258,7 @@ export class BankService {
       const currentVaultBalance = character.bankVaultBalance || 0;
       const capacity = tierConfig.capacity;
 
-      // Check capacity
+      // Check capacity (this is a soft check - the atomic update will do the final validation)
       if (capacity !== Infinity && currentVaultBalance + amount > capacity) {
         const available = capacity - currentVaultBalance;
         throw new AppError(
@@ -233,49 +268,82 @@ export class BankService {
         );
       }
 
-      // Check if character has enough gold in wallet
-      if (character.gold < amount) {
-        throw new AppError(`Insufficient gold. You have ${character.gold} gold in your wallet.`, 400);
-      }
-
-      // Transfer gold from wallet to vault
+      // Store values before for transaction record
       const walletBefore = character.gold;
       const vaultBefore = currentVaultBalance;
 
-      character.gold -= amount;
-      character.bankVaultBalance = currentVaultBalance + amount;
+      // ATOMIC OPERATION: Check gold availability and perform transfer in one operation
+      // This prevents race conditions where two deposits could both pass the check
+      const updateQuery: Record<string, unknown> = {
+        _id: characterId,
+        gold: { $gte: amount }  // Atomic check: must have enough gold
+      };
+
+      // For non-infinite capacity, also check vault space atomically
+      if (capacity !== Infinity) {
+        updateQuery.bankVaultBalance = { $lte: capacity - amount };
+      }
+
+      const result = await Character.findOneAndUpdate(
+        updateQuery,
+        {
+          $inc: {
+            gold: -amount,
+            bankVaultBalance: amount
+          }
+        },
+        {
+          new: true,
+          session: session || undefined
+        }
+      );
+
+      if (!result) {
+        // The atomic check failed - either insufficient gold or vault full
+        // Re-check to provide accurate error message
+        const currentChar = await Character.findById(characterId).select('gold bankVaultBalance');
+        if (currentChar && currentChar.gold < amount) {
+          throw new AppError(`Insufficient gold. You have ${currentChar.gold} gold in your wallet.`, 400);
+        }
+        if (capacity !== Infinity && currentChar && (currentChar.bankVaultBalance || 0) + amount > capacity) {
+          const available = capacity - (currentChar.bankVaultBalance || 0);
+          throw new AppError(
+            `Vault capacity exceeded. Available space: ${available} gold.`,
+            400
+          );
+        }
+        throw new AppError('Deposit failed. Please try again.', 400);
+      }
 
       // Record transaction
       await GoldTransaction.create([{
-        characterId: character._id,
+        characterId: result._id,
         amount: -amount,
         type: TransactionType.TRANSFERRED,
         source: TransactionSource.BANK_DEPOSIT,
         balanceBefore: walletBefore,
-        balanceAfter: character.gold,
+        balanceAfter: result.gold,
         metadata: {
           vaultBalanceBefore: vaultBefore,
-          vaultBalanceAfter: character.bankVaultBalance,
+          vaultBalanceAfter: result.bankVaultBalance,
           description: `Deposited ${amount} gold into ${tierConfig.name}`
         },
         timestamp: new Date()
       }], session ? { session } : {});
-
-      await character.save(session ? { session } : undefined);
 
       if (session) {
         await session.commitTransaction();
       }
 
       logger.info(
-        `Bank deposit: ${character.name} deposited ${amount} gold. ` +
-        `Wallet: ${walletBefore} -> ${character.gold}, Vault: ${vaultBefore} -> ${character.bankVaultBalance}`
+        `Bank deposit: ${result.name} deposited ${amount} gold. ` +
+        `Wallet: ${walletBefore} -> ${result.gold}, Vault: ${vaultBefore} -> ${result.bankVaultBalance}`
       );
 
       return {
         success: true,
-        vaultBalance: character.bankVaultBalance,
-        walletBalance: character.gold
+        vaultBalance: result.bankVaultBalance || 0,
+        walletBalance: result.gold
       };
     } catch (error) {
       if (session) {
@@ -291,6 +359,7 @@ export class BankService {
 
   /**
    * Withdraw gold from vault
+   * Uses atomic $inc operations to prevent race conditions
    */
   static async withdraw(
     characterId: string,
@@ -298,6 +367,10 @@ export class BankService {
   ): Promise<{ success: boolean; vaultBalance: number; walletBalance: number }> {
     if (amount <= 0) {
       throw new AppError('Withdrawal amount must be positive', 400);
+    }
+
+    if (!Number.isFinite(amount) || !Number.isInteger(amount)) {
+      throw new AppError('Withdrawal amount must be a valid integer', 400);
     }
 
     const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
@@ -308,7 +381,9 @@ export class BankService {
         await session.startTransaction();
       }
 
-      const characterQuery = Character.findById(characterId);
+      // First, get character info for validation (non-atomic checks)
+      const characterQuery = Character.findById(characterId)
+        .select('name gold bankVaultBalance bankVaultTier');
       const character = session ? await characterQuery.session(session) : await characterQuery;
 
       if (!character) {
@@ -324,52 +399,68 @@ export class BankService {
 
       const currentVaultBalance = character.bankVaultBalance || 0;
 
-      // Check if vault has enough gold
-      if (currentVaultBalance < amount) {
+      // Store values before for transaction record
+      const walletBefore = character.gold;
+      const vaultBefore = currentVaultBalance;
+
+      // ATOMIC OPERATION: Check vault balance and perform transfer in one operation
+      // This prevents race conditions where two withdrawals could both pass the check
+      const result = await Character.findOneAndUpdate(
+        {
+          _id: characterId,
+          bankVaultBalance: { $gte: amount }  // Atomic check: must have enough in vault
+        },
+        {
+          $inc: {
+            gold: amount,
+            bankVaultBalance: -amount
+          }
+        },
+        {
+          new: true,
+          session: session || undefined
+        }
+      );
+
+      if (!result) {
+        // The atomic check failed - insufficient vault balance
+        const currentChar = await Character.findById(characterId).select('bankVaultBalance');
+        const currentBalance = currentChar?.bankVaultBalance || 0;
         throw new AppError(
-          `Insufficient vault balance. You have ${currentVaultBalance} gold in your vault.`,
+          `Insufficient vault balance. You have ${currentBalance} gold in your vault.`,
           400
         );
       }
 
-      // Transfer gold from vault to wallet
-      const walletBefore = character.gold;
-      const vaultBefore = currentVaultBalance;
-
-      character.gold += amount;
-      character.bankVaultBalance = currentVaultBalance - amount;
-
       // Record transaction
       await GoldTransaction.create([{
-        characterId: character._id,
+        characterId: result._id,
         amount: amount,
         type: TransactionType.TRANSFERRED,
         source: TransactionSource.BANK_WITHDRAWAL,
         balanceBefore: walletBefore,
-        balanceAfter: character.gold,
+        balanceAfter: result.gold,
         metadata: {
           vaultBalanceBefore: vaultBefore,
-          vaultBalanceAfter: character.bankVaultBalance,
+          vaultBalanceAfter: result.bankVaultBalance,
           description: `Withdrew ${amount} gold from vault`
         },
         timestamp: new Date()
       }], session ? { session } : {});
-
-      await character.save(session ? { session } : undefined);
 
       if (session) {
         await session.commitTransaction();
       }
 
       logger.info(
-        `Bank withdrawal: ${character.name} withdrew ${amount} gold. ` +
-        `Wallet: ${walletBefore} -> ${character.gold}, Vault: ${vaultBefore} -> ${character.bankVaultBalance}`
+        `Bank withdrawal: ${result.name} withdrew ${amount} gold. ` +
+        `Wallet: ${walletBefore} -> ${result.gold}, Vault: ${vaultBefore} -> ${result.bankVaultBalance}`
       );
 
       return {
         success: true,
-        vaultBalance: character.bankVaultBalance,
-        walletBalance: character.gold
+        vaultBalance: result.bankVaultBalance || 0,
+        walletBalance: result.gold
       };
     } catch (error) {
       if (session) {

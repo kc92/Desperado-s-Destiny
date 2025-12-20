@@ -215,3 +215,6 @@ export * from './systemEvents.types';
 
 // Legendary Quest System types (Phase 14, Wave 14.2)
 export * from './legendaryQuest.types';
+
+// PvP Duel System types (Phase 16)
+export * from './duel.types';

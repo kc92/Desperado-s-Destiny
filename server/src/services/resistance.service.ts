@@ -20,6 +20,7 @@ import {
   ITerritoryConquestState,
 } from '../models/TerritoryConquestState.model';
 import { RESISTANCE_ACTIVITIES, LIBERATION_CONFIG } from '../data/conquestConfig';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Resistance Service Class
@@ -72,13 +73,11 @@ export class ResistanceService {
     }
 
     // Determine success
-    const successRoll = Math.random();
-    const succeeded = successRoll <= activityConfig.successRate;
+    const succeeded = SecureRNG.chance(activityConfig.successRate);
 
     if (!succeeded) {
       // Failed - possibly caught
-      const caughtRoll = Math.random();
-      const caught = caughtRoll > activityConfig.successRate;
+      const caught = !SecureRNG.chance(activityConfig.successRate);
 
       return {
         success: false,
@@ -484,7 +483,7 @@ export class ResistanceService {
     for (const activity of state.resistanceActivities) {
       if (!activity.active) continue;
 
-      if (Math.random() < eliminationChance) {
+      if (SecureRNG.chance(eliminationChance)) {
         activity.active = false;
         activitiesEliminated++;
       }

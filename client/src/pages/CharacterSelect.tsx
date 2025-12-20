@@ -13,13 +13,14 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Modal } from '@/components/ui/Modal';
+import { logger } from '@/services/logger.service';
 
 /**
  * Character selection page
  */
 export const CharacterSelect: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  useAuthStore(); // Keep auth store hydrated
   const {
     characters,
     isLoading,
@@ -46,7 +47,7 @@ export const CharacterSelect: React.FC = () => {
       await selectCharacter(id);
       navigate('/game');
     } catch (error) {
-      console.error('Failed to select character:', error);
+      logger.error('Failed to select character', error as Error, { context: 'CharacterSelect.handleSelectCharacter', characterId: id });
     }
   };
 
@@ -64,7 +65,7 @@ export const CharacterSelect: React.FC = () => {
       setDeleteModalOpen(false);
       setCharacterToDelete(null);
     } catch (error) {
-      console.error('Failed to delete character:', error);
+      logger.error('Failed to delete character', error as Error, { context: 'CharacterSelect.handleConfirmDelete', characterId: characterToDelete });
     } finally {
       setIsDeleting(false);
     }
@@ -78,9 +79,10 @@ export const CharacterSelect: React.FC = () => {
   };
 
   const handleCreateCharacter = () => {
-    if (canCreateCharacter()) {
-      setCreatorOpen(true);
-    }
+    // Open character creator modal
+    // Note: The button itself won't render if user can't create a character,
+    // so no need for additional validation here
+    setCreatorOpen(true);
   };
 
   // Find character to delete for modal display
@@ -95,7 +97,7 @@ export const CharacterSelect: React.FC = () => {
             Your Characters
           </h1>
           <p className="text-lg text-wood-medium">
-            Welcome back, {user?.username}! Select a character to continue your journey.
+            Welcome back! Select a character to continue your journey.
           </p>
         </div>
 
@@ -161,6 +163,7 @@ export const CharacterSelect: React.FC = () => {
                   variant="primary"
                   size="lg"
                   onClick={handleCreateCharacter}
+                  data-testid="create-first-character-button"
                 >
                   Create Your First Character
                 </Button>

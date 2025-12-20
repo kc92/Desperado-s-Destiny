@@ -76,8 +76,9 @@ export const ActionChallenge: React.FC = () => {
   const handleAttemptChallenge = async () => {
     if (!selectedAction) return;
 
+    if (!currentCharacter) return;
     setShowConfirmModal(false);
-    await attemptAction(selectedAction._id);
+    await attemptAction(selectedAction._id, currentCharacter._id);
   };
 
   // Handle result modal close

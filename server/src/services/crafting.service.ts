@@ -24,17 +24,72 @@ import {
   SpecializationRequest,
   SpecializationResponse,
   CraftingRecipe,
-  RecipeDiscovery
+  RecipeDiscovery,
+  SkillCategory,
+  calculateCategoryMultiplier,
+  SKILLS
 } from '@desperados/shared';
+import { UnlockEnforcementService } from './unlockEnforcement.service';
 import CraftingProfile, { ICraftingProfile } from '../models/CraftingProfile.model';
 import { Character } from '../models/Character.model';
 import { getProfession, SKILL_TIERS } from '../data/professionDefinitions';
+import { SecureRNG } from './base/SecureRNG';
 
 // ============================================================================
 // CRAFTING SERVICE CLASS
 // ============================================================================
 
 export class CraftingService {
+  /**
+   * Get the highest craft skill level for a character
+   * Used to determine the craft category multiplier
+   *
+   * BALANCE FIX (Phase 4.1): Skill unlock bonuses are now multiplicative
+   */
+  static getHighestCraftSkillLevel(character: any): number {
+    if (!character.skills) return 0;
+
+    let highestLevel = 0;
+
+    for (const skill of character.skills) {
+      // Check if this is a CRAFT category skill
+      const skillDef = SKILLS[skill.skillId.toUpperCase()];
+      if (skillDef && skillDef.category === SkillCategory.CRAFT) {
+        highestLevel = Math.max(highestLevel, skill.level);
+      }
+    }
+
+    return highestLevel;
+  }
+
+  /**
+   * Get the craft category multiplier for a character
+   * Higher multiplier = better quality items
+   *
+   * BALANCE FIX (Phase 4.1): Multiplicative bonuses
+   * - Level 15: ×1.05 (Efficient Crafter)
+   * - Level 30: ×1.10 (Master Efficiency)
+   * - Level 45: ×1.15 (Expert Craftsman)
+   * - Combined: ×1.328 at level 45+
+   */
+  static getCraftCategoryMultiplier(character: any): number {
+    const highestLevel = this.getHighestCraftSkillLevel(character);
+    return calculateCategoryMultiplier(highestLevel, 'CRAFT');
+  }
+
+  /**
+   * Map recipe minimum level to crafting tier name
+   * Used for CRAFT skill unlock enforcement
+   */
+  private static getRecipeTier(minLevel: number): string {
+    if (minLevel >= 50) return 'legendary';
+    if (minLevel >= 45) return 'epic';
+    if (minLevel >= 40) return 'rare';
+    if (minLevel >= 25) return 'weapon'; // Covers weapon/armor tier
+    if (minLevel >= 10) return 'intermediate';
+    return 'basic';
+  }
+
   /**
    * Get or create crafting profile for a character
    */
@@ -113,6 +168,15 @@ export class CraftingService {
         } else {
           validation.requirements.meetsLevelRequirement = true;
         }
+      }
+
+      // Check CRAFT skill level requirement based on recipe tier
+      // Map recipe minLevel to CRAFT skill tiers: 1=basic, 10=intermediate, 25=weapon, 40=rare, 50=legendary
+      const recipeTier = this.getRecipeTier(recipe.requirements.minLevel);
+      const craftCheck = UnlockEnforcementService.checkCraftTierForCharacter(character, recipeTier);
+      if (!craftCheck.allowed) {
+        validation.errors.push(craftCheck.error || `Requires higher CRAFT skill level`);
+        validation.canCraft = false;
       }
 
       // Check recipe learned
@@ -215,8 +279,43 @@ export class CraftingService {
         };
       }
 
-      // TODO: Actually craft the item, deduct materials, add to inventory
-      // For now, return a success response with placeholder data
+      // Check materials in inventory
+      for (const ingredient of recipeDoc.ingredients) {
+        const inventoryItem = character.inventory.find(i => i.itemId === ingredient.itemId);
+        if (!inventoryItem || inventoryItem.quantity < ingredient.quantity) {
+          return {
+            success: false,
+            error: `Insufficient materials: ${ingredient.itemId} (need ${ingredient.quantity}, have ${inventoryItem?.quantity || 0})`
+          };
+        }
+      }
+
+      // Deduct materials from inventory
+      for (const ingredient of recipeDoc.ingredients) {
+        const inventoryItem = character.inventory.find(i => i.itemId === ingredient.itemId);
+        if (inventoryItem) {
+          inventoryItem.quantity -= ingredient.quantity;
+          if (inventoryItem.quantity <= 0) {
+            character.inventory = character.inventory.filter(i => i.itemId !== ingredient.itemId);
+          }
+        }
+      }
+
+      // Add crafted item to inventory
+      const existingItem = character.inventory.find(i => i.itemId === recipeDoc.output.itemId);
+      if (existingItem) {
+        existingItem.quantity += recipeDoc.output.quantity;
+      } else {
+        character.inventory.push({
+          itemId: recipeDoc.output.itemId,
+          quantity: recipeDoc.output.quantity,
+          acquiredAt: new Date()
+        });
+      }
+
+      // Save character with updated inventory
+      await character.save();
+
       return {
         success: true,
         itemsCrafted: [{
@@ -264,6 +363,28 @@ export class CraftingService {
       if (!profession) {
         response.message = 'Profession not found';
         return response;
+      }
+
+      // Check materials in inventory
+      for (const material of craftingRecipe.materials) {
+        const totalNeeded = material.quantity * request.quantity;
+        const inventoryItem = character.inventory.find(i => i.itemId === material.materialId);
+        if (!inventoryItem || inventoryItem.quantity < totalNeeded) {
+          response.message = `Insufficient materials: ${material.materialId} (need ${totalNeeded}, have ${inventoryItem?.quantity || 0})`;
+          return response;
+        }
+      }
+
+      // Deduct materials from inventory
+      for (const material of craftingRecipe.materials) {
+        const totalNeeded = material.quantity * request.quantity;
+        const inventoryItem = character.inventory.find(i => i.itemId === material.materialId);
+        if (inventoryItem) {
+          inventoryItem.quantity -= totalNeeded;
+          if (inventoryItem.quantity <= 0) {
+            character.inventory = character.inventory.filter(i => i.itemId !== material.materialId);
+          }
+        }
       }
 
       // Calculate quality
@@ -338,6 +459,22 @@ export class CraftingService {
           currentUsed + (material.quantity * request.quantity)
         );
       }
+
+      // Add crafted items to character inventory
+      const totalItemsToAdd = craftingRecipe.output.baseQuantity * request.quantity;
+      const existingItem = character.inventory.find(i => i.itemId === craftingRecipe.output.itemId);
+      if (existingItem) {
+        existingItem.quantity += totalItemsToAdd;
+      } else {
+        character.inventory.push({
+          itemId: craftingRecipe.output.itemId,
+          quantity: totalItemsToAdd,
+          acquiredAt: new Date()
+        });
+      }
+
+      // Save character with updated inventory
+      await character.save();
 
       await profile.save();
 
@@ -579,6 +716,12 @@ export class CraftingService {
     const isSpecialized = profile.isSpecialized(recipe.professionId);
     const specializationBonus = isSpecialized ? 100 : 0; // +10% if specialized
 
+    // BALANCE FIX (Phase 4.1): Apply craft category multiplier
+    // Higher CRAFT skills = better quality items
+    // Multiplier is converted to a bonus: (1.328 - 1) * 1000 = +328 points
+    const craftMultiplier = this.getCraftCategoryMultiplier(character);
+    const categoryBonus = Math.floor((craftMultiplier - 1) * 1000);
+
     // Critical chance
     const criticalChance = Math.min(25, profession.level / 4); // Max 25%
 
@@ -589,7 +732,8 @@ export class CraftingService {
       statModifier +
       toolModifier +
       facilityModifier +
-      specializationBonus
+      specializationBonus +
+      categoryBonus
     );
 
     // Determine quality
@@ -597,7 +741,7 @@ export class CraftingService {
     let statMultiplier: number;
 
     // Critical success check
-    const critRoll = Math.random() * 100;
+    const critRoll = SecureRNG.d100();
     const isCritical = critRoll < criticalChance;
 
     if (finalRoll >= 900 || isCritical) {

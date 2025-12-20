@@ -8,6 +8,7 @@ import {
   HorseSkill
 } from '@desperados/shared';
 import { getBondLevel, calculateBondMultiplier } from './horseBond.service';
+import { SecureRNG } from './base/SecureRNG';
 
 // TODO: Add these types to @desperados/shared
 type HorseShow = any;
@@ -168,7 +169,7 @@ function calculateRaceScore(horse: HorseDocument): number {
   score += horse.derivedStats.travelSpeedBonus * 5;
 
   // Add some randomness (±10%)
-  const randomFactor = 0.9 + Math.random() * 0.2;
+  const randomFactor = SecureRNG.float(0.9, 1.1, 2);
   score *= randomFactor;
 
   return Math.round(score);
@@ -185,7 +186,7 @@ function calculateFinishTime(horse: HorseDocument, distanceMiles: number): numbe
 
   // Add randomness
   const variance = timeSeconds * 0.05; // ±5%
-  const finalTime = timeSeconds + (Math.random() * variance * 2 - variance);
+  const finalTime = timeSeconds + SecureRNG.range(-variance, variance);
 
   return Math.round(finalTime);
 }
@@ -361,7 +362,7 @@ function calculateShowScore(
   score *= (0.8 + avgCondition / 500); // 80-100% multiplier based on condition
 
   // Randomness
-  const randomFactor = 0.9 + Math.random() * 0.2;
+  const randomFactor = SecureRNG.float(0.9, 1.1, 2);
   score *= randomFactor;
 
   return Math.round(score);

@@ -21,7 +21,7 @@ interface RewardDayProps {
  */
 const getRewardIcon = (type: RewardType): string => {
   switch (type) {
-    case 'gold':
+    case 'dollars':
       return 'coins';
     case 'item':
       return 'box';
@@ -36,6 +36,9 @@ const getRewardIcon = (type: RewardType): string => {
   }
 };
 
+// Export for potential future use
+export { getRewardIcon };
+
 /**
  * Get color classes for reward type
  */
@@ -45,8 +48,8 @@ const getRewardColors = (type: RewardType, claimed: boolean): string => {
   }
 
   switch (type) {
-    case 'gold':
-      return 'text-gold-light bg-gold-dark/20 border-gold-dark/50';
+    case 'dollars':
+      return 'text-green-400 bg-green-900/20 border-green-600/50';
     case 'item':
       return 'text-amber-400 bg-amber-900/20 border-amber-600/50';
     case 'energy':
@@ -67,7 +70,7 @@ const RewardIcon: React.FC<{ type: RewardType; className?: string }> = ({ type, 
   const baseClass = `w-6 h-6 ${className}`;
 
   switch (type) {
-    case 'gold':
+    case 'dollars':
       return (
         <svg className={baseClass} viewBox="0 0 24 24" fill="currentColor">
           <circle cx="12" cy="12" r="10" />

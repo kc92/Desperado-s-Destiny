@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Boss difficulty
 export type BossDifficulty = 'NORMAL' | 'HARD' | 'NIGHTMARE' | 'LEGENDARY';
@@ -259,7 +260,7 @@ export const useBossEncounter = (): UseBossEncounterReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch bosses';
       setError(errorMessage);
-      console.error('[useBossEncounter] Fetch bosses error:', err);
+      logger.error('[useBossEncounter] Fetch bosses error:', err as Error, { context: 'fetchAllBosses' });
     } finally {
       setIsLoading(false);
     }
@@ -278,7 +279,7 @@ export const useBossEncounter = (): UseBossEncounterReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch boss details';
       setError(errorMessage);
-      console.error('[useBossEncounter] Fetch boss details error:', err);
+      logger.error('[useBossEncounter] Fetch boss details error:', err as Error, { context: 'fetchBossDetails', bossId });
       return null;
     } finally {
       setIsLoading(false);
@@ -298,7 +299,7 @@ export const useBossEncounter = (): UseBossEncounterReturn => {
       }
       return session;
     } catch (err: any) {
-      console.error('[useBossEncounter] Fetch active encounter error:', err);
+      logger.error('[useBossEncounter] Fetch active encounter error:', err as Error, { context: 'fetchActiveEncounter' });
       return null;
     }
   }, []);
@@ -311,7 +312,7 @@ export const useBossEncounter = (): UseBossEncounterReturn => {
       );
       return response.data.data.availability;
     } catch (err: any) {
-      console.error('[useBossEncounter] Check availability error:', err);
+      logger.error('[useBossEncounter] Check availability error:', err as Error, { context: 'checkAvailability', bossId });
       return null;
     }
   }, []);
@@ -324,7 +325,7 @@ export const useBossEncounter = (): UseBossEncounterReturn => {
       );
       return response.data.data.history || [];
     } catch (err: any) {
-      console.error('[useBossEncounter] Fetch history error:', err);
+      logger.error('[useBossEncounter] Fetch history error:', err as Error, { context: 'fetchEncounterHistory', bossId });
       return [];
     }
   }, []);
@@ -341,7 +342,7 @@ export const useBossEncounter = (): UseBossEncounterReturn => {
       );
       return response.data.data.leaderboard || [];
     } catch (err: any) {
-      console.error('[useBossEncounter] Get leaderboard error:', err);
+      logger.error('[useBossEncounter] Get leaderboard error:', err as Error, { context: 'getLeaderboard', bossId, limit });
       return [];
     }
   }, []);
@@ -373,7 +374,7 @@ export const useBossEncounter = (): UseBossEncounterReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to initiate encounter';
       setError(errorMessage);
-      console.error('[useBossEncounter] Initiate encounter error:', err);
+      logger.error('[useBossEncounter] Initiate encounter error:', err as Error, { context: 'initiateEncounter', bossId, location });
       return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
@@ -390,7 +391,7 @@ export const useBossEncounter = (): UseBossEncounterReturn => {
       setCurrentSession(session);
       return session;
     } catch (err: any) {
-      console.error('[useBossEncounter] Get session error:', err);
+      logger.error('[useBossEncounter] Get session error:', err as Error, { context: 'getEncounterSession', sessionId });
       return null;
     }
   }, []);
@@ -423,7 +424,7 @@ export const useBossEncounter = (): UseBossEncounterReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to process attack';
       setError(errorMessage);
-      console.error('[useBossEncounter] Process attack error:', err);
+      logger.error('[useBossEncounter] Process attack error:', err as Error, { context: 'processAttack', sessionId, action });
       return {
         success: false,
         message: errorMessage,

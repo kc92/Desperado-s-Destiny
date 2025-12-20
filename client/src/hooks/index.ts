@@ -310,7 +310,7 @@ export type {
   TamingResult,
   FeedResult as CompanionFeedResult,
   TrainingResult as CompanionTrainingResult,
-  AbilityUseResult,
+  AbilityUseResult as CompanionAbilityUseResult,
   PurchaseCompanionData,
   TameAnimalData,
   TrainCompanionData,
@@ -451,7 +451,7 @@ export { default as useLeaderboardDefault } from './useLeaderboard';
 export type {
   LeaderboardCategory,
   LeaderboardRange,
-  LeaderboardEntry,
+  LeaderboardEntry as GlobalLeaderboardEntry,
   GangLeaderboardEntry,
   PlayerRank,
   LeaderboardData,
@@ -617,3 +617,12 @@ export type {
   BossWithProgress,
   InitiateEncounterResult as BossInitiateResult,
 } from './useBossEncounter';
+
+// Accessibility
+export { useAnnouncer, gameAnnouncements } from './useAnnouncer';
+export { default as useAnnouncerDefault } from './useAnnouncer';
+
+// Karma/Deity System
+export { useKarma } from './useKarma';
+export { default as useKarmaDefault } from './useKarma';
+export type { UseKarmaReturn } from './useKarma';

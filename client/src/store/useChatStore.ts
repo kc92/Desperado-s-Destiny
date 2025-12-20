@@ -2,19 +2,44 @@
  * Chat Store
  *
  * Zustand store for managing chat state and real-time updates
+ *
+ * IMPORTANT: Uses initialization ID tracking to prevent StrictMode
+ * double-invocation from creating duplicate socket listeners.
  */
 
 import { create } from 'zustand';
+import {
+  RoomType,
+  MessageType,
+} from '@desperados/shared';
 import type {
   ChatMessage,
-  RoomType,
   OnlineUser,
   WhisperConversation,
   ChatSettings,
+  ServerToClientEvents,
 } from '@desperados/shared';
 import { socketService } from '@/services/socket.service';
+import { logger } from '@/services/logger.service';
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+
+/**
+ * Message delivery status for optimistic updates
+ */
+type MessageStatus = 'pending' | 'sent' | 'failed';
+
+/**
+ * Extended chat message with client-side status for optimistic updates
+ */
+export interface ClientChatMessage extends ChatMessage {
+  /** Client-generated ID for tracking pending messages */
+  _clientId?: string;
+  /** Message delivery status */
+  _status?: MessageStatus;
+  /** Error message if delivery failed */
+  _error?: string;
+}
 
 interface ActiveRoom {
   type: RoomType;
@@ -23,7 +48,10 @@ interface ActiveRoom {
 
 interface ChatState {
   // Messages indexed by room key: `${roomType}-${roomId}`
-  messages: Map<string, ChatMessage[]>;
+  messages: Map<string, ClientChatMessage[]>;
+
+  // Pending message timeouts for optimistic updates
+  _pendingTimeouts: Map<string, NodeJS.Timeout>;
 
   // Active room
   activeRoom: ActiveRoom | null;
@@ -56,12 +84,17 @@ interface ChatState {
   // Settings
   settings: ChatSettings;
 
+  // Initialization tracking to prevent StrictMode duplicate listeners
+  _initialized: boolean;
+  _initializationId: string | null;
+
   // Actions
   initialize: () => void;
   cleanup: () => void;
   joinRoom: (type: RoomType, id: string) => Promise<void>;
   leaveRoom: (type: RoomType, id: string) => void;
   sendMessage: (content: string, recipientId?: string) => Promise<void>;
+  retrySendMessage: (clientId: string) => Promise<void>;
   fetchHistory: (limit?: number, offset?: number) => Promise<void>;
   markAsRead: (type: RoomType, id: string) => void;
   setTyping: (isTyping: boolean) => void;
@@ -71,6 +104,8 @@ interface ChatState {
   openWhisper: (userId: string, username: string, faction: string) => void;
   closeWhisper: (userId: string) => void;
   clearError: () => void;
+  confirmMessage: (clientId: string, serverMessage: ChatMessage) => void;
+  failMessage: (clientId: string, error: string) => void;
 }
 
 const SETTINGS_STORAGE_KEY = 'chat_settings';
@@ -96,7 +131,7 @@ const loadSettings = (): ChatSettings => {
       return { ...defaultSettings, ...JSON.parse(stored) };
     }
   } catch (error) {
-    console.error('[Chat] Failed to load settings:', error);
+    logger.error('Failed to load chat settings from localStorage', error as Error);
   }
   return defaultSettings;
 };
@@ -108,7 +143,7 @@ const saveSettings = (settings: ChatSettings): void => {
   try {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   } catch (error) {
-    console.error('[Chat] Failed to save settings:', error);
+    logger.error('Failed to save chat settings to localStorage', error as Error);
   }
 };
 
@@ -123,6 +158,37 @@ const getRoomKey = (type: RoomType, id: string): string => `${type}-${id}`;
 const typingTimers = new Map<string, NodeJS.Timeout>();
 
 /**
+ * Track registered socket listeners for cleanup
+ * This prevents memory leaks from unremoved event listeners
+ */
+interface RegisteredListener {
+  event: keyof ServerToClientEvents;
+  handler: (...args: any[]) => void;
+}
+const registeredListeners: RegisteredListener[] = [];
+
+/**
+ * Helper to register socket listener and track it for cleanup
+ */
+const addTrackedListener = <E extends keyof ServerToClientEvents>(
+  event: E,
+  handler: (...args: any[]) => void
+): void => {
+  socketService.on(event, handler as ServerToClientEvents[E]);
+  registeredListeners.push({ event, handler });
+};
+
+/**
+ * Helper to unregister all tracked socket listeners
+ */
+const removeAllTrackedListeners = (): void => {
+  registeredListeners.forEach(({ event, handler }) => {
+    socketService.off(event, handler as ServerToClientEvents[typeof event]);
+  });
+  registeredListeners.length = 0; // Clear the array
+};
+
+/**
  * Play notification sound
  */
 const playSound = (type: 'message' | 'whisper' | 'mention', volume: number): void => {
@@ -131,7 +197,7 @@ const playSound = (type: 'message' | 'whisper' | 'mention', volume: number): voi
   const audio = new Audio(`/sounds/${type}.mp3`);
   audio.volume = volume / 100;
   audio.play().catch((error) => {
-    console.warn('[Chat] Failed to play sound:', error);
+    logger.warn('Failed to play chat sound', { type, volume, error: error.message });
   });
 };
 
@@ -151,6 +217,7 @@ const showNotification = (title: string, body: string): void => {
 export const useChatStore = create<ChatState>((set, get) => ({
   // Initial state
   messages: new Map(),
+  _pendingTimeouts: new Map(),
   activeRoom: null,
   onlineUsers: new Map(),
   typingUsers: new Map(),
@@ -162,14 +229,32 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isSendingMessage: false,
   error: null,
   settings: loadSettings(),
+  _initialized: false,
+  _initializationId: null,
 
   /**
    * Initialize chat system
+   * Uses initialization ID tracking to prevent StrictMode duplicate listeners
    */
   initialize: () => {
     const state = get();
 
-    if (socketService.isConnected()) {
+    // Already initialized and connected - skip
+    if (state._initialized && state.connectionStatus !== 'disconnected') {
+      logger.debug('Chat already initialized, skipping');
+      return;
+    }
+
+    // Generate unique initialization ID for this call
+    const initId = crypto.randomUUID();
+    set({ _initializationId: initId });
+
+    // Clean up any existing listeners first (handles StrictMode re-runs)
+    removeAllTrackedListeners();
+
+    // Check if we're still the active initialization (another init might have started)
+    if (get()._initializationId !== initId) {
+      logger.debug('Chat initialization superseded by another call, aborting');
       return;
     }
 
@@ -178,27 +263,64 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
 
     // Socket connection is managed by useAuthStore
+    // Use tracked listeners to prevent memory leaks
 
-    socketService.on('chat:message', (message) => {
+    addTrackedListener('chat:message', (message) => {
       const roomKey = getRoomKey(message.roomType, message.roomId);
-      const messages = new Map(state.messages);
+      const currentState = get();
+      const messages = new Map(currentState.messages);
       const roomMessages = messages.get(roomKey) || [];
 
-      const isDuplicate = roomMessages.some((m) => m._id === message._id);
-      if (!isDuplicate) {
-        messages.set(roomKey, [...roomMessages, message]);
+      // Check if this message confirms a pending optimistic message
+      // The server may include _clientId if we sent it, or we match by content
+      const messageWithClientId = message as ChatMessage & { _clientId?: string };
+      const clientId = messageWithClientId._clientId;
+
+      if (clientId) {
+        // Server echoed back our clientId - confirm the pending message
+        const pendingIndex = roomMessages.findIndex(
+          m => (m as ClientChatMessage)._clientId === clientId && (m as ClientChatMessage)._status === 'pending'
+        );
+
+        if (pendingIndex !== -1) {
+          // Replace pending message with confirmed server message
+          const updatedMessages = [...roomMessages];
+          updatedMessages[pendingIndex] = {
+            ...message,
+            _clientId: clientId,
+            _status: 'sent',
+          } as ClientChatMessage;
+          messages.set(roomKey, updatedMessages);
+
+          // Clear the timeout
+          const pendingTimeouts = new Map(currentState._pendingTimeouts);
+          const timeoutId = pendingTimeouts.get(clientId);
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            pendingTimeouts.delete(clientId);
+          }
+
+          set({ messages, _pendingTimeouts: pendingTimeouts });
+          return; // Don't add as new message, we updated the pending one
+        }
       }
 
-      const activeRoom = state.activeRoom;
+      // Check for duplicates (using server ID)
+      const isDuplicate = roomMessages.some((m) => m._id === message._id);
+      if (!isDuplicate) {
+        messages.set(roomKey, [...roomMessages, message as ClientChatMessage]);
+      }
+
+      const activeRoom = currentState.activeRoom;
       const isActiveRoom =
         activeRoom?.type === message.roomType && activeRoom?.id === message.roomId;
 
-      const unreadCounts = new Map(state.unreadCounts);
+      const unreadCounts = new Map(currentState.unreadCounts);
       if (!isActiveRoom) {
         const currentCount = unreadCounts.get(roomKey) || 0;
         unreadCounts.set(roomKey, currentCount + 1);
 
-        const { settings } = state;
+        const { settings } = currentState;
         if (settings.soundEnabled) {
           const soundType = message.type === 'whisper' ? 'whisper' :
                            message.mentions?.length ? 'mention' : 'message';
@@ -216,7 +338,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ messages, unreadCounts });
     });
 
-    socketService.on('chat:history', (data) => {
+    addTrackedListener('chat:history', (data) => {
       const roomKey = getRoomKey(data.roomType, data.roomId);
       const messages = new Map(state.messages);
       const existingMessages = messages.get(roomKey) || [];
@@ -231,7 +353,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ messages, isLoadingHistory: false });
     });
 
-    socketService.on('chat:typing', (data) => {
+    addTrackedListener('chat:typing', (data) => {
       const roomKey = getRoomKey(data.roomType, data.roomId);
       const typingUsers = new Map(state.typingUsers);
       const roomTyping = typingUsers.get(roomKey) || [];
@@ -262,7 +384,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ typingUsers });
     });
 
-    socketService.on('chat:user_joined', (data) => {
+    addTrackedListener('chat:user_joined', (data) => {
       const roomKey = getRoomKey(data.roomType, data.roomId);
       const onlineUsers = new Map(state.onlineUsers);
       const roomUsers = onlineUsers.get(roomKey) || [];
@@ -273,7 +395,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     });
 
-    socketService.on('chat:user_left', (data) => {
+    addTrackedListener('chat:user_left', (data) => {
       const roomKey = getRoomKey(data.roomType, data.roomId);
       const onlineUsers = new Map(state.onlineUsers);
       const roomUsers = onlineUsers.get(roomKey) || [];
@@ -282,14 +404,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ onlineUsers });
     });
 
-    socketService.on('chat:online_users', (data) => {
+    addTrackedListener('chat:online_users', (data) => {
       const roomKey = getRoomKey(data.roomType, data.roomId);
       const onlineUsers = new Map(state.onlineUsers);
       onlineUsers.set(roomKey, data.users);
       set({ onlineUsers });
     });
 
-    socketService.on('user:online', (user) => {
+    addTrackedListener('user:online', (user) => {
       const whispers = new Map(state.whispers);
       const whisper = whispers.get(user.userId);
       if (whisper) {
@@ -298,7 +420,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     });
 
-    socketService.on('user:offline', (data) => {
+    addTrackedListener('user:offline', (data) => {
       const whispers = new Map(state.whispers);
       const whisper = whispers.get(data.userId);
       if (whisper) {
@@ -307,12 +429,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     });
 
-    socketService.on('chat:error', (error) => {
-      console.error('[Chat] Error:', error.message);
+    addTrackedListener('chat:error', (error) => {
+      logger.error('Chat socket error', new Error(error.message), { error });
       set({ error: error.message });
     });
 
-    socketService.on('rate_limit_exceeded', (data) => {
+    addTrackedListener('rate_limit_exceeded', (data) => {
       const mutedUntil = new Date(Date.now() + data.retryAfter * 1000);
       set({ mutedUntil, error: `Rate limited. Try again in ${data.retryAfter}s` });
 
@@ -321,23 +443,38 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }, data.retryAfter * 1000);
     });
 
-    socketService.on('chat:muted', (data) => {
+    addTrackedListener('chat:muted', (data) => {
       set({
         mutedUntil: new Date(data.mutedUntil),
         error: `You have been muted: ${data.reason}`,
       });
     });
+
+    // Mark as initialized
+    set({ _initialized: true });
+    logger.debug('Chat system initialized', { initId });
   },
 
   /**
    * Cleanup chat system
+   * Properly removes all socket listeners to prevent memory leaks
    */
   cleanup: () => {
+    const state = get();
+
+    logger.debug('Cleaning up chat system', { initId: state._initializationId });
+
+    // Clear typing timers
     typingTimers.forEach((timer) => clearTimeout(timer));
     typingTimers.clear();
 
+    // Remove all tracked socket listeners to prevent memory leaks
+    removeAllTrackedListeners();
+
+    // Disconnect socket
     socketService.disconnect();
 
+    // Reset state including initialization flags
     set({
       messages: new Map(),
       activeRoom: null,
@@ -350,6 +487,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       isLoadingHistory: false,
       isSendingMessage: false,
       error: null,
+      _initialized: false,
+      _initializationId: null,
     });
   },
 
@@ -398,7 +537,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   /**
-   * Send a message
+   * Send a message with optimistic update
    */
   sendMessage: async (content: string, recipientId?: string) => {
     const state = get();
@@ -424,31 +563,204 @@ export const useChatStore = create<ChatState>((set, get) => ({
       throw new Error('User is muted');
     }
 
-    set({ isSendingMessage: true, error: null });
+    // Validate activeRoom is present when needed
+    if (!recipientId && !state.activeRoom) {
+      set({ error: 'No active room selected' });
+      throw new Error('No active room selected');
+    }
+
+    const roomType = state.activeRoom?.type ?? RoomType.WHISPER;
+    const roomId = recipientId || state.activeRoom?.id || '';
+    const trimmedContent = content.trim();
+
+    // Generate client ID for tracking this message
+    const clientId = `pending-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    // Create optimistic message (will be updated when server confirms)
+    const optimisticMessage: ClientChatMessage = {
+      _id: clientId, // Temporary ID, replaced when server confirms
+      _clientId: clientId,
+      _status: 'pending',
+      roomType,
+      roomId,
+      type: recipientId ? MessageType.WHISPER : MessageType.CHAT,
+      senderId: 'pending', // Will be filled by server
+      senderName: 'You', // Placeholder, shown while pending
+      senderFaction: 'settler', // Placeholder
+      content: trimmedContent,
+      recipientId,
+      createdAt: new Date(),
+    };
+
+    // Add optimistic message to UI immediately
+    const messages = new Map(state.messages);
+    const roomKey = getRoomKey(roomType, roomId);
+    const roomMessages = messages.get(roomKey) || [];
+    messages.set(roomKey, [...roomMessages, optimisticMessage]);
+
+    set({ messages, isSendingMessage: true, error: null });
+
+    // Set timeout to mark as failed if not confirmed within 10 seconds
+    const timeoutId = setTimeout(() => {
+      get().failMessage(clientId, 'Message delivery timed out');
+    }, 10000);
+
+    // Track the timeout so we can clear it on confirmation
+    const pendingTimeouts = new Map(state._pendingTimeouts);
+    pendingTimeouts.set(clientId, timeoutId);
+    set({ _pendingTimeouts: pendingTimeouts });
 
     try {
-      // Validate activeRoom is present when needed
-      if (!recipientId && !state.activeRoom) {
-        set({ isSendingMessage: false, error: 'No active room selected' });
-        throw new Error('No active room selected');
-      }
-
-      const roomType = state.activeRoom?.type ?? 'direct';
-      const roomId = recipientId || state.activeRoom?.id;
-
-      socketService.emit('chat:send_message', {
+      const emitSuccess = socketService.emit('chat:send_message', {
         roomType,
         roomId,
-        content: content.trim(),
+        content: trimmedContent,
         recipientId,
+        _clientId: clientId, // Include client ID for matching response
       });
+
+      if (!emitSuccess) {
+        // Socket not connected, fail immediately
+        get().failMessage(clientId, 'Not connected to server');
+      }
 
       set({ isSendingMessage: false });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to send message';
+      get().failMessage(clientId, message);
       set({ isSendingMessage: false, error: message });
       throw error;
     }
+  },
+
+  /**
+   * Retry sending a failed message
+   */
+  retrySendMessage: async (clientId: string) => {
+    const state = get();
+
+    // Find the failed message
+    let failedMessage: ClientChatMessage | null = null;
+    let roomKey: string | null = null;
+
+    for (const [key, roomMessages] of state.messages) {
+      const msg = roomMessages.find(m => m._clientId === clientId && m._status === 'failed');
+      if (msg) {
+        failedMessage = msg;
+        roomKey = key;
+        break;
+      }
+    }
+
+    if (!failedMessage || !roomKey) {
+      logger.warn('Failed message not found for retry', { clientId });
+      return;
+    }
+
+    // Update status to pending
+    const messages = new Map(state.messages);
+    const roomMessages = messages.get(roomKey) || [];
+    const updatedMessages = roomMessages.map(m =>
+      m._clientId === clientId ? { ...m, _status: 'pending' as MessageStatus, _error: undefined } : m
+    );
+    messages.set(roomKey, updatedMessages);
+    set({ messages });
+
+    // Set new timeout
+    const timeoutId = setTimeout(() => {
+      get().failMessage(clientId, 'Message delivery timed out');
+    }, 10000);
+
+    const pendingTimeouts = new Map(state._pendingTimeouts);
+    pendingTimeouts.set(clientId, timeoutId);
+    set({ _pendingTimeouts: pendingTimeouts });
+
+    // Retry sending
+    const emitSuccess = socketService.emit('chat:send_message', {
+      roomType: failedMessage.roomType,
+      roomId: failedMessage.roomId,
+      content: failedMessage.content,
+      recipientId: failedMessage.recipientId,
+      _clientId: clientId,
+    });
+
+    if (!emitSuccess) {
+      get().failMessage(clientId, 'Not connected to server');
+    }
+  },
+
+  /**
+   * Confirm a pending message with server data
+   */
+  confirmMessage: (clientId: string, serverMessage: ChatMessage) => {
+    const state = get();
+
+    // Clear timeout
+    const pendingTimeouts = new Map(state._pendingTimeouts);
+    const timeoutId = pendingTimeouts.get(clientId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      pendingTimeouts.delete(clientId);
+    }
+
+    // Find and update the pending message
+    const messages = new Map(state.messages);
+    let messageUpdated = false;
+
+    for (const [roomKey, roomMessages] of messages) {
+      const index = roomMessages.findIndex(m => m._clientId === clientId);
+      if (index !== -1) {
+        const updatedMessages = [...roomMessages];
+        // Replace with server message but keep client tracking fields
+        updatedMessages[index] = {
+          ...serverMessage,
+          _clientId: clientId,
+          _status: 'sent' as MessageStatus,
+        };
+        messages.set(roomKey, updatedMessages);
+        messageUpdated = true;
+        break;
+      }
+    }
+
+    if (messageUpdated) {
+      set({ messages, _pendingTimeouts: pendingTimeouts });
+    }
+  },
+
+  /**
+   * Mark a pending message as failed
+   */
+  failMessage: (clientId: string, error: string) => {
+    const state = get();
+
+    // Clear timeout
+    const pendingTimeouts = new Map(state._pendingTimeouts);
+    const timeoutId = pendingTimeouts.get(clientId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      pendingTimeouts.delete(clientId);
+    }
+
+    // Find and update the pending message
+    const messages = new Map(state.messages);
+
+    for (const [roomKey, roomMessages] of messages) {
+      const index = roomMessages.findIndex(m => m._clientId === clientId && m._status === 'pending');
+      if (index !== -1) {
+        const updatedMessages = [...roomMessages];
+        updatedMessages[index] = {
+          ...updatedMessages[index],
+          _status: 'failed' as MessageStatus,
+          _error: error,
+        };
+        messages.set(roomKey, updatedMessages);
+        break;
+      }
+    }
+
+    set({ messages, _pendingTimeouts: pendingTimeouts, isSendingMessage: false });
+    logger.warn('Message send failed', { clientId, error });
   },
 
   /**

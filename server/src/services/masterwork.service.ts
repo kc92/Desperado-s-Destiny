@@ -18,6 +18,7 @@ import { Item } from '../models/Item.model';
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
 import { getRandomEffects } from '../data/specialEffects';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Quality tier definitions
@@ -128,7 +129,7 @@ export class MasterworkService {
     const specializationBonus = context.isSpecialized ? 10 : 0;
 
     // 6. LUCK ROLL: Random factor ±10%
-    const luckRoll = (Math.random() * 20) - 10;
+    const luckRoll = (SecureRNG.float(0, 1) * 20) - 10;
 
     // Calculate total score
     const totalScore = Math.max(
@@ -223,10 +224,10 @@ export class MasterworkService {
     let numEffects: number;
     if (quality === ItemQuality.EXCEPTIONAL) {
       // 50% chance for 1 effect
-      numEffects = Math.random() < 0.5 ? 1 : 0;
+      numEffects = SecureRNG.chance(0.5) ? 1 : 0;
     } else if (quality === ItemQuality.MASTERWORK) {
       // Random between 1-2 effects
-      numEffects = Math.random() < 0.5 ? 2 : 1;
+      numEffects = SecureRNG.chance(0.5) ? 2 : 1;
     } else {
       numEffects = 0;
     }

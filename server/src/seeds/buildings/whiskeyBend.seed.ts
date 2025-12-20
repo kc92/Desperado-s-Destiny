@@ -6,6 +6,7 @@
  */
 
 import mongoose from 'mongoose';
+import logger from '../../utils/logger';
 import { Location } from '../../models/Location.model';
 import { LOCATION_IDS } from '../locations.seed';
 
@@ -1404,7 +1405,7 @@ export async function seedWhiskeyBendBuildings(): Promise<void> {
 
     console.log(`Successfully seeded ${whiskeyBendBuildings.length} Whiskey Bend buildings`);
   } catch (error) {
-    console.error('Error seeding Whiskey Bend buildings:', error);
+    logger.error('Error seeding Whiskey Bend buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }

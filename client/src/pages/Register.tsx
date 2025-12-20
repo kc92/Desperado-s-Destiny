@@ -10,6 +10,7 @@ import { useFormValidation } from '@/hooks/useFormValidation';
 import { Button, Card, Input } from '@/components/ui';
 import { calculatePasswordStrength } from '@/utils/passwordStrength';
 import { api } from '@/services/api';
+import { logger } from '@/services/logger.service';
 
 interface RegisterFormValues {
   username: string;
@@ -46,7 +47,7 @@ export const Register: React.FC = () => {
       const response = await api.get(`/auth/check-username?username=${encodeURIComponent(username)}`);
       setUsernameAvailable(response.data.available);
     } catch (err) {
-      console.error('Failed to check username:', err);
+      logger.error('Failed to check username availability', err as Error, { username });
       setUsernameAvailable(null);
     } finally {
       setCheckingUsername(false);
@@ -76,8 +77,8 @@ export const Register: React.FC = () => {
         if (trimmed.length < 3) {
           return 'Username must be at least 3 characters';
         }
-        if (trimmed.length > 20) {
-          return 'Username must be 20 characters or less';
+        if (trimmed.length > 30) {
+          return 'Username must be 30 characters or less';
         }
         if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
           return 'Username can only contain letters, numbers, and underscores';
@@ -144,7 +145,7 @@ export const Register: React.FC = () => {
       navigate('/characters');
     } catch (err) {
       // Error is handled by the store
-      console.error('Registration failed:', err);
+      logger.error('Registration failed', err as Error, { username: formValues.username });
     }
   };
 

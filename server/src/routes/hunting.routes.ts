@@ -7,6 +7,8 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import {
   checkHuntAvailability,
   startHunt,
@@ -38,18 +40,18 @@ const huntingLimiter = rateLimit({
  */
 
 // Check if character can hunt and get available grounds
-router.get('/availability', requireAuth, requireCharacter, checkHuntAvailability);
+router.get('/availability', requireAuth, requireCharacter, asyncHandler(checkHuntAvailability));
 
 // Get current hunting trip
-router.get('/current', requireAuth, requireCharacter, getCurrentTrip);
+router.get('/current', requireAuth, requireCharacter, asyncHandler(getCurrentTrip));
 
 // Get hunting statistics for character
-router.get('/statistics', requireAuth, requireCharacter, getHuntingStatistics);
+router.get('/statistics', requireAuth, requireCharacter, asyncHandler(getHuntingStatistics));
 
 // Start a new hunting trip
-router.post('/start', requireAuth, requireCharacter, huntingLimiter, startHunt);
+router.post('/start', requireAuth, requireCsrfToken, requireCharacter, huntingLimiter, asyncHandler(startHunt));
 
 // Abandon current hunting trip
-router.post('/abandon', requireAuth, requireCharacter, huntingLimiter, abandonHunt);
+router.post('/abandon', requireAuth, requireCsrfToken, requireCharacter, huntingLimiter, asyncHandler(abandonHunt));
 
 export default router;

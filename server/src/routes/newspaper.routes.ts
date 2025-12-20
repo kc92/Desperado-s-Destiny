@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { newspaperController } from '../controllers/newspaper.controller';
 import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -19,19 +20,21 @@ router.get(
   asyncHandler(newspaperController.getEdition)
 );
 router.get('/articles/:articleId', asyncHandler(newspaperController.getArticle));
-router.post('/search', asyncHandler(newspaperController.searchArticles));
+router.post('/search', requireCsrfToken, asyncHandler(newspaperController.searchArticles));
 router.get('/:newspaperId/stats', asyncHandler(newspaperController.getStats));
 
 // Protected routes - require authentication
 router.post(
   '/:newspaperId/subscribe',
   requireAuth,
+  requireCsrfToken,
   asyncHandler(newspaperController.subscribe)
 );
-router.post('/:newspaperId/buy', requireAuth, asyncHandler(newspaperController.buySingleNewspaper));
+router.post('/:newspaperId/buy', requireAuth, requireCsrfToken, asyncHandler(newspaperController.buySingleNewspaper));
 router.delete(
   '/subscriptions/:subscriptionId',
   requireAuth,
+  requireCsrfToken,
   asyncHandler(newspaperController.cancelSubscription)
 );
 router.get('/subscriptions', requireAuth, asyncHandler(newspaperController.getSubscriptions));
@@ -42,10 +45,10 @@ router.get(
 );
 
 // Admin routes (Protected by requireAdmin middleware)
-router.post('/articles', requireAuth, requireAdmin, asyncHandler(newspaperController.createArticle));
-router.post('/publish', requireAuth, requireAdmin, asyncHandler(newspaperController.publishNewspaper));
+router.post('/articles', requireAuth, requireAdmin, requireCsrfToken, asyncHandler(newspaperController.createArticle));
+router.post('/publish', requireAuth, requireAdmin, requireCsrfToken, asyncHandler(newspaperController.publishNewspaper));
 
 // System routes (Protected by requireAdmin middleware)
-router.post('/world-event', requireAuth, requireAdmin, asyncHandler(newspaperController.handleWorldEvent));
+router.post('/world-event', requireAuth, requireAdmin, requireCsrfToken, asyncHandler(newspaperController.handleWorldEvent));
 
 export default router;

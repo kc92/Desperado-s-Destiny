@@ -96,12 +96,60 @@ jobs:
           name: client-build
           path: client/dist
 
-  deploy-staging:
-    name: Deploy to Staging
+  # Security scanning job
+  security-scan:
+    name: Security Scan
     needs: [test, build-client]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Server Image for Scanning
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          push: false
+          load: true
+          tags: desperados-server:scan
+
+      - name: Run Trivy vulnerability scanner (Server)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'desperados-server:scan'
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL'
+          ignore-unfixed: true
+
+      - name: Run Trivy vulnerability scanner (Generate SARIF)
+        uses: aquasecurity/trivy-action@master
+        if: always()
+        with:
+          image-ref: 'desperados-server:scan'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [test, build-client, security-scan]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: staging
+
+    outputs:
+      deployed_sha: ${{ github.sha }}
 
     steps:
       - uses: actions/checkout@v4
@@ -130,6 +178,8 @@ jobs:
           tags: |
             ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/server:staging
             ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/server:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and Push Client Image
         uses: docker/build-push-action@v5
@@ -139,6 +189,8 @@ jobs:
           tags: |
             ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/client:staging
             ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/client:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Deploy to Staging Server
         uses: appleboy/ssh-action@v1.0.3
@@ -148,17 +200,95 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
             cd /opt/desperados-destiny
+
+            # Backup current version
+            echo "${{ github.sha }}" > .previous_version || true
+
+            # Pull and deploy
             docker compose -f docker-compose.staging.yml pull
             docker compose -f docker-compose.staging.yml up -d
 
+            # Wait for containers to start
+            echo "Waiting for containers to start..."
+            sleep 15
+
+      - name: Create Database Indexes (Staging)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/desperados-destiny
+            docker compose -f docker-compose.staging.yml exec -T backend node -e "require('./dist/scripts/createIndexes').createIndexes().then(() => console.log('Indexes created')).catch(e => { console.error('Index creation failed:', e); process.exit(1); })"
+
+  smoke-test-staging:
+    name: Smoke Test Staging
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Make smoke test executable
+        run: chmod +x scripts/smoke-test.sh
+
+      - name: Run Smoke Tests on Staging
+        run: ./scripts/smoke-test.sh ${{ secrets.STAGING_URL || 'http://localhost:5000' }}
+        timeout-minutes: 5
+        continue-on-error: false
+
+      - name: Notify on Smoke Test Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚨 **Staging Smoke Tests Failed**\n\nDeployment to staging succeeded but smoke tests failed. Production deployment blocked.\n\nCommit: ${{ github.sha }}'
+            }).catch(() => {});
+
+            core.setFailed('Staging smoke tests failed - blocking production deployment');
+
   deploy-production:
     name: Deploy to Production
-    needs: [deploy-staging]
+    needs: [deploy-staging, smoke-test-staging]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
 
+    outputs:
+      deployed_sha: ${{ github.sha }}
+
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag Production Images
+        run: |
+          docker pull ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/server:${{ github.sha }}
+          docker pull ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/client:${{ github.sha }}
+
+          docker tag ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/server:${{ github.sha }} \
+            ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/server:production
+          docker tag ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/client:${{ github.sha }} \
+            ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/client:production
+
+          docker push ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/server:production
+          docker push ${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}/${{ github.repository }}/client:production
+
       - name: Deploy to Production
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -167,6 +297,152 @@ jobs:
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           script: |
             cd /opt/desperados-destiny
+
+            # Save current version for potential rollback
+            cat .current_version > .previous_version 2>/dev/null || true
+            echo "${{ github.sha }}" > .current_version
+
+            # Pull and deploy
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
+
+            # Wait for containers to start
+            echo "Waiting for containers to start..."
+            sleep 15
+
+      - name: Create Database Indexes (Production)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            cd /opt/desperados-destiny
+            docker compose -f docker-compose.prod.yml exec -T backend node -e "require('./dist/scripts/createIndexes').createIndexes().then(() => console.log('Indexes created')).catch(e => { console.error('Index creation failed:', e); process.exit(1); })"
+
+  smoke-test-production:
+    name: Smoke Test Production
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Make smoke test executable
+        run: chmod +x scripts/smoke-test.sh
+
+      - name: Run Smoke Tests on Production
+        id: smoke-test
+        run: ./scripts/smoke-test.sh ${{ secrets.PRODUCTION_URL || 'http://localhost:5000' }}
+        timeout-minutes: 5
+        continue-on-error: true
+
+      - name: Check Smoke Test Result
+        if: steps.smoke-test.outcome == 'failure'
+        run: |
+          echo "::error::Production smoke tests failed!"
+          echo "SMOKE_TEST_FAILED=true" >> $GITHUB_ENV
+
+      - name: Cleanup Docker Resources
+        if: steps.smoke-test.outcome == 'success'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
             docker system prune -f
+
+  # Rollback job - only triggered on smoke test failure
+  rollback-production:
+    name: Rollback Production
+    needs: smoke-test-production
+    runs-on: ubuntu-latest
+    if: failure() && needs.smoke-test-production.result == 'failure'
+    environment: production-rollback
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Perform Rollback
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            cd /opt/desperados-destiny
+
+            # Get previous version
+            PREVIOUS_VERSION=$(cat .previous_version 2>/dev/null)
+
+            if [ -z "$PREVIOUS_VERSION" ]; then
+              echo "No previous version found for rollback"
+              exit 1
+            fi
+
+            echo "Rolling back to version: $PREVIOUS_VERSION"
+
+            # Update compose file to use previous version tags
+            REGISTRY="${{ vars.CONTAINER_REGISTRY || 'ghcr.io' }}"
+            REPO="${{ github.repository }}"
+
+            # Pull previous version images
+            docker pull ${REGISTRY}/${REPO}/server:${PREVIOUS_VERSION}
+            docker pull ${REGISTRY}/${REPO}/client:${PREVIOUS_VERSION}
+
+            # Tag as production
+            docker tag ${REGISTRY}/${REPO}/server:${PREVIOUS_VERSION} ${REGISTRY}/${REPO}/server:production
+            docker tag ${REGISTRY}/${REPO}/client:${PREVIOUS_VERSION} ${REGISTRY}/${REPO}/client:production
+
+            # Restart with previous version
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d
+
+            # Wait and verify
+            sleep 15
+
+            # Basic health check
+            if curl -s --max-time 30 http://localhost:5000/api/health | grep -q '"status":"healthy"'; then
+              echo "Rollback successful - server is healthy"
+              echo "$PREVIOUS_VERSION" > .current_version
+            else
+              echo "Rollback completed but health check failed"
+              exit 1
+            fi
+
+      - name: Create Rollback Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Production Rollback Triggered',
+              body: `## Production Rollback Alert
+
+              **Failed Commit:** ${{ github.sha }}
+              **Rolled Back To:** Previous version
+              **Triggered At:** ${new Date().toISOString()}
+
+              ### What Happened
+              Production smoke tests failed after deployment, triggering an automatic rollback.
+
+              ### Action Required
+              1. Investigate the failed commit
+              2. Fix the issue in a new PR
+              3. Redeploy when ready
+
+              ### Logs
+              Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+              `,
+              labels: ['production-incident', 'rollback', 'urgent']
+            });
+
+      - name: Notify Rollback Complete
+        run: |
+          echo "::warning::Production was rolled back to previous version due to failed smoke tests"

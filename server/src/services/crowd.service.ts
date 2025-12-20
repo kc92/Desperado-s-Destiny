@@ -23,6 +23,7 @@ import { WeatherType, TimeOfDay } from '../models/WorldState.model';
 import { WorldEventService } from './worldEvent.service';
 import { Location } from '../models/Location.model';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Crowd patterns for different building types
@@ -623,7 +624,7 @@ export class CrowdService {
     }
 
     // 5. Random variation (±10%)
-    const randomModifier = 0.9 + Math.random() * 0.2;
+    const randomModifier = 0.9 + SecureRNG.float(0, 1) * 0.2;
     factors.push({
       type: 'random',
       modifier: randomModifier,
@@ -842,7 +843,7 @@ export class CrowdService {
     }
 
     // Pick a random description from available options
-    return options[Math.floor(Math.random() * options.length)];
+    return SecureRNG.select(options);
   }
 
   /**

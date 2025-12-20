@@ -4,6 +4,7 @@
  */
 
 import * as Sentry from '@sentry/react';
+import { logger } from '@/services/logger.service';
 
 /**
  * Initialize Sentry error tracking for the React application
@@ -15,7 +16,7 @@ export function initializeSentry(): void {
 
   // Disable Sentry in development to avoid tracking protection errors
   if (environment === 'development') {
-    console.info('Sentry disabled in development environment');
+    logger.info('Sentry disabled in development environment', { context: 'sentry.init' });
     return;
   }
 
@@ -23,7 +24,7 @@ export function initializeSentry(): void {
   const dsn = import.meta.env.VITE_SENTRY_DSN;
 
   if (!dsn || dsn === 'YOUR_CLIENT_DSN_HERE') {
-    console.warn('Sentry DSN not configured. Error tracking is disabled.');
+    logger.warn('Sentry DSN not configured. Error tracking is disabled.', { context: 'sentry.init' });
     return;
   }
 
@@ -92,7 +93,7 @@ export function initializeSentry(): void {
     normalizeDepth: 5,
   });
 
-  console.info('Sentry initialized for environment:', environment);
+  logger.info('Sentry initialized for environment', { context: 'sentry.init', environment });
 }
 
 /**

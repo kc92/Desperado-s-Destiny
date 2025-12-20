@@ -7,6 +7,7 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 import { GossipCategory, GossipTruthfulness } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Gossip document interface
@@ -168,6 +169,15 @@ GossipSchema.index({ expiresAt: 1, isStale: 1 });
 GossipSchema.index({ playerInvolved: 1, startDate: -1 });
 
 /**
+ * TTL Index for automatic cleanup
+ * Gossip is automatically deleted immediately when expiresAt is reached.
+ * This keeps the database clean and prevents accumulation of stale gossip.
+ *
+ * SECURITY: Prevents database bloat from accumulating expired gossip documents.
+ */
+GossipSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // Delete immediately on expiry
+
+/**
  * Static method: Find all active (non-stale, non-expired) gossip
  */
 GossipSchema.statics.findActiveGossip = async function(): Promise<IGossip[]> {
@@ -255,9 +265,8 @@ GossipSchema.statics.spreadGossip = async function(
 
   // Calculate spread chance based on spreadFactor
   const spreadChance = gossip.spreadFactor / 10;
-  const roll = Math.random();
 
-  if (roll <= spreadChance) {
+  if (SecureRNG.chance(spreadChance)) {
     await (this as any).addNPCToKnownBy(gossipId, toNpcId);
     return true;
   }

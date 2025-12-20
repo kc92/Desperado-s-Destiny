@@ -130,8 +130,20 @@ export interface SafeCharacter {
   energy: number;
   /** Maximum energy capacity */
   maxEnergy: number;
-  /** Current gold amount */
+
+  // Primary Currency (Dollars)
+  /** Current dollars amount (primary currency) */
+  dollars: number;
+
+  // Precious Metal Resources
+  /** Gold resource amount (valuable material, not currency) */
+  goldResource: number;
+  /** Silver resource amount (common material, not currency) */
+  silverResource: number;
+
+  /** @deprecated Use dollars instead - kept for backward compatibility */
   gold: number;
+
   /** Current location name/ID */
   currentLocation: string;
   /** Location ID (alias) */

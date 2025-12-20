@@ -2,15 +2,26 @@
  * Socket.io Configuration
  *
  * Initialize and configure Socket.io server with authentication and event handlers
+ * Uses Redis adapter for horizontal scaling across multiple server instances
  */
 
 import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { createClient } from 'redis';
 import { config } from './index';
 import logger from '../utils/logger';
 import { socketAuthMiddleware, AuthenticatedSocket } from '../middleware/socketAuth';
 import { registerChatHandlers } from '../sockets/chatHandlers';
+import { registerDuelHandlers } from '../sockets/duelHandlers';
+import { registerKarmaHandlers } from '../sockets/karmaHandlers';
 import PresenceService from '../services/presence.service';
+
+/**
+ * Redis pub/sub clients for Socket.io adapter
+ */
+let pubClient: ReturnType<typeof createClient> | null = null;
+let subClient: ReturnType<typeof createClient> | null = null;
 
 /**
  * Socket.io server instance
@@ -28,17 +39,22 @@ const HEARTBEAT_INTERVAL_MS = 30000;
  * @param httpServer - HTTP server instance
  * @returns Socket.io server instance
  */
-export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer {
+export async function initializeSocketIO(httpServer: HTTPServer): Promise<SocketIOServer> {
   try {
-    logger.info('Initializing Socket.io server...');
+    logger.info('Initializing Socket.io server with Redis adapter...');
 
     // Create Socket.io server with configuration
-    const allowedOrigins = [
-      config.server.frontendUrl,
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:5173'
-    ];
+    // Only include localhost origins in development mode
+    const allowedOrigins = config.isProduction
+      ? [config.server.frontendUrl]
+      : [
+          config.server.frontendUrl,
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://localhost:5173',
+          'http://localhost:5174',
+          'http://localhost:5175'
+        ];
 
     io = new SocketIOServer(httpServer, {
       cors: {
@@ -62,6 +78,36 @@ export function initializeSocketIO(httpServer: HTTPServer): SocketIOServer {
       maxHttpBufferSize: 1e6, // 1MB
       allowEIO3: true
     });
+
+    // Set up Redis adapter for horizontal scaling
+    // This allows multiple server instances to share Socket.io events
+    try {
+      const redisUrl = config.database.redisUrl;
+      logger.info('Setting up Redis adapter for Socket.io...');
+
+      pubClient = createClient({
+        url: redisUrl,
+        password: config.database.redisPassword,
+      });
+      subClient = pubClient.duplicate();
+
+      // Handle Redis connection errors gracefully
+      pubClient.on('error', (err) => {
+        logger.error('Socket.io Redis pub client error:', err);
+      });
+      subClient.on('error', (err) => {
+        logger.error('Socket.io Redis sub client error:', err);
+      });
+
+      await Promise.all([pubClient.connect(), subClient.connect()]);
+
+      io.adapter(createAdapter(pubClient, subClient));
+      logger.info('Socket.io Redis adapter connected - horizontal scaling enabled');
+    } catch (redisError) {
+      logger.warn('Failed to set up Redis adapter for Socket.io:', redisError);
+      logger.warn('Socket.io will run in single-instance mode (no horizontal scaling)');
+      // Continue without Redis adapter - single instance mode still works
+    }
 
     // Apply authentication middleware
     io.use(socketAuthMiddleware);
@@ -105,6 +151,12 @@ function handleConnection(socket: AuthenticatedSocket): void {
 
   // Register chat event handlers
   registerChatHandlers(socket);
+
+  // Register duel event handlers
+  registerDuelHandlers(socket);
+
+  // Register karma/deity event handlers
+  registerKarmaHandlers(socket);
 
   // Setup heartbeat mechanism
   setupHeartbeat(socket);
@@ -194,6 +246,15 @@ export function getSocketIO(): SocketIOServer {
   if (!io) {
     throw new Error('Socket.io server is not initialized');
   }
+  return io;
+}
+
+/**
+ * Get Socket.io server instance (safe version - returns null if not initialized)
+ *
+ * @returns Socket.io server instance or null
+ */
+export function getIO(): SocketIOServer | null {
   return io;
 }
 
@@ -364,6 +425,18 @@ export async function shutdownSocketIO(): Promise<void> {
     io.close();
     io = null;
 
+    // Close Redis adapter connections
+    if (pubClient) {
+      await pubClient.quit();
+      pubClient = null;
+      logger.info('Socket.io Redis pub client closed');
+    }
+    if (subClient) {
+      await subClient.quit();
+      subClient = null;
+      logger.info('Socket.io Redis sub client closed');
+    }
+
     logger.info('Socket.io server shut down successfully');
   } catch (error) {
     logger.error('Error shutting down Socket.io:', error);
@@ -373,6 +446,7 @@ export async function shutdownSocketIO(): Promise<void> {
 export default {
   initializeSocketIO,
   getSocketIO,
+  getIO,
   emitToRoom,
   emitToSocket,
   broadcastEvent,

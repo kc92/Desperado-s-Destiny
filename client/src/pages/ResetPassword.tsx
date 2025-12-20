@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { Button, Card, Input } from '@/components/ui';
 import { calculatePasswordStrength } from '@/utils/passwordStrength';
+import { logger } from '@/services/logger.service';
 
 interface ResetPasswordFormValues {
   password: string;
@@ -97,7 +98,7 @@ export const ResetPassword: React.FC = () => {
       }, 2000);
     } catch (err) {
       // Error is handled by the store
-      console.error('Password reset failed:', err);
+      logger.error('Password reset failed', err as Error, { context: 'ResetPassword' });
     }
   };
 

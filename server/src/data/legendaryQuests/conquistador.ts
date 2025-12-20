@@ -84,7 +84,7 @@ export const conquistadorChain: LegendaryQuestChain = {
       milestone: 3,
       description: 'Found the expedition\'s last camp',
       rewards: [
-        { type: 'gold', amount: 5000 },
+        { type: 'dollars', amount: 5000 },
         { type: 'item', itemId: 'item_spanish_armor', quantity: 1 },
       ],
     },
@@ -100,7 +100,7 @@ export const conquistadorChain: LegendaryQuestChain = {
       milestone: 6,
       description: 'Resolved the curse of Coronado',
       rewards: [
-        { type: 'gold', amount: 20000 },
+        { type: 'dollars', amount: 20000 },
         { type: 'skill_points', amount: 20 },
       ],
     },

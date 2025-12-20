@@ -12,6 +12,7 @@ import { GoldTransaction, TransactionSource } from '../models/GoldTransaction.mo
 import { AppError } from '../utils/errors';
 import { areTransactionsDisabled } from '../utils/transaction.helper';
 import { QuestService } from './quest.service';
+import logger from '../utils/logger';
 
 export class ShopService {
   /**
@@ -70,7 +71,7 @@ export class ShopService {
           priceModifier = ReputationService.getPriceModifier(standings[shopFaction].standing);
         } catch (repError) {
           // If reputation check fails, use normal price
-          console.error('Failed to check reputation for pricing:', repError);
+          logger.error('Failed to check reputation for pricing', { error: repError instanceof Error ? repError.message : repError, stack: repError instanceof Error ? repError.stack : undefined });
         }
       }
 
@@ -85,10 +86,10 @@ export class ShopService {
         const moodEffects = MoodService.getMoodEffects(moodState.currentMood, moodState.moodIntensity);
         priceModifier *= moodEffects.priceModifier;
 
-        console.log(`Shopkeeper mood "${moodState.currentMood}" modified price by ${moodEffects.priceModifier}x`);
+        logger.debug(`Shopkeeper mood "${moodState.currentMood}" modified price by ${moodEffects.priceModifier}x`);
       } catch (moodError) {
         // If mood check fails, use normal price
-        console.error('Failed to check mood for pricing:', moodError);
+        logger.error('Failed to check mood for pricing', { error: moodError instanceof Error ? moodError.message : moodError, stack: moodError instanceof Error ? moodError.stack : undefined });
       }
 
       // Apply world event modifiers to shop prices
@@ -113,7 +114,7 @@ export class ShopService {
                 // FESTIVAL or TRADE_CARAVAN: reduce shop prices
                 if (effect.type === 'price_modifier' && (effect.target === 'all' || effect.target === 'shop_items')) {
                   priceModifier *= effect.value;
-                  console.log(`World event "${event.name}" modified shop price by ${effect.value}x (${effect.description})`);
+                  logger.debug(`World event "${event.name}" modified shop price by ${effect.value}x (${effect.description})`);
                 }
               }
             }
@@ -121,7 +122,7 @@ export class ShopService {
         }
       } catch (eventError) {
         // Don't fail purchase if event check fails
-        console.error('Failed to check world events for price modifiers:', eventError);
+        logger.error('Failed to check world events for price modifiers', { error: eventError instanceof Error ? eventError.message : eventError, stack: eventError instanceof Error ? eventError.stack : undefined });
       }
 
       // Calculate total cost with overflow check and price modifier
@@ -132,15 +133,15 @@ export class ShopService {
       }
 
       // RACE CONDITION FIX: Use findOneAndUpdate with conditional check
-      // This ensures gold deduction is atomic and balance cannot go negative
+      // This ensures dollar deduction is atomic and balance cannot go negative
       const characterQuery = {
         _id: characterId,
         isActive: true,
-        gold: { $gte: totalCost } // Only update if sufficient gold
+        dollars: { $gte: totalCost } // Only update if sufficient dollars
       };
 
       const characterUpdate = {
-        $inc: { gold: -totalCost },
+        $inc: { dollars: -totalCost },
         $push: {
           inventory: {
             itemId: item.itemId,
@@ -167,13 +168,13 @@ export class ShopService {
           throw new AppError(`Level ${item.levelRequired} required to purchase this item`, 400);
         }
 
-        // Check gold with race condition prevention
-        if (character.gold < totalCost) {
-          throw new AppError(`Insufficient gold. Need ${totalCost}, have ${character.gold}`, 400);
+        // Check dollars with race condition prevention
+        if (character.dollars < totalCost) {
+          throw new AppError(`Insufficient dollars. Need $${totalCost}, have $${character.dollars}`, 400);
         }
 
-        // Deduct gold atomically via gold service
-        await character.deductGold(totalCost, TransactionSource.SHOP_PURCHASE, {
+        // Deduct dollars atomically via dollar service
+        await character.deductDollars(totalCost, TransactionSource.SHOP_PURCHASE, {
           itemId: item.itemId,
           quantity,
           unitPrice: item.price
@@ -215,21 +216,23 @@ export class ShopService {
           if (char.level < item.levelRequired) {
             throw new AppError(`Level ${item.levelRequired} required to purchase this item`, 400);
           }
-          if (char.gold < totalCost) {
-            throw new AppError(`Insufficient gold. Need ${totalCost}, have ${char.gold}`, 400);
+          if (char.dollars < totalCost) {
+            throw new AppError(`Insufficient dollars. Need $${totalCost}, have $${char.dollars}`, 400);
           }
           throw new AppError('Purchase failed', 500);
         }
 
         // Create transaction record manually for non-stackable items
-        // (stackable items use deductGold which creates the record)
+        // (stackable items use deductDollars which creates the record)
+        const { CurrencyType } = await import('../models/GoldTransaction.model');
         await GoldTransaction.create([{
           characterId: character._id,
+          currencyType: CurrencyType.DOLLAR,
           amount: -totalCost,
           type: 'SPENT',
           source: TransactionSource.SHOP_PURCHASE,
-          balanceBefore: character.gold + totalCost,
-          balanceAfter: character.gold,
+          balanceBefore: character.dollars + totalCost,
+          balanceAfter: character.dollars,
           metadata: {
             itemId: item.itemId,
             quantity,
@@ -246,7 +249,7 @@ export class ShopService {
         await QuestService.onItemCollected(characterId, itemId, quantity);
       } catch (questError) {
         // Don't fail purchase if quest update fails
-        console.error('Failed to update quest progress for item purchase:', questError);
+        logger.error('Failed to update quest progress for item purchase', { error: questError instanceof Error ? questError.message : questError, stack: questError instanceof Error ? questError.stack : undefined });
       }
 
       return { character, item, totalCost, basePrice, priceModifier };
@@ -265,7 +268,7 @@ export class ShopService {
     characterId: string,
     itemId: string,
     quantity: number = 1
-  ): Promise<{ character: ICharacter; item: IItem; goldEarned: number }> {
+  ): Promise<{ character: ICharacter; item: IItem; dollarsEarned: number }> {
     const useSession = !areTransactionsDisabled();
     const session = useSession ? await mongoose.startSession() : null;
 
@@ -295,8 +298,8 @@ export class ShopService {
         throw new AppError(`Only have ${inventoryItem.quantity}, cannot sell ${quantity}`, 400);
       }
 
-      // Calculate gold earned
-      const goldEarned = item.sellPrice * quantity;
+      // Calculate dollars earned
+      const dollarsEarned = item.sellPrice * quantity;
 
       // Remove from inventory
       inventoryItem.quantity -= quantity;
@@ -304,8 +307,8 @@ export class ShopService {
         character.inventory = character.inventory.filter(inv => inv.itemId !== itemId);
       }
 
-      // Add gold
-      await character.addGold(goldEarned, TransactionSource.SHOP_SALE, {
+      // Add dollars
+      await character.addDollars(dollarsEarned, TransactionSource.SHOP_SALE, {
         itemId: item.itemId,
         quantity,
         unitPrice: item.sellPrice
@@ -314,7 +317,7 @@ export class ShopService {
       await character.save(session ? { session } : undefined);
       if (session) await session.commitTransaction();
 
-      return { character, item, goldEarned };
+      return { character, item, dollarsEarned };
     } catch (error) {
       if (session) await session.abortTransaction();
       throw error;

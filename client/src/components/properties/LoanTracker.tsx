@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Card, Button, Modal } from '@/components/ui';
-import { formatGold, formatDistanceToNow } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 import type { PropertyLoan } from '@desperados/shared';
 import { LOAN_CONFIG } from '@desperados/shared';
 
@@ -32,8 +32,8 @@ const LoanProgressBar: React.FC<{
   return (
     <div className="w-full">
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-green-400">Paid: {formatGold(paid)}</span>
-        <span className="text-red-400">Remaining: {formatGold(remaining)}</span>
+        <span className="text-green-400">Paid: {formatDollars(paid)}</span>
+        <span className="text-red-400">Remaining: {formatDollars(remaining)}</span>
       </div>
       <div className="h-3 bg-red-900/50 rounded-full overflow-hidden">
         <div
@@ -140,7 +140,7 @@ const LoanCard: React.FC<{
               </p>
               {missedPaymentPenalty > 0 && (
                 <p className="text-xs text-desert-stone">
-                  Penalty: {formatGold(missedPaymentPenalty)}
+                  Penalty: {formatDollars(missedPaymentPenalty)}
                 </p>
               )}
               {foreclosureRisk && (
@@ -162,7 +162,7 @@ const LoanCard: React.FC<{
             <div>
               <p className="text-desert-stone">Original Amount</p>
               <p className="text-desert-sand font-semibold">
-                {formatGold(loan.originalAmount)}
+                {formatDollars(loan.originalAmount)}
               </p>
             </div>
             <div>
@@ -172,7 +172,7 @@ const LoanCard: React.FC<{
             <div>
               <p className="text-desert-stone">Weekly Payment</p>
               <p className="text-gold-light font-semibold">
-                {formatGold(loan.monthlyPayment)}
+                {formatDollars(loan.monthlyPayment)}
               </p>
             </div>
             <div>
@@ -218,7 +218,7 @@ const LoanCard: React.FC<{
               loadingText="Paying..."
               fullWidth
             >
-              Pay Off ({formatGold(loan.remainingBalance)})
+              Pay Off ({formatDollars(loan.remainingBalance)})
             </Button>
           </div>
         </div>
@@ -235,15 +235,15 @@ const LoanCard: React.FC<{
           <div className="text-sm space-y-2">
             <div className="flex justify-between">
               <span className="text-desert-stone">Minimum Payment:</span>
-              <span className="text-gold-light">{formatGold(loan.monthlyPayment)}</span>
+              <span className="text-gold-light">{formatDollars(loan.monthlyPayment)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-desert-stone">Remaining Balance:</span>
-              <span className="text-desert-sand">{formatGold(loan.remainingBalance)}</span>
+              <span className="text-desert-sand">{formatDollars(loan.remainingBalance)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-desert-stone">Your Gold:</span>
-              <span className="text-gold-light">{formatGold(characterGold)}</span>
+              <span className="text-desert-stone">Your Dollars:</span>
+              <span className="text-gold-light">{formatDollars(characterGold)}</span>
             </div>
           </div>
 
@@ -295,7 +295,7 @@ const LoanCard: React.FC<{
               isLoading={isLoading}
               loadingText="Processing..."
             >
-              Pay {formatGold(paymentAmount)}
+              Pay {formatDollars(paymentAmount)}
             </Button>
             <Button
               variant="ghost"
@@ -366,18 +366,18 @@ export const LoanTracker: React.FC<LoanTrackerProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
             <p className="text-xs text-desert-stone uppercase">Total Debt</p>
-            <p className="text-xl font-western text-red-400">{formatGold(totalDebt)}</p>
+            <p className="text-xl font-western text-red-400">{formatDollars(totalDebt)}</p>
           </div>
           <div className="text-center">
             <p className="text-xs text-desert-stone uppercase">Weekly Payments</p>
             <p className="text-xl font-western text-gold-light">
-              {formatGold(weeklyPayments)}
+              {formatDollars(weeklyPayments)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-desert-stone uppercase">Your Gold</p>
+            <p className="text-xs text-desert-stone uppercase">Your Dollars</p>
             <p className="text-xl font-western text-gold-light">
-              {formatGold(characterGold)}
+              {formatDollars(characterGold)}
             </p>
           </div>
           <div className="text-center">
@@ -437,7 +437,7 @@ export const LoanTracker: React.FC<LoanTrackerProps> = ({
             • Payments are due every {LOAN_CONFIG.PAYMENT_INTERVAL_DAYS} days
           </li>
           <li>
-            • Missed payment penalty: {formatGold(LOAN_CONFIG.MISSED_PAYMENT_PENALTY)}
+            • Missed payment penalty: {formatDollars(LOAN_CONFIG.MISSED_PAYMENT_PENALTY)}
           </li>
           <li>
             • Foreclosure after {LOAN_CONFIG.FORECLOSURE_THRESHOLD} missed payments

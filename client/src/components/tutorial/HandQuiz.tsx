@@ -87,7 +87,7 @@ interface HandQuizProps {
 }
 
 export const HandQuiz: React.FC<HandQuizProps> = ({ onComplete }) => {
-  const { recordQuizAnswer, quizAnswers, nextStep } = useTutorialStore();
+  const { recordQuizAnswer, quizAnswers, completeAction } = useTutorialStore();
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -121,13 +121,13 @@ export const HandQuiz: React.FC<HandQuizProps> = ({ onComplete }) => {
       setSelectedAnswer(null);
       setShowResult(false);
     } else {
-      // Quiz complete
+      // Quiz complete - mark the action as completed
+      completeAction('complete-hand-quiz');
       if (onComplete) {
         onComplete();
       }
-      nextStep();
     }
-  }, [currentQuestion, onComplete, nextStep]);
+  }, [currentQuestion, onComplete, completeAction]);
 
   // Render a single card
   const renderCard = (card: PlayingCard, index: number) => (

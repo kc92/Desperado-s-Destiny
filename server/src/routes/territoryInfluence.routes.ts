@@ -10,6 +10,7 @@ import { TerritoryInfluenceController } from '../controllers/territoryInfluence.
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -106,6 +107,7 @@ router.get(
  */
 router.post(
   '/:territoryId/contribute',
+  requireCsrfToken,
   asyncHandler(TerritoryInfluenceController.contributeInfluence)
 );
 
@@ -117,6 +119,7 @@ router.post(
  */
 router.post(
   '/:territoryId/donate',
+  requireCsrfToken,
   asyncHandler(TerritoryInfluenceController.donateForInfluence)
 );
 
@@ -128,6 +131,7 @@ router.post(
  */
 router.post(
   '/:territoryId/gang-alignment',
+  requireCsrfToken,
   asyncHandler(TerritoryInfluenceController.applyGangAlignmentInfluence)
 );
 
@@ -139,6 +143,7 @@ router.post(
  */
 router.post(
   '/:territoryId/quest',
+  requireCsrfToken,
   asyncHandler(TerritoryInfluenceController.applyQuestInfluence)
 );
 
@@ -150,6 +155,7 @@ router.post(
  */
 router.post(
   '/:territoryId/crime',
+  requireCsrfToken,
   asyncHandler(TerritoryInfluenceController.applyCrimeInfluence)
 );
 
@@ -164,6 +170,7 @@ router.post(
  */
 router.post(
   '/initialize',
+  requireCsrfToken,
   asyncHandler(TerritoryInfluenceController.initializeTerritories)
 );
 
@@ -174,6 +181,7 @@ router.post(
  */
 router.post(
   '/apply-daily-decay',
+  requireCsrfToken,
   asyncHandler(TerritoryInfluenceController.applyDailyDecay)
 );
 

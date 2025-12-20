@@ -7,6 +7,8 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 import { Faction, ENERGY, PROGRESSION, FACTIONS } from '@desperados/shared';
 import { TransactionSource } from './GoldTransaction.model';
+import logger from '../utils/logger';
+import { createExactMatchRegex } from '../utils/stringUtils';
 
 /**
  * Character appearance customization
@@ -93,7 +95,24 @@ export interface ICharacter extends Document {
   energy: number;
   maxEnergy: number;
   lastEnergyUpdate: Date;
+
+  // Primary Currency (Dollars)
+  dollars: number;
+  lockedDollars: number; // Dollars locked in active wagers (duels, etc.)
+
+  // Legacy gold field - DEPRECATED, use dollars instead
+  /** @deprecated Use dollars instead - kept for migration compatibility */
   gold: number;
+  /** @deprecated Use lockedDollars instead */
+  lockedGold: number;
+
+  // Precious Metal Resources (not currency - can be sold for dollars)
+  goldResource: number;    // Gold bars/nuggets - valuable resource
+  silverResource: number;  // Silver bars/nuggets - common resource
+
+  // Property Income Cap Tracking (BALANCE FIX)
+  dailyProductionIncome: number; // Gold earned from properties today
+  lastProductionIncomeReset: Date; // When daily income was last reset
 
   // Bank Vault
   bankVaultBalance: number;
@@ -104,6 +123,9 @@ export interface ICharacter extends Document {
 
   // Gang
   gangId: mongoose.Types.ObjectId | null;
+
+  // Mount System
+  activeMountId: mongoose.Types.ObjectId | null;
 
   // Stats
   stats: CharacterStats;
@@ -122,6 +144,8 @@ export interface ICharacter extends Document {
 
   // Crime and Jail System
   isJailed: boolean;
+  isDead: boolean;
+  isKnockedOut: boolean;
   jailedUntil: Date | null;
   wantedLevel: number;
   lastWantedDecay: Date;
@@ -153,6 +177,9 @@ export interface ICharacter extends Document {
 
   // Mentor System
   currentMentorId: string | null;
+
+  // Tutorial System
+  tutorialRewardsClaimed: string[]; // IDs of tutorial steps where rewards have been claimed
 
   // Crafting Specializations (Phase 7.1)
   specializations?: Array<{
@@ -203,10 +230,14 @@ export interface ICharacter extends Document {
   addExperience(amount: number): Promise<void>;
   toSafeObject(): any;
 
-  // Gold methods
-  hasGold(amount: number): boolean;
-  addGold(amount: number, source: TransactionSource, metadata?: any): Promise<number>;
-  deductGold(amount: number, source: TransactionSource, metadata?: any): Promise<number>;
+  // Dollar methods (primary currency)
+  hasDollars(amount: number): boolean;
+  addDollars(amount: number, source: TransactionSource, metadata?: any): Promise<number>;
+  deductDollars(amount: number, source: TransactionSource, metadata?: any): Promise<number>;
+
+  // Resource methods
+  hasGoldResource(amount: number): boolean;
+  hasSilverResource(amount: number): boolean;
 
   // Skill methods
   getSkill(skillId: string): CharacterSkill | undefined;
@@ -330,10 +361,53 @@ const CharacterSchema = new Schema<ICharacter>(
       type: Date,
       default: Date.now
     },
+    // Primary Currency (Dollars)
+    dollars: {
+      type: Number,
+      default: 100,  // Starting dollars (was starting gold)
+      min: 0
+    },
+    lockedDollars: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+
+    // Legacy gold field - DEPRECATED (kept for migration)
     gold: {
       type: Number,
-      default: 100,
+      default: 0,  // Changed from 100 - new characters start with dollars
       min: 0
+    },
+    lockedGold: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+
+    // Precious Metal Resources
+    goldResource: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100000  // Cap at 100k gold bars
+    },
+    silverResource: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 1000000  // Cap at 1M silver bars
+    },
+
+    // Property Income Cap Tracking (BALANCE FIX)
+    dailyProductionIncome: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    lastProductionIncomeReset: {
+      type: Date,
+      default: Date.now
     },
 
     // Bank Vault System
@@ -360,6 +434,15 @@ const CharacterSchema = new Schema<ICharacter>(
       ref: 'Gang',
       default: null,
       index: true
+    },
+
+    // Mount System
+    activeMountId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Mount',
+      default: null,
+      index: true,
+      comment: 'Currently active mount for carry capacity bonus'
     },
 
     // Stats
@@ -406,6 +489,14 @@ const CharacterSchema = new Schema<ICharacter>(
 
     // Crime and Jail System
     isJailed: {
+      type: Boolean,
+      default: false
+    },
+    isDead: {
+      type: Boolean,
+      default: false
+    },
+    isKnockedOut: {
       type: Boolean,
       default: false
     },
@@ -482,6 +573,12 @@ const CharacterSchema = new Schema<ICharacter>(
       default: null
     },
 
+    // Tutorial System
+    tutorialRewardsClaimed: {
+      type: [String],
+      default: []
+    },
+
     // Crafting Specializations (Phase 7.1)
     specializations: {
       type: [{
@@ -548,6 +645,10 @@ CharacterSchema.index({ faction: 1, level: -1 }); // For faction leaderboards
 CharacterSchema.index({ jailedUntil: 1 }); // For jail release jobs
 CharacterSchema.index({ lastActive: -1 }); // For active player queries
 CharacterSchema.index({ gangId: 1, level: -1 }); // For gang member rankings
+// H8 FIX: Additional indexes for common queries
+CharacterSchema.index({ currentLocation: 1 }); // For location-based queries (players at location)
+CharacterSchema.index({ isJailed: 1 }); // For jail status queries
+CharacterSchema.index({ isActive: 1 }); // For active character filtering
 
 /**
  * Virtual: Energy regeneration rate (per hour)
@@ -617,8 +718,10 @@ CharacterSchema.methods.spendEnergy = function(this: ICharacter, cost: number): 
 
 /**
  * Instance method: Add experience and handle level ups
+ * @deprecated Use CharacterProgressionService.addExperience() instead for transaction safety
  */
 CharacterSchema.methods.addExperience = async function(this: ICharacter, amount: number): Promise<void> {
+  logger.warn('DEPRECATED: Character.addExperience() - Use CharacterProgressionService.addExperience() for transaction safety');
   this.experience += amount;
 
   // Check for level ups
@@ -648,7 +751,12 @@ CharacterSchema.methods.addExperience = async function(this: ICharacter, amount:
       await QuestService.onLevelUp(this._id.toString(), this.level);
     } catch (questError) {
       // Don't fail level up if quest update fails
-      console.error('Failed to update quest progress for level up:', questError);
+      logger.error('Failed to update quest progress for level up', {
+        error: questError instanceof Error ? questError.message : questError,
+        stack: questError instanceof Error ? questError.stack : undefined,
+        characterId: this._id?.toString(),
+        level: this.level
+      });
     }
   }
 };
@@ -669,8 +777,15 @@ CharacterSchema.methods.toSafeObject = function(this: ICharacter) {
     experienceToNextLevel: this.nextLevelXP,
     energy: Math.floor(this.energy),
     maxEnergy: this.maxEnergy,
-    gold: this.gold,
+    // Primary currency (Dollars)
+    dollars: this.dollars,
+    // Precious metal resources
+    goldResource: this.goldResource,
+    silverResource: this.silverResource,
+    // Backward compatibility - gold field mirrors dollars
+    gold: this.dollars,
     currentLocation: this.currentLocation,
+    locationId: this.currentLocation, // Alias for tutorial/navigation checks
     gangId: this.gangId ? this.gangId.toString() : null,
     stats: this.stats,
     skills: this.skills,
@@ -688,40 +803,57 @@ CharacterSchema.methods.toSafeObject = function(this: ICharacter) {
 /**
  * Instance method: Check if character has sufficient gold
  */
-CharacterSchema.methods.hasGold = function(this: ICharacter, amount: number): boolean {
-  return this.gold >= amount;
+/**
+ * Instance method: Check if character has enough dollars
+ */
+CharacterSchema.methods.hasDollars = function(this: ICharacter, amount: number): boolean {
+  return this.dollars >= amount;
 };
 
 /**
- * Instance method: Add gold to character with transaction tracking
+ * Instance method: Add dollars to character with transaction tracking
  */
-CharacterSchema.methods.addGold = async function(
+CharacterSchema.methods.addDollars = async function(
   this: ICharacter,
   amount: number,
   source: TransactionSource,
   metadata?: any
 ): Promise<number> {
-  // Import GoldService dynamically to avoid circular dependencies
-  const { GoldService } = await import('../services/gold.service');
-  const { newBalance } = await GoldService.addGold(this._id as any, amount, source, metadata);
-  this.gold = newBalance; // Update local instance
+  // Import DollarService dynamically to avoid circular dependencies
+  const { DollarService } = await import('../services/dollar.service');
+  const { newBalance } = await DollarService.addDollars(this._id as any, amount, source, metadata);
+  this.dollars = newBalance; // Update local instance
   return newBalance;
 };
 
 /**
- * Instance method: Deduct gold from character with transaction tracking
+ * Instance method: Deduct dollars from character with transaction tracking
  */
-CharacterSchema.methods.deductGold = async function(
+CharacterSchema.methods.deductDollars = async function(
   this: ICharacter,
   amount: number,
   source: TransactionSource,
   metadata?: any
 ): Promise<number> {
-  // Import GoldService dynamically to avoid circular dependencies
-  const { GoldService } = await import('../services/gold.service');
-  const { newBalance } = await GoldService.deductGold(this._id as any, amount, source, metadata);
-  this.gold = newBalance; // Update local instance
+  // Import DollarService dynamically to avoid circular dependencies
+  const { DollarService } = await import('../services/dollar.service');
+  const { newBalance } = await DollarService.deductDollars(this._id as any, amount, source, metadata);
+  this.dollars = newBalance; // Update local instance
   return newBalance;
+};
+
+/**
+ * Instance method: Check if character has enough gold resource
+ */
+CharacterSchema.methods.hasGoldResource = function(this: ICharacter, amount: number): boolean {
+  return this.goldResource >= amount;
+};
+
+/**
+ * Instance method: Check if character has enough silver resource
+ */
+CharacterSchema.methods.hasSilverResource = function(this: ICharacter, amount: number): boolean {
+  return this.silverResource >= amount;
 };
 
 /**
@@ -926,7 +1058,7 @@ CharacterSchema.statics.findActiveByName = async function(
   name: string
 ): Promise<ICharacter | null> {
   return this.findOne({
-    name: new RegExp(`^${name}$`, 'i'),
+    name: createExactMatchRegex(name),
     isActive: true
   });
 };

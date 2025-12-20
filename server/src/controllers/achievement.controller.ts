@@ -7,7 +7,8 @@ import { Request, Response } from 'express';
 import { Achievement, ACHIEVEMENT_DEFINITIONS } from '../models/Achievement.model';
 import { Character } from '../models/Character.model';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { GoldService, TransactionSource } from '../services/gold.service';
+import { DollarService } from '../services/dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import logger from '../utils/logger';
 
 /**
@@ -177,11 +178,14 @@ export const claimAchievementReward = asyncHandler(
 
     // Apply rewards
     if (achievement.reward.gold) {
-      await GoldService.addGold(
+      await DollarService.addDollars(
         characterId,
         achievement.reward.gold,
         TransactionSource.ACHIEVEMENT,
-        `Achievement reward: ${achievement.title}`
+        {
+          description: `Achievement reward: ${achievement.title}`,
+          currencyType: CurrencyType.DOLLAR,
+        }
       );
     }
     if (achievement.reward.experience) {

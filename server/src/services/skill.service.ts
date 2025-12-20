@@ -16,8 +16,25 @@ import {
 } from '@desperados/shared';
 import logger from '../utils/logger';
 import { QuestService } from './quest.service';
+import { NotificationService } from './notification.service';
 
 export class SkillService {
+  /**
+   * Normalize skill ID to lowercase
+   */
+  private static normalizeSkillId(skillId: string): string {
+    return skillId.toLowerCase();
+  }
+
+  /**
+   * Get skill definition by ID (handles case sensitivity)
+   * Tries uppercase key first, then searches by lowercase id
+   */
+  private static getSkillDefinition(skillId: string): typeof SKILLS[keyof typeof SKILLS] | undefined {
+    const normalized = this.normalizeSkillId(skillId);
+    return SKILLS[normalized.toUpperCase()] || Object.values(SKILLS).find(s => s.id === normalized);
+  }
+
   /**
    * Initialize all skills for a new character at level 1
    */
@@ -71,7 +88,7 @@ export class SkillService {
     };
 
     for (const characterSkill of character.skills) {
-      const skillDef = SKILLS[characterSkill.skillId.toUpperCase()];
+      const skillDef = this.getSkillDefinition(characterSkill.skillId);
       if (skillDef && skillDef.suit) {
         bonuses[skillDef.suit] += characterSkill.level;
       }
@@ -118,7 +135,7 @@ export class SkillService {
       }
 
       // Validate skill exists
-      const skillDef = SKILLS[skillId.toUpperCase()];
+      const skillDef = this.getSkillDefinition(skillId);
       if (!skillDef) {
         await session.abortTransaction();
         session.endSession();
@@ -278,7 +295,7 @@ export class SkillService {
         };
       }
 
-      const skillDef = SKILLS[training.skillId.toUpperCase()];
+      const skillDef = this.getSkillDefinition(training.skillId);
       if (!skillDef) {
         await session.abortTransaction();
         session.endSession();
@@ -333,7 +350,6 @@ export class SkillService {
           };
           const suitName = skillDef.suit ? suitNames[skillDef.suit] || skillDef.suit : 'cards';
 
-          const { NotificationService } = await import('./notification.service');
           await NotificationService.createNotification(
             characterId,
             NotificationType.SKILL_TRAINED,
@@ -342,8 +358,13 @@ export class SkillService {
             '/skills'
           );
         } catch (notifError) {
-          // Log but don't fail the training completion
-          logger.error('Failed to create skill level-up notification:', notifError);
+          // Log with detailed context but don't fail the training completion
+          logger.error('Failed to create skill level-up notification:', {
+            error: notifError,
+            characterId,
+            skillId: training.skillId,
+            newLevel: training.level
+          });
         }
       }
 
@@ -368,21 +389,45 @@ export class SkillService {
   }
 
   /**
-   * Check if a skill training is complete and auto-complete if needed
-   * Used for offline progression
+   * Check and auto-complete any training that finished while offline
+   * Called on login/page load
    */
-  static async checkAndAutoComplete(characterId: string): Promise<void> {
+  static async checkAndAutoComplete(characterId: string): Promise<{
+    completed: boolean;
+    result?: {
+      skillId: string;
+      oldLevel: number;
+      newLevel: number;
+      xpAwarded: number;
+      leveledUp: boolean;
+      newXP: number;
+      xpToNextLevel: number;
+    };
+  }> {
     const character = await Character.findById(characterId);
     if (!character) {
-      return;
+      return { completed: false };
     }
 
-    if (character.isTrainingComplete()) {
+    const training = character.getCurrentTraining();
+    if (!training || !training.trainingCompletes) {
+      return { completed: false };
+    }
+
+    // Check if training should have completed (even if it was hours ago)
+    if (new Date(training.trainingCompletes) <= new Date()) {
       const result = await this.completeTraining(characterId);
-      if (result.success) {
-        logger.info(`Auto-completed training for character ${characterId}`);
+      if (result.success && result.result) {
+        logger.info(`Auto-completed offline training for character ${characterId}`, {
+          skillId: result.result.skillId,
+          newLevel: result.result.newLevel,
+          completedAt: training.trainingCompletes
+        });
+        return { completed: true, result: result.result };
       }
     }
+
+    return { completed: false };
   }
 
   /**

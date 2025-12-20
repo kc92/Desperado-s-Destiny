@@ -1,5 +1,9 @@
 import { ObjectId } from 'mongodb';
+import mongoose from 'mongoose';
 import { Horse, HorseDocument } from '../models/Horse.model';
+import { Character } from '../models/Character.model';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import {
   HorseBreed,
   HorseGender,
@@ -20,6 +24,9 @@ import {
   selectRandomColor
 } from '../data/horseBreeds';
 import { HORSE_FOOD } from '../data/horseEquipment';
+import { SecureRNG } from './base/SecureRNG';
+import logger from '../utils/logger';
+import { withLock } from '../utils/distributedLock';
 
 // ============================================================================
 // HORSE PURCHASE & CREATION
@@ -38,66 +45,103 @@ export async function purchaseHorse(
     throw new Error('This breed cannot be purchased');
   }
 
-  // Generate stats
-  const stats = generateHorseStats(breed);
-  const color = selectRandomColor(breed);
+  // PHASE 5 FIX: Use transaction to atomically deduct gold and create horse
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  // Determine age (purchased horses are typically 3-8 years old)
-  const age = Math.floor(Math.random() * 6) + 3;
+  try {
+    // Fetch character and verify they have enough gold
+    const character = await Character.findById(characterId).session(session);
+    if (!character) {
+      throw new Error('Character not found');
+    }
 
-  // Select gender if not specified
-  const horseGender = gender || randomGender();
+    const purchasePrice = breedDef.basePrice;
 
-  // Create horse
-  const horse = new Horse({
-    ownerId: characterId,
-    name,
-    breed,
-    gender: horseGender,
-    age,
-    color,
-    stats,
-    derivedStats: calculateDerivedStats(stats, breed),
-    bond: {
-      level: 0,
-      trust: 50,
-      loyalty: false,
-      lastInteraction: new Date()
-    },
-    training: {
-      trainedSkills: [],
-      maxSkills: breedDef.maxSkills,
-      trainingProgress: new Map()
-    },
-    equipment: {
-      saddle: undefined,
-      saddlebags: undefined,
-      horseshoes: undefined,
-      barding: undefined
-    },
-    condition: {
-      currentHealth: stats.health,
-      currentStamina: stats.stamina,
-      hunger: 100,
-      cleanliness: 80,
-      mood: 'good'
-    },
-    history: {
-      purchasePrice: breedDef.basePrice,
-      purchaseDate: new Date(),
-      acquisitionMethod: 'purchase',
-      racesWon: 0,
-      racesEntered: 0,
-      combatVictories: 0,
-      combatsEntered: 0,
-      distanceTraveled: 0
-    },
-    currentLocation: locationId,
-    isActive: false
-  });
+    if (character.dollars < purchasePrice) {
+      throw new Error(`Insufficient dollars. Need ${purchasePrice} dollars to purchase this horse.`);
+    }
 
-  await horse.save();
-  return horse;
+    // Deduct dollars atomically using DollarService
+    await DollarService.deductDollars(
+      characterId.toString(),
+      purchasePrice,
+      TransactionSource.HORSE_PURCHASE,
+      { horseName: name, breed, price: purchasePrice },
+      session
+    );
+
+    // Generate stats
+    const stats = generateHorseStats(breed);
+    const color = selectRandomColor(breed);
+
+    // Determine age (purchased horses are typically 3-8 years old)
+    const age = SecureRNG.range(3, 8);
+
+    // Select gender if not specified
+    const horseGender = gender || randomGender();
+
+    // Create horse
+    const horse = new Horse({
+      ownerId: characterId,
+      name,
+      breed,
+      gender: horseGender,
+      age,
+      color,
+      stats,
+      derivedStats: calculateDerivedStats(stats, breed),
+      bond: {
+        level: 0,
+        trust: 50,
+        loyalty: false,
+        lastInteraction: new Date()
+      },
+      training: {
+        trainedSkills: [],
+        maxSkills: breedDef.maxSkills,
+        trainingProgress: new Map()
+      },
+      equipment: {
+        saddle: undefined,
+        saddlebags: undefined,
+        horseshoes: undefined,
+        barding: undefined
+      },
+      condition: {
+        currentHealth: stats.health,
+        currentStamina: stats.stamina,
+        hunger: 100,
+        cleanliness: 80,
+        mood: 'good'
+      },
+      history: {
+        purchasePrice,
+        purchaseDate: new Date(),
+        acquisitionMethod: 'purchase',
+        racesWon: 0,
+        racesEntered: 0,
+        combatVictories: 0,
+        combatsEntered: 0,
+        distanceTraveled: 0
+      },
+      currentLocation: locationId,
+      isActive: false
+    });
+
+    await horse.save({ session });
+    await session.commitTransaction();
+
+    logger.info(`Horse purchased: ${name} (${breed}) by character ${characterId} for ${purchasePrice} dollars`);
+
+    return horse;
+  } catch (error) {
+    await session.abortTransaction();
+    logger.error('Error purchasing horse:', error);
+    throw error;
+  } finally {
+    session.endSession();
+  }
 }
 
 export async function tameWildHorse(
@@ -122,7 +166,7 @@ export async function tameWildHorse(
   stats.temperament = Math.max(20, stats.temperament - 10);
 
   const color = selectRandomColor(breed);
-  const age = Math.floor(Math.random() * 8) + 2; // 2-10 years
+  const age = SecureRNG.range(2, 9); // 2-10 years
   const gender = randomGender();
 
   const horse = new Horse({
@@ -198,21 +242,23 @@ export async function setActiveHorse(
   characterId: ObjectId,
   horseId: ObjectId
 ): Promise<HorseDocument> {
-  // Deactivate all horses
-  await Horse.updateMany({ ownerId: characterId }, { isActive: false });
+  return withLock(`lock:horse:active:${characterId}`, async () => {
+    // Deactivate all horses
+    await Horse.updateMany({ ownerId: characterId }, { isActive: false });
 
-  // Activate selected horse
-  const horse = await Horse.findOneAndUpdate(
-    { _id: horseId, ownerId: characterId },
-    { isActive: true },
-    { new: true }
-  );
+    // Activate selected horse
+    const horse = await Horse.findOneAndUpdate(
+      { _id: horseId, ownerId: characterId },
+      { isActive: true },
+      { new: true }
+    );
 
-  if (!horse) {
-    throw new Error('Horse not found');
-  }
+    if (!horse) {
+      throw new Error('Horse not found');
+    }
 
-  return horse;
+    return horse;
+  }, { ttl: 30, retries: 3 });
 }
 
 export async function renameHorse(
@@ -360,7 +406,7 @@ export async function trainHorseSkill(
   }
 
   // Train the skill (each session adds 10-20 progress)
-  const progressGain = Math.floor(Math.random() * 11) + 10;
+  const progressGain = SecureRNG.range(10, 20);
   horse.train(skill, progressGain);
 
   const currentProgress = horse.training.trainingProgress.get(skill) || 0;
@@ -565,9 +611,9 @@ function calculateDerivedStats(
 }
 
 function randomGender(): HorseGender {
-  const rand = Math.random();
-  if (rand < 0.45) return HorseGender.STALLION;
-  if (rand < 0.90) return HorseGender.MARE;
+  const rand = SecureRNG.d100();
+  if (rand <= 45) return HorseGender.STALLION;
+  if (rand <= 90) return HorseGender.MARE;
   return HorseGender.GELDING;
 }
 

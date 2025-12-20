@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 import { CardDefinition, CharacterDeck, ICardDefinition, ICharacterDeck } from '../models/Card.model';
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 export class CardCollectionService {
   /**
@@ -144,7 +145,7 @@ export class CardCollectionService {
     });
 
     const totalWeight = weights.reduce((a, b) => a + b, 0);
-    let random = Math.random() * totalWeight;
+    let random = SecureRNG.float(0, 1) * totalWeight;
 
     let selectedCard = cards[0];
     for (let i = 0; i < cards.length; i++) {

@@ -7,7 +7,8 @@ import React, { useState, useEffect } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useSkillStore } from '@/store/useSkillStore';
 import { useNotificationStore } from '@/store/useNotificationStore';
-import { SkillCategory, Skill, SkillData, NotificationType, DestinySuit } from '@desperados/shared';
+import { SkillCategory, Skill, SkillData, NotificationType, DestinySuit, calculateTrainingTime } from '@desperados/shared';
+import { dispatchTrainingStarted } from '@/utils/tutorialEvents';
 import { SkillCard } from '@/components/game/SkillCard';
 import { SkillCategoryFilter } from '@/components/game/SkillCategoryFilter';
 import { TrainingStatus } from '@/components/game/TrainingStatus';
@@ -17,6 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { CardGridSkeleton, ProgressBarSkeleton } from '@/components/ui/Skeleton';
 import { MentorPanel } from '@/components/mentor';
+import { logger } from '@/services/logger.service';
 
 /**
  * Skills page component
@@ -120,10 +122,12 @@ export const Skills: React.FC = () => {
 
     try {
       await startTraining(selectedSkillForTraining.id);
+      // Dispatch tutorial event for skill training
+      dispatchTrainingStarted(selectedSkillForTraining.id);
       setShowTrainModal(false);
       setSelectedSkillForTraining(null);
     } catch (err) {
-      console.error('Failed to start training:', err);
+      logger.error('Failed to start training', err as Error, { context: 'Skills' });
     }
   };
 
@@ -138,7 +142,7 @@ export const Skills: React.FC = () => {
       await cancelTraining();
       setShowCancelModal(false);
     } catch (err) {
-      console.error('Failed to cancel training:', err);
+      logger.error('Failed to cancel training', err as Error, { context: 'Skills' });
     }
   };
 
@@ -147,38 +151,41 @@ export const Skills: React.FC = () => {
     if (!currentTrainingSkill) return;
 
     try {
-      await completeTraining();
+      const response = await completeTraining();
 
-      // Show celebration
-      const data = getSkillData(currentTrainingSkill.id);
-      setLevelUpResult({
-        skillName: currentTrainingSkill.name,
-        newLevel: data.level,
-      });
-      setShowCelebration(true);
+      // Use the response data directly to avoid stale state issues
+      if (response?.result) {
+        const newLevel = response.result.newLevel;
 
-      // Show toast notification
-      const suitNames: Record<string, string> = {
-        [DestinySuit.SPADES]: 'Spades',
-        [DestinySuit.HEARTS]: 'Hearts',
-        [DestinySuit.CLUBS]: 'Clubs',
-        [DestinySuit.DIAMONDS]: 'Diamonds',
-      };
-      const suitName = currentTrainingSkill.suit ? suitNames[currentTrainingSkill.suit] || currentTrainingSkill.suit : 'cards';
+        // Show celebration with fresh data from response
+        setLevelUpResult({
+          skillName: currentTrainingSkill.name,
+          newLevel: newLevel,
+        });
+        setShowCelebration(true);
 
-      showToast({
-        _id: `skill-${Date.now()}`,
-        characterId: currentCharacter?._id || '',
-        type: NotificationType.SKILL_TRAINED,
-        title: `${currentTrainingSkill.name} Leveled Up!`,
-        message: `${currentTrainingSkill.name} is now level ${data.level}! +${data.level} to ${suitName}`,
-        isRead: false,
-        link: '/skills',
-        createdAt: new Date().toISOString(),
-        // updatedAt: new Date().toISOString(),
-      });
+        // Show toast notification with accurate level
+        const suitNames: Record<string, string> = {
+          [DestinySuit.SPADES]: 'Spades',
+          [DestinySuit.HEARTS]: 'Hearts',
+          [DestinySuit.CLUBS]: 'Clubs',
+          [DestinySuit.DIAMONDS]: 'Diamonds',
+        };
+        const suitName = currentTrainingSkill.suit ? suitNames[currentTrainingSkill.suit] || currentTrainingSkill.suit : 'cards';
+
+        showToast({
+          _id: `skill-${Date.now()}`,
+          characterId: currentCharacter?._id || '',
+          type: NotificationType.SKILL_TRAINED,
+          title: `${currentTrainingSkill.name} Leveled Up!`,
+          message: `${currentTrainingSkill.name} is now level ${newLevel}! +${newLevel} to ${suitName}`,
+          isRead: false,
+          link: '/skills',
+          createdAt: new Date().toISOString(),
+        });
+      }
     } catch (err) {
-      console.error('Failed to complete training:', err);
+      logger.error('Failed to complete training', err as Error, { context: 'Skills' });
     }
   };
 
@@ -218,20 +225,9 @@ export const Skills: React.FC = () => {
           )}
         </div>
 
-        <div className="flex gap-2">
-          {isActive && getCurrentStep()?.requiresAction === 'toggle-skills' && (
-            <Button
-              variant="primary"
-              onClick={() => completeTutorialAction('toggle-skills')}
-              data-tutorial-target="toggle-skills-button"
-            >
-              Toggle Skill Bonus
-            </Button>
-          )}
-          <Button variant="secondary" onClick={() => setShowHowItWorks(true)}>
-            How Skills Work
-          </Button>
-        </div>
+        <Button variant="secondary" onClick={() => setShowHowItWorks(true)}>
+          How Skills Work
+        </Button>
       </div>
 
       {/* Error Display */}
@@ -348,7 +344,7 @@ export const Skills: React.FC = () => {
             <p className="text-wood-dark">
               Training will take approximately{' '}
               <strong className="text-gold-dark">
-                {Math.floor(selectedSkillForTraining.baseTrainingTime / 60000)} minutes
+                {Math.floor(calculateTrainingTime(selectedSkillForTraining.id, getSkillData(selectedSkillForTraining.id).level) / 60000)} minutes
               </strong>
               . Training continues even when you're offline.
             </p>

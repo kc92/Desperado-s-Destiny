@@ -7,7 +7,7 @@
 
 import { Response } from 'express';
 import { WorkerManagementService } from '../services/workerManagement.service';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import logger from '../utils/logger';
 
 export class WorkerController {

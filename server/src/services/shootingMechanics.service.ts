@@ -3,6 +3,7 @@
  * Handles shot resolution, accuracy calculations, and scoring
  */
 
+import { SecureRNG } from './base/SecureRNG';
 import type {
   Target,
   ShootingShotResult,
@@ -52,7 +53,7 @@ export class ShootingMechanicsService {
     );
 
     // Roll for hit
-    const roll = Math.random() * 100;
+    const roll = SecureRNG.d100();
     const hit = roll <= factors.finalChance;
 
     // Determine hit zone if hit
@@ -295,15 +296,15 @@ export class ShootingMechanicsService {
    */
   static generateWeather(location: string): WeatherConditions {
     // Base conditions
-    let windSpeed = Math.random() * 15; // 0-15 mph average
-    let temperature = 70 + Math.random() * 30; // 70-100°F
+    let windSpeed = SecureRNG.float(0, 1) * 15; // 0-15 mph average
+    let temperature = 70 + SecureRNG.float(0, 1) * 30; // 70-100°F
     let precipitation: WeatherConditions['precipitation'] = 'clear';
     let visibility = 100;
 
     // Location-specific adjustments
     if (location.includes('Fort Ashford')) {
       // Military range - often windy
-      windSpeed += Math.random() * 10;
+      windSpeed += SecureRNG.float(0, 1) * 10;
     } else if (location.includes('Frontera')) {
       // Underground - no weather
       windSpeed = 0;
@@ -311,13 +312,13 @@ export class ShootingMechanicsService {
       visibility = 90; // Dim lighting
     } else if (location.includes('Whiskey Bend')) {
       // Exhibition grounds - optimal conditions
-      windSpeed = Math.random() * 5;
+      windSpeed = SecureRNG.float(0, 1) * 5;
       visibility = 100;
     }
 
     // Random weather events (10% chance)
-    if (Math.random() < 0.1 && !location.includes('Frontera')) {
-      const event = Math.random();
+    if (SecureRNG.chance(0.1) && !location.includes('Frontera')) {
+      const event = SecureRNG.float(0, 1);
       if (event < 0.3) {
         precipitation = 'light_rain';
         visibility = 85;
@@ -333,7 +334,7 @@ export class ShootingMechanicsService {
 
     return {
       windSpeed: Math.round(windSpeed),
-      windDirection: Math.floor(Math.random() * 360),
+      windDirection: SecureRNG.range(0, 359),
       temperature: Math.round(temperature),
       precipitation,
       visibility

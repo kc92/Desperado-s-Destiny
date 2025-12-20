@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Card } from '@/components/ui';
-import type { WanderingEntertainer, PerformanceType } from '@/hooks/useEntertainers';
+import type { WanderingEntertainer, PerformanceType, Performance } from '@/hooks/useEntertainers';
 
 interface EntertainerCardProps {
   entertainer: WanderingEntertainer;
@@ -136,7 +136,7 @@ export const EntertainerCard: React.FC<EntertainerCardProps> = ({
       <div className="space-y-1 mb-3">
         <p className="text-xs text-desert-stone">Performances:</p>
         <div className="flex flex-wrap gap-1">
-          {entertainer.performances.slice(0, 2).map((perf, index) => (
+          {entertainer.performances.slice(0, 2).map((perf: Performance, index: number) => (
             <span
               key={index}
               className="text-xs px-2 py-0.5 bg-purple-900/30 text-purple-300 rounded"
@@ -157,7 +157,7 @@ export const EntertainerCard: React.FC<EntertainerCardProps> = ({
         <div className="space-y-1">
           <p className="text-xs text-desert-stone">Special Abilities:</p>
           <div className="flex flex-wrap gap-1">
-            {entertainer.specialAbilities.slice(0, 2).map((ability, index) => (
+            {entertainer.specialAbilities.slice(0, 2).map((ability: string, index: number) => (
               <span
                 key={index}
                 className="text-xs px-2 py-0.5 bg-gold-dark/20 text-gold-light rounded"

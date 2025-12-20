@@ -6,16 +6,17 @@
 import React, { useEffect } from 'react';
 import { useAdminStore } from '@/store/useAdminStore';
 import { Card } from '@/components/ui';
+import { logger } from '@/services/logger.service';
 
 export const ServerHealth: React.FC = () => {
   const { serverHealth, fetchServerHealth, isLoading } = useAdminStore();
 
   useEffect(() => {
-    fetchServerHealth().catch(console.error);
+    fetchServerHealth().catch((err) => logger.error('Failed to fetch server health on mount', err as Error, { context: 'ServerHealth.fetchServerHealth.initial' }));
 
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
-      fetchServerHealth().catch(console.error);
+      fetchServerHealth().catch((err) => logger.error('Failed to fetch server health on auto-refresh', err as Error, { context: 'ServerHealth.fetchServerHealth.autoRefresh' }));
     }, 30000);
 
     return () => clearInterval(interval);

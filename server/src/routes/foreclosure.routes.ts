@@ -6,7 +6,8 @@
 
 import { Router } from 'express';
 import { ForeclosureController } from '../controllers/foreclosure.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
@@ -33,14 +34,14 @@ router.get('/auctions/:auctionId', asyncHandler(ForeclosureController.getAuction
  * Place a bid on an auction
  * Body: { bidderId: string, amount: number }
  */
-router.post('/auctions/:auctionId/bid', asyncHandler(ForeclosureController.placeBid));
+router.post('/auctions/:auctionId/bid', requireCsrfToken, asyncHandler(ForeclosureController.placeBid));
 
 /**
  * POST /api/foreclosure/auctions/:auctionId/cancel
  * Cancel an auction
  * Body: { reason: string }
  */
-router.post('/auctions/:auctionId/cancel', asyncHandler(ForeclosureController.cancelAuction));
+router.post('/auctions/:auctionId/cancel', requireCsrfToken, asyncHandler(ForeclosureController.cancelAuction));
 
 /**
  * POST /api/foreclosure/delinquency/:delinquencyId/auction
@@ -48,6 +49,7 @@ router.post('/auctions/:auctionId/cancel', asyncHandler(ForeclosureController.ca
  */
 router.post(
   '/delinquency/:delinquencyId/auction',
+  requireCsrfToken,
   asyncHandler(ForeclosureController.createAuction)
 );
 
@@ -58,6 +60,7 @@ router.post(
  */
 router.post(
   '/delinquency/:delinquencyId/bankruptcy',
+  requireCsrfToken,
   asyncHandler(ForeclosureController.declareBankruptcy)
 );
 
@@ -68,6 +71,7 @@ router.post(
  */
 router.post(
   '/delinquency/:delinquencyId/resolve-bankruptcy',
+  requireCsrfToken,
   asyncHandler(ForeclosureController.resolveBankruptcy)
 );
 
@@ -75,7 +79,7 @@ router.post(
  * POST /api/foreclosure/process-ended-auctions
  * Complete all ended auctions (Admin/System)
  */
-router.post('/process-ended-auctions', asyncHandler(ForeclosureController.processEndedAuctions));
+router.post('/process-ended-auctions', requireCsrfToken, asyncHandler(ForeclosureController.processEndedAuctions));
 
 /**
  * POST /api/foreclosure/process-bankruptcies
@@ -83,6 +87,7 @@ router.post('/process-ended-auctions', asyncHandler(ForeclosureController.proces
  */
 router.post(
   '/process-bankruptcies',
+  requireCsrfToken,
   asyncHandler(ForeclosureController.processBankruptcyExpirations)
 );
 

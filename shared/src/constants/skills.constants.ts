@@ -153,6 +153,36 @@ export const SKILLS: Record<string, SkillDefinition> = {
     baseTrainingTime: TIME.HOUR,
     icon: '🎲'
   },
+  PERCEPTION: {
+    id: 'perception',
+    name: 'Perception',
+    description: 'Reading opponents and detecting tells in duels',
+    suit: DestinySuit.SPADES,
+    category: SkillCategory.CUNNING,
+    maxLevel: 50,
+    baseTrainingTime: TIME.HOUR,
+    icon: '👁️'
+  },
+  SLEIGHT_OF_HAND: {
+    id: 'sleight_of_hand',
+    name: 'Sleight of Hand',
+    description: 'Card manipulation and subtle cheating techniques',
+    suit: DestinySuit.SPADES,
+    category: SkillCategory.CUNNING,
+    maxLevel: 50,
+    baseTrainingTime: TIME.HOUR * 1.5,
+    icon: '🃏'
+  },
+  POKER_FACE: {
+    id: 'poker_face',
+    name: 'Poker Face',
+    description: 'Hiding tells and blocking opponent reads',
+    suit: DestinySuit.SPADES,
+    category: SkillCategory.CUNNING,
+    maxLevel: 50,
+    baseTrainingTime: TIME.HOUR,
+    icon: '😐'
+  },
 
   // ============================================
   // SPIRIT SKILLS (Hearts Suit)
@@ -384,13 +414,17 @@ export const SKILL_UNLOCKS: Record<SkillCategory, SkillUnlock[]> = {
   ],
   [SkillCategory.CUNNING]: [
     { level: 1, tier: SkillTier.NOVICE, name: 'Petty Theft', description: 'Access to basic crime actions', type: 'action' },
+    { level: 5, tier: SkillTier.NOVICE, name: 'Read Confidence', description: 'Sense opponent nervousness in duels', type: 'ability' },
     { level: 10, tier: SkillTier.NOVICE, name: 'Intermediate Crimes', description: 'Unlock burglary and mugging', type: 'action' },
     { level: 15, tier: SkillTier.APPRENTICE, name: 'Quick Fingers', description: '+5% crime success rate', type: 'bonus' },
+    { level: 20, tier: SkillTier.APPRENTICE, name: 'Hand Range Sense', description: 'Estimate opponent hand strength in duels', type: 'ability' },
     { level: 25, tier: SkillTier.APPRENTICE, name: 'Heist Planning', description: 'Participate in heists', type: 'ability' },
     { level: 30, tier: SkillTier.JOURNEYMAN, name: 'Shadow Walker', description: '+10% crime success rate', type: 'bonus' },
+    { level: 35, tier: SkillTier.JOURNEYMAN, name: 'Read Opponent', description: 'Active ability to reveal opponent cards', type: 'ability' },
     { level: 40, tier: SkillTier.JOURNEYMAN, name: 'Bank Robbery', description: 'Rob banks for massive rewards', type: 'action' },
-    { level: 45, tier: SkillTier.EXPERT, name: 'Ghost', description: '+15% crime success, -20% witness chance', type: 'bonus' },
-    { level: 50, tier: SkillTier.MASTER, name: 'Master Thief', description: 'Legendary crime abilities', type: 'ability' }
+    { level: 45, tier: SkillTier.EXPERT, name: 'Partial Reveal', description: 'Passively glimpse one opponent card', type: 'ability' },
+    { level: 48, tier: SkillTier.EXPERT, name: 'Ghost', description: '+15% crime success, -20% witness chance', type: 'bonus' },
+    { level: 50, tier: SkillTier.MASTER, name: 'Master Thief', description: 'Legendary crime abilities and duel insight', type: 'ability' }
   ],
   [SkillCategory.SPIRIT]: [
     { level: 1, tier: SkillTier.NOVICE, name: 'Basic Diplomacy', description: 'Access to basic social actions', type: 'action' },
@@ -413,6 +447,124 @@ export const SKILL_UNLOCKS: Record<SkillCategory, SkillUnlock[]> = {
     { level: 50, tier: SkillTier.MASTER, name: 'Legendary Forger', description: 'Craft legendary items', type: 'recipe' }
   ]
 };
+
+/**
+ * Skill Unlock Bonus multipliers
+ * BALANCE FIX (Phase 4.1): Converted from additive to multiplicative bonuses
+ *
+ * Old (additive): base + 5% + 10% + 15% = base × 1.30 (linear stacking)
+ * New (multiplicative): base × 1.05 × 1.10 × 1.15 = base × 1.328 (compound stacking)
+ *
+ * This makes each unlock feel progressively more powerful
+ */
+export const SKILL_BONUS_MULTIPLIERS = {
+  /**
+   * Combat category bonuses (applied to damage)
+   * Levels 15, 30, 45 unlock progressively stronger multipliers
+   */
+  COMBAT: {
+    TIER_1: { level: 15, multiplier: 1.05, name: 'Combat Stance' },
+    TIER_2: { level: 30, multiplier: 1.10, name: 'Veteran Fighter' },
+    TIER_3: { level: 45, multiplier: 1.15, name: 'Deadly Force' }
+  },
+
+  /**
+   * Cunning category bonuses (applied to crime success, stealth)
+   * Levels 15, 30, 48 unlock progressively stronger multipliers
+   */
+  CUNNING: {
+    TIER_1: { level: 15, multiplier: 1.05, name: 'Quick Fingers' },
+    TIER_2: { level: 30, multiplier: 1.10, name: 'Shadow Walker' },
+    TIER_3: { level: 48, multiplier: 1.15, name: 'Ghost' }
+  },
+
+  /**
+   * Spirit category bonuses (applied to social rewards, persuasion)
+   * Levels 15, 30, 45 unlock progressively stronger multipliers
+   */
+  SPIRIT: {
+    TIER_1: { level: 15, multiplier: 1.05, name: 'Smooth Talker' },
+    TIER_2: { level: 30, multiplier: 1.10, name: 'Silver Tongue' },
+    TIER_3: { level: 45, multiplier: 1.15, name: 'Inspiring Leader' }
+  },
+
+  /**
+   * Craft category bonuses (applied to material costs reduction, quality)
+   * Levels 15, 30, 45 unlock progressively stronger multipliers
+   * Note: For costs, use 1/multiplier (e.g., 1/1.05 = 0.95 = 5% reduction)
+   */
+  CRAFT: {
+    TIER_1: { level: 15, multiplier: 1.05, name: 'Efficient Crafter' },
+    TIER_2: { level: 30, multiplier: 1.10, name: 'Master Efficiency' },
+    TIER_3: { level: 45, multiplier: 1.15, name: 'Expert Craftsman' }
+  }
+} as const;
+
+/**
+ * Calculate total multiplicative bonus for a skill category
+ * Returns the compound multiplier based on character's highest skill level in the category
+ *
+ * Example for Combat at level 35:
+ * - Has Combat Stance (level 15): ×1.05
+ * - Has Veteran Fighter (level 30): ×1.10
+ * - Missing Deadly Force (level 45): n/a
+ * - Total: 1.05 × 1.10 = 1.155 (15.5% bonus)
+ *
+ * @param categoryLevel - Highest skill level in the category
+ * @param category - The skill category (COMBAT, CUNNING, SPIRIT, CRAFT)
+ * @returns Compound multiplier (1.0 = no bonus)
+ */
+export function calculateCategoryMultiplier(
+  categoryLevel: number,
+  category: 'COMBAT' | 'CUNNING' | 'SPIRIT' | 'CRAFT'
+): number {
+  const bonuses = SKILL_BONUS_MULTIPLIERS[category];
+  let multiplier = 1.0;
+
+  if (categoryLevel >= bonuses.TIER_1.level) {
+    multiplier *= bonuses.TIER_1.multiplier;
+  }
+  if (categoryLevel >= bonuses.TIER_2.level) {
+    multiplier *= bonuses.TIER_2.multiplier;
+  }
+  if (categoryLevel >= bonuses.TIER_3.level) {
+    multiplier *= bonuses.TIER_3.multiplier;
+  }
+
+  return multiplier;
+}
+
+/**
+ * Get descriptive breakdown of unlocked bonuses
+ * Useful for UI tooltips
+ */
+export function getUnlockedBonusBreakdown(
+  categoryLevel: number,
+  category: 'COMBAT' | 'CUNNING' | 'SPIRIT' | 'CRAFT'
+): Array<{ name: string; level: number; multiplier: number; unlocked: boolean }> {
+  const bonuses = SKILL_BONUS_MULTIPLIERS[category];
+
+  return [
+    {
+      name: bonuses.TIER_1.name,
+      level: bonuses.TIER_1.level,
+      multiplier: bonuses.TIER_1.multiplier,
+      unlocked: categoryLevel >= bonuses.TIER_1.level
+    },
+    {
+      name: bonuses.TIER_2.name,
+      level: bonuses.TIER_2.level,
+      multiplier: bonuses.TIER_2.multiplier,
+      unlocked: categoryLevel >= bonuses.TIER_2.level
+    },
+    {
+      name: bonuses.TIER_3.name,
+      level: bonuses.TIER_3.level,
+      multiplier: bonuses.TIER_3.multiplier,
+      unlocked: categoryLevel >= bonuses.TIER_3.level
+    }
+  ];
+}
 
 /**
  * Skill progression constants

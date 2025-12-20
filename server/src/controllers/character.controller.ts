@@ -5,7 +5,7 @@
  */
 
 import { Response } from 'express';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import { CharacterRequest } from '../middleware/characterOwnership.middleware';
 import { Character, getStartingLocation } from '../models/Character.model';
 import {

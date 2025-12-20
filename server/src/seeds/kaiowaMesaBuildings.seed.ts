@@ -6,6 +6,7 @@
  */
 
 import mongoose from 'mongoose';
+import logger from '../utils/logger';
 import { Location } from '../models/Location.model';
 import { LOCATION_IDS } from './locations.seed';
 
@@ -1251,7 +1252,7 @@ export async function seedKaiowaMesaBuildings(): Promise<void> {
 
     console.log(`Successfully seeded ${kaiowaMesaBuildings.length} Kaiowa Mesa buildings`);
   } catch (error) {
-    console.error('Error seeding Kaiowa Mesa buildings:', error);
+    logger.error('Error seeding Kaiowa Mesa buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }

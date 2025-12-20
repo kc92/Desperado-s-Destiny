@@ -10,6 +10,8 @@
  * - Contextual narrative elements
  */
 
+import { SecureRNG } from '../services/base/SecureRNG';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -1104,7 +1106,7 @@ export function getTemplates(
  */
 export function getRandomFromPool(poolName: keyof typeof VARIABLE_POOLS): string {
   const pool = VARIABLE_POOLS[poolName];
-  return pool[Math.floor(Math.random() * pool.length)];
+  return SecureRNG.select(pool);
 }
 
 /**
@@ -1112,12 +1114,12 @@ export function getRandomFromPool(poolName: keyof typeof VARIABLE_POOLS): string
  */
 export function getWitnessOutcome(wasWitnessed: boolean, partial?: boolean): string {
   if (!wasWitnessed) {
-    return WITNESS_OUTCOMES.none[Math.floor(Math.random() * WITNESS_OUTCOMES.none.length)];
+    return SecureRNG.select(WITNESS_OUTCOMES.none);
   }
   if (partial) {
-    return WITNESS_OUTCOMES.partial[Math.floor(Math.random() * WITNESS_OUTCOMES.partial.length)];
+    return SecureRNG.select(WITNESS_OUTCOMES.partial);
   }
-  return WITNESS_OUTCOMES.witnessed[Math.floor(Math.random() * WITNESS_OUTCOMES.witnessed.length)];
+  return SecureRNG.select(WITNESS_OUTCOMES.witnessed);
 }
 
 /**

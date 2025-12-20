@@ -20,7 +20,9 @@ import {
   getTemplatesByType,
   getRandomTemplate,
 } from '../data/warEventTemplates';
+import { withLock } from '../utils/distributedLock';
 import logger from '../utils/logger';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Event spawn tracking
@@ -43,30 +45,45 @@ const spawnTracking: SpawnTracking = {
  * Main scheduler function - call this hourly
  */
 export async function scheduleWarEvents(): Promise<void> {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const lockKey = 'job:war-event-scheduler';
 
   try {
-    logger.info('[WarEventScheduler] Starting war event scheduling cycle...');
+    await withLock(lockKey, async () => {
+      const session = await mongoose.startSession();
+      session.startTransaction();
 
-    // Update existing event phases
-    const phasesUpdated = await FactionWarService.updateEventPhases();
-    logger.info(`[WarEventScheduler] Updated ${phasesUpdated} event phases`);
+      try {
+        logger.info('[WarEventScheduler] Starting war event scheduling cycle...');
 
-    // Check for new event spawns
-    await trySpawnSkirmish(session);
-    await trySpawnBattle(session);
-    await trySpawnCampaign(session);
-    await trySpawnWar(session);
+        // Update existing event phases
+        const phasesUpdated = await FactionWarService.updateEventPhases();
+        logger.info(`[WarEventScheduler] Updated ${phasesUpdated} event phases`);
 
-    await session.commitTransaction();
-    logger.info('[WarEventScheduler] Scheduling cycle completed successfully');
+        // Check for new event spawns
+        await trySpawnSkirmish(session);
+        await trySpawnBattle(session);
+        await trySpawnCampaign(session);
+        await trySpawnWar(session);
+
+        await session.commitTransaction();
+        logger.info('[WarEventScheduler] Scheduling cycle completed successfully');
+      } catch (error) {
+        await session.abortTransaction();
+        logger.error('[WarEventScheduler] Error during scheduling cycle:', error);
+        throw error;
+      } finally {
+        session.endSession();
+      }
+    }, {
+      ttl: 3600, // 60 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
-    await session.abortTransaction();
-    logger.error('[WarEventScheduler] Error during scheduling cycle:', error);
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('[WarEventScheduler] War event scheduler already running on another instance, skipping');
+      return;
+    }
     throw error;
-  } finally {
-    session.endSession();
   }
 }
 
@@ -97,7 +114,7 @@ async function trySpawnSkirmish(session: mongoose.ClientSession): Promise<void> 
   }
 
   // Random chance
-  if (Math.random() > 0.7) {
+  if (!SecureRNG.chance(0.7)) {
     logger.info('[WarEventScheduler] Skirmish spawn chance failed');
     return;
   }
@@ -161,7 +178,7 @@ async function trySpawnBattle(session: mongoose.ClientSession): Promise<void> {
   }
 
   // Random chance (40%)
-  if (Math.random() > 0.4) {
+  if (!SecureRNG.chance(0.4)) {
     logger.info('[WarEventScheduler] Battle spawn chance failed');
     return;
   }
@@ -225,7 +242,7 @@ async function trySpawnCampaign(session: mongoose.ClientSession): Promise<void> 
   }
 
   // Random chance (25%)
-  if (Math.random() > 0.25) {
+  if (!SecureRNG.chance(0.25)) {
     logger.info('[WarEventScheduler] Campaign spawn chance failed');
     return;
   }
@@ -289,7 +306,7 @@ async function trySpawnWar(session: mongoose.ClientSession): Promise<void> {
   }
 
   // Random chance (5%)
-  if (Math.random() > 0.05) {
+  if (!SecureRNG.chance(0.05)) {
     logger.info('[WarEventScheduler] War spawn chance failed');
     return;
   }
@@ -368,7 +385,7 @@ async function selectEventLocation(
   }
 
   // Select random territory
-  const territory = candidates[Math.floor(Math.random() * candidates.length)];
+  const territory = SecureRNG.select(candidates);
 
   // Select factions based on territory
   let attacker: TerritoryFactionId;
@@ -394,7 +411,7 @@ async function selectEventLocation(
     TerritoryFactionId.INDEPENDENT_OUTLAWS,
   ].filter(f => f !== defender);
 
-  attacker = possibleAttackers[Math.floor(Math.random() * possibleAttackers.length)];
+  attacker = SecureRNG.select(possibleAttackers);
 
   return { attacker, defender, territory };
 }
@@ -426,7 +443,7 @@ export async function forceSpawnWarEvent(
       territory = await Territory.findBySlug(territoryId);
     } else {
       const territories = await Territory.find().session(session);
-      territory = territories[Math.floor(Math.random() * territories.length)];
+      territory = SecureRNG.select(territories);
     }
 
     if (!territory) {

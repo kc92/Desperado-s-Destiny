@@ -4,6 +4,7 @@ import {
   HorseRarity,
   HorseColor
 } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 // ============================================================================
 // HORSE BREED DEFINITIONS
@@ -456,7 +457,7 @@ export function generateHorseStats(breed: HorseBreed): {
 }
 
 function randomInRange(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return SecureRNG.range(min, max);
 }
 
 // ============================================================================
@@ -466,5 +467,5 @@ function randomInRange(min: number, max: number): number {
 export function selectRandomColor(breed: HorseBreed): HorseColor {
   const definition = HORSE_BREEDS[breed];
   const colors = definition.preferredColors;
-  return colors[Math.floor(Math.random() * colors.length)];
+  return SecureRNG.select(colors);
 }

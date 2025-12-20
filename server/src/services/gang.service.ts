@@ -19,6 +19,7 @@ import {
 import { TransactionSource } from '../models/GoldTransaction.model';
 import { calculateUpgradeCost, canUpgrade } from '../utils/gangUpgrades';
 import logger from '../utils/logger';
+import karmaService from './karma.service';
 
 export class GangService {
   /**
@@ -55,8 +56,8 @@ export class GangService {
         throw new Error(`Character must be level ${GANG_CREATION.MIN_LEVEL} or higher to create a gang`);
       }
 
-      if (character.gold < GANG_CREATION.COST) {
-        throw new Error(`Insufficient gold. Need ${GANG_CREATION.COST}, have ${character.gold}`);
+      if (character.dollars < GANG_CREATION.COST) {
+        throw new Error(`Insufficient dollars. Need ${GANG_CREATION.COST}, have ${character.dollars}`);
       }
 
       const existingGang = await Gang.findOne({
@@ -77,8 +78,8 @@ export class GangService {
         throw new Error('Gang tag is already taken');
       }
 
-      const { GoldService } = await import('./gold.service');
-      await GoldService.deductGold(
+      const { DollarService } = await import('./dollar.service');
+      await DollarService.deductDollars(
         characterId,
         GANG_CREATION.COST,
         TransactionSource.GANG_CREATION,
@@ -191,26 +192,49 @@ export class GangService {
         throw new Error('Invitation is not pending');
       }
 
-      if (gang.members.length >= gang.getMaxMembers()) {
+      // ATOMIC OPERATION: Add member only if gang has capacity
+      // This prevents race conditions where multiple concurrent join requests
+      // could both pass the capacity check before either save completes
+      const maxMembers = gang.getMaxMembers();
+      const gangUpdateResult = await Gang.findOneAndUpdate(
+        {
+          _id: gangId,
+          // Atomic condition: only update if members array length is less than max
+          $expr: { $lt: [{ $size: '$members' }, maxMembers] }
+        },
+        {
+          $push: {
+            members: {
+              characterId: character._id,
+              role: GangRole.MEMBER,
+              joinedAt: new Date(),
+              contribution: 0
+            }
+          }
+        },
+        {
+          new: true,
+          session
+        }
+      );
+
+      if (!gangUpdateResult) {
         throw new Error('Gang is at maximum capacity');
       }
-
-      gang.addMember(character._id as mongoose.Types.ObjectId, GangRole.MEMBER);
-      await gang.save({ session });
 
       invitation.accept();
       await invitation.save({ session });
 
-      character.gangId = gang._id as mongoose.Types.ObjectId;
+      character.gangId = gangUpdateResult._id as mongoose.Types.ObjectId;
       await character.save({ session });
 
       await session.commitTransaction();
 
       logger.info(
-        `Character ${character.name} joined gang ${gang.name}`
+        `Character ${character.name} joined gang ${gangUpdateResult.name}`
       );
 
-      return gang;
+      return gangUpdateResult;
     } catch (error) {
       await session.abortTransaction();
       logger.error('Error joining gang:', error);
@@ -319,6 +343,19 @@ export class GangService {
 
       await session.commitTransaction();
 
+      // DEITY SYSTEM: Record karma for kicking a gang member
+      // This is seen as betrayal by deities
+      try {
+        await karmaService.recordAction(
+          kickerId,
+          'GANG_BETRAYED_MEMBER',
+          `Kicked ${targetCharacter.name} from gang ${gang.name}`
+        );
+        logger.debug(`Karma recorded for kick: GANG_BETRAYED_MEMBER for ${kickerId}`);
+      } catch (karmaError) {
+        logger.warn('Failed to record karma for kicking member:', karmaError);
+      }
+
       logger.info(
         `Character ${targetId} was kicked from gang ${gang.name}`
       );
@@ -421,8 +458,8 @@ export class GangService {
         throw new Error('Character not found');
       }
 
-      const { GoldService } = await import('./gold.service');
-      await GoldService.deductGold(
+      const { DollarService } = await import('./dollar.service');
+      await DollarService.deductDollars(
         characterId,
         amount,
         TransactionSource.GANG_DEPOSIT,
@@ -430,17 +467,31 @@ export class GangService {
         session
       );
 
-      const balanceBefore = gang.bank;
-      gang.bank += amount;
-      gang.stats.totalRevenue += amount;
-      const balanceAfter = gang.bank;
+      // ATOMIC OPERATION: Add to gang bank and update contribution
+      const updateResult = await Gang.findOneAndUpdate(
+        {
+          _id: gangId,
+          'members.characterId': new mongoose.Types.ObjectId(characterId)
+        },
+        {
+          $inc: {
+            bank: amount,
+            'stats.totalRevenue': amount,
+            'members.$.contribution': amount
+          }
+        },
+        {
+          new: true,
+          session
+        }
+      );
 
-      const member = gang.members.find(m => m.characterId.toString() === characterId);
-      if (member) {
-        member.contribution += amount;
+      if (!updateResult) {
+        throw new Error('Failed to deposit to gang bank. Please try again.');
       }
 
-      await gang.save({ session });
+      const balanceAfter = updateResult.bank;
+      const balanceBefore = balanceAfter - amount;
 
       const transaction = await GangBankTransaction.create([{
         gangId: gang._id,
@@ -454,8 +505,24 @@ export class GangService {
 
       await session.commitTransaction();
 
+      // DEITY SYSTEM: Record karma for generous gang contributions
+      // Large deposits (>10% of dollars) show loyalty and generosity
+      try {
+        const depositRatio = amount / (character.dollars + amount); // Before deposit dollars
+        if (depositRatio > 0.1) {
+          await karmaService.recordAction(
+            characterId,
+            'GANG_SHARED_LOOT',
+            `Donated ${amount} dollars to gang ${gang.name} (${Math.round(depositRatio * 100)}% of wealth)`
+          );
+          logger.debug(`Karma recorded for generous deposit: GANG_SHARED_LOOT`);
+        }
+      } catch (karmaError) {
+        logger.warn('Failed to record karma for gang deposit:', karmaError);
+      }
+
       logger.info(
-        `Character ${character.name} deposited ${amount} gold to gang ${gang.name} bank`
+        `Character ${character.name} deposited ${amount} dollars to gang ${gang.name} bank`
       );
 
       return {
@@ -502,23 +569,37 @@ export class GangService {
         throw new Error('Only officers and leaders can withdraw from gang bank');
       }
 
-      if (!gang.canAfford(amount)) {
-        throw new Error(`Insufficient gang bank funds. Have ${gang.bank}, need ${amount}`);
-      }
-
       const character = await Character.findById(characterId).session(session);
       if (!character) {
         throw new Error('Character not found');
       }
 
-      const balanceBefore = gang.bank;
-      gang.bank -= amount;
-      const balanceAfter = gang.bank;
+      // ATOMIC OPERATION: Deduct from gang bank only if sufficient funds
+      const updateResult = await Gang.findOneAndUpdate(
+        {
+          _id: gangId,
+          bank: { $gte: amount }  // Atomic check: must have enough funds
+        },
+        {
+          $inc: { bank: -amount }
+        },
+        {
+          new: true,
+          session
+        }
+      );
 
-      await gang.save({ session });
+      if (!updateResult) {
+        // Re-check to provide accurate error message
+        const currentGang = await Gang.findById(gangId).session(session);
+        throw new Error(`Insufficient gang bank funds. Have ${currentGang?.bank || 0}, need ${amount}`);
+      }
 
-      const { GoldService: GoldServiceWithdraw } = await import('./gold.service');
-      await GoldServiceWithdraw.addGold(
+      const balanceAfter = updateResult.bank;
+      const balanceBefore = balanceAfter + amount;
+
+      const { DollarService: DollarServiceWithdraw } = await import('./dollar.service');
+      await DollarServiceWithdraw.addDollars(
         characterId,
         amount,
         TransactionSource.GANG_WITHDRAWAL,
@@ -538,8 +619,27 @@ export class GangService {
 
       await session.commitTransaction();
 
+      // DEITY SYSTEM: Record karma for withdrawals exceeding contributions (hoarding)
+      try {
+        // Find member's contribution to compare against withdrawal
+        const member = gang.members.find(m => m.characterId.toString() === characterId);
+        const contribution = member?.contribution || 0;
+
+        // If withdrawing more than they ever contributed, it's seen as hoarding
+        if (amount > contribution) {
+          await karmaService.recordAction(
+            characterId,
+            'GANG_HOARDED_LOOT',
+            `Withdrew ${amount} dollars from gang ${gang.name} (contribution: ${contribution})`
+          );
+          logger.debug(`Karma recorded for hoarding: GANG_HOARDED_LOOT`);
+        }
+      } catch (karmaError) {
+        logger.warn('Failed to record karma for gang withdrawal:', karmaError);
+      }
+
       logger.info(
-        `Character ${character.name} withdrew ${amount} gold from gang ${gang.name} bank`
+        `Character ${character.name} withdrew ${amount} dollars from gang ${gang.name} bank`
       );
 
       return {
@@ -590,16 +690,35 @@ export class GangService {
 
       const cost = calculateUpgradeCost(upgradeType, currentLevel);
 
-      if (!gang.canAfford(cost)) {
-        throw new Error(`Insufficient gang bank funds. Have ${gang.bank}, need ${cost}`);
+      // ATOMIC OPERATION: Deduct from gang bank and update upgrade level atomically
+      const updateKey = `upgrades.${upgradeType}`;
+      const updateResult = await Gang.findOneAndUpdate(
+        {
+          _id: gangId,
+          bank: { $gte: cost },  // Atomic check: must have enough funds
+          [updateKey]: currentLevel  // Ensure upgrade level hasn't changed
+        },
+        {
+          $inc: { bank: -cost },
+          $set: { [updateKey]: currentLevel + 1 }
+        },
+        {
+          new: true,
+          session
+        }
+      );
+
+      if (!updateResult) {
+        // Re-check to provide accurate error message
+        const currentGang = await Gang.findById(gangId).session(session);
+        if (currentGang && currentGang.upgrades[upgradeType] !== currentLevel) {
+          throw new Error('Upgrade level has changed. Please try again.');
+        }
+        throw new Error(`Insufficient gang bank funds. Have ${currentGang?.bank || 0}, need ${cost}`);
       }
 
-      const balanceBefore = gang.bank;
-      gang.bank -= cost;
-      gang.upgrades[upgradeType] = currentLevel + 1;
-      const balanceAfter = gang.bank;
-
-      await gang.save({ session });
+      const balanceAfter = updateResult.bank;
+      const balanceBefore = balanceAfter + cost;
 
       await GangBankTransaction.create([{
         gangId: gang._id,
@@ -618,7 +737,7 @@ export class GangService {
       await session.commitTransaction();
 
       logger.info(
-        `Gang ${gang.name} purchased ${upgradeType} upgrade level ${currentLevel + 1} for ${cost} gold`
+        `Gang ${gang.name} purchased ${upgradeType} upgrade level ${currentLevel + 1} for ${cost} dollars`
       );
 
       return gang;
@@ -658,8 +777,8 @@ export class GangService {
 
       if (distributionAmount > 0) {
         for (const member of gang.members) {
-          const { GoldService: GoldServiceDisband } = await import('./gold.service');
-          await GoldServiceDisband.addGold(
+          const { DollarService: DollarServiceDisband } = await import('./dollar.service');
+          await DollarServiceDisband.addDollars(
             member.characterId,
             distributionAmount,
             TransactionSource.GANG_DISBAND_REFUND,
@@ -700,7 +819,7 @@ export class GangService {
       await session.commitTransaction();
 
       logger.info(
-        `Gang ${gang.name} disbanded. Distributed ${distributionAmount} gold to each of ${memberCount} members`
+        `Gang ${gang.name} disbanded. Distributed ${distributionAmount} dollars to each of ${memberCount} members`
       );
     } catch (error) {
       await session.abortTransaction();
@@ -798,46 +917,75 @@ export class GangService {
     totalDeposits: number;
     totalWithdrawals: number;
     totalUpgradeSpending: number;
-    netGold: number;
+    netDollars: number;
     topContributors: Array<{ characterId: string; characterName: string; contribution: number }>;
   }> {
-    const gang = await Gang.findById(gangId).populate('members.characterId', 'name');
-    if (!gang) {
+    // Use aggregation pipeline to get all stats in a single query
+    const gangObjectId = new mongoose.Types.ObjectId(gangId);
+
+    // Get transaction stats using aggregation
+    const transactionStats = await GangBankTransaction.aggregate([
+      { $match: { gangId: gangObjectId } },
+      {
+        $group: {
+          _id: '$type',
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    // Get gang with member data using aggregation
+    const gangStats = await Gang.aggregate([
+      { $match: { _id: gangObjectId } },
+      { $unwind: '$members' },
+      {
+        $lookup: {
+          from: 'characters',
+          localField: 'members.characterId',
+          foreignField: '_id',
+          as: 'memberData'
+        }
+      },
+      { $unwind: '$memberData' },
+      {
+        $group: {
+          _id: '$_id',
+          members: {
+            $push: {
+              characterId: '$members.characterId',
+              characterName: '$memberData.name',
+              contribution: '$members.contribution'
+            }
+          }
+        }
+      }
+    ]);
+
+    if (!gangStats || gangStats.length === 0) {
       throw new Error('Gang not found');
     }
 
-    const transactions = await GangBankTransaction.find({ gangId }).lean();
+    // Process transaction stats
+    const statsMap = new Map(transactionStats.map(s => [s._id, s.total]));
+    const totalDeposits = statsMap.get(GangBankTransactionType.DEPOSIT) || 0;
+    const totalWithdrawals = Math.abs(statsMap.get(GangBankTransactionType.WITHDRAWAL) || 0);
+    const totalUpgradeSpending = Math.abs(statsMap.get(GangBankTransactionType.UPGRADE_PURCHASE) || 0);
 
-    const totalDeposits = transactions
-      .filter(t => t.type === GangBankTransactionType.DEPOSIT)
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const totalWithdrawals = Math.abs(
-      transactions
-        .filter(t => t.type === GangBankTransactionType.WITHDRAWAL)
-        .reduce((sum, t) => sum + t.amount, 0)
-    );
-
-    const totalUpgradeSpending = Math.abs(
-      transactions
-        .filter(t => t.type === GangBankTransactionType.UPGRADE_PURCHASE)
-        .reduce((sum, t) => sum + t.amount, 0)
-    );
-
-    const topContributors = gang.members
-      .map(m => ({
+    // Process top contributors
+    const topContributors = gangStats[0].members
+      .map((m: { characterId: mongoose.Types.ObjectId; characterName: string; contribution: number }) => ({
         characterId: m.characterId.toString(),
-        characterName: (m.characterId as unknown as ICharacter).name,
+        characterName: m.characterName,
         contribution: m.contribution,
       }))
-      .sort((a, b) => b.contribution - a.contribution)
+      .sort((a: { contribution: number }, b: { contribution: number }) => b.contribution - a.contribution)
       .slice(0, 10);
 
     return {
       totalDeposits,
       totalWithdrawals,
       totalUpgradeSpending,
-      netGold: totalDeposits - totalWithdrawals - totalUpgradeSpending,
+      netDollars: totalDeposits - totalWithdrawals - totalUpgradeSpending,
       topContributors,
     };
   }
@@ -864,10 +1012,6 @@ export class GangService {
       throw new Error('Only officers and leaders can send invitations');
     }
 
-    if (gang.members.length >= gang.getMaxMembers()) {
-      throw new Error('Gang is at maximum capacity');
-    }
-
     const inviter = await Character.findById(inviterId);
     if (!inviter) {
       throw new Error('Inviter not found');
@@ -887,9 +1031,21 @@ export class GangService {
       throw new Error('Pending invitation already exists for this character');
     }
 
+    // Re-fetch gang to get current member count before creating invitation
+    // This provides a more accurate capacity check, though the atomic check
+    // in joinGang() is the final authority when the invitation is accepted
+    const currentGang = await Gang.findById(gangId);
+    if (!currentGang) {
+      throw new Error('Gang not found');
+    }
+
+    if (currentGang.members.length >= currentGang.getMaxMembers()) {
+      throw new Error('Gang is at maximum capacity');
+    }
+
     const invitation = await GangInvitation.create({
-      gangId: gang._id,
-      gangName: gang.name,
+      gangId: currentGang._id,
+      gangName: currentGang.name,
       inviterId: inviter._id,
       inviterName: inviter.name,
       recipientId: recipient._id,
@@ -897,7 +1053,7 @@ export class GangService {
     });
 
     logger.info(
-      `Gang invitation sent from ${gang.name} to character ${recipient.name}`
+      `Gang invitation sent from ${currentGang.name} to character ${recipient.name}`
     );
 
     return invitation;

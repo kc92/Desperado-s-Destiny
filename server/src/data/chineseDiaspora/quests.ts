@@ -71,7 +71,7 @@ export const IRON_ROAD_QUEST_CHAIN: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 100 },
+      { type: 'dollars', amount: 100 },
       { type: 'xp', amount: 250 },
       { type: 'reputation', amount: 50, faction: 'chinese-network' }
     ],
@@ -124,7 +124,7 @@ export const IRON_ROAD_QUEST_CHAIN: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 200 },
+      { type: 'dollars', amount: 200 },
       { type: 'xp', amount: 500 },
       { type: 'reputation', amount: 75, faction: 'chinese-network' },
       { type: 'item', itemId: 'camp-layout-map' }
@@ -178,7 +178,7 @@ export const IRON_ROAD_QUEST_CHAIN: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 400 },
+      { type: 'dollars', amount: 400 },
       { type: 'xp', amount: 800 },
       { type: 'reputation', amount: 150, faction: 'chinese-network' },
       { type: 'item', itemId: 'liberators-badge' }
@@ -232,7 +232,7 @@ export const IRON_ROAD_QUEST_CHAIN: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 600 },
+      { type: 'dollars', amount: 600 },
       { type: 'xp', amount: 1200 },
       { type: 'reputation', amount: 200, faction: 'chinese-network' },
       { type: 'item', itemId: 'survivors-gratitude' }
@@ -287,7 +287,7 @@ export const IRON_ROAD_QUEST_CHAIN: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 1000 },
+      { type: 'dollars', amount: 1000 },
       { type: 'xp', amount: 2000 },
       { type: 'reputation', amount: 300, faction: 'chinese-network' },
       { type: 'item', itemId: 'freedom-fighters-medal' },
@@ -349,7 +349,7 @@ export const JADE_PASSAGE_QUEST_CHAIN: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 250 },
+      { type: 'dollars', amount: 250 },
       { type: 'xp', amount: 500 },
       { type: 'reputation', amount: 60, faction: 'chinese-network' }
     ],
@@ -403,7 +403,7 @@ export const JADE_PASSAGE_QUEST_CHAIN: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 400 },
+      { type: 'dollars', amount: 400 },
       { type: 'xp', amount: 750 },
       { type: 'reputation', amount: 100, faction: 'chinese-network' },
       { type: 'item', itemId: 'forgery-contacts' }
@@ -464,7 +464,7 @@ export const JADE_PASSAGE_QUEST_CHAIN: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 600 },
+      { type: 'dollars', amount: 600 },
       { type: 'xp', amount: 1000 },
       { type: 'reputation', amount: 150, faction: 'chinese-network' },
       { type: 'item', itemId: 'community-gratitude' }
@@ -511,7 +511,7 @@ export const RESCUE_QUESTS: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 75 },
+      { type: 'dollars', amount: 75 },
       { type: 'xp', amount: 150 },
       { type: 'reputation', amount: 30, faction: 'chinese-network' }
     ],
@@ -558,7 +558,7 @@ export const RESCUE_QUESTS: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 100 },
+      { type: 'dollars', amount: 100 },
       { type: 'xp', amount: 200 },
       { type: 'reputation', amount: 25, faction: 'chinese-network' }
     ],
@@ -604,7 +604,7 @@ export const RESCUE_QUESTS: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 150 },
+      { type: 'dollars', amount: 150 },
       { type: 'xp', amount: 300 },
       { type: 'reputation', amount: 40, faction: 'chinese-network' }
     ],
@@ -657,7 +657,7 @@ export const DRAMATIC_QUESTS: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 300 },
+      { type: 'dollars', amount: 300 },
       { type: 'xp', amount: 800 },
       { type: 'reputation', amount: 100, faction: 'chinese-network' },
       { type: 'item', itemId: 'burden-of-choice' }
@@ -711,7 +711,7 @@ export const DRAMATIC_QUESTS: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 500 },
+      { type: 'dollars', amount: 500 },
       { type: 'xp', amount: 1200 },
       { type: 'reputation', amount: 150, faction: 'chinese-network' },
       { type: 'item', itemId: 'network-security' }
@@ -758,7 +758,7 @@ export const DRAMATIC_QUESTS: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 800 },
+      { type: 'dollars', amount: 800 },
       { type: 'xp', amount: 1500 },
       { type: 'reputation', amount: 200, faction: 'chinese-network' },
       { type: 'item', itemId: 'debt-freedom' }
@@ -805,7 +805,7 @@ export const DRAMATIC_QUESTS: QuestSeedData[] = [
       }
     ],
     rewards: [
-      { type: 'gold', amount: 1000 },
+      { type: 'dollars', amount: 1000 },
       { type: 'xp', amount: 2500 },
       { type: 'reputation', amount: 300, faction: 'chinese-network' },
       { type: 'item', itemId: 'voice-of-the-voiceless' }

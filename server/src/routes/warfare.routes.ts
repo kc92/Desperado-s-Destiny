@@ -9,6 +9,7 @@ import { WarfareController } from '../controllers/warfare.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -47,6 +48,7 @@ router.get(
  */
 router.post(
   '/territories/:territoryId/fortifications',
+  requireCsrfToken,
   asyncHandler(WarfareController.buildFortification)
 );
 
@@ -57,6 +59,7 @@ router.post(
  */
 router.put(
   '/territories/:territoryId/fortifications/:fortificationId/upgrade',
+  requireCsrfToken,
   asyncHandler(WarfareController.upgradeFortification)
 );
 
@@ -67,6 +70,7 @@ router.put(
  */
 router.put(
   '/territories/:territoryId/fortifications/:fortificationId/repair',
+  requireCsrfToken,
   asyncHandler(WarfareController.repairFortification)
 );
 
@@ -77,6 +81,7 @@ router.put(
  */
 router.delete(
   '/territories/:territoryId/fortifications/:fortificationId',
+  requireCsrfToken,
   asyncHandler(WarfareController.demolishFortification)
 );
 
@@ -96,6 +101,7 @@ router.get(
  */
 router.post(
   '/territories/:territoryId/siege-damage',
+  requireCsrfToken,
   asyncHandler(WarfareController.applySiegeDamage)
 );
 
@@ -129,6 +135,7 @@ router.get(
  */
 router.post(
   '/territories/:territoryId/resistance/execute',
+  requireCsrfToken,
   asyncHandler(WarfareController.executeResistanceAction)
 );
 
@@ -139,6 +146,7 @@ router.post(
  */
 router.post(
   '/territories/:territoryId/resistance/suppress',
+  requireCsrfToken,
   asyncHandler(WarfareController.suppressResistance)
 );
 
@@ -153,6 +161,7 @@ router.post(
  */
 router.post(
   '/territories/:territoryId/liberation/start',
+  requireCsrfToken,
   asyncHandler(WarfareController.startLiberationCampaign)
 );
 
@@ -167,6 +176,7 @@ router.post(
  */
 router.post(
   '/territories/:territoryId/diplomacy/propose',
+  requireCsrfToken,
   asyncHandler(WarfareController.proposeDiplomaticSolution)
 );
 
@@ -177,6 +187,7 @@ router.post(
  */
 router.post(
   '/diplomacy/:proposalId/accept',
+  requireCsrfToken,
   asyncHandler(WarfareController.acceptDiplomaticSolution)
 );
 

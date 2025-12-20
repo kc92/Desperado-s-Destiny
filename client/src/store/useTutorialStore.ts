@@ -5,7 +5,13 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { MentorExpression } from '@/data/tutorial/mentorDialogues';
+// MentorExpression type imported for potential future use
+import type { MentorExpression as _MentorExpression } from '@/data/tutorial/mentorDialogues';
+import { FACTION_INTROS, SHARED_CORE_PATH, INTRO_SETTLER } from '@/data/tutorial/onboardingSteps';
+import { tutorialService } from '@/services/tutorial.service';
+import { logger } from '@/services/logger.service';
+import { useCharacterStore } from './useCharacterStore';
+import { useSkillStore } from './useSkillStore';
 
 // Tutorial step with action requirements
 export interface TutorialStep {
@@ -74,6 +80,7 @@ export interface TutorialProgress {
   currentStep: number; // Index of current step within the section
   currentDialogueLine: number; // Index of current dialogue line within the step
   tutorialType: 'core' | 'deep_dive' | null; // Type of currently active tutorial
+  activePath: TutorialSection[]; // Dynamic path for the current tutorial run
   startedAt: string | null;
   completedAt: string | null;
   skipCount: number;
@@ -81,8 +88,12 @@ export interface TutorialProgress {
   practiceDrawCount: number;
   skillToggleUsed: boolean;
   analytics: TutorialAnalytics;
+  // Track completed tutorial actions for canProceed validation
+  completedActions: string[];
   // New: Track unlocked deep-dive modules
   unlockedDeepDives: string[];
+  // Track which character this tutorial state belongs to
+  characterId: string | null;
 }
 
 // Full tutorial state interface
@@ -90,9 +101,10 @@ interface TutorialState extends TutorialProgress {
   isActive: boolean;
   isPaused: boolean;
   showResumePrompt: boolean;
+  showCompletionModal: boolean;
 
   // Actions
-  startTutorial: (sectionId: string, type: 'core' | 'deep_dive') => void;
+  startTutorial: (sectionId: string, type: 'core' | 'deep_dive', factionId?: string) => void;
   nextStep: () => void;
   prevStep: () => void;
   nextDialogueLine: () => void;
@@ -104,6 +116,7 @@ interface TutorialState extends TutorialProgress {
   completeSection: () => void;
   resetTutorial: () => void;
   dismissResumePrompt: () => void;
+  dismissCompletionModal: () => void;
   unlockDeepDive: (sectionId: string) => void;
 
   // Quiz and interaction tracking
@@ -130,102 +143,17 @@ interface TutorialState extends TutorialProgress {
   getCurrentSection: () => TutorialSection | undefined;
   getCurrentStep: () => TutorialStep | undefined;
   getTotalProgress: () => number; // Only for core tutorial
+  getTotalStepsCompleted: () => number; // Count of all completed steps
   canProceed: () => boolean;
+  canSkipTutorial: () => boolean; // Returns true if mandatory steps completed
   getAvailableDeepDives: () => TutorialSection[];
   getUnlockedDeepDives: () => TutorialSection[];
 }
 
 // --- AAA Tutorial Content ---
 
-// CORE ONBOARDING PATH (Mandatory, Linear)
-export const CORE_TUTORIAL_SECTIONS: TutorialSection[] = [
-  {
-    id: 'welcome',
-    name: 'Welcome to the Frontier',
-    description: 'Meet your guide, understand the basics, and explore your surroundings.',
-    icon: '🤠',
-    estimatedMinutes: 5,
-    type: 'core',
-    steps: [
-      { id: 'welcome-1', title: 'Welcome, Partner!', description: 'Meet Hawk, your guide.', dialogueId: 'welcome-greeting', position: 'center' },
-      { id: 'welcome-2', title: 'Your Dashboard', description: 'This is your essential info hub.', dialogueId: 'welcome-dashboard', target: '[data-tutorial-target="dashboard-stats"]', highlight: ['[data-tutorial-target="dashboard-stats"]'], requiresAction: 'click-dashboard', actionPrompt: 'Click your character portrait or stats panel' },
-      { id: 'welcome-3', title: 'Character & Inventory', description: 'Manage your gear and resources.', dialogueId: 'welcome-character-panel', target: '[data-tutorial-target="character-panel-button"]', highlight: ['[data-tutorial-target="character-panel-button"]'], requiresAction: 'open-character-panel', actionPrompt: 'Open your Character Panel' },
-      { id: 'welcome-4', title: 'Basic Navigation', description: 'Move around the world.', dialogueId: 'welcome-navigation', requiresAction: 'navigate-to-red-gulch', actionPrompt: 'Navigate to Red Gulch Town Square (click on map or travel option)' },
-    ],
-  },
-  {
-    id: 'destiny_energy',
-    name: 'Destiny & Drive (Deck & Energy)',
-    description: 'Understand the card system that governs actions and how to manage your energy.',
-    icon: '🃏⚡',
-    estimatedMinutes: 7,
-    type: 'core',
-    steps: [
-      { id: 'deck-1', title: 'The Destiny Deck', description: 'Every action is a gamble.', dialogueId: 'deck-intro' },
-      { id: 'deck-2', title: 'Hand Ranks', description: 'Better hands, better results.', dialogueId: 'deck-hands' },
-      { id: 'deck-3', title: 'Practice Draw', description: 'Draw your first hand to see it in action.', dialogueId: 'deck-practice-success', requiresAction: 'draw-cards', actionPrompt: 'Click "Draw Cards"' },
-      { id: 'energy-1', title: 'Your Energy', description: 'Actions cost energy, manage it wisely.', dialogueId: 'energy-intro', target: '[data-tutorial-target="energy-bar"]', highlight: ['[data-tutorial-target="energy-bar"]'] },
-      { id: 'energy-2', title: 'Energy Costs', description: 'Different actions, different costs.', dialogueId: 'energy-explain' },
-    ],
-  },
-  {
-    id: 'first_job',
-    name: 'First Steps (Jobs & Rewards)',
-    description: 'Take your first job and earn some honest coin.',
-    icon: '💰',
-    estimatedMinutes: 7,
-    type: 'core',
-    steps: [
-      { id: 'job-1', title: 'The Bounty Board', description: 'Find available tasks.', dialogueId: 'job-intro', target: '[data-tutorial-target="jobs-link"]', highlight: ['[data-tutorial-target="jobs-link"]'], requiresAction: 'navigate-jobs', actionPrompt: 'Go to the Jobs board' },
-      { id: 'job-2', title: 'Choose a Job', description: 'Select "General Labor" in Red Gulch.', dialogueId: 'job-select', target: '[data-job-id="general-labor"]', highlight: ['[data-job-id="general-labor"]'], requiresAction: 'accept-job-general-labor', actionPrompt: 'Accept the General Labor job' },
-      { id: 'job-3', title: 'Complete Job', description: 'See your rewards.', dialogueId: 'job-complete-confirm', requiresAction: 'complete-job-general-labor', actionPrompt: 'Complete the job (this usually takes time or energy)' },
-      { id: 'job-4', title: 'Check Your Earnings', description: 'Gold and XP will show here.', dialogueId: 'job-rewards', target: '[data-tutorial-target="currency-gold"]', highlight: ['[data-tutorial-target="currency-gold"]'] },
-    ],
-  },
-  {
-    id: 'basic_combat',
-    name: 'First Blood (Basic Combat)',
-    description: 'Engage in your first combat encounter and learn to defend yourself.',
-    icon: '⚔️',
-    estimatedMinutes: 5,
-    type: 'core',
-    steps: [
-      { id: 'combat-1', title: 'Into the Wild', description: 'Find an easy target.', dialogueId: 'combat-intro', requiresAction: 'travel-to-wild-encounter', actionPrompt: 'Travel to the wilderness for an encounter (e.g., fight a Coyote)' },
-      { id: 'combat-2', title: 'Combat Start', description: 'Your first duel.', dialogueId: 'combat-start', requiresAction: 'initiate-combat-coyote', actionPrompt: 'Initiate combat with a Coyote' },
-      { id: 'combat-3', title: 'Battle Flow', description: 'Cards and strategy.', dialogueId: 'combat-flow' },
-      { id: 'combat-4', title: 'Victory & Loot', description: 'Claim your spoils.', dialogueId: 'combat-loot', target: '[data-tutorial-target="combat-loot-summary"]', highlight: ['[data-tutorial-target="combat-loot-summary"]'] },
-    ],
-  },
-  {
-    id: 'intro_crafting',
-    name: 'Hands-On (Introduction to Crafting)',
-    description: 'Learn the basics of gathering, refining, and selling materials.',
-    icon: '🔨',
-    estimatedMinutes: 10,
-    type: 'core',
-    steps: [
-      { id: 'craft-1', title: 'Gathering First', description: 'You\'ll need raw materials.', dialogueId: 'craft-gather-intro', requiresAction: 'travel-to-mine', actionPrompt: 'Travel to the Abandoned Mine (loc_f_02)' },
-      { id: 'craft-2', title: 'Mine for Ore', description: 'Extract some iron.', dialogueId: 'craft-mine-job', requiresAction: 'complete-job-mine-iron-ore', actionPrompt: 'Complete the "Mine for Iron Ore" job' },
-      { id: 'craft-3', title: 'Your Inventory', description: 'Check your new resources.', dialogueId: 'craft-inventory', target: '[data-tutorial-target="inventory-link"]', highlight: ['[data-tutorial-target="inventory-link"]'], requiresAction: 'open-inventory', actionPrompt: 'Open your Inventory' },
-      { id: 'craft-4', title: 'The Crafting Bench', description: 'Where raw becomes refined.', dialogueId: 'craft-refine-intro', target: '[data-tutorial-target="crafting-link"]', highlight: ['[data-tutorial-target="crafting-link"]'], requiresAction: 'navigate-crafting', actionPrompt: 'Go to the Crafting menu' },
-      { id: 'craft-5', title: 'Refine Materials', description: 'Turn ore into ingots.', dialogueId: 'craft-refine-action', requiresAction: 'craft-recipe-silver-ingot', actionPrompt: 'Craft 1 Silver Ingot (find the recipe and click craft)' },
-      { id: 'craft-6', title: 'Market Bound', description: 'Sell your excess goods.', dialogueId: 'craft-sell-intro', requiresAction: 'navigate-marketplace', actionPrompt: 'Go to the Marketplace' },
-      { id: 'craft-7', title: 'List Your Goods', description: 'Put your ingot up for sale.', dialogueId: 'craft-list-item', requiresAction: 'sell-item-silver-ingot', actionPrompt: 'Sell 1 Silver Ingot on the market' },
-    ],
-  },
-  {
-    id: 'end_core',
-    name: 'Your Journey Truly Begins',
-    description: 'You are now ready to face the frontier!',
-    icon: '🌅',
-    estimatedMinutes: 2,
-    type: 'core',
-    steps: [
-      { id: 'end-1', title: 'Tutorial Complete!', description: 'Hawk bids you farewell.', dialogueId: 'complete-farewell' },
-      { id: 'end-2', title: 'What Next?', description: 'Explore the world, pursue professions, or seek fame.', dialogueId: 'complete-options' },
-    ],
-  },
-];
+// Export default settler path as fallback for imports
+export const CORE_TUTORIAL_SECTIONS: TutorialSection[] = [INTRO_SETTLER, ...SHARED_CORE_PATH];
 
 // OPTIONAL DEEP-DIVE MODULES (Non-linear, On-demand)
 export const DEEP_DIVE_TUTORIALS: TutorialSection[] = [
@@ -288,8 +216,11 @@ export const DEEP_DIVE_TUTORIALS: TutorialSection[] = [
 ];
 
 // Combine all sections for tracking total steps
-const ALL_TUTORIAL_SECTIONS = [...CORE_TUTORIAL_SECTIONS, ...DEEP_DIVE_TUTORIALS];
-const TOTAL_STEPS = ALL_TUTORIAL_SECTIONS.reduce((sum, s) => sum + s.steps.length, 0);
+export const TUTORIAL_SECTIONS = [...CORE_TUTORIAL_SECTIONS, ...DEEP_DIVE_TUTORIALS];
+
+// Number of mandatory steps before skip is allowed
+// This covers the essential onboarding: Destiny Deck basics, Energy, Stats, First Action
+export const MANDATORY_STEPS = 5;
 
 // Initial progress state
 const initialProgress: TutorialProgress = {
@@ -300,6 +231,7 @@ const initialProgress: TutorialProgress = {
   currentStep: 0,
   currentDialogueLine: 0,
   tutorialType: null, // Initial type
+  activePath: [], // Initial empty path
   startedAt: null,
   completedAt: null,
   skipCount: 0,
@@ -311,7 +243,9 @@ const initialProgress: TutorialProgress = {
     completionEvents: [],
     sectionStartTimes: {},
   },
+  completedActions: [],
   unlockedDeepDives: [],
+  characterId: null,
 };
 
 export const useTutorialStore = create<TutorialState>()(
@@ -322,14 +256,31 @@ export const useTutorialStore = create<TutorialState>()(
       isActive: false,
       isPaused: false,
       showResumePrompt: false,
+      showCompletionModal: false,
 
       // Start tutorial from beginning or specific section/type
-      startTutorial: (sectionId: string, type: 'core' | 'deep_dive') => {
-        const targetSections = type === 'core' ? CORE_TUTORIAL_SECTIONS : DEEP_DIVE_TUTORIALS;
-        const section = targetSections.find(s => s.id === sectionId);
+      startTutorial: (sectionId: string, type: 'core' | 'deep_dive', factionId?: string) => {
+        const now = Date.now();
+        let activePath: TutorialSection[] = get().activePath;
+
+        // Determine path
+        if (type === 'core') {
+          if (factionId && FACTION_INTROS[factionId]) {
+            activePath = [FACTION_INTROS[factionId], ...SHARED_CORE_PATH];
+          } else if (activePath.length === 0) {
+            // Fallback if no path set and no faction provided
+            activePath = CORE_TUTORIAL_SECTIONS; 
+          }
+        } else {
+          activePath = DEEP_DIVE_TUTORIALS;
+        }
+
+        const section = activePath.find(s => s.id === sectionId);
 
         if (section) {
-          const now = Date.now();
+          // Get current character ID to associate tutorial with this character
+          const currentCharacterId = useCharacterStore.getState().currentCharacter?._id || null;
+
           set(state => ({
             isActive: true,
             isPaused: false,
@@ -338,6 +289,8 @@ export const useTutorialStore = create<TutorialState>()(
             currentStep: 0,
             currentDialogueLine: 0,
             tutorialType: type,
+            activePath: activePath,
+            characterId: currentCharacterId, // Track which character this tutorial belongs to
             startedAt: state.startedAt || new Date().toISOString(),
             analytics: {
               ...state.analytics,
@@ -348,18 +301,17 @@ export const useTutorialStore = create<TutorialState>()(
             },
           }));
         } else {
-          console.error(`Tutorial section ${sectionId} not found for type ${type}`);
+          logger.error(`Tutorial section ${sectionId} not found for type ${type}`, new Error('Tutorial section not found'), { context: 'useTutorialStore.startTutorial', sectionId, type });
         }
       },
 
       // Go to next step in current section
       nextStep: () => {
         const state = get();
-        const targetSections = state.tutorialType === 'core' ? CORE_TUTORIAL_SECTIONS : DEEP_DIVE_TUTORIALS;
-        const section = targetSections.find(s => s.id === state.currentSection);
+        const section = state.activePath.find(s => s.id === state.currentSection);
 
         if (!section) {
-          console.error('Current tutorial section not found.');
+          logger.error('Current tutorial section not found.', new Error('Current tutorial section not found'), { context: 'useTutorialStore.nextStep', currentSection: state.currentSection });
           return;
         }
 
@@ -396,15 +348,21 @@ export const useTutorialStore = create<TutorialState>()(
       skipSection: () => {
         const state = get();
         if (state.tutorialType !== 'core') {
-            console.warn('Cannot skip deep-dive sections in this manner.');
+            logger.warn('Cannot skip deep-dive sections in this manner.', { context: 'useTutorialStore.skipSection', tutorialType: state.tutorialType });
             return;
         }
 
-        const currentIndex = CORE_TUTORIAL_SECTIONS.findIndex(s => s.id === state.currentSection);
+        // Check if mandatory steps are completed before allowing skip
+        if (!get().canSkipTutorial()) {
+          logger.warn(`Cannot skip yet. Complete ${MANDATORY_STEPS} steps first. Currently at ${get().getTotalStepsCompleted()} steps.`, { context: 'useTutorialStore.skipSection', mandatorySteps: MANDATORY_STEPS, totalStepsCompleted: get().getTotalStepsCompleted() });
+          return;
+        }
+
+        const currentIndex = state.activePath.findIndex(s => s.id === state.currentSection);
 
         // Track the skip event
         if (state.currentSection) {
-          const section = CORE_TUTORIAL_SECTIONS[currentIndex];
+          const section = state.activePath[currentIndex];
           const step = section?.steps[state.currentStep];
           if (step) {
             get().trackSkip(state.currentSection, step.id);
@@ -413,9 +371,9 @@ export const useTutorialStore = create<TutorialState>()(
 
         set(prev => ({ skipCount: prev.skipCount + 1 }));
 
-        if (currentIndex < CORE_TUTORIAL_SECTIONS.length - 1) {
+        if (currentIndex < state.activePath.length - 1) {
           // Move to next core section
-          const nextSection = CORE_TUTORIAL_SECTIONS[currentIndex + 1];
+          const nextSection = state.activePath[currentIndex + 1];
           const now = Date.now();
           set(prevState => ({
             currentSection: nextSection.id,
@@ -439,8 +397,14 @@ export const useTutorialStore = create<TutorialState>()(
       skipTutorial: () => {
         const state = get();
         if (state.tutorialType !== 'core') {
-            console.warn('Can only skip the core tutorial using this method.');
+            logger.warn('Can only skip the core tutorial using this method.', { context: 'useTutorialStore.skipTutorial', tutorialType: state.tutorialType });
             return;
+        }
+
+        // Check if mandatory steps are completed before allowing skip
+        if (!get().canSkipTutorial()) {
+          logger.warn(`Cannot skip tutorial yet. Complete ${MANDATORY_STEPS} mandatory steps first. Currently at ${get().getTotalStepsCompleted()} steps.`, { context: 'useTutorialStore.skipTutorial', mandatorySteps: MANDATORY_STEPS, totalStepsCompleted: get().getTotalStepsCompleted() });
+          return;
         }
 
         // Track skip event for entire tutorial
@@ -482,7 +446,7 @@ export const useTutorialStore = create<TutorialState>()(
       // Complete current section and move to next (handles core and deep-dive)
       completeSection: () => {
         const state = get();
-        const { currentSection, completedSections, completedDeepDives, tutorialType } = state;
+        const { currentSection, completedSections, completedDeepDives, tutorialType, activePath } = state;
 
         if (!currentSection || !tutorialType) return;
 
@@ -503,17 +467,42 @@ export const useTutorialStore = create<TutorialState>()(
             }
         }
 
-        // Handle rewards for step completion
+        // Handle rewards for step completion via server-side API
         const currentStepObj = state.getCurrentStep();
-        if (currentStepObj?.rewards) {
-            // TODO: Dispatch actions to award rewards (gold, xp, items)
-            console.log('Awarding rewards:', currentStepObj.rewards);
+        if (currentStepObj?.id) {
+            // Claim rewards from server (server defines actual reward amounts)
+            const characterId = useCharacterStore.getState().currentCharacter?._id;
+            if (characterId) {
+                tutorialService.claimReward(currentStepObj.id, characterId)
+                    .then((result) => {
+                        if (result.success && result.data) {
+                            const { rewards, character } = result.data;
+                            // Update character store with new values if provided
+                            if (character) {
+                                useCharacterStore.getState().updateCharacter({
+                                    gold: character.gold,
+                                    experience: character.experience,
+                                    level: character.level,
+                                });
+                            }
+                            if (rewards.gold || rewards.xp) {
+                                logger.info(`[Tutorial] Rewards claimed for ${currentStepObj.id}:`, { context: 'useTutorialStore.completeSection', stepId: currentStepObj.id, rewards });
+                            }
+                            if (rewards.leveledUp) {
+                                logger.info(`[Tutorial] Level up! New level: ${rewards.newLevel}`, { context: 'useTutorialStore.completeSection', newLevel: rewards.newLevel });
+                            }
+                        }
+                    })
+                    .catch((err) => {
+                        logger.warn('[Tutorial] Failed to claim rewards:', { context: 'useTutorialStore.completeSection', error: err });
+                    });
+            }
         }
 
         if (tutorialType === 'core') {
             // Find next core section
-            const currentIndex = CORE_TUTORIAL_SECTIONS.findIndex(s => s.id === currentSection);
-            const nextSection = CORE_TUTORIAL_SECTIONS[currentIndex + 1];
+            const currentIndex = activePath.findIndex(s => s.id === currentSection);
+            const nextSection = activePath[currentIndex + 1];
 
             if (nextSection) {
               const now = Date.now();
@@ -544,16 +533,48 @@ export const useTutorialStore = create<TutorialState>()(
                 currentDialogueLine: 0,
                 tutorialType: null,
             });
-            console.log(`Deep-dive tutorial "${currentSection}" completed.`);
+            logger.info(`[Tutorial] Deep-dive tutorial "${currentSection}" completed.`, { context: 'useTutorialStore.completeSection', sectionId: currentSection });
         }
       },
 
       // Complete entire core tutorial
       completeTutorial: () => {
-        const { completedSections, currentSection } = get();
+        const { completedSections, currentSection, startedAt } = get();
         const finalCompleted = currentSection && !completedSections.includes(currentSection) && get().tutorialType === 'core'
           ? [...completedSections, currentSection]
           : completedSections;
+
+        const completedAt = new Date().toISOString();
+        const timeSpentMs = startedAt ? new Date(completedAt).getTime() - new Date(startedAt).getTime() : 0;
+
+        // Claim tutorial completion bonus reward
+        const characterId = useCharacterStore.getState().currentCharacter?._id;
+        if (characterId) {
+            // Claim the special 'tutorial-complete' bonus reward
+            tutorialService.claimReward('tutorial-complete', characterId)
+                .then((result) => {
+                    if (result.success && result.data?.rewards) {
+                        logger.info('[Tutorial] Completion bonus claimed:', { context: 'useTutorialStore.completeTutorial', rewards: result.data.rewards });
+                        if (result.data.character) {
+                            useCharacterStore.getState().updateCharacter({
+                                gold: result.data.character.gold,
+                                experience: result.data.character.experience,
+                                level: result.data.character.level,
+                            });
+                        }
+                    }
+                })
+                .catch((err) => logger.warn('[Tutorial] Failed to claim completion bonus:', { context: 'useTutorialStore.completeTutorial', error: err }));
+
+            // Send analytics to server
+            tutorialService.trackAnalytics(characterId, {
+                event: 'complete',
+                sectionId: currentSection || 'tutorial',
+                progress: 100,
+                timeSpentMs,
+                tutorialType: 'core',
+            }).catch((err) => logger.warn('[Tutorial] Failed to track completion analytics:', { context: 'useTutorialStore.completeTutorial', error: err }));
+        }
 
         set({
           isActive: false,
@@ -564,7 +585,8 @@ export const useTutorialStore = create<TutorialState>()(
           currentStep: 0,
           currentDialogueLine: 0,
           tutorialType: null,
-          completedAt: new Date().toISOString(),
+          completedAt,
+          showCompletionModal: true, // Show the completion celebration modal
         });
       },
 
@@ -581,6 +603,11 @@ export const useTutorialStore = create<TutorialState>()(
       // Dismiss resume prompt without resuming
       dismissResumePrompt: () => {
         set({ showResumePrompt: false });
+      },
+
+      // Dismiss completion celebration modal
+      dismissCompletionModal: () => {
+        set({ showCompletionModal: false });
       },
 
       // Unlock a deep-dive module
@@ -616,11 +643,22 @@ export const useTutorialStore = create<TutorialState>()(
 
       // Complete a required action
       completeAction: (actionId: string) => {
-        const state = get();
-        const step = state.getCurrentStep();
+        // Use callback form to avoid race condition with concurrent calls
+        set((state) => {
+          if (state.completedActions.includes(actionId)) {
+            return state; // Already completed, no change
+          }
+          return {
+            ...state,
+            completedActions: [...state.completedActions, actionId],
+          };
+        });
 
+        // Check for auto-advance using the latest state after update
+        const step = get().getCurrentStep();
         if (step?.requiresAction === actionId) {
-          // Action completed - can now proceed
+          // Resume tutorial if it was paused (minimized) and advance to next step
+          set({ isPaused: false });
           get().nextStep();
         }
       },
@@ -640,11 +678,10 @@ export const useTutorialStore = create<TutorialState>()(
           tutorialType: state.tutorialType || 'core', // Default to core if null
         };
 
-        // Log to console in development
         if (import.meta.env.DEV) {
-          console.log('[Tutorial Analytics] Skip:', event);
-          console.log(`  Section: ${sectionId}, Step: ${stepId}`);
-          console.log(`  Progress: ${event.progress}%, Time spent: ${Math.round(timeSpentMs / 1000)}s`);
+          logger.info('[Tutorial Analytics] Skip:', { context: 'useTutorialStore.trackSkip', event, sectionId, stepId });
+          logger.info(`[Tutorial]   Section: ${sectionId}, Step: ${stepId}`, { context: 'useTutorialStore.trackSkip' });
+          logger.info(`[Tutorial]   Progress: ${event.progress}%, Time spent: ${Math.round(timeSpentMs / 1000)}s`, { context: 'useTutorialStore.trackSkip' });
         }
 
         // Store in state
@@ -655,8 +692,18 @@ export const useTutorialStore = create<TutorialState>()(
           },
         }));
 
-        // TODO: Optionally send to API endpoint
-        // apiClient.post('/api/analytics/tutorial-skip', event);
+        // Send skip analytics to server
+        const characterId = useCharacterStore.getState().currentCharacter?._id;
+        if (characterId) {
+            tutorialService.trackAnalytics(characterId, {
+                event: 'skip',
+                sectionId,
+                stepId,
+                progress: event.progress,
+                timeSpentMs,
+                tutorialType: event.tutorialType,
+            }).catch((err) => logger.warn('[Tutorial] Failed to track skip analytics:', { context: 'useTutorialStore.trackSkip', error: err }));
+        }
       },
 
       // Track section completion
@@ -672,10 +719,9 @@ export const useTutorialStore = create<TutorialState>()(
           tutorialType: state.tutorialType || 'core', // Default to core if null
         };
 
-        // Log to console in development
         if (import.meta.env.DEV) {
-          console.log('[Tutorial Analytics] Complete:', event);
-          console.log(`  Section: ${sectionId}, Time spent: ${Math.round(timeSpentMs / 1000)}s`);
+          logger.info('[Tutorial Analytics] Complete:', { context: 'useTutorialStore.trackCompletion', event, sectionId });
+          logger.info(`[Tutorial]   Section: ${sectionId}, Time spent: ${Math.round(timeSpentMs / 1000)}s`, { context: 'useTutorialStore.trackCompletion' });
         }
 
         // Store in state
@@ -686,8 +732,16 @@ export const useTutorialStore = create<TutorialState>()(
           },
         }));
 
-        // TODO: Optionally send to API endpoint
-        // apiClient.post('/api/analytics/tutorial-complete', event);
+        // Send section completion analytics to server
+        const characterId = useCharacterStore.getState().currentCharacter?._id;
+        if (characterId) {
+            tutorialService.trackAnalytics(characterId, {
+                event: 'section_complete',
+                sectionId,
+                timeSpentMs,
+                tutorialType: event.tutorialType,
+            }).catch((err) => logger.warn('[Tutorial] Failed to track section completion:', { context: 'useTutorialStore.trackCompletion', error: err }));
+        }
       },
 
       // Get analytics summary
@@ -728,10 +782,9 @@ export const useTutorialStore = create<TutorialState>()(
 
       // Get current section object
       getCurrentSection: () => {
-        const { currentSection, tutorialType } = get();
-        if (!currentSection || !tutorialType) return undefined;
-        const targetSections = tutorialType === 'core' ? CORE_TUTORIAL_SECTIONS : DEEP_DIVE_TUTORIALS;
-        return targetSections.find(s => s.id === currentSection);
+        const { currentSection, activePath } = get();
+        if (!currentSection) return undefined;
+        return activePath.find(s => s.id === currentSection);
       },
 
       // Get current step object
@@ -743,27 +796,57 @@ export const useTutorialStore = create<TutorialState>()(
 
       // Calculate total progress percentage (only for core tutorial)
       getTotalProgress: () => {
-        const { completedSections, currentSection, currentStep } = get();
+        const { completedSections, currentSection, currentStep, activePath, tutorialType } = get();
+
+        // Only calculate for core tutorial
+        if (tutorialType !== 'core') return 0;
 
         let completedSteps = 0;
 
         // Count steps in completed sections
-        for (const section of CORE_TUTORIAL_SECTIONS) {
+        for (const section of activePath) {
           if (completedSections.includes(section.id)) {
             completedSteps += section.steps.length;
           }
         }
 
-        // Add current progress in active section if it's a core tutorial
-        if (currentSection && get().tutorialType === 'core' && !completedSections.includes(currentSection)) {
-          const currentCoreSection = CORE_TUTORIAL_SECTIONS.find(s => s.id === currentSection);
+        // Add current progress in active section
+        if (currentSection && !completedSections.includes(currentSection)) {
+          const currentCoreSection = activePath.find(s => s.id === currentSection);
           if (currentCoreSection) {
             completedSteps += currentStep;
           }
         }
 
-        const coreTotalSteps = CORE_TUTORIAL_SECTIONS.reduce((sum, s) => sum + s.steps.length, 0);
+        const coreTotalSteps = activePath.reduce((sum, s) => sum + s.steps.length, 0);
         return coreTotalSteps > 0 ? Math.round((completedSteps / coreTotalSteps) * 100) : 0;
+      },
+
+      // Get total number of steps completed (for mandatory step enforcement)
+      getTotalStepsCompleted: () => {
+        const { completedSections, currentSection, currentStep, activePath } = get();
+
+        let completedSteps = 0;
+
+        // Count steps in completed sections
+        for (const section of activePath) {
+          if (completedSections.includes(section.id)) {
+            completedSteps += section.steps.length;
+          }
+        }
+
+        // Add current progress in active section (current step index = completed steps in this section)
+        if (currentSection && !completedSections.includes(currentSection)) {
+          completedSteps += currentStep;
+        }
+
+        return completedSteps;
+      },
+
+      // Check if mandatory steps are completed to allow skipping
+      canSkipTutorial: () => {
+        const totalCompleted = get().getTotalStepsCompleted();
+        return totalCompleted >= MANDATORY_STEPS;
       },
 
       // Check if current step can proceed (action requirements met)
@@ -772,44 +855,42 @@ export const useTutorialStore = create<TutorialState>()(
         if (!step?.requiresAction) return true;
 
         const state = get();
+        const actionId = step.requiresAction;
 
-        // Implement more sophisticated action checks here
-        switch (step.requiresAction) {
-            case 'click-dashboard': return true; // Handled by UI click event
-            case 'open-character-panel': return true;
-            case 'navigate-to-red-gulch': return true;
-            case 'draw-cards': return state.practiceDrawCount >= 1;
-            case 'accept-job-general-labor': return true;
-            case 'complete-job-general-labor': return true; // This will need a backend check
-            case 'travel-to-mine': return true;
-            case 'complete-job-mine-iron-ore': return true;
-            case 'open-inventory': return true;
-            case 'navigate-crafting': return true;
-            case 'craft-recipe-silver-ingot': return true;
-            case 'navigate-marketplace': return true;
-            case 'sell-item-silver-ingot': return true;
-            case 'travel-to-wild-encounter': return true;
-            case 'initiate-combat-coyote': return true;
-            case 'use-item-predator-scent-gland': return true;
-            case 'defeat-wildlife-for-perfect-hide': return true;
-            case 'equip-masterwork-skinning-knife': return true;
-            case 'craft-recipe-blade-blank': return true;
-            case 'craft-recipe-rough-iron-sword': return true;
-            case 'equip-tool-blacksmith-good': return true;
-            case 'toggle-skills': return state.skillToggleUsed;
-            case 'achieve-good-hand':
-                 // This would require checking the last hand drawn quality
-                 // For now, simply requiring a practice draw will suffice
+        // Special cases that have dedicated tracking (not in completedActions)
+        switch (actionId) {
+            case 'draw-cards':
                 return state.practiceDrawCount >= 1;
-            default:
-                console.warn(`Unhandled requiresAction: ${step.requiresAction}`);
-                return false;
+            case 'toggle-skills':
+                return state.skillToggleUsed;
+            case 'achieve-good-hand':
+                // Requires a practice draw with quality tracking
+                return state.practiceDrawCount >= 1;
         }
+
+        // Check if this action has been completed via completeAction()
+        // This covers all game interactions like navigation, jobs, crafting, combat, etc.
+        if (state.completedActions.includes(actionId)) {
+            return true;
+        }
+
+        // Action not yet completed - player must perform it
+        return false;
       },
 
       // Get all available deep-dive modules (based on unlock conditions)
       getAvailableDeepDives: () => {
           const state = get();
+          // Get character data for level checks
+          const character = useCharacterStore.getState().currentCharacter;
+          const characterLevel = character?.level ?? 1;
+          // Get skill data for profession level checks
+          const skillData = useSkillStore.getState().skillData;
+          const getSkillLevel = (skillId: string): number => {
+              const skill = skillData?.find((sd) => sd.skillId === skillId);
+              return skill?.level ?? 0;
+          };
+
           return DEEP_DIVE_TUTORIALS.filter(dd => {
               if (state.completedDeepDives.includes(dd.id)) return false; // Already completed
               if (state.unlockedDeepDives.includes(dd.id)) return true; // Manually unlocked
@@ -818,8 +899,11 @@ export const useTutorialStore = create<TutorialState>()(
               const conditions = dd.unlockCondition;
               if (!conditions) return true; // Always available if no conditions
 
-              if (conditions.minLevel && (/*characterLevel*/ 0 < conditions.minLevel)) return false;
-              if (conditions.professionId && conditions.minProfessionLevel && (/*characterProfessionLevel*/ 0 < conditions.minProfessionLevel)) return false;
+              if (conditions.minLevel && characterLevel < conditions.minLevel) return false;
+              if (conditions.professionId && conditions.minProfessionLevel) {
+                  const professionLevel = getSkillLevel(conditions.professionId);
+                  if (professionLevel < conditions.minProfessionLevel) return false;
+              }
               if (conditions.completedCoreSections && !conditions.completedCoreSections.every(sectionId => state.completedSections.includes(sectionId))) return false;
 
               return true;
@@ -843,6 +927,7 @@ export const useTutorialStore = create<TutorialState>()(
         currentStep: state.currentStep,
         currentDialogueLine: state.currentDialogueLine,
         tutorialType: state.tutorialType, // Persist new field
+        activePath: state.activePath, // Persist the path!
         startedAt: state.startedAt,
         completedAt: state.completedAt,
         skipCount: state.skipCount,
@@ -850,23 +935,36 @@ export const useTutorialStore = create<TutorialState>()(
         practiceDrawCount: state.practiceDrawCount,
         skillToggleUsed: state.skillToggleUsed,
         analytics: state.analytics,
+        completedActions: state.completedActions, // Persist completed tutorial actions
         unlockedDeepDives: state.unlockedDeepDives, // Persist new field
+        characterId: state.characterId, // Persist character ID for per-character tutorial state
       }),
-      onRehydrate: (state) => {
-        // Show resume prompt if tutorial was in progress
+      onRehydrateStorage: () => (state) => {
+        // Get the current character ID (may be null on initial load)
+        const currentCharacterId = useCharacterStore.getState().currentCharacter?._id;
+
+        // Show resume prompt only if tutorial was in progress AND belongs to current character
         if (state && state.currentSection && !state.tutorialCompleted) {
-          state.showResumePrompt = true;
-          state.isActive = false;
-          state.isPaused = true;
+          if (state.characterId && state.characterId === currentCharacterId) {
+            // Same character - show resume prompt
+            state.showResumePrompt = true;
+            state.isActive = false;
+            state.isPaused = true;
+          } else {
+            // Different character or no character yet - reset tutorial state for fresh start
+            state.showResumePrompt = false;
+            state.currentSection = null;
+            state.currentStep = 0;
+            state.currentDialogueLine = 0;
+            state.isActive = false;
+            state.isPaused = false;
+            state.characterId = null;
+          }
         }
       },
     }
   )
 );
-
-// Combine all sections for tracking total steps
-const ALL_TUTORIAL_SECTIONS = [...CORE_TUTORIAL_SECTIONS, ...DEEP_DIVE_TUTORIALS];
-const TOTAL_STEPS = ALL_TUTORIAL_SECTIONS.reduce((sum, s) => sum + s.steps.length, 0);
 
 // Helper to get section by ID
 export const getTutorialSection = (sectionId: string, type: 'core' | 'deep_dive'): TutorialSection | undefined => {
@@ -876,7 +974,7 @@ export const getTutorialSection = (sectionId: string, type: 'core' | 'deep_dive'
 
 // Get total estimated time
 export const getTotalEstimatedMinutes = (): number => {
-  return ALL_TUTORIAL_SECTIONS.reduce((sum, s) => sum + s.estimatedMinutes, 0);
+  return TUTORIAL_SECTIONS.reduce((sum, s) => sum + s.estimatedMinutes, 0);
 };
 
 export default useTutorialStore;

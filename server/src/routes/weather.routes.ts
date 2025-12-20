@@ -14,6 +14,8 @@ import {
   getWeatherTypes,
 } from '../controllers/weather.controller';
 import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = express.Router();
 
@@ -22,41 +24,41 @@ const router = express.Router();
  * @desc    Get current weather for all regions
  * @access  Public
  */
-router.get('/', getAllWeather);
+router.get('/', asyncHandler(getAllWeather));
 
 /**
  * @route   GET /api/weather/types
  * @desc    Get all available weather types and effects
  * @access  Public
  */
-router.get('/types', getWeatherTypes);
+router.get('/types', asyncHandler(getWeatherTypes));
 
 /**
  * @route   GET /api/weather/region/:region
  * @desc    Get current weather for a specific region
  * @access  Public
  */
-router.get('/region/:region', getRegionWeather);
+router.get('/region/:region', asyncHandler(getRegionWeather));
 
 /**
  * @route   GET /api/weather/location/:locationId
  * @desc    Get current weather at a specific location
  * @access  Public
  */
-router.get('/location/:locationId', getLocationWeather);
+router.get('/location/:locationId', asyncHandler(getLocationWeather));
 
 /**
  * @route   POST /api/weather/update
  * @desc    Manually trigger weather update
  * @access  Private (can be used by cron jobs)
  */
-router.post('/update', updateWeather);
+router.post('/update', requireCsrfToken, asyncHandler(updateWeather));
 
 /**
  * @route   POST /api/weather/set
  * @desc    Admin endpoint to set weather for testing
  * @access  Private (Admin only)
  */
-router.post('/set', requireAuth, requireAdmin, setWeather);
+router.post('/set', requireAuth, requireAdmin, requireCsrfToken, asyncHandler(setWeather));
 
 export default router;

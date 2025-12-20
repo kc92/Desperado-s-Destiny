@@ -10,6 +10,8 @@ import { extractToken, verifyToken } from '../utils/jwt';
 import { User } from '../models/User.model';
 import logger from '../utils/logger';
 import { SafeUser } from '@desperados/shared';
+import { TokenManagementService } from '../services/tokenManagement.service';
+import { config } from '../config';
 
 /**
  * Extended Request interface with authenticated user
@@ -31,11 +33,61 @@ export async function requireAuth(
     // Extract token from cookie or header
     const token = extractToken(req);
 
+    // DIAGNOSTIC LOGGING FOR E2E TEST DEBUGGING
+    logger.debug('[AUTH MIDDLEWARE]', {
+      path: req.path,
+      method: req.method,
+      hasCookies: !!req.cookies,
+      cookieKeys: req.cookies ? Object.keys(req.cookies) : [],
+      hasTokenCookie: !!(req.cookies && req.cookies.token),
+      tokenExtracted: !!token,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'null',
+      authHeader: req.headers.authorization ? 'present' : 'absent'
+    });
+
     if (!token) {
+      logger.debug('[AUTH MIDDLEWARE] No token found', {
+        path: req.path,
+        cookies: req.cookies,
+        headers: { authorization: req.headers.authorization }
+      });
       throw new AppError(
         'Authentication required. Please log in.',
         HttpStatus.UNAUTHORIZED
       );
+    }
+
+    // Check if token is blacklisted (user logged out)
+    try {
+      const isBlacklisted = await TokenManagementService.isTokenBlacklisted(token);
+      if (isBlacklisted) {
+        logger.warn('[AUTH MIDDLEWARE] Blocked blacklisted token', { path: req.path });
+        throw new AppError(
+          'Session has expired. Please log in again.',
+          HttpStatus.UNAUTHORIZED
+        );
+      }
+    } catch (blacklistError) {
+      // If it's an AppError (e.g., token was blacklisted), always propagate it
+      if (blacklistError instanceof AppError) {
+        throw blacklistError;
+      }
+
+      // For infrastructure errors (e.g., Redis down):
+      // SECURITY: ALWAYS fail closed - reject request when auth services are unavailable
+      // The only exception is if ALLOW_AUTH_FAIL_OPEN=true AND NODE_ENV=test
+      // This requires BOTH conditions to prevent accidental fail-open in any environment
+      const allowFailOpen = process.env.ALLOW_AUTH_FAIL_OPEN === 'true' && process.env.NODE_ENV === 'test';
+
+      if (allowFailOpen) {
+        logger.warn('[AUTH MIDDLEWARE] Blacklist check failed - FAIL OPEN enabled for testing:', blacklistError);
+      } else {
+        logger.error('[AUTH MIDDLEWARE] Blacklist check failed - failing closed:', blacklistError);
+        throw new AppError(
+          'Authentication service temporarily unavailable. Please try again.',
+          HttpStatus.SERVICE_UNAVAILABLE
+        );
+      }
     }
 
     // Verify token
@@ -275,6 +327,12 @@ export async function requireCharacter(
     }
   }
 }
+
+/**
+ * Type alias for backward compatibility with deprecated requireAuth.ts
+ * @deprecated Use AuthenticatedRequest instead
+ */
+export type AuthRequest = AuthenticatedRequest;
 
 export default {
   requireAuth,

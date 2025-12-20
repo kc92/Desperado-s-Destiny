@@ -6,7 +6,9 @@
 
 import { Request, Response } from 'express';
 import { EnergyService } from '../services/energy.service';
+import deityDreamService from '../services/deityDream.service';
 import logger from '../utils/logger';
+import { sanitizeErrorMessage } from '../utils/errors';
 
 export class EnergyController {
   /**
@@ -20,7 +22,7 @@ export class EnergyController {
       // Regenerate energy before returning status
       EnergyService.regenerateEnergy(character);
 
-      const timeUntilFull = EnergyService.getTimeUntilFullEnergy(character);
+      const timeUntilFull = await EnergyService.getTimeUntilFullEnergy(character);
 
       res.json({
         success: true,
@@ -37,7 +39,7 @@ export class EnergyController {
       logger.error('Error getting energy status:', error);
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to get energy status'
+        error: sanitizeErrorMessage(error)
       });
     }
   }
@@ -81,7 +83,7 @@ export class EnergyController {
       logger.error('Error spending energy:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to spend energy'
+        error: sanitizeErrorMessage(error)
       });
     }
   }
@@ -118,7 +120,7 @@ export class EnergyController {
       logger.error('Error granting energy:', error);
       res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to grant energy'
+        error: sanitizeErrorMessage(error)
       });
     }
   }
@@ -155,7 +157,7 @@ export class EnergyController {
       logger.error('Error checking energy affordability:', error);
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to check energy'
+        error: sanitizeErrorMessage(error)
       });
     }
   }
@@ -169,7 +171,7 @@ export class EnergyController {
       const character = req.character!;
 
       // Calculate regeneration
-      const regenAmount = EnergyService.calculateRegenAmount(character);
+      const regenAmount = await EnergyService.calculateRegenAmount(character);
 
       // Apply regeneration
       EnergyService.regenerateEnergy(character);
@@ -190,7 +192,82 @@ export class EnergyController {
       logger.error('Error regenerating energy:', error);
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to regenerate energy'
+        error: sanitizeErrorMessage(error)
+      });
+    }
+  }
+
+  /**
+   * POST /api/energy/rest
+   * Rest to restore energy and potentially receive divine dreams
+   *
+   * The character enters a resting state which:
+   * 1. Instantly restores a portion of max energy
+   * 2. May trigger divine dreams from The Gambler or Outlaw King
+   * 3. Dreams provide visions, warnings, or omens
+   *
+   * Body: { restType?: 'short' | 'long' }
+   * - short: Restore 25% energy, lower dream chance (default)
+   * - long: Restore 50% energy, higher dream chance
+   */
+  static async rest(req: Request, res: Response): Promise<void> {
+    try {
+      const character = req.character!;
+      const characterId = character._id.toString();
+      const { restType = 'short' } = req.body;
+
+      // Validate rest type
+      if (restType !== 'short' && restType !== 'long') {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid rest type. Use "short" or "long"'
+        });
+        return;
+      }
+
+      // Calculate energy restoration
+      const restorePercent = restType === 'long' ? 0.5 : 0.25;
+      const energyToRestore = Math.floor(character.maxEnergy * restorePercent);
+
+      // Grant energy (capped at max)
+      const result = await EnergyService.grant(characterId, energyToRestore, false);
+
+      if (!result.success) {
+        res.status(400).json({
+          success: false,
+          error: result.error || 'Failed to restore energy'
+        });
+        return;
+      }
+
+      // Check for divine dreams during rest
+      // Longer rests have higher dream chance
+      const dreamResult = await deityDreamService.checkForDream(characterId, restType);
+
+      logger.info(`Character ${character.name} rested (${restType}). Restored ${energyToRestore} energy.`);
+
+      res.json({
+        success: true,
+        data: {
+          restType,
+          energyRestored: energyToRestore,
+          currentEnergy: result.currentEnergy,
+          maxEnergy: result.maxEnergy,
+          dream: dreamResult ? {
+            received: true,
+            deity: dreamResult.deity,
+            dreamType: dreamResult.dreamType,
+            message: dreamResult.message
+          } : {
+            received: false
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('Error during rest:', error);
+      res.status(500).json({
+        success: false,
+        error: sanitizeErrorMessage(error)
       });
     }
   }

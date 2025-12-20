@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { getWorldState, getGameTime, getWeather } from '../controllers/world.controller';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
 
@@ -13,20 +14,20 @@ const router = Router();
  * @desc    Get current world state (time, weather, factions, news)
  * @access  Public
  */
-router.get('/state', getWorldState);
+router.get('/state', asyncHandler(getWorldState));
 
 /**
  * @route   GET /api/world/time
  * @desc    Get current game time
  * @access  Public
  */
-router.get('/time', getGameTime);
+router.get('/time', asyncHandler(getGameTime));
 
 /**
  * @route   GET /api/world/weather
  * @desc    Get current weather conditions
  * @access  Public
  */
-router.get('/weather', getWeather);
+router.get('/weather', asyncHandler(getWeather));
 
 export default router;

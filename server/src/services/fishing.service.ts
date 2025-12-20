@@ -24,7 +24,10 @@ import {
 import { getFishSpecies, getFishByLocation } from '../data/fishSpecies';
 import { getFishingLocation } from '../data/fishingLocations';
 import { getRod, getReel, getLine, getBait, getLure, calculateBaitEffectiveness, calculateLureEffectiveness } from '../data/fishingGear';
+import { EnergyService } from './energy.service';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
+import { withLock } from '../utils/distributedLock';
 
 export class FishingService {
   /**
@@ -75,17 +78,19 @@ export class FishingService {
         };
       }
 
-      // Check energy
-      if (character.energy < FISHING_CONSTANTS.CAST_ENERGY) {
+      // Check and deduct energy
+      const hasEnergy = await EnergyService.spendEnergy(
+        characterId,
+        FISHING_CONSTANTS.CAST_ENERGY,
+        'cast_line'
+      );
+
+      if (!hasEnergy) {
         return {
           success: false,
           message: `Need ${FISHING_CONSTANTS.CAST_ENERGY} energy to cast`
         };
       }
-
-      // Deduct energy
-      character.energy -= FISHING_CONSTANTS.CAST_ENERGY;
-      await character.save();
 
       // Determine time of day and weather (simplified - would use game time service)
       const timeOfDay = this.getCurrentTimeOfDay();
@@ -135,63 +140,77 @@ export class FishingService {
         };
       }
 
-      if (!trip.isWaiting) {
-        return {
-          success: false,
-          message: 'Not waiting for bite'
-        };
-      }
+      // Use distributed lock to prevent race conditions when checking for bites
+      const lockKey = `lock:fishing:${trip._id}`;
 
-      if (trip.hasBite) {
-        return {
-          success: true,
-          message: 'You already have a bite! Set the hook quickly!',
-          hasBite: true,
-          biteTimeWindow: trip.biteExpiresAt ?
-            Math.max(0, trip.biteExpiresAt.getTime() - Date.now()) : 0
-        };
-      }
+      return withLock(lockKey, async () => {
+        // Re-fetch trip inside lock to get latest state
+        const lockedTrip = await FishingTrip.findById(trip._id);
+        if (!lockedTrip) {
+          return {
+            success: false,
+            message: 'No active fishing session'
+          };
+        }
 
-      // Check if enough time has passed
-      const timeSinceLastCheck = Date.now() - trip.lastBiteCheck.getTime();
-      if (timeSinceLastCheck < FISHING_CONSTANTS.BITE_CHECK_INTERVAL * 1000) {
-        return {
-          success: true,
-          message: 'Still waiting... be patient.',
-          session: trip.toSafeObject()
-        };
-      }
+        if (!lockedTrip.isWaiting) {
+          return {
+            success: false,
+            message: 'Not waiting for bite'
+          };
+        }
 
-      // Roll for bite
-      const biteRoll = await this.rollForBite(trip);
+        if (lockedTrip.hasBite) {
+          return {
+            success: true,
+            message: 'You already have a bite! Set the hook quickly!',
+            hasBite: true,
+            biteTimeWindow: lockedTrip.biteExpiresAt ?
+              Math.max(0, lockedTrip.biteExpiresAt.getTime() - Date.now()) : 0
+          };
+        }
 
-      trip.lastBiteCheck = new Date();
+        // Check if enough time has passed
+        const timeSinceLastCheck = Date.now() - lockedTrip.lastBiteCheck.getTime();
+        if (timeSinceLastCheck < FISHING_CONSTANTS.BITE_CHECK_INTERVAL * 1000) {
+          return {
+            success: true,
+            message: 'Still waiting... be patient.',
+            session: lockedTrip.toSafeObject()
+          };
+        }
 
-      if (biteRoll.success) {
-        // Got a bite!
-        trip.hasBite = true;
-        const biteWindow = biteRoll.fish!.biteSpeed;
-        trip.biteExpiresAt = new Date(Date.now() + biteWindow);
+        // Roll for bite
+        const biteRoll = await this.rollForBite(lockedTrip);
 
-        await trip.save();
+        lockedTrip.lastBiteCheck = new Date();
 
-        return {
-          success: true,
-          message: 'You feel a bite! Set the hook now!',
-          hasBite: true,
-          biteTimeWindow: biteWindow,
-          session: trip.toSafeObject()
-        };
-      } else {
-        // No bite yet
-        await trip.save();
+        if (biteRoll.success) {
+          // Got a bite!
+          lockedTrip.hasBite = true;
+          const biteWindow = biteRoll.fish!.biteSpeed;
+          lockedTrip.biteExpiresAt = new Date(Date.now() + biteWindow);
 
-        return {
-          success: true,
-          message: 'Nothing yet. Keep waiting...',
-          session: trip.toSafeObject()
-        };
-      }
+          await lockedTrip.save();
+
+          return {
+            success: true,
+            message: 'You feel a bite! Set the hook now!',
+            hasBite: true,
+            biteTimeWindow: biteWindow,
+            session: lockedTrip.toSafeObject()
+          };
+        } else {
+          // No bite yet
+          await lockedTrip.save();
+
+          return {
+            success: true,
+            message: 'Nothing yet. Keep waiting...',
+            session: lockedTrip.toSafeObject()
+          };
+        }
+      }, { ttl: 30, retries: 3 });
     } catch (error) {
       logger.error('Error checking for bite:', error);
       return {
@@ -245,7 +264,7 @@ export class FishingService {
       const fish = lastRoll.fish;
 
       // Hook difficulty check
-      const hookSuccess = Math.random() * 100 < (100 - fish.hookDifficulty);
+      const hookSuccess = SecureRNG.d100() < (100 - fish.hookDifficulty);
 
       if (!hookSuccess) {
         trip.hasBite = false;
@@ -329,8 +348,8 @@ export class FishingService {
 
       return {
         success: true,
-        message: `Fishing session ended. Caught ${trip.catchCount} fish for ${trip.totalValue} gold.`,
-        goldGained: trip.totalValue,
+        message: `Fishing session ended. Caught ${trip.catchCount} fish for ${trip.totalValue} dollars.`,
+        dollarsGained: trip.totalValue,
         experienceGained: trip.totalExperience
       };
     } catch (error) {
@@ -425,21 +444,15 @@ export class FishingService {
     const totalWeight = weightedPool.reduce((sum, entry) => sum + entry.weight, 0);
 
     // Roll for bite
-    const biteRoll = Math.random() * 100;
+    const biteRoll = SecureRNG.d100();
     if (biteRoll > totalWeight) {
       return { success: false }; // No bite this check
     }
 
-    // Select which fish bit
-    let roll = Math.random() * totalWeight;
-    for (const entry of weightedPool) {
-      roll -= entry.weight;
-      if (roll <= 0) {
-        return { success: true, fish: entry.fish };
-      }
-    }
-
-    return { success: false };
+    // Select which fish bit using weighted selection
+    const weightedItems = weightedPool.map(entry => ({ item: entry.fish, weight: entry.weight }));
+    const selectedFish = SecureRNG.weightedSelect(weightedItems);
+    return { success: true, fish: selectedFish };
   }
 
   /**
@@ -454,8 +467,8 @@ export class FishingService {
     // Generate using Box-Muller transform for normal distribution
     let weight = -1;
     while (weight < fish.minWeight || weight > fish.maxWeight) {
-      const u1 = Math.random();
-      const u2 = Math.random();
+      const u1 = SecureRNG.float(0, 1);
+      const u2 = SecureRNG.float(0, 1);
       const randNormal = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
       weight = fish.averageWeight + (randNormal * range * 0.2);
     }
@@ -504,7 +517,7 @@ export class FishingService {
    */
   private static getCurrentWeather(): FishingWeather {
     // For now, random
-    const roll = Math.random();
+    const roll = SecureRNG.float(0, 1);
     if (roll < 0.5) return FishingWeather.CLEAR;
     if (roll < 0.75) return FishingWeather.CLOUDY;
     if (roll < 0.9) return FishingWeather.RAIN;
@@ -521,17 +534,17 @@ export class FishingService {
     size: FishSize,
     quality: number
   ): {
-    goldValue: number;
+    dollarsValue: number;
     experience: number;
   } {
     const sizeMultiplier = FISHING_CONSTANTS.SIZE_MULTIPLIER[size];
 
-    let goldValue = Math.floor(fish.baseValue * sizeMultiplier);
+    let dollarsValue = Math.floor(fish.baseValue * sizeMultiplier);
     let experience = Math.floor(fish.experience * sizeMultiplier);
 
     // Quality bonus (perfect fight)
     if (quality >= 90) {
-      goldValue = Math.floor(goldValue * (1 + FISHING_CONSTANTS.PERFECT_FIGHT_BONUS));
+      dollarsValue = Math.floor(dollarsValue * (1 + FISHING_CONSTANTS.PERFECT_FIGHT_BONUS));
       experience = Math.floor(experience * (1 + FISHING_CONSTANTS.PERFECT_FIGHT_BONUS));
     }
 
@@ -542,7 +555,7 @@ export class FishingService {
       experience += FISHING_CONSTANTS.RARE_CATCH_BONUS;
     }
 
-    return { goldValue, experience };
+    return { dollarsValue, experience };
   }
 
   /**
@@ -556,9 +569,8 @@ export class FishingService {
     const drops: { itemId: string; quantity: number }[] = [];
 
     for (const dropDef of fish.drops) {
-      if (Math.random() <= dropDef.chance) {
-        const quantity = dropDef.quantity[0] +
-          Math.floor(Math.random() * (dropDef.quantity[1] - dropDef.quantity[0] + 1));
+      if (SecureRNG.chance(dropDef.chance)) {
+        const quantity = SecureRNG.range(dropDef.quantity[0], dropDef.quantity[1]);
 
         drops.push({
           itemId: dropDef.itemId,

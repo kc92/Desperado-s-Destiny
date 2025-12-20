@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ICharacter } from '../models/Character.model';
 import { LocationRequirements } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 export interface AccessCheckResult {
   canAccess: boolean;
@@ -258,7 +259,7 @@ export function calculateDangerChance(
  * Roll for random encounter
  */
 export function rollForEncounter(chance: number): boolean {
-  return Math.random() * 100 < chance;
+  return SecureRNG.d100() < chance;
 }
 
 export default {

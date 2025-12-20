@@ -24,6 +24,11 @@ export async function login(credentials: LoginCredentials): Promise<User> {
  */
 export async function register(credentials: RegisterCredentials): Promise<User> {
   const response = await apiCall<{ user: User }>('post', '/auth/register', credentials);
+
+  if (!response.user) {
+    throw new Error('Invalid response structure');
+  }
+
   return response.user;
 }
 
@@ -75,6 +80,14 @@ export async function resetPassword(token: string, newPassword: string): Promise
   return apiCall<void>('post', '/auth/reset-password', { token, newPassword });
 }
 
+/**
+ * Get CSRF token for secure form submissions
+ */
+export async function getCsrfToken(): Promise<string> {
+  const response = await apiCall<{ csrfToken: string }>('get', '/auth/csrf-token');
+  return response.csrfToken;
+}
+
 const authService = {
   login,
   register,
@@ -84,6 +97,7 @@ const authService = {
   verifyEmail,
   requestPasswordReset,
   resetPassword,
+  getCsrfToken,
 };
 
 export default authService;

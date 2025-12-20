@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Death type enumeration
 export type DeathType = 'COMBAT' | 'DUEL' | 'PVP' | 'EXECUTION' | 'ENVIRONMENTAL' | 'DISEASE' | 'STARVATION';
@@ -111,7 +112,7 @@ export const useDeath = (): UseDeathReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch death status';
       setError(errorMessage);
-      console.error('[useDeath] Fetch status error:', err);
+      logger.error('[useDeath] Fetch status error:', err as Error, { context: { errorMessage } });
     } finally {
       setIsLoading(false);
     }
@@ -129,7 +130,7 @@ export const useDeath = (): UseDeathReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch death history';
       setError(errorMessage);
-      console.error('[useDeath] Fetch history error:', err);
+      logger.error('[useDeath] Fetch history error:', err as Error, { context: { errorMessage } });
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +142,7 @@ export const useDeath = (): UseDeathReturn => {
       const response = await api.get<{ data: { penalties: DeathPenaltyInfo[] } }>('/death/penalties');
       setPenaltyInfo(response.data.data.penalties || []);
     } catch (err: any) {
-      console.error('[useDeath] Fetch penalties error:', err);
+      logger.error('[useDeath] Fetch penalties error:', err as Error, { context: {} });
     }
   }, []);
 
@@ -172,7 +173,7 @@ export const useDeath = (): UseDeathReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to process death';
       setError(errorMessage);
-      console.error('[useDeath] Trigger death error:', err);
+      logger.error('[useDeath] Trigger death error:', err as Error, { context: { deathType, errorMessage } });
       return { success: false, message: errorMessage };
     }
   }, [refreshCharacter]);
@@ -199,7 +200,7 @@ export const useDeath = (): UseDeathReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to respawn';
       setError(errorMessage);
-      console.error('[useDeath] Respawn error:', err);
+      logger.error('[useDeath] Respawn error:', err as Error, { context: { locationId, errorMessage } });
       return { success: false, message: errorMessage };
     }
   }, [refreshCharacter]);
@@ -213,7 +214,7 @@ export const useDeath = (): UseDeathReturn => {
       );
       return response.data.data;
     } catch (err: any) {
-      console.error('[useDeath] Check jail error:', err);
+      logger.error('[useDeath] Check jail error:', err as Error, { context: { killerType } });
       return { shouldJail: false };
     }
   }, []);

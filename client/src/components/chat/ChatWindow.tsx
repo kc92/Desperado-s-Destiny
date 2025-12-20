@@ -4,11 +4,15 @@
  * Main chat interface with rooms, messages, and real-time updates
  */
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { RoomType } from '@desperados/shared';
+import type { ChatSettings as ChatSettingsType } from '@desperados/shared';
 import { useChatStore } from '@/store/useChatStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { useToastStore } from '@/store/useToastStore';
+import { useStorageSync, STORAGE_KEYS } from '@/hooks/useStorageSync';
+import { logger } from '@/services/logger.service';
 import { Message } from './Message';
 import { MessageInput } from './MessageInput';
 import { RoomTabs } from './RoomTabs';
@@ -17,7 +21,22 @@ import { TypingIndicator } from './TypingIndicator';
 import { WhisperModal } from './WhisperModal';
 import { ChatSettings } from './ChatSettings';
 
-export function ChatWindow() {
+interface ChatWindowProps {
+  /** Optional CSS class name for styling */
+  className?: string;
+
+  /** Default room to join on mount */
+  defaultRoom?: string;
+
+  /** Whether to auto-focus message input on mount */
+  autoFocus?: boolean;
+}
+
+export const ChatWindow = React.memo(function ChatWindow({
+  className,
+  defaultRoom = 'global',
+  autoFocus = false
+}: ChatWindowProps) {
   const { user } = useAuthStore();
   const { currentCharacter } = useCharacterStore();
   const {
@@ -36,6 +55,7 @@ export function ChatWindow() {
     cleanup,
     joinRoom,
     sendMessage,
+    retrySendMessage,
     setTyping,
     reportMessage,
     updateSettings,
@@ -54,15 +74,43 @@ export function ChatWindow() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Initialize chat ONCE when component mounts (not every time currentCharacter changes)
+  // Sync chat settings across tabs
+  const handleSettingsSync = useCallback((newSettings: ChatSettingsType | null) => {
+    if (newSettings) {
+      // Update store with settings from another tab (without triggering another localStorage write)
+      useChatStore.setState({ settings: newSettings });
+    }
+  }, []);
+
+  useStorageSync<ChatSettingsType>(STORAGE_KEYS.CHAT_SETTINGS, handleSettingsSync);
+
+  // Track initialization state to prevent StrictMode double-invocation issues
+  const initializedRef = useRef(false);
+  const mountIdRef = useRef<string | null>(null);
+
+  // Initialize chat ONCE when component mounts (with StrictMode protection)
   useEffect(() => {
+    // Skip if already initialized by this mount
+    if (initializedRef.current) {
+      return;
+    }
+
     if (user && currentCharacter) {
+      // Generate unique mount ID for this effect invocation
+      mountIdRef.current = crypto.randomUUID();
+      initializedRef.current = true;
+
       initialize();
-      joinRoom(RoomType.GLOBAL, 'global');
+      joinRoom(RoomType.GLOBAL, defaultRoom);
     }
 
     return () => {
-      cleanup();
+      // Only cleanup if this is still our mount (prevents StrictMode cleanup race)
+      if (mountIdRef.current && initializedRef.current) {
+        cleanup();
+        initializedRef.current = false;
+        mountIdRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only initialize once - don't reinitialize on every character update
@@ -90,59 +138,95 @@ export function ChatWindow() {
     setShowScrollButton(!isNearBottom);
   };
 
-  const handleSelectRoom = async (type: RoomType, id: string) => {
+  const handleSelectRoom = useCallback(async (type: RoomType, id: string) => {
     try {
       await joinRoom(type, id);
       scrollToBottom(false);
     } catch (error) {
-      console.error('Failed to join room:', error);
+      logger.error('Failed to join chat room', error as Error, { roomType: type, roomId: id });
+      useToastStore.getState().addToast({
+        type: 'error',
+        title: 'Chat Error',
+        message: 'Could not join room. Please try again.',
+        duration: 5000
+      });
     }
-  };
+  }, [joinRoom]);
 
-  const handleSendMessage = async (content: string, recipientId?: string) => {
+  const handleSendMessage = useCallback(async (content: string, recipientId?: string) => {
     try {
       await sendMessage(content, recipientId);
       scrollToBottom();
     } catch (error) {
-      console.error('Failed to send message:', error);
+      logger.error('Failed to send chat message', error as Error, {
+        messageLength: content.length,
+        hasRecipient: !!recipientId
+      });
+      useToastStore.getState().addToast({
+        type: 'error',
+        title: 'Send Failed',
+        message: 'Could not send message. Check your connection.',
+        duration: 5000
+      });
     }
-  };
+  }, [sendMessage]);
 
-  const handleReport = async (messageId: string) => {
+  const handleReport = useCallback(async (messageId: string) => {
     setReportingMessageId(messageId);
-  };
+  }, []);
 
-  const handleConfirmReport = async (reason: string) => {
+  const handleConfirmReport = useCallback(async (reason: string) => {
     if (!reportingMessageId) return;
 
     try {
       await reportMessage(reportingMessageId, reason);
       setReportingMessageId(null);
+      useToastStore.getState().addToast({
+        type: 'success',
+        title: 'Message Reported',
+        message: 'Thank you for reporting. We will review this message.',
+        duration: 3000
+      });
     } catch (error) {
-      console.error('Failed to report message:', error);
+      logger.error('Failed to report chat message', error as Error, { messageId: reportingMessageId });
+      useToastStore.getState().addToast({
+        type: 'error',
+        title: 'Report Failed',
+        message: 'Could not report message. Please try again.',
+        duration: 5000
+      });
     }
-  };
+  }, [reportingMessageId, reportMessage]);
 
-  const handleWhisper = (userId: string, username: string, faction?: string) => {
+  const handleWhisper = useCallback((userId: string, username: string, faction?: string) => {
     openWhisper(userId, username, faction || 'settler');
     setSelectedWhisper(userId);
-  };
+  }, [openWhisper]);
 
-  const getRoomKey = (type: RoomType, id: string): string => `${type}-${id}`;
+  const getRoomKey = useCallback(
+    (type: RoomType, id: string): string => `${type}-${id}`,
+    []
+  );
 
-  const activeRoomMessages = activeRoom
-    ? messages.get(getRoomKey(activeRoom.type, activeRoom.id)) || []
-    : [];
+  const activeRoomMessages = useMemo(() => {
+    return activeRoom
+      ? messages.get(getRoomKey(activeRoom.type, activeRoom.id)) || []
+      : [];
+  }, [activeRoom, messages, getRoomKey]);
 
-  const activeRoomOnlineUsers = activeRoom
-    ? onlineUsers.get(getRoomKey(activeRoom.type, activeRoom.id)) || []
-    : [];
+  const activeRoomOnlineUsers = useMemo(() => {
+    return activeRoom
+      ? onlineUsers.get(getRoomKey(activeRoom.type, activeRoom.id)) || []
+      : [];
+  }, [activeRoom, onlineUsers, getRoomKey]);
 
-  const activeRoomTypingUsers = activeRoom
-    ? (settings.showTypingIndicators
-        ? typingUsers.get(getRoomKey(activeRoom.type, activeRoom.id)) || []
-        : [])
-    : [];
+  const activeRoomTypingUsers = useMemo(() => {
+    return activeRoom
+      ? (settings.showTypingIndicators
+          ? typingUsers.get(getRoomKey(activeRoom.type, activeRoom.id)) || []
+          : [])
+      : [];
+  }, [activeRoom, settings.showTypingIndicators, typingUsers, getRoomKey]);
 
   const isGrouped = (index: number): boolean => {
     if (index === 0) return false;
@@ -198,7 +282,7 @@ export function ChatWindow() {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 w-full md:w-[600px] h-[600px] bg-desert-sand rounded-lg shadow-wood overflow-hidden flex flex-col z-40 md:max-w-[calc(100vw-2rem)]">
+      <div className={`fixed bottom-4 right-4 w-full md:w-[600px] h-[600px] bg-desert-sand rounded-lg shadow-wood overflow-hidden flex flex-col z-40 md:max-w-[calc(100vw-2rem)] ${className || ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-wood-dark border-b border-wood-grain">
           <div className="flex items-center gap-3">
@@ -326,10 +410,11 @@ export function ChatWindow() {
                         key={message._id}
                         message={message}
                         isGrouped={isGrouped(index)}
-                        currentUsername={user.username}
+                        currentUsername={currentCharacter?.name || ''}
                         timestampFormat={settings.timestampFormat}
                         onReport={handleReport}
                         onWhisper={handleWhisper}
+                        onRetry={retrySendMessage}
                       />
                     ))}
                   </div>
@@ -367,6 +452,7 @@ export function ChatWindow() {
               onlineUsers={activeRoomOnlineUsers}
               isSending={isSendingMessage}
               mutedUntil={mutedUntil}
+              autoFocus={autoFocus}
             />
           </div>
 
@@ -391,7 +477,7 @@ export function ChatWindow() {
           isOnline={selectedWhisperData.isOnline}
           messages={whisperMessages}
           typingUsers={whisperTypingUsers}
-          currentUsername={user.username || ''}
+          currentUsername={currentCharacter?.name || ''}
           timestampFormat={settings.timestampFormat}
           onClose={() => setSelectedWhisper(null)}
           onSendMessage={handleSendMessage}
@@ -443,4 +529,4 @@ export function ChatWindow() {
       )}
     </>
   );
-}
+});

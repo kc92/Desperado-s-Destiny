@@ -15,9 +15,12 @@ import {
   ProductQuality,
   ProductionStatus,
   PropertyType,
+  PROPERTY_CONSTANTS,
 } from '@desperados/shared';
 import { getProductById } from '../data/productDefinitions';
 import { v4 as uuidv4 } from 'uuid';
+import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Start production order result
@@ -48,6 +51,62 @@ interface CollectProductionResult {
  * Production Service
  */
 export class ProductionService {
+  /**
+   * Calculate the daily property income cap for a character
+   * BALANCE FIX: Prevents exponential wealth accumulation from properties
+   *
+   * Formula: BASE_DAILY_CAP + (level * PER_LEVEL_BONUS), capped at ABSOLUTE_MAX_DAILY
+   *
+   * @param level - Character level
+   * @returns Maximum daily dollars from property income
+   */
+  static calculateDailyIncomeCap(level: number): number {
+    const { INCOME_CAP } = PROPERTY_CONSTANTS;
+    const calculatedCap = INCOME_CAP.BASE_DAILY_CAP + (level * INCOME_CAP.PER_LEVEL_BONUS);
+    return Math.min(calculatedCap, INCOME_CAP.ABSOLUTE_MAX_DAILY);
+  }
+
+  /**
+   * Apply income cap to dollars earned from production
+   * BALANCE FIX: Tracks daily property income and caps it
+   *
+   * @param character - The character collecting production
+   * @param dollarsEarned - Raw dollar amount from production
+   * @returns Capped dollar amount
+   */
+  static async applyIncomeCap(character: ICharacter, dollarsEarned: number): Promise<number> {
+    const dailyCap = this.calculateDailyIncomeCap(character.level);
+
+    // Get today's start time (UTC midnight)
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    // Track daily production income in character stats
+    // If lastProductionIncomeReset is before today, reset the counter
+    if (!character.dailyProductionIncome || !character.lastProductionIncomeReset ||
+        new Date(character.lastProductionIncomeReset) < today) {
+      character.dailyProductionIncome = 0;
+      character.lastProductionIncomeReset = today;
+    }
+
+    // Calculate how much more the character can earn today
+    const remainingCap = Math.max(0, dailyCap - character.dailyProductionIncome);
+    const cappedDollars = Math.min(dollarsEarned, remainingCap);
+
+    // Log if capping occurred
+    if (cappedDollars < dollarsEarned) {
+      logger.info(
+        `[BALANCE] Property income capped for ${character.name}: ` +
+        `${dollarsEarned} → ${cappedDollars} (daily cap: ${dailyCap}, used: ${character.dailyProductionIncome})`
+      );
+    }
+
+    // Update daily tracking
+    character.dailyProductionIncome += cappedDollars;
+
+    return cappedDollars;
+  }
+
   /**
    * Start a new production order
    */
@@ -103,10 +162,10 @@ export class ProductionService {
         );
       }
 
-      // Check gold cost
-      const totalGoldCost = product.goldCost * quantity;
-      if (!character.hasGold(totalGoldCost)) {
-        throw new Error(`Insufficient gold (need ${totalGoldCost})`);
+      // Check dollar cost
+      const totalDollarCost = product.goldCost * quantity;
+      if (!character.hasDollars(totalDollarCost)) {
+        throw new Error(`Insufficient dollars (need ${totalDollarCost})`);
       }
 
       // Check materials
@@ -192,11 +251,11 @@ export class ProductionService {
         if (!product.canRush) {
           throw new Error('This product cannot be rushed');
         }
-        rushCost = Math.ceil(totalGoldCost * product.rushCostMultiplier);
+        rushCost = Math.ceil(totalDollarCost * product.rushCostMultiplier);
         productionTime = Math.ceil(productionTime * 0.25); // Rush reduces time to 25%
 
-        if (!character.hasGold(rushCost)) {
-          throw new Error(`Insufficient gold for rush order (need ${rushCost})`);
+        if (!character.hasDollars(rushCost)) {
+          throw new Error(`Insufficient dollars for rush order (need ${rushCost})`);
         }
       }
 
@@ -204,12 +263,13 @@ export class ProductionService {
       const now = new Date();
       const estimatedCompletion = new Date(now.getTime() + productionTime * 60 * 1000);
 
-      // Deduct gold
-      const totalCost = totalGoldCost + rushCost;
-      await character.deductGold(totalCost, TransactionSource.PRODUCTION_START, {
+      // Deduct dollars
+      const totalCost = totalDollarCost + rushCost;
+      await character.deductDollars(totalCost, TransactionSource.PRODUCTION_START, {
         productId,
         quantity,
         rushOrder,
+        currencyType: 'DOLLAR',
       });
 
       // Consume materials
@@ -328,7 +388,7 @@ export class ProductionService {
         character
       );
 
-      let goldEarned = 0;
+      let dollarsEarned = 0;
       const producedItems: Array<{
         itemId: string;
         quantity: number;
@@ -338,12 +398,12 @@ export class ProductionService {
       // Process each output
       for (const output of results.outputs) {
         if (output.itemId === 'gold_direct') {
-          // Direct gold production
-          goldEarned += output.quantity;
+          // Direct dollar production
+          dollarsEarned += output.quantity;
         } else if (autoSell) {
           // Auto-sell items
           const sellValue = output.quantity * output.sellPrice;
-          goldEarned += sellValue;
+          dollarsEarned += sellValue;
         } else {
           // Add to inventory
           const existingItem = character.inventory.find(
@@ -367,13 +427,24 @@ export class ProductionService {
         }
       }
 
-      // Award gold
-      if (goldEarned > 0) {
-        await character.addGold(goldEarned, TransactionSource.PRODUCTION_COLLECT, {
+      // Apply income cap to dollars earned
+      // BALANCE FIX: Prevents exponential wealth accumulation from properties
+      const cappedDollarsEarned = await this.applyIncomeCap(character, dollarsEarned);
+
+      // Award dollars (capped)
+      if (cappedDollarsEarned > 0) {
+        await character.addDollars(cappedDollarsEarned, TransactionSource.PRODUCTION_COLLECT, {
           productId: product.productId,
           quantity: slot.currentOrder.quantity,
+          originalAmount: dollarsEarned,
+          cappedAmount: cappedDollarsEarned,
+          wasCapped: cappedDollarsEarned < dollarsEarned,
+          currencyType: 'DOLLAR',
         });
       }
+
+      // Update dollarsEarned for return value
+      dollarsEarned = cappedDollarsEarned;
 
       // Award experience
       const experienceGained = Math.ceil(product.requiredLevel * 10);
@@ -405,10 +476,10 @@ export class ProductionService {
       return {
         success: true,
         products: producedItems,
-        goldEarned,
+        goldEarned: dollarsEarned,
         experienceGained,
         message: autoSell
-          ? `Sold production for ${goldEarned} gold`
+          ? `Sold production for ${dollarsEarned} dollars`
           : `Collected ${producedItems.length} items`,
       };
     } catch (error) {
@@ -449,7 +520,7 @@ export class ProductionService {
         throw new Error('Character not found');
       }
 
-      // Calculate refund (50% of gold cost)
+      // Calculate refund (50% of dollar cost)
       const product = getProductById(slot.currentOrder.productId);
       if (!product) {
         throw new Error('Invalid product');
@@ -459,10 +530,11 @@ export class ProductionService {
         (product.goldCost * slot.currentOrder.quantity) * 0.5
       );
 
-      // Refund gold
+      // Refund dollars
       if (refund > 0) {
-        await character.addGold(refund, TransactionSource.PRODUCTION_CANCEL, {
+        await character.addDollars(refund, TransactionSource.PRODUCTION_CANCEL, {
           productId: slot.currentOrder.productId,
+          currencyType: 'DOLLAR',
         });
       }
 
@@ -531,7 +603,7 @@ export class ProductionService {
     outputs: Array<{ itemId: string; quantity: number; sellPrice: number }>;
   }> {
     // Determine quality
-    let qualityRoll = Math.random();
+    let qualityRoll = SecureRNG.float(0, 1);
 
     // Apply slot quality bonus
     qualityRoll += slot.qualityBonus;
@@ -615,7 +687,7 @@ export class ProductionService {
 
       return completedSlots.length;
     } catch (error) {
-      console.error('Error updating production statuses:', error);
+      logger.error('Error updating production statuses', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
       throw error;
     }
   }

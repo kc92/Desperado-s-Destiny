@@ -5,6 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
+import { logger } from '@/services/logger.service';
 
 // Fortification types
 export type FortificationType =
@@ -197,7 +198,7 @@ export const useWarfare = (): UseWarfareReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch fortifications';
       setError(errorMessage);
-      console.error('[useWarfare] Fetch fortifications error:', err);
+      logger.error('Fetch fortifications error', err as Error, { context: 'useWarfare' });
     } finally {
       setIsLoading(false);
     }
@@ -220,7 +221,7 @@ export const useWarfare = (): UseWarfareReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to build fortification';
       setError(errorMessage);
-      console.error('[useWarfare] Build fortification error:', err);
+      logger.error('Build fortification error', err as Error, { context: 'useWarfare' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -240,7 +241,7 @@ export const useWarfare = (): UseWarfareReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to upgrade fortification';
       setError(errorMessage);
-      console.error('[useWarfare] Upgrade fortification error:', err);
+      logger.error('Upgrade fortification error', err as Error, { context: 'useWarfare' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -260,7 +261,7 @@ export const useWarfare = (): UseWarfareReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to repair fortification';
       setError(errorMessage);
-      console.error('[useWarfare] Repair fortification error:', err);
+      logger.error('Repair fortification error', err as Error, { context: 'useWarfare' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -279,7 +280,7 @@ export const useWarfare = (): UseWarfareReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to demolish fortification';
       setError(errorMessage);
-      console.error('[useWarfare] Demolish fortification error:', err);
+      logger.error('Demolish fortification error', err as Error, { context: 'useWarfare' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -298,7 +299,7 @@ export const useWarfare = (): UseWarfareReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch resistance activities';
       setError(errorMessage);
-      console.error('[useWarfare] Fetch resistance activities error:', err);
+      logger.error('Fetch resistance activities error', err as Error, { context: 'useWarfare' });
     } finally {
       setIsLoading(false);
     }
@@ -321,7 +322,7 @@ export const useWarfare = (): UseWarfareReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to execute resistance action';
       setError(errorMessage);
-      console.error('[useWarfare] Execute resistance action error:', err);
+      logger.error('Execute resistance action error', err as Error, { context: 'useWarfare' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -340,7 +341,7 @@ export const useWarfare = (): UseWarfareReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to start liberation';
       setError(errorMessage);
-      console.error('[useWarfare] Start liberation error:', err);
+      logger.error('Start liberation error', err as Error, { context: 'useWarfare' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -361,7 +362,7 @@ export const useWarfare = (): UseWarfareReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to propose diplomacy';
       setError(errorMessage);
-      console.error('[useWarfare] Propose diplomacy error:', err);
+      logger.error('Propose diplomacy error', err as Error, { context: 'useWarfare' });
       return { success: false, message: errorMessage };
     }
   }, []);

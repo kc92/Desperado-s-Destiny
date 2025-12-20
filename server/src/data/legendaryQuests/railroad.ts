@@ -90,7 +90,7 @@ export const railroadChain: LegendaryQuestChain = {
       milestone: 3,
       description: 'Exposed the first layer of corruption',
       rewards: [
-        { type: 'gold', amount: 5000 },
+        { type: 'dollars', amount: 5000 },
         { type: 'item', itemId: 'item_press_connections', quantity: 1 },
       ],
     },
@@ -98,7 +98,7 @@ export const railroadChain: LegendaryQuestChain = {
       milestone: 5,
       description: 'Survived the railroad\'s full assault',
       rewards: [
-        { type: 'gold', amount: 15000 },
+        { type: 'dollars', amount: 15000 },
         { type: 'skill_points', amount: 15 },
       ],
     },

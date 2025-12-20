@@ -30,6 +30,7 @@ import {
   canEnterZone,
   SCAR_CONSTANTS,
 } from '@desperados/shared';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Scar Content Service
@@ -279,8 +280,8 @@ export class ScarContentService {
     const progress = await ScarProgressModel.findOrCreate(characterId);
 
     // Simplified combat calculation
-    const playerDamage = Math.floor(Math.random() * 200) + 100;
-    const eliteDamage = Math.floor(Math.random() * elite.damage) + elite.damage / 2;
+    const playerDamage = SecureRNG.range(100, 300);
+    const eliteDamage = SecureRNG.range(Math.floor(elite.damage / 2), elite.damage);
     const sanityLost = elite.sanityDamage;
     const corruptionGained = Math.floor(elite.corruptionOnKill / 10);
 
@@ -290,7 +291,7 @@ export class ScarContentService {
     progress.currentCorruption = Math.min(100, progress.currentCorruption + corruptionGained);
 
     // Simulate defeat chance (20% per attack)
-    const defeated = Math.random() < 0.2;
+    const defeated = SecureRNG.chance(0.2);
 
     if (defeated) {
       await progress.recordEliteDefeat(request.eliteId);
@@ -306,7 +307,7 @@ export class ScarContentService {
           effects: ['Elite defeated!'],
           defeated: true,
         },
-        loot: elite.lootTable.filter(item => Math.random() < item.dropChance),
+        loot: elite.lootTable.filter(item => SecureRNG.chance(item.dropChance)),
         message: `Defeated ${elite.name}!`,
       };
     }
@@ -368,7 +369,7 @@ export class ScarContentService {
     progress.totalCorruptionGained += corruptionGained;
 
     // Check for backfire
-    const backfired = Math.random() < ability.backfireChance;
+    const backfired = SecureRNG.chance(ability.backfireChance);
 
     await progress.save();
 

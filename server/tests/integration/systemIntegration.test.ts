@@ -35,7 +35,7 @@ describe('System Integration Tests', () => {
     testUser = await User.create({
       email: `test${Date.now()}@example.com`,
       password: 'hashedpassword',
-      isVerified: true
+      emailVerified: true
     });
 
     // Create test character

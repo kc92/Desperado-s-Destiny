@@ -11,10 +11,13 @@ import { useEnergyStore } from '@/store/useEnergyStore';
 import { useCrimeStore } from '@/store/useCrimeStore';
 import { useActionStore } from '@/store/useActionStore';
 import { useSkillStore } from '@/store/useSkillStore';
-import { Card } from '@/components/ui';
+import { Card, Tooltip } from '@/components/ui';
 import { DashboardStatsSkeleton, ProgressBarSkeleton } from '@/components/ui/Skeleton';
-import { GoldDisplay } from '@/components/game/GoldDisplay';
+import { DollarsDisplay } from '@/components/game/DollarsDisplay';
+import { GettingStartedGuide } from '@/components/game/GettingStartedGuide';
+import { KarmaPanel, DeityRelationship } from '@/components/karma';
 import { api } from '@/services/api';
+import { logger } from '@/services/logger.service';
 
 // Building type to icon/color mapping for dynamic buildings
 const buildingConfig: Record<string, { icon: string; color: string }> = {
@@ -221,7 +224,7 @@ export const Game: React.FC = () => {
             setTownBuildings(response.data.data.buildings);
           }
         } catch (err) {
-          console.error('Failed to fetch buildings:', err);
+          logger.error('Failed to fetch buildings', err as Error, { context: 'Game.fetchBuildings', locationValue });
         } finally {
           setBuildingsLoading(false);
         }
@@ -314,47 +317,72 @@ export const Game: React.FC = () => {
 
           {/* Gold */}
           <div className="text-center mb-3">
-            <GoldDisplay amount={currentCharacter.gold} size="lg" />
+            <DollarsDisplay amount={currentCharacter.gold} size="lg" />
           </div>
 
-          {/* Energy Bar */}
+          {/* Energy Bar with Tooltip */}
           {energy ? (
-            <div className="space-y-1 mb-3" data-tutorial-target="energy-bar">
-              <div className="flex justify-between text-xs text-desert-sand">
-                <span>Energy</span>
-                <span>{Math.floor(energy.currentEnergy || 0)}/{energy.maxEnergy || 100}</span>
+            <Tooltip
+              content={`Energy is used to perform actions. Regenerates ${Math.round(energy.regenRate || 30)} per hour. Current: ${Math.floor(energy.currentEnergy || 0)}/${energy.maxEnergy || 100}`}
+              position="right"
+            >
+              <div className="space-y-1 mb-3 cursor-help" data-tutorial-target="energy-bar">
+                <div className="flex justify-between text-xs text-desert-sand">
+                  <span>Energy</span>
+                  <span>{Math.floor(energy.currentEnergy || 0)}/{energy.maxEnergy || 100}</span>
+                </div>
+                <div className="h-2 bg-wood-dark/50 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-gold-dark to-gold-light transition-all duration-500"
+                    style={{ width: `${energyPercent}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-2 bg-wood-dark/50 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-gold-dark to-gold-light transition-all duration-500"
-                  style={{ width: `${energyPercent}%` }}
-                />
-              </div>
-            </div>
+            </Tooltip>
           ) : (
             <div className="mb-3">
               <ProgressBarSkeleton />
             </div>
           )}
 
-          {/* Stats */}
+          {/* Stats with Tooltips */}
           <div className="grid grid-cols-2 gap-2 text-center text-xs">
-            <div>
-              <div className="text-gold-light font-bold">{currentCharacter.stats.cunning}</div>
-              <div className="text-desert-stone">CUN</div>
-            </div>
-            <div>
-              <div className="text-gold-light font-bold">{currentCharacter.stats.spirit}</div>
-              <div className="text-desert-stone">SPI</div>
-            </div>
-            <div>
-              <div className="text-gold-light font-bold">{currentCharacter.stats.combat}</div>
-              <div className="text-desert-stone">COM</div>
-            </div>
-            <div>
-              <div className="text-gold-light font-bold">{currentCharacter.stats.craft}</div>
-              <div className="text-desert-stone">CRA</div>
-            </div>
+            <Tooltip
+              content="Cunning: Stealth, deception, and social manipulation. Affects crime success and social challenges."
+              position="right"
+            >
+              <div className="cursor-help hover:bg-wood-dark/30 rounded p-1 transition-colors">
+                <div className="text-gold-light font-bold">{currentCharacter.stats.cunning}</div>
+                <div className="text-desert-stone">CUN</div>
+              </div>
+            </Tooltip>
+            <Tooltip
+              content="Spirit: Willpower, luck, and mystical power. Affects Destiny Deck draws and spiritual abilities."
+              position="left"
+            >
+              <div className="cursor-help hover:bg-wood-dark/30 rounded p-1 transition-colors">
+                <div className="text-gold-light font-bold">{currentCharacter.stats.spirit}</div>
+                <div className="text-desert-stone">SPI</div>
+              </div>
+            </Tooltip>
+            <Tooltip
+              content="Combat: Fighting prowess and weapon mastery. Affects damage dealt and combat success rate."
+              position="right"
+            >
+              <div className="cursor-help hover:bg-wood-dark/30 rounded p-1 transition-colors">
+                <div className="text-gold-light font-bold">{currentCharacter.stats.combat}</div>
+                <div className="text-desert-stone">COM</div>
+              </div>
+            </Tooltip>
+            <Tooltip
+              content="Craft: Building, crafting, and technical skills. Affects item quality and crafting success."
+              position="left"
+            >
+              <div className="cursor-help hover:bg-wood-dark/30 rounded p-1 transition-colors">
+                <div className="text-gold-light font-bold">{currentCharacter.stats.craft}</div>
+                <div className="text-desert-stone">CRA</div>
+              </div>
+            </Tooltip>
           </div>
 
           {/* Wanted Level */}
@@ -378,6 +406,15 @@ export const Game: React.FC = () => {
             </div>
           )}
         </Card>
+
+        {/* Getting Started Guide - Shows for new players (level 1-5) */}
+        <GettingStartedGuide />
+
+        {/* Karma/Deity Panel - Moral Profile */}
+        <KarmaPanel variant="compact" className="border border-wood-grain/30" />
+
+        {/* Deity Relationships */}
+        <DeityRelationship variant="hud" showTooltips={true} />
 
         {/* Quick Navigation */}
         <Card variant="wood" className="p-3">
@@ -472,7 +509,7 @@ export const Game: React.FC = () => {
               <p className="text-sm text-desert-stone">Level {currentCharacter.level}</p>
             </div>
             <div className="text-right">
-              <GoldDisplay amount={currentCharacter.gold} size="lg" />
+              <DollarsDisplay amount={currentCharacter.gold} size="lg" />
               <div className="text-xs text-desert-stone">{Math.floor(energy?.currentEnergy || 0)}/{energy?.maxEnergy || 100} Energy</div>
             </div>
           </div>
@@ -819,7 +856,7 @@ export const Game: React.FC = () => {
                       // Reload character to get updated location
                       loadSelectedCharacter();
                     } catch (err) {
-                      console.error('Failed to enter building:', err);
+                      logger.error('Failed to enter building', err as Error, { context: 'Game.enterBuilding', buildingId: selectedBuilding.id });
                     }
                   }}
                   disabled={!selectedBuilding.isOpen}

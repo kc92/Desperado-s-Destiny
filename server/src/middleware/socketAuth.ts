@@ -8,6 +8,7 @@ import { Socket } from 'socket.io';
 import { verifyToken } from '../utils/jwt';
 import { User } from '../models/User.model';
 import { Character } from '../models/Character.model';
+import { TokenManagementService } from '../services/tokenManagement.service';
 import logger from '../utils/logger';
 
 /**
@@ -73,6 +74,19 @@ export async function socketAuthMiddleware(
       const errorMessage = error instanceof Error ? error.message : 'Invalid token';
       logger.warn(`Socket ${socket.id} authentication failed: ${errorMessage}`);
       return next(new Error(errorMessage));
+    }
+
+    // C1 SECURITY FIX: Check if token is blacklisted (logout should invalidate socket)
+    try {
+      const isBlacklisted = await TokenManagementService.isTokenBlacklisted(token);
+      if (isBlacklisted) {
+        logger.warn(`Socket ${socket.id} authentication failed: Token has been revoked`);
+        return next(new Error('Token has been revoked'));
+      }
+    } catch (error) {
+      // Fail closed - if we can't verify blacklist, reject the connection
+      logger.error(`Socket ${socket.id} blacklist check failed:`, error);
+      return next(new Error('Authentication service unavailable'));
     }
 
     // Fetch user
@@ -202,11 +216,65 @@ export function getSocketAuth(socket: Socket): {
   return socket.data;
 }
 
+/**
+ * H10 SECURITY FIX: Re-verify character ownership for critical socket events
+ * This prevents actions on characters that have been deleted or transferred since connection
+ *
+ * @param socket - Socket.io socket instance
+ * @returns True if character ownership is verified, false otherwise
+ */
+export async function verifyCharacterOwnership(socket: Socket): Promise<boolean> {
+  if (!isSocketAuthenticated(socket)) {
+    return false;
+  }
+
+  const { userId, characterId } = socket.data;
+
+  try {
+    // Verify the character still exists and belongs to this user
+    const character = await Character.findOne({
+      _id: characterId,
+      userId: userId,
+      isActive: true
+    }).lean();
+
+    if (!character) {
+      logger.warn(
+        `[SECURITY] Socket ${socket.id}: Character ownership verification failed. ` +
+        `Character ${characterId} not found or not owned by user ${userId}`
+      );
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    logger.error(`[SECURITY] Error verifying character ownership for socket ${socket.id}:`, error);
+    return false;
+  }
+}
+
+/**
+ * H10 SECURITY FIX: Require character ownership verification
+ * Use this before critical operations like sending messages, making transactions, etc.
+ *
+ * @param socket - Socket.io socket instance
+ * @throws Error if character ownership cannot be verified
+ */
+export async function requireCharacterOwnership(socket: Socket): Promise<void> {
+  const isOwned = await verifyCharacterOwnership(socket);
+
+  if (!isOwned) {
+    throw new Error('Character ownership verification failed');
+  }
+}
+
 export default {
   socketAuthMiddleware,
   isSocketAuthenticated,
   requireSocketAuth,
   isSocketAdmin,
   requireSocketAdmin,
-  getSocketAuth
+  getSocketAuth,
+  verifyCharacterOwnership,
+  requireCharacterOwnership
 };

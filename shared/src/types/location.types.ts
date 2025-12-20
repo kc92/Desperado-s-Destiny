@@ -3,6 +3,8 @@
  * Types for the location-based navigation system
  */
 
+import type { WorldZoneType } from '../constants/zones.constants';
+
 /**
  * Region types in the game world
  */
@@ -144,6 +146,11 @@ export interface LocationShop {
 }
 
 /**
+ * Job category determines which deck game type is used
+ */
+export type JobCategory = 'labor' | 'skilled' | 'dangerous' | 'social';
+
+/**
  * Job available at a location
  */
 export interface LocationJob {
@@ -152,6 +159,8 @@ export interface LocationJob {
   description: string;
   energyCost: number;
   cooldownMinutes: number;
+  /** Determines deck game type: labor=poker, skilled=deckbuilder, dangerous=pressYourLuck, social=blackjack */
+  jobCategory?: JobCategory;
   rewards: {
     goldMin: number;
     goldMax: number;
@@ -196,6 +205,10 @@ export interface Location {
   type: LocationType;
   region: RegionType;
   parentId?: string; // For nested locations (e.g., rooms in a building)
+
+  // Zone system fields
+  zone?: WorldZoneType; // Which zone this location belongs to
+  isZoneHub?: boolean; // Is this a major hub for the zone?
 
   // Building system fields
   tier?: TownTier; // 1=Camp, 2=Outpost, 3=Town, 4=City, 5=Capital

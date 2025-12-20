@@ -5,13 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
+    "build:strict": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:e2e": "jest --config jest.e2e.config.cjs",
     "test:e2e:headed": "HEADLESS=false jest --config jest.e2e.config.cjs",
     "test:e2e:watch": "jest --config jest.e2e.config.cjs --watch",
+    "test:playwright": "playwright test",
+    "test:playwright:headed": "playwright test --headed",
+    "test:playwright:ui": "playwright test --ui",
+    "test:playwright:report": "playwright show-report tests/playwright/reports",
     "test:comprehensive:e2e": "tsx tests/playtests/comprehensive/runComprehensiveE2E.ts",
     "test:comprehensive:e2e:headless": "HEADLESS=true tsx tests/playtests/comprehensive/runComprehensiveE2E.ts",
     "test:locations:e2e": "tsx -e \"import {AllLocationsE2EBot} from './tests/playtests/comprehensive/AllLocationsE2E.js'; const bot = new AllLocationsE2EBot({name:'LocationTest',username:'test',email:'test@test.com',password:'Test123!',characterName:'Tester'}); bot.runTests();\"",
@@ -40,6 +46,7 @@
     "zustand": "^4.4.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.1",

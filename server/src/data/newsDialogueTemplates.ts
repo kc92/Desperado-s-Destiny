@@ -1,4 +1,5 @@
 import { NewsDialogue, GossipTopic } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * NEWS DIALOGUE TEMPLATES
@@ -543,7 +544,7 @@ export function getNewsDialogue(
   if (matches.length === 0) return null;
 
   // Return random match
-  return matches[Math.floor(Math.random() * matches.length)];
+  return SecureRNG.select(matches);
 }
 
 /**
@@ -551,7 +552,7 @@ export function getNewsDialogue(
  */
 export function getRandomComment(dialogue: NewsDialogue): string {
   if (dialogue.comments.length === 0) return '';
-  return dialogue.comments[Math.floor(Math.random() * dialogue.comments.length)];
+  return SecureRNG.select(dialogue.comments);
 }
 
 /**
@@ -559,5 +560,5 @@ export function getRandomComment(dialogue: NewsDialogue): string {
  */
 export function getRandomQuestion(dialogue: NewsDialogue) {
   if (dialogue.questions.length === 0) return null;
-  return dialogue.questions[Math.floor(Math.random() * dialogue.questions.length)];
+  return SecureRNG.select(dialogue.questions);
 }

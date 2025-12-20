@@ -61,6 +61,17 @@ export interface IUserDocument extends Document {
   subscriptionExpiresAt?: Date;
   subscriptionCancelled?: boolean;
 
+  // Account Security (lockout after failed login attempts)
+  failedLoginAttempts: number;
+  lastFailedLogin?: Date;
+  accountLockedUntil?: Date;
+
+  // Two-Factor Authentication
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string;
+  twoFactorBackupCodes?: string[];
+  twoFactorPendingSetup: boolean;
+
   // Methods
   comparePassword(candidatePassword: string): Promise<boolean>;
   generateVerificationToken(): string;
@@ -157,6 +168,47 @@ const UserSchema = new Schema<IUserDocument, IUserModel>(
     subscriptionCancelled: {
       type: Boolean,
       default: false
+    },
+
+    // Account Security (lockout after failed login attempts)
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+      min: 0,
+      comment: 'Number of failed login attempts since last successful login'
+    },
+    lastFailedLogin: {
+      type: Date,
+      default: null,
+      comment: 'Timestamp of most recent failed login attempt'
+    },
+    accountLockedUntil: {
+      type: Date,
+      default: null,
+      index: true,
+      comment: 'Account locked until this time after too many failed attempts'
+    },
+
+    // Two-Factor Authentication
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+      comment: 'Whether 2FA is enabled for this account'
+    },
+    twoFactorSecret: {
+      type: String,
+      select: false, // Never return in queries by default (sensitive)
+      comment: 'TOTP secret for authenticator apps'
+    },
+    twoFactorBackupCodes: {
+      type: [String],
+      select: false, // Never return in queries by default (sensitive)
+      comment: 'Hashed backup codes for 2FA recovery'
+    },
+    twoFactorPendingSetup: {
+      type: Boolean,
+      default: false,
+      comment: 'Whether 2FA setup is in progress but not yet verified'
     }
   },
   {

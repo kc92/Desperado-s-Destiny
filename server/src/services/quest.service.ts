@@ -13,9 +13,11 @@ import {
   QuestReward
 } from '../models/Quest.model';
 import { Character } from '../models/Character.model';
-import { TransactionSource } from '../models/GoldTransaction.model';
-import { GoldService } from './gold.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
 import { AppError } from '../utils/errors';
+import logger from '../utils/logger';
+import { withLock } from '../utils/distributedLock';
 
 export class QuestService {
   // ===========================================
@@ -102,16 +104,16 @@ export class QuestService {
   }
 
   /**
-   * Trigger when gold is earned
+   * Trigger when dollars are earned
    */
-  static async onGoldEarned(
+  static async onDollarsEarned(
     characterId: string,
     amount: number
   ): Promise<void> {
     try {
-      await this.updateProgress(characterId, 'gold', 'any', amount);
+      await this.updateProgress(characterId, 'dollars', 'any', amount);
     } catch (error) {
-      // Silently fail - don't block gold earning
+      // Silently fail - don't block dollars earning
     }
   }
 
@@ -282,36 +284,41 @@ export class QuestService {
     target: string,
     amount: number = 1
   ): Promise<ICharacterQuest[]> {
-    const activeQuests = await CharacterQuest.find({
-      characterId,
-      status: 'active'
-    });
+    // Use distributed lock to prevent race conditions when updating quest progress
+    const lockKey = `lock:quest:${characterId}:${objectiveType}:${target}`;
 
-    const updatedQuests: ICharacterQuest[] = [];
+    return withLock(lockKey, async () => {
+      const activeQuests = await CharacterQuest.find({
+        characterId,
+        status: 'active'
+      });
 
-    for (const quest of activeQuests) {
-      let updated = false;
+      const updatedQuests: ICharacterQuest[] = [];
 
-      for (const objective of quest.objectives) {
-        if (objective.type === objectiveType && objective.target === target) {
-          objective.current = Math.min(objective.current + amount, objective.required);
-          updated = true;
+      for (const quest of activeQuests) {
+        let updated = false;
+
+        for (const objective of quest.objectives) {
+          if (objective.type === objectiveType && objective.target === target) {
+            objective.current = Math.min(objective.current + amount, objective.required);
+            updated = true;
+          }
+        }
+
+        if (updated) {
+          await quest.save();
+          updatedQuests.push(quest);
+
+          // Check if all objectives complete
+          const allComplete = quest.objectives.every(obj => obj.current >= obj.required);
+          if (allComplete) {
+            await this.completeQuest(characterId, quest.questId);
+          }
         }
       }
 
-      if (updated) {
-        await quest.save();
-        updatedQuests.push(quest);
-
-        // Check if all objectives complete
-        const allComplete = quest.objectives.every(obj => obj.current >= obj.required);
-        if (allComplete) {
-          await this.completeQuest(characterId, quest.questId);
-        }
-      }
-    }
-
-    return updatedQuests;
+      return updatedQuests;
+    }, { ttl: 30, retries: 3 });
   }
 
   /**
@@ -356,13 +363,13 @@ export class QuestService {
       // Grant rewards
       for (const reward of questDef.rewards) {
         switch (reward.type) {
-          case 'gold':
+          case 'dollars':
             if (reward.amount) {
-              await GoldService.addGold(
+              await DollarService.addDollars(
                 characterId,
                 reward.amount,
                 TransactionSource.QUEST_REWARD,
-                { questId },
+                { questId, currencyType: CurrencyType.DOLLAR },
                 session
               );
             }
@@ -400,7 +407,7 @@ export class QuestService {
                 );
               } catch (repError) {
                 // Don't fail quest completion if reputation update fails
-                console.error('Failed to update reputation from quest:', repError);
+                logger.error('Failed to update reputation from quest', { error: repError instanceof Error ? repError.message : repError, stack: repError instanceof Error ? repError.stack : undefined });
               }
             }
             break;
@@ -444,7 +451,7 @@ export class QuestService {
         );
       } catch (spreadError) {
         // Don't fail quest completion if reputation spreading fails
-        console.error('Failed to create reputation spreading event for quest:', spreadError);
+        logger.error('Failed to create reputation spreading event for quest', { error: spreadError instanceof Error ? spreadError.message : spreadError, stack: spreadError instanceof Error ? spreadError.stack : undefined });
       }
 
       return { quest: characterQuest, rewards: questDef.rewards };

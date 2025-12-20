@@ -15,6 +15,8 @@ import { GossipService } from './gossip.service';
 import { AppError } from '../utils/errors';
 import { LocationNPC, SecretContent } from '@desperados/shared';
 import { CROSS_REFERENCE_TEMPLATES } from '../data/gossipTemplates';
+import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * NPC with trust level included
@@ -138,90 +140,134 @@ export class NPCService {
   /**
    * Interact with an NPC
    * Triggers quests, returns dialogue, increases trust
+   *
+   * NOTE: Refactored to add energy cost (Initiative 13)
+   * - 2 energy cost to prevent trust grinding spam
+   * - Uses transaction for atomicity
    */
   static async interactWithNPC(
     characterId: string,
     locationId: string,
     npcId: string
   ): Promise<NPCInteractionResult> {
-    // Get character
-    const character = await Character.findById(characterId);
-    if (!character) {
-      throw new AppError('Character not found', 404);
-    }
+    const session = await mongoose.startSession();
+    await session.startTransaction();
 
-    // Get location
-    const location = await Location.findById(locationId);
-    if (!location) {
-      throw new AppError('Location not found', 404);
-    }
+    try {
+      // Energy cost for NPC interaction
+      const INTERACTION_ENERGY_COST = 2;
 
-    // Find NPC in location
-    const npc = location.npcs.find(n => n.id === npcId);
-    if (!npc) {
-      throw new AppError('NPC not found at this location', 404);
-    }
+      // Get character
+      const character = await Character.findById(characterId).session(session);
+      if (!character) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new AppError('Character not found', 404);
+      }
 
-    // Get current trust
-    const oldTrustLevel = await NPCTrust.getTrustLevel(characterId, npcId);
-    const oldTier = this.getTrustTier(oldTrustLevel);
+      // Check energy
+      await character.regenerateEnergy();
+      if (character.energy < INTERACTION_ENERGY_COST) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new AppError(
+          `Not enough energy to interact with NPC. Need ${INTERACTION_ENERGY_COST}, have ${Math.floor(character.energy)}`,
+          400
+        );
+      }
 
-    // Calculate trust increase
-    // Base: +2, +1 for low trust (<20), +faction bonus
-    let trustIncrease = 2;
-    if (oldTrustLevel < 20) trustIncrease += 1;
+      // Get location
+      const location = await Location.findById(locationId).session(session);
+      if (!location) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new AppError('Location not found', 404);
+      }
 
-    // Faction bonus: +2 if NPC and character share faction
-    if (npc.faction && character.faction === npc.faction) {
-      trustIncrease += 2;
-    }
+      // Find NPC in location
+      const npc = location.npcs.find(n => n.id === npcId);
+      if (!npc) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new AppError('NPC not found at this location', 404);
+      }
 
-    // Update trust
-    const trust = await NPCTrust.incrementTrust(characterId, npcId, trustIncrease);
-    const newTier = this.getTrustTier(trust.trustLevel);
+      // Get current trust
+      const oldTrustLevel = await NPCTrust.getTrustLevel(characterId, npcId);
+      const oldTier = this.getTrustTier(oldTrustLevel);
 
-    // Trigger NPC interaction for quest system
-    await QuestService.onNPCInteraction(characterId, npcId);
+      // Calculate trust increase
+      // Base: +2, +1 for low trust (<20), +faction bonus
+      let trustIncrease = 2;
+      if (oldTrustLevel < 20) trustIncrease += 1;
 
-    // Get available quests from this NPC
-    const availableQuests = await this.getQuestsFromNPC(npcId, characterId);
+      // Faction bonus: +2 if NPC and character share faction
+      if (npc.faction && character.faction === npc.faction) {
+        trustIncrease += 2;
+      }
 
-    // Get dialogue based on trust tier
-    const dialogue = this.getDialogueForTier(npc, newTier, character);
+      // Update trust
+      const trust = await NPCTrust.incrementTrust(characterId, npcId, trustIncrease);
+      const newTier = this.getTrustTier(trust.trustLevel);
 
-    // Check for unlocked secrets
-    const unlockedSecrets = await this.checkSecretUnlocks(
-      characterId,
-      npcId,
-      location,
-      trust.trustLevel,
-      oldTrustLevel
-    );
+      // Deduct energy and update lastActive
+      character.energy -= INTERACTION_ENERGY_COST;
+      character.lastActive = new Date();
+      await character.save({ session });
 
-    // Get cross-references and gossip
-    const crossReferences = await this.getCrossReferences(npcId, trust.trustLevel);
-    const gossip = await GossipService.getGossip(npcId, characterId);
+      // Commit transaction before quest/gossip lookups (which are read-only)
+      await session.commitTransaction();
+      session.endSession();
 
-    // Build result
-    const result: NPCInteractionResult = {
-      npc: {
-        ...((npc as any).toObject ? (npc as any).toObject() : npc),
+      // Trigger NPC interaction for quest system (fire-and-forget)
+      QuestService.onNPCInteraction(characterId, npcId).catch(err =>
+        logger.error('Quest update failed after NPC interaction', { error: err instanceof Error ? err.message : err, stack: err instanceof Error ? err.stack : undefined })
+      );
+
+      // Get available quests from this NPC
+      const availableQuests = await this.getQuestsFromNPC(npcId, characterId);
+
+      // Get dialogue based on trust tier
+      const dialogue = this.getDialogueForTier(npc, newTier, character);
+
+      // Check for unlocked secrets
+      const unlockedSecrets = await this.checkSecretUnlocks(
+        characterId,
+        npcId,
+        location,
+        trust.trustLevel,
+        oldTrustLevel
+      );
+
+      // Get cross-references and gossip
+      const crossReferences = await this.getCrossReferences(npcId, trust.trustLevel);
+      const gossip = await GossipService.getGossip(npcId, characterId);
+
+      // Build result
+      const result: NPCInteractionResult = {
+        npc: {
+          ...((npc as any).toObject ? (npc as any).toObject() : npc),
+          trustLevel: trust.trustLevel,
+          interactionCount: trust.interactionCount,
+          locationId: location._id.toString(),
+          locationName: location.name
+        },
+        dialogue,
+        availableQuests,
         trustLevel: trust.trustLevel,
-        interactionCount: trust.interactionCount,
-        locationId: location._id.toString(),
-        locationName: location.name
-      },
-      dialogue,
-      availableQuests,
-      trustLevel: trust.trustLevel,
-      trustIncrease,
-      unlockedSecrets: unlockedSecrets.length > 0 ? unlockedSecrets : undefined,
-      newTrustTier: oldTier !== newTier ? newTier : undefined,
-      gossip: gossip.gossip.length > 0 ? gossip.gossip : undefined,
-      crossReferences: crossReferences.length > 0 ? crossReferences : undefined
-    };
+        trustIncrease,
+        unlockedSecrets: unlockedSecrets.length > 0 ? unlockedSecrets : undefined,
+        newTrustTier: oldTier !== newTier ? newTier : undefined,
+        gossip: gossip.gossip.length > 0 ? gossip.gossip : undefined,
+        crossReferences: crossReferences.length > 0 ? crossReferences : undefined
+      };
 
-    return result;
+      return result;
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   }
 
   /**
@@ -261,7 +307,7 @@ export class NPCService {
     // Return random selection from available dialogue
     const available = allDialogue.slice(0, availableCount);
     const selectedCount = Math.min(3, available.length);
-    const shuffled = available.sort(() => Math.random() - 0.5);
+    const shuffled = SecureRNG.shuffle([...available]);
     return shuffled.slice(0, selectedCount);
   }
 
@@ -409,8 +455,7 @@ export class NPCService {
     );
 
     // Generate cross-reference dialogue for up to 3 relationships
-    const selectedRelationships = gossipableRelationships
-      .sort(() => Math.random() - 0.5)
+    const selectedRelationships = SecureRNG.shuffle([...gossipableRelationships])
       .slice(0, 3);
 
     for (const rel of selectedRelationships) {
@@ -440,15 +485,15 @@ export class NPCService {
     if (sentiment > 5) {
       // Positive
       const templates = CROSS_REFERENCE_TEMPLATES.recommendation;
-      template = templates[Math.floor(Math.random() * templates.length)];
+      template = SecureRNG.select(templates);
     } else if (sentiment < -5) {
       // Negative
       const templates = CROSS_REFERENCE_TEMPLATES.warning;
-      template = templates[Math.floor(Math.random() * templates.length)];
+      template = SecureRNG.select(templates);
     } else if (relationship.canGossipAbout) {
       // Neutral gossip
       const templates = CROSS_REFERENCE_TEMPLATES.mention;
-      template = templates[Math.floor(Math.random() * templates.length)];
+      template = SecureRNG.select(templates);
     } else {
       return null;
     }

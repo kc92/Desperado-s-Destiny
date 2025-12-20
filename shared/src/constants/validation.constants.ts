@@ -67,21 +67,7 @@ export const PAGINATION_VALIDATION = {
   DEFAULT_PAGE: 1
 } as const;
 
-/**
- * Rate limiting rules
- */
-export const RATE_LIMITS = {
-  /** API requests per minute for authenticated users */
-  API_REQUESTS_PER_MINUTE: 60,
-  /** API requests per minute for unauthenticated users */
-  API_REQUESTS_PER_MINUTE_UNAUTH: 20,
-  /** Login attempts per hour */
-  LOGIN_ATTEMPTS_PER_HOUR: 5,
-  /** Registration attempts per hour (per IP) */
-  REGISTRATION_ATTEMPTS_PER_HOUR: 3,
-  /** Challenge attempts per minute */
-  CHALLENGE_ATTEMPTS_PER_MINUTE: 10
-} as const;
+// Note: RATE_LIMITS is exported from game.constants.ts
 
 /**
  * Validation error messages

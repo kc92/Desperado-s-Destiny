@@ -12,6 +12,7 @@
 import crypto from 'crypto';
 import { Card, Rank, Suit as CardSuit } from '@desperados/shared';
 import { ActionType } from '../models/Action.model';
+import { SecureRNG } from './base/SecureRNG';
 
 // =============================================================================
 // TYPES
@@ -305,13 +306,9 @@ function createDeck(): Card[] {
     }
   }
 
-  // Shuffle
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [deck[i], deck[j]] = [deck[j], deck[i]];
-  }
-
-  return deck;
+  // SECURITY FIX: Use SecureRNG
+  // Shuffle using Fisher-Yates with cryptographically secure RNG
+  return SecureRNG.shuffle(deck);
 }
 
 // Draw cards from deck
@@ -323,12 +320,11 @@ function drawCards(state: GameState, count: number): Card[] {
   return drawn;
 }
 
+// SECURITY FIX: Use SecureRNG
 // Shuffle a deck in place
 function shuffleDeck(deck: Card[]): void {
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [deck[i], deck[j]] = [deck[j], deck[i]];
-  }
+  const shuffled = SecureRNG.shuffle(deck);
+  deck.splice(0, deck.length, ...shuffled);
 }
 
 // =============================================================================
@@ -424,8 +420,9 @@ function simulateOpponentCombat(
   let attackCount: number;
 
   if (difficulty <= 3) {
+    // SECURITY FIX: Use SecureRNG
     // Random split
-    attackCount = Math.floor(Math.random() * 4) + 1; // 1-4 cards for attack
+    attackCount = SecureRNG.range(1, 4); // 1-4 cards for attack
   } else if (difficulty <= 6) {
     // Balanced: 3 attack, 2 defense
     attackCount = 3;
@@ -706,7 +703,7 @@ function generateCardCountHint(state: GameState): string {
 
 function getMaxTurns(gameType: GameType): number {
   switch (gameType) {
-    case 'pokerHoldDraw': return 2;
+    case 'pokerHoldDraw': return 3; // 3 rounds: initial deal + 2 draw phases
     case 'pressYourLuck': return 10;
     case 'blackjack': return 10;
     case 'deckbuilder': return 7;
@@ -764,8 +761,8 @@ function processPokerAction(state: GameState, action: PlayerAction): GameState {
     state.currentRound = currentRound + 1;
     state.turnNumber++;
 
-    // Check if game is complete
-    if ((state.currentRound || 1) > maxRounds) {
+    // Check if game is complete (>= because we resolve when reaching the final round, not after)
+    if ((state.currentRound || 1) >= maxRounds) {
       state.status = 'resolved';
     }
 
@@ -779,8 +776,9 @@ function processPokerAction(state: GameState, action: PlayerAction): GameState {
       return state; // Can't reroll
     }
 
+    // SECURITY FIX: Use SecureRNG
     // Reroll specific cards (or random if not specified)
-    const indicesToReroll = action.cardIndices || [Math.floor(Math.random() * state.hand.length)];
+    const indicesToReroll = action.cardIndices || [SecureRNG.range(0, state.hand.length - 1)];
 
     indicesToReroll.forEach(idx => {
       if (idx >= 0 && idx < state.hand.length && state.deck.length > 0) {
@@ -857,7 +855,8 @@ function processPressYourLuckAction(state: GameState, action: PlayerAction): Gam
       // SKILL MODIFIER: Chance to avoid danger
       const modifiers = calculateSkillModifiers(state.characterSuitBonus || 0, state.difficulty);
 
-      if (Math.random() < modifiers.dangerAvoidChance) {
+      // SECURITY FIX: Use SecureRNG
+      if (SecureRNG.chance(modifiers.dangerAvoidChance)) {
         // Avoided danger - track for streak
         state.consecutiveSafeDraws = (state.consecutiveSafeDraws || 0) + 1;
       } else {
@@ -2026,6 +2025,29 @@ export function getGameTypeForAction(actionType: string): GameType {
 }
 
 /**
+ * Get game type based on job category
+ * Maps location job categories to appropriate deck game types:
+ * - labor: Standard work tasks → Poker (build the best hand)
+ * - skilled: Precision crafting → Deckbuilder (collect combos)
+ * - dangerous: Risk/reward tasks → Press Your Luck (know when to stop)
+ * - social: Social interactions → Blackjack (read the situation)
+ */
+export function getGameTypeForJobCategory(category: string): GameType {
+  switch (category) {
+    case 'labor':
+      return 'pokerHoldDraw';
+    case 'skilled':
+      return 'deckbuilder';
+    case 'dangerous':
+      return 'pressYourLuck';
+    case 'social':
+      return 'blackjack';
+    default:
+      return 'pokerHoldDraw';
+  }
+}
+
+/**
  * Get human-readable game type name
  */
 export function getGameTypeName(gameType: GameType): string {
@@ -2116,7 +2138,7 @@ export function initGame(options: {
     // === POKER: Multi-Round ===
     heldCards: [],
     currentRound: 1,
-    maxRounds: 3,
+    maxRounds: getMaxTurns(options.gameType), // Use same value as maxTurns for consistency
     rerollsUsed: 0,
     peeksUsed: 0,
     peekedCard: null,

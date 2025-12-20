@@ -13,14 +13,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ListItemSkeleton } from '@/components/ui/Skeleton';
 import { formatDistanceToNow } from 'date-fns';
-import { api } from '@/services/api';
-
-interface CharacterSearchResult {
-  _id: string;
-  name: string;
-  faction: string;
-  level: number;
-}
+import { logger } from '@/services/logger.service';
+import { profileService, CharacterSearchResult } from '@/services/profile.service';
 
 export const Mail: React.FC = () => {
   const {
@@ -62,7 +56,7 @@ export const Mail: React.FC = () => {
         await fetchInbox();
         await fetchSent();
       } catch (error) {
-        console.error('[Mail] Failed to load mail:', error);
+        logger.error('Failed to load mail', error as Error, { context: 'Mail' });
       }
     };
     loadMail();
@@ -78,13 +72,11 @@ export const Mail: React.FC = () => {
 
     setIsSearching(true);
     try {
-      const response = await api.get('/profiles/search', {
-        params: { q: query }
-      });
-      setSearchResults(response.data.data || []);
+      const results = await profileService.searchCharacters(query);
+      setSearchResults(results);
       setShowSearchResults(true);
     } catch (error) {
-      console.error('Failed to search characters:', error);
+      logger.error('Failed to search characters', error as Error, { context: 'Mail' });
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -139,7 +131,7 @@ export const Mail: React.FC = () => {
       setSearchResults([]);
       setShowSearchResults(false);
     } catch (err) {
-      console.error('Failed to send mail:', err);
+      logger.error('Failed to send mail', err as Error, { context: 'Mail' });
     }
   };
 
@@ -157,7 +149,7 @@ export const Mail: React.FC = () => {
         }
       }
     } catch (err) {
-      console.error('Failed to claim attachment:', err);
+      logger.error('Failed to claim attachment', err as Error, { context: 'Mail' });
     }
   }, [claimAttachment, selectedMail, inbox]);
 
@@ -174,7 +166,7 @@ export const Mail: React.FC = () => {
       setSelectedMail(null);
       setDeleteMailConfirm(null);
     } catch (err) {
-      console.error('Failed to delete mail:', err);
+      logger.error('Failed to delete mail', err as Error, { context: 'Mail' });
     } finally {
       setIsDeleting(false);
     }

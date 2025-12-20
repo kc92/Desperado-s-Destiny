@@ -4,6 +4,7 @@
  */
 
 import { SpecialEffect, SpecialEffectCategory } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Weapon special effects
@@ -285,7 +286,7 @@ export function getEffectsByCategory(category: SpecialEffectCategory): SpecialEf
  */
 export function getRandomEffect(category: SpecialEffectCategory): SpecialEffect {
   const effects = getEffectsByCategory(category);
-  return effects[Math.floor(Math.random() * effects.length)];
+  return SecureRNG.select(effects);
 }
 
 /**
@@ -296,7 +297,7 @@ export function getRandomEffects(
   count: number
 ): SpecialEffect[] {
   const effects = getEffectsByCategory(category);
-  const shuffled = [...effects].sort(() => Math.random() - 0.5);
+  const shuffled = SecureRNG.shuffle([...effects]);
   return shuffled.slice(0, Math.min(count, effects.length));
 }
 

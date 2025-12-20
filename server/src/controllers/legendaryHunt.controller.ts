@@ -297,7 +297,7 @@ export async function initiateLegendaryHunt(req: CharacterRequest, res: Response
 
     // Store the session for combat
     if (result.session) {
-      legendaryCombatService.storeSession(result.session);
+      await legendaryCombatService.storeSession(result.session);
     }
 
     logger.info(`Character ${characterId} initiated hunt against ${legendaryId}`);
@@ -363,7 +363,7 @@ export async function executeHuntTurn(req: CharacterRequest, res: Response): Pro
     }
 
     // Verify session belongs to character
-    const session = legendaryCombatService.getSession(sessionId);
+    const session = await legendaryCombatService.getSession(sessionId);
     if (!session) {
       res.status(404).json({
         success: false,
@@ -438,7 +438,7 @@ export async function getHuntSession(req: CharacterRequest, res: Response): Prom
       return;
     }
 
-    const session = legendaryCombatService.getSession(sessionId);
+    const session = await legendaryCombatService.getSession(sessionId);
     if (!session) {
       res.status(404).json({
         success: false,
@@ -495,7 +495,7 @@ export async function abandonHuntSession(req: CharacterRequest, res: Response): 
       return;
     }
 
-    const session = legendaryCombatService.getSession(sessionId);
+    const session = await legendaryCombatService.getSession(sessionId);
     if (!session) {
       res.status(404).json({
         success: false,
@@ -512,7 +512,7 @@ export async function abandonHuntSession(req: CharacterRequest, res: Response): 
       return;
     }
 
-    legendaryCombatService.removeSession(sessionId);
+    await legendaryCombatService.removeSession(sessionId);
 
     logger.info(`Character ${characterId} abandoned hunt session ${sessionId}`);
 
@@ -688,7 +688,7 @@ export async function claimRewards(req: CharacterRequest, res: Response): Promis
     }
 
     // Get session to pass to reward function
-    const session = sessionId ? legendaryCombatService.getSession(sessionId) : undefined;
+    const session = sessionId ? await legendaryCombatService.getSession(sessionId) : undefined;
 
     if (session && session.characterId !== characterId) {
       res.status(403).json({

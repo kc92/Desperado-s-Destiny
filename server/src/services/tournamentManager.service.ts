@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 import type { PokerTournament, TournamentPlayer, PokerTable } from '@desperados/shared';
 import { PokerTournament as PokerTournamentModel } from '../models/PokerTournament.model';
 import { Character } from '../models/Character.model';
+import { TransactionSource } from '../models/GoldTransaction.model';
 import { PokerService } from './poker.service';
 import {
   getTournamentTemplate,
@@ -14,6 +15,8 @@ import {
   calculatePrizeDistribution
 } from '../data/pokerTournaments';
 import { getBlindStructure, getNextBlindIncreaseTime } from '../data/blindStructures';
+import { SecureRNG } from './base/SecureRNG';
+import { withLock } from '../utils/distributedLock';
 
 /**
  * Create tournament from template
@@ -96,67 +99,69 @@ export async function registerPlayer(
   tournamentId: string,
   characterId: string
 ): Promise<PokerTournament> {
-  const tournament = await PokerTournamentModel.findById(tournamentId);
+  return withLock(`lock:tournament:${tournamentId}`, async () => {
+    const tournament = await PokerTournamentModel.findById(tournamentId);
 
-  if (!tournament) {
-    throw new Error('Tournament not found');
-  }
+    if (!tournament) {
+      throw new Error('Tournament not found');
+    }
 
-  if (tournament.status !== 'registration' && tournament.status !== 'late_registration') {
-    throw new Error('Registration is closed');
-  }
+    if (tournament.status !== 'registration' && tournament.status !== 'late_registration') {
+      throw new Error('Registration is closed');
+    }
 
-  const character = await Character.findById(characterId);
+    const character = await Character.findById(characterId);
 
-  if (!character) {
-    throw new Error('Character not found');
-  }
+    if (!character) {
+      throw new Error('Character not found');
+    }
 
-  // Check if already registered
-  if (tournament.registeredPlayers.some(p => p.characterId.toString() === characterId)) {
-    throw new Error('Already registered for this tournament');
-  }
+    // Check if already registered
+    if (tournament.registeredPlayers.some(p => p.characterId.toString() === characterId)) {
+      throw new Error('Already registered for this tournament');
+    }
 
-  // Check if tournament is full
-  if (tournament.registeredPlayers.length >= tournament.maxPlayers) {
-    throw new Error('Tournament is full');
-  }
+    // Check if tournament is full
+    if (tournament.registeredPlayers.length >= tournament.maxPlayers) {
+      throw new Error('Tournament is full');
+    }
 
-  // Check level requirement
-  if (tournament.minLevelRequired && character.level < tournament.minLevelRequired) {
-    throw new Error(`Minimum level ${tournament.minLevelRequired} required`);
-  }
+    // Check level requirement
+    if (tournament.minLevelRequired && character.level < tournament.minLevelRequired) {
+      throw new Error(`Minimum level ${tournament.minLevelRequired} required`);
+    }
 
-  // Check gold
-  const totalCost = tournament.buyIn + tournament.entryFee;
-  if (!character.hasGold(totalCost)) {
-    throw new Error('Insufficient gold');
-  }
+    // Check dollars
+    const totalCost = tournament.buyIn + tournament.entryFee;
+    if (!character.hasDollars(totalCost)) {
+      throw new Error('Insufficient dollars');
+    }
 
-  // Deduct buy-in
-  await character.deductGold(
-    totalCost,
-    'poker_tournament' as any, // TODO: Add POKER_TOURNAMENT to TransactionSource enum
-    { tournamentId: tournament._id.toString(), tournamentName: tournament.name }
-  );
-  await character.save();
+    // Deduct buy-in
+    await character.deductDollars(
+      totalCost,
+      TransactionSource.POKER_TOURNAMENT,
+      { tournamentId: tournament._id.toString(), tournamentName: tournament.name }
+    );
+    await character.save();
 
-  // Add to registered players
-  const player: TournamentPlayer = {
-    characterId: new mongoose.Types.ObjectId(characterId) as any,
-    characterName: character.name,
-    chips: tournament.startingChips,
-    isEliminated: false
-  };
+    // Add to registered players
+    const player: TournamentPlayer = {
+      characterId: new mongoose.Types.ObjectId(characterId) as any,
+      characterName: character.name,
+      chips: tournament.startingChips,
+      isEliminated: false
+    };
 
-  tournament.registeredPlayers.push(player);
+    tournament.registeredPlayers.push(player);
 
-  // Update prize pool
-  tournament.prizePool += tournament.buyIn;
+    // Update prize pool
+    tournament.prizePool += tournament.buyIn;
 
-  await tournament.save();
+    await tournament.save();
 
-  return tournament.toObject() as unknown as PokerTournament;
+    return tournament.toObject() as unknown as PokerTournament;
+  }, { ttl: 30, retries: 3 });
 }
 
 /**
@@ -225,7 +230,7 @@ function createTables(tournament: any): PokerTable[] {
   }
 
   // Shuffle players for random seating
-  const shuffledPlayers = [...tournament.registeredPlayers].sort(() => Math.random() - 0.5);
+  const shuffledPlayers = SecureRNG.shuffle([...tournament.registeredPlayers]);
 
   // Seat players
   let tableIndex = 0;
@@ -300,9 +305,9 @@ export async function eliminatePlayer(
       // Award bounty
       const character = await Character.findById(eliminatedBy);
       if (character) {
-        await character.addGold(
+        await character.addDollars(
           tournament.bountyAmount,
-          'poker_bounty' as any, // TODO: Add POKER_BOUNTY to TransactionSource enum
+          TransactionSource.POKER_BOUNTY,
           { tournamentId: tournament._id.toString(), victimId: characterId }
         );
         await character.save();
@@ -362,9 +367,9 @@ async function awardPrizes(tournament: any): Promise<void> {
       const character = await Character.findById(player.characterId);
 
       if (character) {
-        await character.addGold(
+        await character.addDollars(
           amount,
-          'poker_prize' as any, // TODO: Add POKER_PRIZE to TransactionSource enum
+          TransactionSource.POKER_PRIZE,
           {
             tournamentId: tournament._id.toString(),
             tournamentName: tournament.name,

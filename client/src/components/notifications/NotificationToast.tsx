@@ -5,7 +5,18 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Notification, NotificationType } from '@/hooks/useNotifications';
+import type { Notification } from '@desperados/shared';
+
+// Define notification types locally
+type NotificationType =
+  | 'MAIL_RECEIVED'
+  | 'FRIEND_REQUEST'
+  | 'FRIEND_ACCEPTED'
+  | 'GANG_INVITATION'
+  | 'GANG_WAR_UPDATE'
+  | 'COMBAT_DEFEAT'
+  | 'JAIL_RELEASED'
+  | 'SKILL_TRAINED';
 
 interface NotificationToastProps {
   notification: Notification;

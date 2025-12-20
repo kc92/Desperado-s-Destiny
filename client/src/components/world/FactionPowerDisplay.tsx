@@ -121,7 +121,7 @@ export const FactionPowerDisplay: React.FC<FactionPowerDisplayProps> = ({ compac
 
               {/* Territories */}
               <div className="text-xs text-stone-500 mt-1">
-                {faction.controlledTerritories} territories controlled
+                {Math.round(faction.power / 10)} territories controlled
               </div>
             </div>
           );

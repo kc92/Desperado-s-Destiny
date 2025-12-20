@@ -5,7 +5,8 @@
 
 import { Router } from 'express';
 import { FrontierZodiacController } from '../controllers/frontierZodiac.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
@@ -159,7 +160,7 @@ router.get('/progress', asyncHandler(FrontierZodiacController.getProgress));
  *   message: string
  * }
  */
-router.post('/birth-sign', asyncHandler(FrontierZodiacController.setBirthSign));
+router.post('/birth-sign', requireCsrfToken, asyncHandler(FrontierZodiacController.setBirthSign));
 
 /**
  * GET /api/zodiac/bonuses
@@ -191,7 +192,7 @@ router.get('/bonuses', asyncHandler(FrontierZodiacController.getActiveBonuses));
  *   message: string
  * }
  */
-router.post('/constellation/:signId/claim', asyncHandler(FrontierZodiacController.claimConstellationReward));
+router.post('/constellation/:signId/claim', requireCsrfToken, asyncHandler(FrontierZodiacController.claimConstellationReward));
 
 /**
  * POST /api/zodiac/peak-day/attend
@@ -203,7 +204,7 @@ router.post('/constellation/:signId/claim', asyncHandler(FrontierZodiacControlle
  *   message: string
  * }
  */
-router.post('/peak-day/attend', asyncHandler(FrontierZodiacController.attendPeakDay));
+router.post('/peak-day/attend', requireCsrfToken, asyncHandler(FrontierZodiacController.attendPeakDay));
 
 /**
  * POST /api/zodiac/fragments/award
@@ -225,6 +226,6 @@ router.post('/peak-day/attend', asyncHandler(FrontierZodiacController.attendPeak
  *   message: string
  * }
  */
-router.post('/fragments/award', asyncHandler(FrontierZodiacController.awardFragments));
+router.post('/fragments/award', requireCsrfToken, asyncHandler(FrontierZodiacController.awardFragments));
 
 export default router;

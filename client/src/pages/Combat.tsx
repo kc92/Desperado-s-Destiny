@@ -12,6 +12,8 @@ import { CombatResultModal } from '@/components/game/CombatResultModal';
 import { Button, EmptyState } from '@/components/ui';
 import { CardGridSkeleton, StatSkeleton } from '@/components/ui/Skeleton';
 import { NPCType, CombatResult, CombatStatus } from '@desperados/shared';
+import { logger } from '@/services/logger.service';
+import { dispatchCombatWon } from '@/utils/tutorialEvents';
 
 type NPCFilterType = NPCType | 'ALL' | 'BOSS';
 
@@ -64,6 +66,11 @@ export const Combat: React.FC = () => {
       const npc = activeCombat.npc;
       const lootTable = npc?.lootTable;
 
+      // Dispatch tutorial event if player won
+      if (activeCombat.status === CombatStatus.PLAYER_VICTORY && npc) {
+        dispatchCombatWon(npc._id || npc.name);
+      }
+
       const result = {
         victory: activeCombat.status === CombatStatus.PLAYER_VICTORY,
         xpGained: activeCombat.status === CombatStatus.PLAYER_VICTORY ?
@@ -104,7 +111,10 @@ export const Combat: React.FC = () => {
     try {
       await startCombat(selectedNPCId, currentCharacter?._id || '');
     } catch (error) {
-      console.error('Failed to start combat:', error);
+      logger.error('Failed to start combat from UI', error as Error, {
+        npcId: selectedNPCId,
+        characterId: currentCharacter?._id
+      });
     }
     setSelectedNPCId(null);
   };
@@ -114,7 +124,7 @@ export const Combat: React.FC = () => {
     try {
       await playTurn();
     } catch (error) {
-      console.error('Failed to play turn:', error);
+      logger.error('Failed to play turn from UI', error as Error);
     }
   };
 
@@ -123,7 +133,7 @@ export const Combat: React.FC = () => {
     try {
       await fleeCombat();
     } catch (error) {
-      console.error('Failed to flee combat:', error);
+      logger.error('Failed to flee combat from UI', error as Error);
     }
   };
 

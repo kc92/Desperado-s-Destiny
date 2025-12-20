@@ -296,7 +296,8 @@ export const discoverMerchant = asyncHandler(
     }
 
     // Check if already discovered
-    if (WanderingMerchantService.hasPlayerDiscovered(characterId, merchantId)) {
+    const hasDiscovered = await WanderingMerchantService.hasPlayerDiscovered(characterId, merchantId);
+    if (hasDiscovered) {
       return res.status(400).json({
         success: false,
         error: 'You have already discovered this merchant',
@@ -305,7 +306,7 @@ export const discoverMerchant = asyncHandler(
 
     // TODO: Check discovery conditions (rep, quest, etc.)
 
-    WanderingMerchantService.discoverMerchant(characterId, merchantId);
+    await WanderingMerchantService.discoverMerchant(characterId, merchantId);
 
     res.status(200).json({
       success: true,
@@ -325,7 +326,7 @@ export const getVisibleMerchants = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
     const characterId = req.character!._id.toString();
 
-    const merchants = WanderingMerchantService.getVisibleMerchantsForPlayer(characterId);
+    const merchants = await WanderingMerchantService.getVisibleMerchantsForPlayer(characterId);
 
     res.status(200).json({
       success: true,

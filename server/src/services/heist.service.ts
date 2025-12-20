@@ -16,8 +16,11 @@ import {
   HeistPlanningRequest,
   HeistRole,
   HeistStatus,
+  SkillCategory,
 } from '@desperados/shared';
+import { UnlockEnforcementService } from './unlockEnforcement.service';
 import logger from '../utils/logger';
+import { withLock } from '../utils/distributedLock';
 
 export class HeistService {
   /**
@@ -94,6 +97,16 @@ export class HeistService {
 
       if (!gang.isLeader(characterId)) {
         throw new Error('Only the leader can plan heists');
+      }
+
+      // Check CUNNING level 25 requirement for heist planning
+      const canPlanHeist = await UnlockEnforcementService.canPerformAction(
+        characterId,
+        SkillCategory.CUNNING,
+        'Heist Planning'
+      );
+      if (!canPlanHeist.allowed) {
+        throw new Error(canPlanHeist.error || 'CUNNING level 25 required for heist planning');
       }
 
       // Check cooldown
@@ -230,88 +243,93 @@ export class HeistService {
    * Execute a heist
    */
   static async executeHeist(gangId: string, heistId: string, characterId: string): Promise<IGangHeist> {
-    const session = await mongoose.startSession();
+    // Use distributed lock to prevent race conditions when executing heists
+    const lockKey = `lock:heist:${heistId}`;
 
-    try {
-      await session.startTransaction();
+    return withLock(lockKey, async () => {
+      const session = await mongoose.startSession();
 
-      const heist = await GangHeist.findById(heistId).session(session);
-      if (!heist) {
-        throw new Error('Heist not found');
-      }
+      try {
+        await session.startTransaction();
 
-      if (heist.gangId.toString() !== gangId) {
-        throw new Error('Heist does not belong to this gang');
-      }
+        const heist = await GangHeist.findById(heistId).session(session);
+        if (!heist) {
+          throw new Error('Heist not found');
+        }
 
-      const gang = await Gang.findById(gangId).session(session);
-      if (!gang) {
-        throw new Error('Gang not found');
-      }
+        if (heist.gangId.toString() !== gangId) {
+          throw new Error('Heist does not belong to this gang');
+        }
 
-      if (!gang.isLeader(characterId)) {
-        throw new Error('Only the leader can execute heists');
-      }
+        const gang = await Gang.findById(gangId).session(session);
+        if (!gang) {
+          throw new Error('Gang not found');
+        }
 
-      if (!heist.canExecute()) {
-        throw new Error('Heist is not ready to execute');
-      }
+        if (!gang.isLeader(characterId)) {
+          throw new Error('Only the leader can execute heists');
+        }
 
-      // Execute the heist
-      const result = await heist.executeHeist();
+        if (!heist.canExecute()) {
+          throw new Error('Heist is not ready to execute');
+        }
 
-      const economy = await GangEconomy.findOne({ gangId: new mongoose.Types.ObjectId(gangId) }).session(session);
-      if (!economy) {
-        throw new Error('Gang economy not found');
-      }
+        // Execute the heist
+        const result = await heist.executeHeist();
 
-      // Add payout to war chest if successful
-      if (result.payout > 0) {
-        economy.addToAccount(GangBankAccountType.WAR_CHEST, result.payout);
-        await economy.save({ session });
-      }
+        const economy = await GangEconomy.findOne({ gangId: new mongoose.Types.ObjectId(gangId) }).session(session);
+        if (!economy) {
+          throw new Error('Gang economy not found');
+        }
 
-      // Handle arrested members
-      if (result.arrested.length > 0) {
-        for (const arrestedId of result.arrested) {
-          const character = await Character.findById(arrestedId).session(session);
-          if (character) {
-            // Add jail time (simple implementation - in full game would use jail system)
-            logger.info(`Character ${character.name} was arrested during heist`);
+        // Add payout to war chest if successful
+        if (result.payout > 0) {
+          economy.addToAccount(GangBankAccountType.WAR_CHEST, result.payout);
+          await economy.save({ session });
+        }
+
+        // Handle arrested members
+        if (result.arrested.length > 0) {
+          for (const arrestedId of result.arrested) {
+            const character = await Character.findById(arrestedId).session(session);
+            if (character) {
+              // Add jail time (simple implementation - in full game would use jail system)
+              logger.info(`Character ${character.name} was arrested during heist`);
+            }
           }
         }
-      }
 
-      // Handle casualties
-      if (result.casualties.length > 0) {
-        for (const casualtyId of result.casualties) {
-          const character = await Character.findById(casualtyId).session(session);
-          if (character) {
-            // Handle injury/death (simple implementation)
-            logger.info(`Character ${character.name} was injured during heist`);
+        // Handle casualties
+        if (result.casualties.length > 0) {
+          for (const casualtyId of result.casualties) {
+            const character = await Character.findById(casualtyId).session(session);
+            if (character) {
+              // Handle injury/death (simple implementation)
+              logger.info(`Character ${character.name} was injured during heist`);
+            }
           }
         }
+
+        // Increase gang heat level
+        const activeHeists = await GangHeist.findActiveHeists(gangId);
+        const totalHeat = activeHeists.reduce((sum, h) => sum + h.heatLevel, 0);
+        logger.info(`Gang ${gang.name} heat level: ${totalHeat + heist.riskLevel}`);
+
+        await session.commitTransaction();
+
+        logger.info(
+          `Heist ${heist.targetName} executed: ${result.outcome}, payout: ${result.payout}, arrested: ${result.arrested.length}`
+        );
+
+        return heist;
+      } catch (error) {
+        await session.abortTransaction();
+        logger.error('Error executing heist:', error);
+        throw error;
+      } finally {
+        session.endSession();
       }
-
-      // Increase gang heat level
-      const activeHeists = await GangHeist.findActiveHeists(gangId);
-      const totalHeat = activeHeists.reduce((sum, h) => sum + h.heatLevel, 0);
-      logger.info(`Gang ${gang.name} heat level: ${totalHeat + heist.riskLevel}`);
-
-      await session.commitTransaction();
-
-      logger.info(
-        `Heist ${heist.targetName} executed: ${result.outcome}, payout: ${result.payout}, arrested: ${result.arrested.length}`
-      );
-
-      return heist;
-    } catch (error) {
-      await session.abortTransaction();
-      logger.error('Error executing heist:', error);
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    }, { ttl: 30, retries: 3 });
   }
 
   /**

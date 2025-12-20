@@ -12,7 +12,7 @@ import {
   ItemRarity,
   Bid,
 } from '@/hooks/useMarketplace';
-import { formatGold, formatTimeAgo } from '@/utils/format';
+import { formatDollars, formatTimeAgo } from '@/utils/format';
 
 interface ListingDetailsModalProps {
   isOpen: boolean;
@@ -252,7 +252,7 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
                       {hasCurrentBid ? 'Current Bid' : 'Starting Price'}
                     </p>
                     <p className="text-xl font-bold text-gold-light">
-                      {formatGold(listing.currentBid || listing.startingPrice)}
+                      {formatDollars(listing.currentBid || listing.startingPrice)}
                     </p>
                   </div>
 
@@ -261,7 +261,7 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
                     <div>
                       <p className="text-xs text-desert-stone">Buy Now Price</p>
                       <p className="text-xl font-bold text-emerald-400">
-                        {formatGold(listing.buyoutPrice)}
+                        {formatDollars(listing.buyoutPrice)}
                       </p>
                     </div>
                   )}
@@ -329,7 +329,7 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
                         </p>
                       </div>
                       <p className="text-lg font-bold text-gold-light">
-                        {formatGold(bid.amount)}
+                        {formatDollars(bid.amount)}
                       </p>
                     </div>
                   ))
@@ -347,19 +347,19 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
                     <div className="text-center">
                       <p className="text-xs text-desert-stone">Average</p>
                       <p className="text-lg font-bold text-gold-light">
-                        {formatGold(priceHistory.averagePrice)}
+                        {formatDollars(priceHistory.averagePrice)}
                       </p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-desert-stone">Lowest</p>
                       <p className="text-lg font-bold text-green-400">
-                        {formatGold(priceHistory.lowestPrice)}
+                        {formatDollars(priceHistory.lowestPrice)}
                       </p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-desert-stone">Highest</p>
                       <p className="text-lg font-bold text-blood-red">
-                        {formatGold(priceHistory.highestPrice)}
+                        {formatDollars(priceHistory.highestPrice)}
                       </p>
                     </div>
                     <div className="text-center">
@@ -387,11 +387,11 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
         {/* Action Section */}
         {!isOwnListing && !timeRemaining.isExpired && (
           <div className="border-t border-wood-grain/30 pt-4 space-y-4">
-            {/* Your Gold */}
+            {/* Your Dollars */}
             <div className="flex justify-between items-center">
-              <span className="text-sm text-desert-stone">Your Gold:</span>
+              <span className="text-sm text-desert-stone">Your Dollars:</span>
               <span className="text-lg font-western text-gold-light">
-                {formatGold(currentGold)}
+                {formatDollars(currentGold)}
               </span>
             </div>
 
@@ -400,7 +400,7 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
               <div className="flex gap-4 items-end">
                 <div className="flex-1">
                   <label className="block text-sm text-desert-stone mb-1">
-                    Your Bid (min: {formatGold(minimumBid)})
+                    Your Bid (min: {formatDollars(minimumBid)})
                   </label>
                   <input
                     type="number"
@@ -412,7 +412,7 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
                   />
                   {!isBidValid && bidAmountNum > 0 && (
                     <p className="text-xs text-blood-red mt-1">
-                      Bid must be at least {formatGold(minimumBid)}
+                      Bid must be at least {formatDollars(minimumBid)}
                     </p>
                   )}
                   {!canAffordBid && bidAmountNum > 0 && (
@@ -444,14 +444,14 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
                 loadingText="Processing..."
                 className="bg-emerald-600 hover:bg-emerald-500 border-emerald-700"
               >
-                Buy Now for {formatGold(listing.buyoutPrice!)}
+                Buy Now for {formatDollars(listing.buyoutPrice!)}
               </Button>
             )}
 
             {/* Cannot Afford Warning */}
             {canBuyNow && !canAffordBuyout && (
               <p className="text-center text-sm text-blood-red">
-                You need {formatGold(listing.buyoutPrice! - currentGold)} more gold
+                You need {formatDollars(listing.buyoutPrice! - currentGold)} more gold
               </p>
             )}
           </div>

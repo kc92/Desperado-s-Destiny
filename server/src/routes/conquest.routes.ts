@@ -9,6 +9,7 @@ import { Router } from 'express';
 import { ConquestController } from '../controllers/conquest.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
@@ -46,6 +47,7 @@ router.get(
  */
 router.post(
   '/territories/:territoryId/declare-siege',
+  requireCsrfToken,
   asyncHandler(ConquestController.declareSiege)
 );
 
@@ -57,6 +59,7 @@ router.post(
  */
 router.post(
   '/sieges/:siegeAttemptId/rally-defense',
+  requireCsrfToken,
   asyncHandler(ConquestController.rallyDefense)
 );
 
@@ -72,6 +75,7 @@ router.post(
  */
 router.post(
   '/sieges/:siegeAttemptId/start-assault',
+  requireCsrfToken,
   asyncHandler(ConquestController.startAssault)
 );
 
@@ -83,6 +87,7 @@ router.post(
  */
 router.post(
   '/sieges/:siegeAttemptId/complete',
+  requireCsrfToken,
   asyncHandler(ConquestController.completeConquest)
 );
 
@@ -93,6 +98,7 @@ router.post(
  */
 router.post(
   '/sieges/:siegeAttemptId/cancel',
+  requireCsrfToken,
   asyncHandler(ConquestController.cancelSiege)
 );
 
@@ -142,6 +148,7 @@ router.get(
  */
 router.post(
   '/territories/:territoryId/initialize',
+  requireCsrfToken,
   asyncHandler(ConquestController.initializeTerritoryState)
 );
 
@@ -152,6 +159,7 @@ router.post(
  */
 router.post(
   '/update-occupation-statuses',
+  requireCsrfToken,
   asyncHandler(ConquestController.updateOccupationStatuses)
 );
 

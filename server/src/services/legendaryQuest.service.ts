@@ -5,7 +5,12 @@
 
 import mongoose from 'mongoose';
 import { LegendaryProgress, ILegendaryProgress } from '../models/LegendaryProgress.model';
-import { Character } from '../models/Character.model';
+import { Character, ICharacter } from '../models/Character.model';
+import { CharacterProgressionService } from './characterProgression.service';
+import { InventoryService } from './inventory.service';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import logger from '../utils/logger';
 import type {
   LegendaryQuestChain,
   LegendaryQuest,
@@ -507,42 +512,80 @@ export class LegendaryQuestService {
 
   /**
    * Award rewards to character
+   * Uses proper services for transaction safety
    */
   private static async awardRewards(
-    character: any,
+    character: ICharacter,
     progress: ILegendaryProgress,
     rewards: LegendaryQuestReward[]
   ): Promise<void> {
     for (const reward of rewards) {
-      switch (reward.type) {
-        case 'experience':
-          // TODO: Implement experience system
-          break;
+      try {
+        switch (reward.type) {
+          case 'experience':
+            // Award XP using CharacterProgressionService for proper level-up handling
+            await CharacterProgressionService.addExperience(
+              character._id.toString(),
+              reward.amount,
+              'LEGENDARY_QUEST'
+            );
+            logger.debug(`Awarded ${reward.amount} XP from legendary quest to character ${character._id}`);
+            break;
 
-        case 'gold':
-          character.gold = (character.gold || 0) + reward.amount;
-          break;
+          case 'dollars':
+            // Use DollarService for transaction-safe dollars operations
+            await DollarService.addDollars(
+              character._id as mongoose.Types.ObjectId,
+              reward.amount,
+              TransactionSource.QUEST_REWARD,
+              { source: 'legendary_quest', currencyType: CurrencyType.DOLLAR }
+            );
+            logger.debug(`Awarded ${reward.amount} dollars from legendary quest to character ${character._id}`);
+            break;
 
-        case 'item':
-          // TODO: Implement inventory system
-          if (reward.unique && !progress.uniqueItemsObtained.includes(reward.itemId)) {
-            progress.uniqueItemsObtained.push(reward.itemId);
-          }
-          break;
+          case 'item':
+            // Track unique items in legendary progress
+            if (reward.unique && !progress.uniqueItemsObtained.includes(reward.itemId)) {
+              progress.uniqueItemsObtained.push(reward.itemId);
+            }
+            // Add items to inventory using InventoryService
+            await InventoryService.addItems(
+              character._id.toString(),
+              [{ itemId: reward.itemId, quantity: reward.quantity || 1 }],
+              { type: 'quest', id: 'legendary_quest', name: 'Legendary Quest Reward' }
+            );
+            logger.debug(`Awarded item ${reward.itemId} x${reward.quantity || 1} from legendary quest to character ${character._id}`);
+            break;
 
-        case 'title':
-          if (!progress.titlesUnlocked.includes(reward.titleId)) {
-            progress.titlesUnlocked.push(reward.titleId);
-          }
-          break;
+          case 'title':
+            if (!progress.titlesUnlocked.includes(reward.titleId)) {
+              progress.titlesUnlocked.push(reward.titleId);
+              logger.debug(`Unlocked title ${reward.titleId} for character ${character._id}`);
+            }
+            break;
 
-        case 'skill_points':
-          // TODO: Implement skill point system
-          break;
+          case 'skill_points':
+            // Add unspent skill points to character
+            // These can be used to level up individual skills
+            const currentSkillPoints = (character as any).unspentSkillPoints || 0;
+            (character as any).unspentSkillPoints = currentSkillPoints + reward.amount;
+            logger.debug(`Awarded ${reward.amount} skill points to character ${character._id}`);
+            break;
 
-        case 'property':
-          // TODO: Implement property system
-          break;
+          case 'property':
+            // Grant property ownership to character
+            // Add to character's owned properties list
+            const ownedProperties: string[] = (character as any).ownedProperties || [];
+            if (!ownedProperties.includes(reward.propertyId)) {
+              ownedProperties.push(reward.propertyId);
+              (character as any).ownedProperties = ownedProperties;
+              logger.debug(`Granted property ${reward.propertyId} to character ${character._id}`);
+            }
+            break;
+        }
+      } catch (error) {
+        // Log error but continue processing other rewards
+        logger.error(`Failed to award ${reward.type} reward to character ${character._id}:`, error);
       }
     }
   }

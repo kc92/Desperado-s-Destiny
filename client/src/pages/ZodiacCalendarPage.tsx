@@ -7,7 +7,6 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, LoadingSpinner } from '@/components/ui';
 import {
-  SignCard,
   SignBonusDisplay,
   PeakDayBanner,
   PeakDayCountdown,
@@ -16,8 +15,9 @@ import {
   SignBountyList,
 } from '@/components/zodiac';
 import { useZodiac } from '@/hooks/useZodiac';
-import { SIGN_COLORS, FRONTIER_SIGNS, getCurrentSign, getDaysUntilPeakDay } from '@/constants/zodiac.constants';
+import { SIGN_COLORS, FRONTIER_SIGNS } from '@/constants/zodiac.constants';
 import type { FrontierSign, ZodiacSignId, PeakDayNPC, PeakDayBounty } from '@/types/zodiac.types';
+import { logger } from '@/services/logger.service';
 
 /**
  * Month names for calendar display
@@ -93,7 +93,7 @@ export const ZodiacCalendarPage: React.FC = () => {
         setSignNPCs(npcs);
         setSignBounties(bounties);
       } catch (err) {
-        console.error('Failed to fetch sign content:', err);
+        logger.error('Failed to fetch sign content', err as Error, { context: 'ZodiacCalendarPage' });
       } finally {
         setLoadingContent(false);
       }

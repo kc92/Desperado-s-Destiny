@@ -97,7 +97,7 @@ export const getRaidState = asyncHandler(
   async (req: Request, res: Response) => {
     const { raidId } = req.params;
 
-    const raid = GangWarDeckService.getRaidGameState(raidId);
+    const raid = await GangWarDeckService.getRaidGameState(raidId);
 
     if (!raid) {
       res.status(404).json({ success: false, error: 'Raid not found' });
@@ -173,7 +173,7 @@ export const getChampionDuelState = asyncHandler(
       return;
     }
 
-    const duel = GangWarDeckService.getChampionDuelState(warId);
+    const duel = await GangWarDeckService.getChampionDuelState(warId);
 
     if (!duel) {
       res.status(404).json({ success: false, error: 'Champion duel not found' });
@@ -306,7 +306,7 @@ export const getShowdownState = asyncHandler(
       return;
     }
 
-    const showdown = GangWarDeckService.getLeaderShowdownState(warId);
+    const showdown = await GangWarDeckService.getLeaderShowdownState(warId);
 
     if (!showdown) {
       res.status(404).json({ success: false, error: 'Showdown not found' });

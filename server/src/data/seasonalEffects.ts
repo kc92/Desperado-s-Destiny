@@ -13,6 +13,7 @@ import {
   ItemCategory,
 } from '@desperados/shared';
 import { WeatherType } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Seasonal effects for each season
@@ -252,7 +253,7 @@ export function getWeatherProbabilities(season: Season): WeatherProbability[] {
  */
 export function getRandomSeasonalWeather(season: Season): WeatherType {
   const probabilities = getWeatherProbabilities(season);
-  const roll = Math.random();
+  const roll = SecureRNG.float(0, 1);
   let cumulative = 0;
 
   for (const { weather, probability } of probabilities) {

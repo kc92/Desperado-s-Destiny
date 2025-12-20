@@ -588,7 +588,7 @@ export async function getTamingProgress(req: CharacterRequest, res: Response): P
       return;
     }
 
-    const progress = TamingService.getTamingProgress(characterId, species as any);
+    const progress = await TamingService.getTamingProgress(characterId, species as any);
 
     res.status(200).json({
       success: true,
@@ -634,7 +634,7 @@ export async function abandonTaming(req: CharacterRequest, res: Response): Promi
       return;
     }
 
-    TamingService.abandonTaming(characterId, species);
+    await TamingService.abandonTaming(characterId, species);
 
     res.status(200).json({
       success: true,

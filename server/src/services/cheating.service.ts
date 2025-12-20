@@ -17,6 +17,7 @@ import {
 } from '@desperados/shared';
 import { getGamblingGameById } from '../data/gamblingGames';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Attempt to cheat in a gambling game
@@ -82,20 +83,23 @@ export async function attemptCheat(
   successChance = Math.max(10, Math.min(90, successChance));
 
   // Roll for success
-  const successRoll = Math.random() * 100;
-  const success = successRoll < successChance;
+  // SECURITY FIX: Use SecureRNG
+  const successRoll = SecureRNG.d100();
+  const success = successRoll <= successChance;
 
   // Roll for detection
-  const detectionRoll = Math.random() * 100;
-  const detected = detectionRoll < detectionChance;
+  // SECURITY FIX: Use SecureRNG
+  const detectionRoll = SecureRNG.d100();
+  const detected = detectionRoll <= detectionChance;
 
   // Determine who detected (if detected)
   let detectedBy: 'DEALER' | 'PLAYER' | 'SECURITY' | 'NONE' = 'NONE';
   if (detected) {
-    const detectorRoll = Math.random() * 100;
-    if (detectorRoll < 60) {
+    // SECURITY FIX: Use SecureRNG
+    const detectorRoll = SecureRNG.d100();
+    if (detectorRoll <= 60) {
       detectedBy = 'DEALER';
-    } else if (detectorRoll < 85) {
+    } else if (detectorRoll <= 85) {
       detectedBy = 'SECURITY';
     } else {
       detectedBy = 'PLAYER';
@@ -161,8 +165,8 @@ export async function attemptCheat(
 
     // Fine
     if (cheatAttempt.fine) {
-      if (character.hasGold(cheatAttempt.fine)) {
-        await character.deductGold(cheatAttempt.fine, TransactionSource.GAMBLING_CHEAT_FINE);
+      if (character.hasDollars(cheatAttempt.fine)) {
+        await character.deductDollars(cheatAttempt.fine, TransactionSource.GAMBLING_CHEAT_FINE);
       }
     }
 
@@ -176,7 +180,7 @@ export async function attemptCheat(
     // Generate message
     message = `CAUGHT CHEATING by ${detectedBy}! You've been ejected from the game`;
     if (cheatAttempt.fine) {
-      message += `, fined ${cheatAttempt.fine} gold`;
+      message += `, fined ${cheatAttempt.fine} dollars`;
     }
     if (cheatAttempt.jailTime) {
       message += `, and sent to jail for ${cheatAttempt.jailTime} minutes`;
@@ -189,14 +193,14 @@ export async function attemptCheat(
     logger.warn(`Cheat detected: ${character.name} caught using ${method} at ${session.location}`);
   } else {
     if (success) {
-      // Award bonus gold
+      // Award bonus dollars
       if (goldBonus > 0) {
-        await character.addGold(goldBonus, TransactionSource.GAMBLING_WIN);
+        await character.addDollars(goldBonus, TransactionSource.GAMBLING_WIN);
         await character.save();
       }
 
-      message = `Cheat successful! You gained an extra ${Math.floor(goldBonus)} gold without detection.`;
-      logger.info(`Successful cheat: ${character.name} used ${method} and won ${goldBonus} gold`);
+      message = `Cheat successful! You gained an extra ${Math.floor(goldBonus)} dollars without detection.`;
+      logger.info(`Successful cheat: ${character.name} used ${method} and won ${goldBonus} dollars`);
     } else {
       message = `Your cheat attempt failed, but you weren't caught. The dealer seemed suspicious though...`;
     }

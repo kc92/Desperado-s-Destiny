@@ -9,6 +9,8 @@ import {
   BreedingGenetics
 } from '@desperados/shared';
 import { HORSE_BREEDS, selectRandomColor } from '../data/horseBreeds';
+import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 // ============================================================================
 // CONSTANTS
@@ -55,7 +57,7 @@ export async function breedHorses(
 
   // Calculate breeding success chance
   const successChance = calculateBreedingSuccess(stallion, mare);
-  const success = Math.random() < successChance;
+  const success = SecureRNG.chance(successChance);
 
   if (!success) {
     return {
@@ -91,16 +93,16 @@ export async function breedHorses(
   await stallion.save();
 
   // Determine foal breed (can inherit from either parent)
-  const foalBreed = Math.random() < 0.5 ? stallion.breed : mare.breed;
+  const foalBreed = SecureRNG.chance(0.5) ? stallion.breed : mare.breed;
 
   // Determine gender
-  const foalGender = Math.random() < 0.5 ? HorseGender.STALLION : HorseGender.MARE;
+  const foalGender = SecureRNG.chance(0.5) ? HorseGender.STALLION : HorseGender.MARE;
 
   // Determine color
   const foalColor = selectRandomColor(foalBreed);
 
   // Check for exceptional traits
-  const isExceptional = Math.random() < EXCEPTIONAL_FOAL_CHANCE;
+  const isExceptional = SecureRNG.chance(EXCEPTIONAL_FOAL_CHANCE);
   const specialTrait = isExceptional ? generateSpecialTrait(genetics) : undefined;
 
   return {
@@ -137,7 +139,7 @@ export async function checkPregnancies(): Promise<HorseDocument[]> {
         newborns.push(foal);
       }
     } catch (error) {
-      console.error(`Error birthing foal for mare ${mare._id}:`, error);
+      logger.error('Error birthing foal for mare', { mareId: mare._id, error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     }
   }
 
@@ -152,7 +154,7 @@ async function birthFoal(mare: HorseDocument): Promise<HorseDocument | null> {
   const stallion = await Horse.findById(mare.breeding.pregnantBy);
   if (!stallion) {
     // Stallion no longer exists, but birth still happens
-    console.warn(`Stallion ${mare.breeding.pregnantBy} not found for mare ${mare._id}`);
+    logger.warn(`Stallion ${mare.breeding.pregnantBy} not found for mare ${mare._id}`);
   }
 
   // Generate foal
@@ -161,12 +163,12 @@ async function birthFoal(mare: HorseDocument): Promise<HorseDocument | null> {
     : generateSoloFoalGenetics(mare);
 
   const foalBreed = stallion
-    ? (Math.random() < 0.5 ? stallion.breed : mare.breed)
+    ? (SecureRNG.chance(0.5) ? stallion.breed : mare.breed)
     : mare.breed;
 
-  const foalGender = Math.random() < 0.5 ? HorseGender.STALLION : HorseGender.MARE;
+  const foalGender = SecureRNG.chance(0.5) ? HorseGender.STALLION : HorseGender.MARE;
   const foalColor = selectRandomColor(foalBreed);
-  const isExceptional = Math.random() < EXCEPTIONAL_FOAL_CHANCE;
+  const isExceptional = SecureRNG.chance(EXCEPTIONAL_FOAL_CHANCE);
 
   const breedDef = HORSE_BREEDS[foalBreed];
 
@@ -303,11 +305,11 @@ function generateFoalGenetics(
 
   // Random inheritance rolls (for display/flavor)
   const inheritanceRolls = [
-    Math.random(),
-    Math.random(),
-    Math.random(),
-    Math.random(),
-    Math.random()
+    SecureRNG.float(0, 1, 3),
+    SecureRNG.float(0, 1, 3),
+    SecureRNG.float(0, 1, 3),
+    SecureRNG.float(0, 1, 3),
+    SecureRNG.float(0, 1, 3)
   ];
 
   // Check for exceptional genetics
@@ -316,11 +318,9 @@ function generateFoalGenetics(
 
   // Mutations
   const mutations: string[] = [];
-  if (Math.random() < MUTATION_CHANCE) {
-    const mutationStat = ['speed', 'stamina', 'health', 'bravery', 'temperament'][
-      Math.floor(Math.random() * 5)
-    ] as keyof typeof foalStats;
-    const mutationAmount = Math.floor(Math.random() * 11) - 5; // -5 to +5
+  if (SecureRNG.chance(MUTATION_CHANCE)) {
+    const mutationStat = SecureRNG.select(['speed', 'stamina', 'health', 'bravery', 'temperament']) as keyof typeof foalStats;
+    const mutationAmount = SecureRNG.range(-5, 5); // -5 to +5
     foalStats[mutationStat] = Math.max(1, Math.min(100, foalStats[mutationStat] + mutationAmount));
 
     if (mutationAmount > 0) {
@@ -364,7 +364,7 @@ function generateSoloFoalGenetics(mare: HorseDocument): BreedingGenetics {
 
 function inheritStat(sireValue: number, damValue: number, variance: number = 15): number {
   const average = (sireValue + damValue) / 2;
-  const variation = (Math.random() * variance * 2) - variance; // -variance to +variance
+  const variation = SecureRNG.range(-variance, variance); // -variance to +variance
   const result = Math.round(average + variation);
   return Math.max(1, Math.min(100, result));
 }
@@ -393,7 +393,7 @@ function generateSpecialTrait(genetics: BreedingGenetics): string {
   if (genetics.foalStats.health >= 85) return traits[2]; // Iron Constitution
   if (genetics.foalStats.bravery >= 85) return traits[5]; // Fearless Heart
 
-  return traits[Math.floor(Math.random() * traits.length)];
+  return SecureRNG.select(traits);
 }
 
 function applyExceptionalTraits(foal: HorseDocument, genetics: BreedingGenetics): void {

@@ -158,7 +158,7 @@ export class BalanceValidationService {
    * Calculate average wealth by level tier
    */
   private static async calculateAverageWealthByTier(): Promise<Record<string, number>> {
-    const characters = await Character.find({ isActive: true }).select('level gold');
+    const characters = await Character.find({ isActive: true }).select('level gold').lean();
 
     const wealthByTier: Record<string, { total: number; count: number }> = {};
 
@@ -184,7 +184,7 @@ export class BalanceValidationService {
    * 0 = perfect equality, 1 = perfect inequality
    */
   private static async calculateGiniCoefficient(): Promise<number> {
-    const characters = await Character.find({ isActive: true }).select('gold').sort({ gold: 1 });
+    const characters = await Character.find({ isActive: true }).select('gold').sort({ gold: 1 }).lean();
 
     if (characters.length < 2) return 0;
 
@@ -230,13 +230,13 @@ export class BalanceValidationService {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Get current average gold
-    const currentChars = await Character.find({ isActive: true }).select('gold');
+    const currentChars = await Character.find({ isActive: true }).select('gold').lean();
     const currentAverage = currentChars.reduce((sum, c) => sum + c.gold, 0) / currentChars.length;
 
     // Estimate past average from transactions
     const pastTransactions = await GoldTransaction.find({
       timestamp: { $lte: sevenDaysAgo }
-    }).sort({ timestamp: -1 }).limit(1000);
+    }).sort({ timestamp: -1 }).limit(1000).lean();
 
     if (pastTransactions.length === 0) return 0;
 

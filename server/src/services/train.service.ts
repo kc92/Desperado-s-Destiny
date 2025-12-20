@@ -155,17 +155,12 @@ export class TrainService {
     const ticketPrice = selectedTrain.prices[request.ticketClass];
 
     // Check if character can afford ticket
-    if (!character.hasGold(ticketPrice)) {
-      throw new Error(`Insufficient gold. Ticket costs $${ticketPrice}`);
+    if (character.dollars < ticketPrice) {
+      throw new Error(`Insufficient dollars. Ticket costs $${ticketPrice}`);
     }
 
-    // Deduct gold
-    await character.deductGold(ticketPrice, TransactionSource.TRAIN_TICKET, {
-      trainId: selectedTrain.schedule.trainId,
-      origin: request.origin,
-      destination: request.destination,
-      ticketClass: request.ticketClass,
-    });
+    // Deduct dollars
+    character.dollars -= ticketPrice;
 
     // Create ticket
     const ticket = await TrainTicket.create({
@@ -300,12 +295,8 @@ export class TrainService {
     ticket.refund();
     await ticket.save();
 
-    // Add gold back to character
-    await character.addGold(refundAmount, TransactionSource.TRAIN_REFUND, {
-      ticketId: ticket._id.toString(),
-      originalPrice: ticket.price,
-    });
-
+    // Add dollars back to character
+    character.dollars += refundAmount;
     await character.save();
 
     logger.info(
@@ -418,17 +409,12 @@ export class TrainService {
     const quote = await this.getCargoQuote(request);
 
     // Check if character can afford shipping
-    if (!character.hasGold(quote.totalCost)) {
-      throw new Error(`Insufficient gold. Shipping costs $${quote.totalCost}`);
+    if (character.dollars < quote.totalCost) {
+      throw new Error(`Insufficient dollars. Shipping costs $${quote.totalCost}`);
     }
 
-    // Deduct gold
-    await character.deductGold(quote.totalCost, TransactionSource.CARGO_SHIPPING, {
-      origin: request.origin,
-      destination: request.destination,
-      weight: quote.totalWeight,
-      insured: request.insured,
-    });
+    // Deduct dollars
+    character.dollars -= quote.totalCost;
 
     // Create cargo shipment record (simplified - would be in database in full implementation)
     const shipment: CargoShipment = {

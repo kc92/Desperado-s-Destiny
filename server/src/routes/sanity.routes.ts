@@ -5,8 +5,9 @@
 
 import { Router } from 'express';
 import { SanityController } from '../controllers/sanity.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -30,21 +31,21 @@ router.get('/', asyncHandler(SanityController.getSanityStatus));
  * Lose sanity (triggered by events or admin)
  * Body: { amount: number, source?: string }
  */
-router.post('/lose', asyncHandler(SanityController.loseSanity));
+router.post('/lose', requireCsrfToken, asyncHandler(SanityController.loseSanity));
 
 /**
  * POST /api/sanity/restore
  * Use a sanity restoration method
  * Body: { methodId: string }
  */
-router.post('/restore', asyncHandler(SanityController.restoreSanity));
+router.post('/restore', requireCsrfToken, asyncHandler(SanityController.restoreSanity));
 
 /**
  * POST /api/sanity/check
  * Perform a sanity check
  * Body: { difficulty: number (1-10) }
  */
-router.post('/check', asyncHandler(SanityController.performSanityCheck));
+router.post('/check', requireCsrfToken, asyncHandler(SanityController.performSanityCheck));
 
 /**
  * GET /api/sanity/hallucinations
@@ -79,14 +80,14 @@ router.get('/corruption', asyncHandler(SanityController.getCorruptionStatus));
  * Gain corruption (triggered by events or admin)
  * Body: { amount: number, source?: string, location?: string }
  */
-router.post('/corruption/gain', asyncHandler(SanityController.gainCorruption));
+router.post('/corruption/gain', requireCsrfToken, asyncHandler(SanityController.gainCorruption));
 
 /**
  * POST /api/sanity/corruption/purge
  * Purge corruption
  * Body: { amount: number, method?: string }
  */
-router.post('/corruption/purge', asyncHandler(SanityController.purgeCorruption));
+router.post('/corruption/purge', requireCsrfToken, asyncHandler(SanityController.purgeCorruption));
 
 /**
  * GET /api/sanity/madness
@@ -99,14 +100,14 @@ router.get('/madness', asyncHandler(SanityController.getMadness));
  * Attempt to cure a madness effect
  * Body: { method: string }
  */
-router.post('/madness/:madnessId/cure', asyncHandler(SanityController.cureMadness));
+router.post('/madness/:madnessId/cure', requireCsrfToken, asyncHandler(SanityController.cureMadness));
 
 /**
  * POST /api/sanity/knowledge/learn
  * Learn forbidden knowledge
  * Body: { knowledge: ForbiddenKnowledgeType, sanityCost?: number, corruptionCost?: number }
  */
-router.post('/knowledge/learn', asyncHandler(SanityController.learnKnowledge));
+router.post('/knowledge/learn', requireCsrfToken, asyncHandler(SanityController.learnKnowledge));
 
 /**
  * GET /api/sanity/transformation-risk
@@ -141,7 +142,7 @@ router.get('/distortions', asyncHandler(SanityController.getActiveDistortions));
  * Roll for a reality distortion at current location
  * Body: { location?: string }
  */
-router.post('/distortions/roll', asyncHandler(SanityController.rollForDistortion));
+router.post('/distortions/roll', requireCsrfToken, asyncHandler(SanityController.rollForDistortion));
 
 /**
  * GET /api/sanity/distortions/all
@@ -161,6 +162,6 @@ router.get('/location-stability', asyncHandler(SanityController.getLocationStabi
  * Force a specific distortion (admin/testing)
  * Body: { distortionId: string }
  */
-router.post('/distortions/force', asyncHandler(SanityController.forceDistortion));
+router.post('/distortions/force', requireCsrfToken, asyncHandler(SanityController.forceDistortion));
 
 export default router;

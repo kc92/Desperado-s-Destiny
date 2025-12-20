@@ -10,6 +10,7 @@ import {
   InvestmentStatus,
   RiskLevel,
 } from '@desperados/shared';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
  * Gang Investment document interface
@@ -149,7 +150,7 @@ GangInvestmentSchema.methods.calculateActualReturn = function (this: IGangInvest
   };
 
   const variance = riskVariance[this.riskLevel] || riskVariance[RiskLevel.SAFE];
-  const multiplier = variance.min + Math.random() * (variance.max - variance.min);
+  const multiplier = variance.min + SecureRNG.float(0, 1) * (variance.max - variance.min);
   returnAmount = Math.floor(returnAmount * multiplier);
 
   // Chance of complete failure for risky investments
@@ -161,7 +162,7 @@ GangInvestmentSchema.methods.calculateActualReturn = function (this: IGangInvest
   };
 
   const failureChance = failureChances[this.riskLevel] || 0;
-  if (Math.random() < failureChance) {
+  if (SecureRNG.chance(failureChance)) {
     this.status = InvestmentStatus.FAILED;
     return 0;
   }

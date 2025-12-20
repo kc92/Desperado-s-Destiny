@@ -5,6 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
+import { logger } from '@/services/logger.service';
 
 // Heist status types
 export type HeistStatus = 'PLANNING' | 'READY' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
@@ -136,7 +137,7 @@ export const useHeist = (): UseHeistReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch available heist targets';
       setError(errorMessage);
-      console.error('[useHeist] Fetch available targets error:', err);
+      logger.error('Fetch available targets error', err as Error, { context: 'useHeist' });
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +154,7 @@ export const useHeist = (): UseHeistReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch heists';
       setError(errorMessage);
-      console.error('[useHeist] Fetch heists error:', err);
+      logger.error('Fetch heists error', err as Error, { context: 'useHeist' });
     } finally {
       setIsLoading(false);
     }
@@ -167,7 +168,7 @@ export const useHeist = (): UseHeistReturn => {
       setCurrentHeist(heist);
       return heist;
     } catch (err: any) {
-      console.error('[useHeist] Get heist error:', err);
+      logger.error('Get heist error', err as Error, { context: 'useHeist' });
       return null;
     }
   }, []);
@@ -183,7 +184,7 @@ export const useHeist = (): UseHeistReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to plan heist';
       setError(errorMessage);
-      console.error('[useHeist] Plan heist error:', err);
+      logger.error('Plan heist error', err as Error, { context: 'useHeist' });
       return { success: false, message: errorMessage };
     }
   }, []);
@@ -204,7 +205,7 @@ export const useHeist = (): UseHeistReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to increase planning progress';
       setError(errorMessage);
-      console.error('[useHeist] Increase progress error:', err);
+      logger.error('Increase progress error', err as Error, { context: 'useHeist' });
       return { success: false, message: errorMessage };
     }
   }, [currentHeist]);
@@ -222,7 +223,7 @@ export const useHeist = (): UseHeistReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to execute heist';
       setError(errorMessage);
-      console.error('[useHeist] Execute heist error:', err);
+      logger.error('Execute heist error', err as Error, { context: 'useHeist' });
       return { success: false, message: errorMessage };
     }
   }, [currentHeist]);
@@ -239,7 +240,7 @@ export const useHeist = (): UseHeistReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to cancel heist';
       setError(errorMessage);
-      console.error('[useHeist] Cancel heist error:', err);
+      logger.error('Cancel heist error', err as Error, { context: 'useHeist' });
       return { success: false, message: errorMessage };
     }
   }, [currentHeist]);
@@ -260,7 +261,7 @@ export const useHeist = (): UseHeistReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to assign role';
       setError(errorMessage);
-      console.error('[useHeist] Assign role error:', err);
+      logger.error('Assign role error', err as Error, { context: 'useHeist' });
       return { success: false, message: errorMessage };
     }
   }, [currentHeist]);

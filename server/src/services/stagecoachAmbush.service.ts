@@ -16,10 +16,12 @@ import {
 } from '@desperados/shared';
 import { Character, ICharacter } from '../models/Character.model';
 import { Gang } from '../models/Gang.model';
-import { GoldService } from './gold.service';
-import { TransactionSource } from '../models/GoldTransaction.model';
+import { AmbushPlanModel } from '../models/AmbushPlan.model';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import { getRouteById } from '../data/stagecoachRoutes';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Ambush spots database (pre-defined good ambush locations)
@@ -166,10 +168,6 @@ const AMBUSH_SPOTS: AmbushSpot[] = [
  * Stagecoach Ambush Service
  */
 export class StagecoachAmbushService {
-  /**
-   * Active ambush plans (in-memory for now)
-   */
-  private static activePlans: Map<string, AmbushPlan> = new Map();
 
   /**
    * Get all ambush spots for a route
@@ -281,8 +279,12 @@ export class StagecoachAmbushService {
       }
 
       // Check if character already has an active ambush plan
-      const existingPlan = this.activePlans.get(characterId);
-      if (existingPlan && existingPlan.status !== 'executed' && existingPlan.status !== 'failed') {
+      const existingPlan = await AmbushPlanModel.findOne({
+        characterId: new mongoose.Types.ObjectId(characterId),
+        status: { $in: ['planning', 'setup', 'ready'] }
+      });
+
+      if (existingPlan) {
         return {
           success: false,
           estimatedSetupTime: 0,
@@ -325,7 +327,22 @@ export class StagecoachAmbushService {
       };
       const setupTime = setupTimes[strategy];
 
-      // Create ambush plan
+      // Create ambush plan in database
+      const dbPlan = await AmbushPlanModel.create({
+        characterId: new mongoose.Types.ObjectId(characterId),
+        routeId,
+        ambushSpotId,
+        scheduledTime,
+        setupTime,
+        gangMembers: validatedGangMembers,
+        strategy,
+        objectives: ['cargo', 'strongbox'],
+        escapeRoute: `escape_${ambushSpotId}`,
+        status: 'planning',
+        expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours
+      });
+
+      // Convert to AmbushPlan interface for return
       const plan: AmbushPlan = {
         characterId,
         routeId,
@@ -338,8 +355,6 @@ export class StagecoachAmbushService {
         escapeRoute: `escape_${ambushSpotId}`,
         status: 'planning',
       };
-
-      this.activePlans.set(characterId, plan);
 
       logger.info(
         `Character ${character.name} planning ambush at ${spot.name} on route ${route.name}`
@@ -376,13 +391,31 @@ export class StagecoachAmbushService {
         throw new Error('Character not found');
       }
 
-      // Get ambush plan
-      const plan = this.activePlans.get(characterId);
-      if (!plan || plan.status !== 'ready') {
+      // Get ambush plan from database
+      const dbPlan = await AmbushPlanModel.findOne({
+        characterId: new mongoose.Types.ObjectId(characterId),
+        status: 'ready'
+      }).session(session);
+
+      if (!dbPlan) {
         await session.abortTransaction();
         session.endSession();
         throw new Error('No ready ambush plan found');
       }
+
+      // Convert to AmbushPlan interface for processing
+      const plan: AmbushPlan = {
+        characterId: dbPlan.characterId.toString(),
+        routeId: dbPlan.routeId,
+        ambushSpotId: dbPlan.ambushSpotId,
+        scheduledTime: dbPlan.scheduledTime,
+        setupTime: dbPlan.setupTime,
+        gangMembers: dbPlan.gangMembers,
+        strategy: dbPlan.strategy,
+        objectives: dbPlan.objectives,
+        escapeRoute: dbPlan.escapeRoute,
+        status: dbPlan.status,
+      };
 
       // Get ambush spot
       const spot = this.getAmbushSpot(plan.ambushSpotId);
@@ -417,16 +450,16 @@ export class StagecoachAmbushService {
       );
 
       // Roll for success
-      const roll = Math.random() * 100;
+      const roll = SecureRNG.d100();
       const success = roll <= successChance;
 
       // Generate loot based on success
       const lootGained: StagecoachCargoItem[] = [];
-      let goldGained = 0;
+      let dollarsGained = 0;
 
       if (success) {
         // Success! Get loot
-        const mailLoot = Math.floor(Math.random() * 150) + 50;
+        const mailLoot = SecureRNG.range(50, 199);
         lootGained.push({
           type: 'mail',
           description: 'Stolen mail',
@@ -434,12 +467,12 @@ export class StagecoachAmbushService {
           weight: 30,
           protected: true,
         });
-        goldGained += mailLoot;
+        dollarsGained += mailLoot;
 
         // Parcels
-        const parcelCount = Math.floor(Math.random() * 3) + 1;
+        const parcelCount = SecureRNG.range(1, 3);
         for (let i = 0; i < parcelCount; i++) {
-          const value = Math.floor(Math.random() * 75) + 25;
+          const value = SecureRNG.range(25, 99);
           lootGained.push({
             type: 'parcel',
             description: 'Stolen goods',
@@ -447,14 +480,14 @@ export class StagecoachAmbushService {
             weight: 15,
             protected: false,
           });
-          goldGained += value;
+          dollarsGained += value;
         }
 
         // Strongbox (if objectives include it and route has one)
         if (plan.objectives.includes('strongbox') && route.dangerLevel >= 6) {
-          const strongboxRoll = Math.random();
+          const strongboxRoll = SecureRNG.float(0, 1);
           if (strongboxRoll > 0.4) {
-            const strongboxValue = Math.floor(Math.random() * 1500) + 500;
+            const strongboxValue = SecureRNG.range(500, 1999);
             lootGained.push({
               type: 'strongbox',
               description: 'Wells Fargo Strongbox',
@@ -462,23 +495,23 @@ export class StagecoachAmbushService {
               weight: 100,
               protected: true,
             });
-            goldGained += strongboxValue;
+            dollarsGained += strongboxValue;
           }
         }
       }
 
       // Calculate casualties
       const casualties = {
-        guards: success ? Math.floor(Math.random() * guardCount) : 0,
-        passengers: success ? Math.floor(Math.random() * 2) : 0,
-        attackers: success ? 0 : Math.floor(Math.random() * attackerCount),
+        guards: success ? SecureRNG.range(0, guardCount - 1) : 0,
+        passengers: success ? SecureRNG.range(0, 1) : 0,
+        attackers: success ? 0 : SecureRNG.range(0, attackerCount - 1),
       };
 
       // Calculate witnesses
-      const witnesses = success ? Math.floor(Math.random() * 3) : Math.floor(Math.random() * 6) + 2;
+      const witnesses = success ? SecureRNG.range(0, 2) : SecureRNG.range(2, 7);
 
       // Calculate bounty increase
-      const bountyIncrease = Math.floor(goldGained / 10) + casualties.guards * 50 + casualties.passengers * 100;
+      const bountyIncrease = Math.floor(dollarsGained / 10) + casualties.guards * 50 + casualties.passengers * 100;
 
       // Heat level (law response)
       const heatLevel = Math.min(10, Math.floor(route.dangerLevel / 2) + casualties.guards + casualties.passengers);
@@ -504,16 +537,17 @@ export class StagecoachAmbushService {
         consequences.push('Left evidence at scene');
       }
 
-      // Add gold to character
-      if (goldGained > 0) {
-        await GoldService.addGold(
+      // Add dollars to character
+      if (dollarsGained > 0) {
+        await DollarService.addDollars(
           character._id as any,
-          goldGained,
+          dollarsGained,
           TransactionSource.CRIME_PROFIT,
           {
             crimeType: 'stagecoach_robbery',
             location: spot.name,
             description: `Stagecoach ambush loot`,
+            currencyType: CurrencyType.DOLLAR,
           },
           session
         );
@@ -521,13 +555,13 @@ export class StagecoachAmbushService {
 
       // Increase wanted level
       character.increaseWantedLevel(Math.floor(bountyIncrease / 200));
-      character.criminalReputation = Math.min(100, character.criminalReputation + Math.floor(goldGained / 50));
+      character.criminalReputation = Math.min(100, character.criminalReputation + Math.floor(dollarsGained / 50));
 
       await character.save({ session });
 
-      // Update plan status
-      plan.status = success ? 'executed' : 'failed';
-      this.activePlans.set(characterId, plan);
+      // Update plan status in database
+      dbPlan.status = success ? 'executed' : 'failed';
+      await dbPlan.save({ session });
 
       await session.commitTransaction();
       session.endSession();
@@ -535,7 +569,7 @@ export class StagecoachAmbushService {
       const result: AmbushResult = {
         success,
         lootGained,
-        goldGained,
+        goldGained: dollarsGained,
         casualties,
         witnesses,
         bountyIncrease,
@@ -545,7 +579,7 @@ export class StagecoachAmbushService {
       };
 
       logger.info(
-        `Character ${character.name} ${success ? 'successfully' : 'failed to'} ambush stagecoach. Gained ${goldGained} gold`
+        `Character ${character.name} ${success ? 'successfully' : 'failed to'} ambush stagecoach. Gained $${dollarsGained}`
       );
 
       return result;
@@ -578,24 +612,24 @@ export class StagecoachAmbushService {
 
       // Simulate defense (simplified)
       const defendSkill = character.stats.combat + character.getSkillLevel('gunslinger');
-      const attackerStrength = Math.floor(Math.random() * 20) + 10;
+      const attackerStrength = SecureRNG.range(10, 29);
 
       const success = defendSkill > attackerStrength;
 
       // Calculate rewards
-      const goldReward = success ? Math.floor(Math.random() * 200) + 100 : 0;
-      const xpReward = success ? Math.floor(Math.random() * 150) + 100 : 50;
-      const reputationGain = success ? Math.floor(Math.random() * 20) + 10 : 0;
+      const dollarsReward = success ? SecureRNG.range(100, 299) : 0;
+      const xpReward = success ? SecureRNG.range(100, 249) : 50;
+      const reputationGain = success ? SecureRNG.range(10, 29) : 0;
 
       // Casualties
-      const ambushersDefeated = success ? Math.floor(Math.random() * 3) + 1 : 0;
-      const injuredPassengers = success ? 0 : Math.floor(Math.random() * 2);
-      const damageToStagecoach = success ? Math.floor(Math.random() * 20) : Math.floor(Math.random() * 50) + 20;
+      const ambushersDefeated = success ? SecureRNG.range(1, 3) : 0;
+      const injuredPassengers = success ? 0 : SecureRNG.range(0, 1);
+      const damageToStagecoach = success ? SecureRNG.range(0, 19) : SecureRNG.range(20, 69);
 
       // Cargo lost
       const cargoLost: StagecoachCargoItem[] = [];
       if (!success) {
-        const lostValue = Math.floor(Math.random() * 300) + 100;
+        const lostValue = SecureRNG.range(100, 399);
         cargoLost.push({
           type: 'parcel',
           description: 'Lost cargo',
@@ -605,14 +639,15 @@ export class StagecoachAmbushService {
         });
       }
 
-      // Award gold for successful defense
-      if (goldReward > 0) {
-        await GoldService.addGold(
+      // Award dollars for successful defense
+      if (dollarsReward > 0) {
+        await DollarService.addDollars(
           character._id as any,
-          goldReward,
+          dollarsReward,
           TransactionSource.BOUNTY_REWARD,
           {
             description: `Defended stagecoach from ambush`,
+            currencyType: CurrencyType.DOLLAR,
           },
           session
         );
@@ -630,14 +665,14 @@ export class StagecoachAmbushService {
         ambushersDefeated,
         damageToStagecoach,
         cargoLost,
-        goldReward,
+        goldReward: dollarsReward,
         xpReward,
         reputationGain,
         injuredPassengers,
       };
 
       logger.info(
-        `Character ${character.name} ${success ? 'successfully defended' : 'failed to defend'} stagecoach. Gained ${goldReward} gold, ${xpReward} XP`
+        `Character ${character.name} ${success ? 'successfully defended' : 'failed to defend'} stagecoach. Gained $${dollarsReward}, ${xpReward} XP`
       );
 
       return result;
@@ -695,20 +730,45 @@ export class StagecoachAmbushService {
   /**
    * Get active plan for character
    */
-  static getActivePlan(characterId: string): AmbushPlan | undefined {
-    return this.activePlans.get(characterId);
+  static async getActivePlan(characterId: string): Promise<AmbushPlan | null> {
+    const dbPlan = await AmbushPlanModel.findOne({
+      characterId: new mongoose.Types.ObjectId(characterId),
+      status: { $in: ['planning', 'setup', 'ready'] }
+    });
+
+    if (!dbPlan) {
+      return null;
+    }
+
+    // Convert to AmbushPlan interface
+    return {
+      characterId: dbPlan.characterId.toString(),
+      routeId: dbPlan.routeId,
+      ambushSpotId: dbPlan.ambushSpotId,
+      scheduledTime: dbPlan.scheduledTime,
+      setupTime: dbPlan.setupTime,
+      gangMembers: dbPlan.gangMembers,
+      strategy: dbPlan.strategy,
+      objectives: dbPlan.objectives,
+      escapeRoute: dbPlan.escapeRoute,
+      status: dbPlan.status,
+    };
   }
 
   /**
    * Cancel ambush plan
    */
-  static cancelPlan(characterId: string): boolean {
-    const plan = this.activePlans.get(characterId);
-    if (!plan || plan.status === 'executed') {
-      return false;
-    }
+  static async cancelPlan(characterId: string): Promise<boolean> {
+    const result = await AmbushPlanModel.findOneAndUpdate(
+      {
+        characterId: new mongoose.Types.ObjectId(characterId),
+        status: { $in: ['planning', 'setup', 'ready'] }
+      },
+      {
+        status: 'cancelled'
+      }
+    );
 
-    this.activePlans.delete(characterId);
-    return true;
+    return result !== null;
   }
 }

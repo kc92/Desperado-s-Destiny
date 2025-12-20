@@ -738,17 +738,16 @@ export interface RecoverFromAddictionResponse {
 // CONSTANTS
 // ============================================================================
 
+// Note: GAMBLING_CONSTANTS is exported from game.constants.ts
+// Below are additional gambling system configuration constants
+
 /**
- * Gambling system constants
+ * Extended gambling system constants (session/addiction details)
  */
-export const GAMBLING_CONSTANTS = {
+export const GAMBLING_SYSTEM_DETAILS = {
   // Session limits
   MIN_SESSION_DURATION: 5, // Minutes
   MAX_SESSION_DURATION: 120, // Minutes
-
-  // Betting limits
-  ABSOLUTE_MIN_BET: 1,
-  ABSOLUTE_MAX_BET: 100000,
 
   // Addiction thresholds
   ADDICTION_SESSION_THRESHOLDS: {

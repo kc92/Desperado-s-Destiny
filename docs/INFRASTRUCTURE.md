@@ -72,7 +72,7 @@ npm run health
 | Service   | Port  | Technology      | Purpose                           |
 |-----------|-------|-----------------|-----------------------------------|
 | Frontend  | 5173  | React + Vite    | UI development server             |
-| Backend   | 5000  | Node.js + Express | API server                      |
+| Backend   | 5001  | Node.js + Express | API server                      |
 | MongoDB   | 27017 | MongoDB 6.x     | Database                          |
 | Redis     | 6379  | Redis 7.x       | Cache & sessions                  |
 
@@ -81,7 +81,7 @@ npm run health
 ```
 User Browser → Frontend (5173)
               ↓
-         Backend API (5000)
+         Backend API (5001)
               ↓
       ┌───────┴────────┐
       ↓                ↓
@@ -147,7 +147,7 @@ npm run build:frontend   # Build frontend
 ### Core Settings
 ```env
 NODE_ENV=development
-PORT=5000
+PORT=5001
 ```
 
 ### Database
@@ -172,8 +172,8 @@ BCRYPT_ROUNDS=12
 
 ### Frontend
 ```env
-VITE_API_URL=http://localhost:5000
-VITE_WS_URL=http://localhost:5000
+VITE_API_URL=http://localhost:5001
+VITE_WS_URL=http://localhost:5001
 ```
 
 ---

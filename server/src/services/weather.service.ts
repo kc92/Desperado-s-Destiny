@@ -13,6 +13,7 @@ import {
   RegionalWeather
 } from '../models/WorldState.model';
 import { Location } from '../models/Location.model';
+import { SecureRNG } from './base/SecureRNG';
 import logger from '../utils/logger';
 
 // Region types from location types
@@ -283,7 +284,7 @@ export class WeatherService {
   } {
     const patterns = REGIONAL_WEATHER_PATTERNS[region];
     const totalWeight = Object.values(patterns).reduce((a, b) => a + b, 0);
-    let random = Math.random() * totalWeight;
+    let random = SecureRNG.float(0, 1) * totalWeight;
 
     let selectedWeather = WeatherType.CLEAR;
     for (const [weather, weight] of Object.entries(patterns)) {
@@ -304,14 +305,14 @@ export class WeatherService {
     // Generate intensity (1-10)
     // Supernatural weather tends to be more intense
     const intensity = isSupernatural
-      ? Math.floor(Math.random() * 3) + 7 // 7-10
-      : Math.floor(Math.random() * 6) + 3; // 3-8
+      ? SecureRNG.range(7, 10)
+      : SecureRNG.range(3, 8);
 
     // Duration in minutes (30-180 minutes)
     // Supernatural weather lasts longer
     const duration = isSupernatural
-      ? Math.floor(Math.random() * 120) + 120 // 120-240 minutes
-      : Math.floor(Math.random() * 150) + 30; // 30-180 minutes
+      ? SecureRNG.range(120, 240)
+      : SecureRNG.range(30, 180);
 
     return {
       weather: selectedWeather,

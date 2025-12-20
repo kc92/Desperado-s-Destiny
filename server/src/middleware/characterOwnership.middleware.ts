@@ -5,7 +5,7 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from './requireAuth';
+import { AuthRequest } from './auth.middleware';
 import { Character, ICharacter } from '../models/Character.model';
 import logger from '../utils/logger';
 

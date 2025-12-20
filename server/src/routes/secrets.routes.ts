@@ -16,8 +16,10 @@ import {
   getSecretStatistics,
   getSecretTypes
 } from '../controllers/secrets.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -26,33 +28,33 @@ router.use(requireAuth);
 router.use(requireCharacter);
 
 // Get available secret types
-router.get('/types', getSecretTypes);
+router.get('/types', asyncHandler(getSecretTypes));
 
 // Get character's secret statistics
-router.get('/stats', getSecretStatistics);
+router.get('/stats', asyncHandler(getSecretStatistics));
 
 // Check character's progress (newly qualified secrets)
-router.get('/progress', checkSecretProgress);
+router.get('/progress', asyncHandler(checkSecretProgress));
 
 // Get all discovered secrets
-router.get('/discovered', getDiscoveredSecrets);
+router.get('/discovered', asyncHandler(getDiscoveredSecrets));
 
 // Get secrets by type
-router.get('/type/:type', getSecretsByType);
+router.get('/type/:type', asyncHandler(getSecretsByType));
 
 // Get secrets at a location
-router.get('/location/:locationId', getLocationSecrets);
+router.get('/location/:locationId', asyncHandler(getLocationSecrets));
 
 // Get secrets related to an NPC
-router.get('/npc/:npcId', getNPCSecrets);
+router.get('/npc/:npcId', asyncHandler(getNPCSecrets));
 
 // Check if can unlock a specific secret
-router.get('/check/:secretId', checkSecretUnlock);
+router.get('/check/:secretId', asyncHandler(checkSecretUnlock));
 
 // Get secret details
-router.get('/:secretId', getSecretDetails);
+router.get('/:secretId', asyncHandler(getSecretDetails));
 
 // Unlock a secret
-router.post('/unlock', unlockSecret);
+router.post('/unlock', requireCsrfToken, asyncHandler(unlockSecret));
 
 export default router;

@@ -30,8 +30,8 @@ npm run dev
 
 Visit:
 - **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:5000
-- **API Health:** http://localhost:5000/health
+- **Backend API:** http://localhost:5001
+- **API Health:** http://localhost:5001/health
 
 ### Alternative: Run Locally Without Docker
 
@@ -168,7 +168,7 @@ Edit `.env` to configure your local environment:
 #### Application
 ```env
 NODE_ENV=development
-PORT=5000
+PORT=5001
 ```
 
 #### Database
@@ -193,8 +193,8 @@ BCRYPT_ROUNDS=12
 
 #### Frontend
 ```env
-VITE_API_URL=http://localhost:5000
-VITE_WS_URL=http://localhost:5000
+VITE_API_URL=http://localhost:5001
+VITE_WS_URL=http://localhost:5001
 ```
 
 ---
@@ -206,7 +206,7 @@ VITE_WS_URL=http://localhost:5000
 | Service  | Port  | Description                    |
 |----------|-------|--------------------------------|
 | frontend | 5173  | React development server       |
-| backend  | 5000  | Node.js API server            |
+| backend  | 5001  | Node.js API server            |
 | mongodb  | 27017 | MongoDB database              |
 | redis    | 6379  | Redis cache                   |
 
@@ -299,7 +299,7 @@ npm run logs
 
 ### Port Already in Use
 
-If ports 5000, 5173, 27017, or 6379 are in use:
+If ports 5001, 5173, 27017, or 6379 are in use:
 
 1. Stop conflicting services
 2. Or change ports in `docker-compose.yml` and `.env`
@@ -325,12 +325,12 @@ MONGODB_URI=mongodb://admin:password@mongodb:27017/desperados-destiny?authSource
 
 **Verify VITE_API_URL in `.env`:**
 ```env
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=http://localhost:5001
 ```
 
 **Check backend is healthy:**
 ```bash
-curl http://localhost:5000/health
+curl http://localhost:5001/health
 ```
 
 ### Hot Reload Not Working

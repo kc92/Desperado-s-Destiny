@@ -29,14 +29,10 @@ import {
 } from '@desperados/shared';
 import { getTrainSchedule, getNextDeparture } from '../data/trainSchedules';
 import { getTrainRoute } from '../data/trainRoutes';
+import { EnergyService } from './energy.service';
 import logger from '../utils/logger';
-
-/**
- * Temporary in-memory storage for robbery plans and pursuits
- * In production, these would be MongoDB collections
- */
-const robberyPlans: Map<string, TrainRobberyPlan> = new Map();
-const activePursuits: Map<string, PinkertonPursuit> = new Map();
+import { robberyStateManager, pursuitStateManager } from './base/StateManager';
+import { SecureRNG } from './base/SecureRNG';
 
 export class TrainRobberyService {
   /**
@@ -67,22 +63,21 @@ export class TrainRobberyService {
     }
 
     // Spend energy
-    character.spendEnergy(TRAIN_CONSTANTS.SCOUTING.ENERGY_COST);
-    await character.save();
+    await EnergyService.spendEnergy(character._id.toString(), TRAIN_CONSTANTS.SCOUTING.ENERGY_COST, 'scout_train');
 
     // Generate intelligence based on character's cunning
     const cunningBonus = character.stats.cunning / 10;
     const baseAccuracy = 0.6 + cunningBonus * 0.1;
 
     // Determine guard count (with some randomness)
-    const guardVariance = Math.floor(Math.random() * 3) - 1;
+    const guardVariance = SecureRNG.range(-1, 1);
     const guardCount = Math.max(1, schedule.guards + guardVariance);
 
     // Estimate cargo value
-    const valueAccuracy = Math.random() < baseAccuracy;
+    const valueAccuracy = SecureRNG.chance(baseAccuracy);
     const estimatedValue = valueAccuracy
       ? schedule.cargoValue || 0
-      : Math.floor(((schedule.cargoValue || 0) * (0.7 + Math.random() * 0.6)));
+      : Math.floor(((schedule.cargoValue || 0) * SecureRNG.float(0.7, 1.3, 2)));
 
     // Determine cargo types
     const cargoTypes: LootType[] = this.determineCargoTypes(schedule);
@@ -217,8 +212,8 @@ export class TrainRobberyService {
       createdAt: new Date(),
     };
 
-    // Store plan
-    robberyPlans.set(plan._id!.toString(), plan);
+    // Store plan (3 hour TTL)
+    await robberyStateManager.set(plan._id!.toString(), plan, { ttl: 10800 });
 
     logger.info(
       `Character ${planner.name} planned robbery of train ${trainId} with ${gangMembers.length} gang members`
@@ -231,7 +226,7 @@ export class TrainRobberyService {
    * Execute a train robbery
    */
   static async executeRobbery(robberyId: string): Promise<TrainRobberyResult> {
-    const plan = robberyPlans.get(robberyId);
+    const plan = await robberyStateManager.get<TrainRobberyPlan>(robberyId);
     if (!plan) {
       throw new Error('Robbery plan not found');
     }
@@ -265,7 +260,7 @@ export class TrainRobberyService {
       gangCharacters
     );
 
-    const success = Math.random() < successChance;
+    const success = SecureRNG.chance(successChance);
 
     // Execute robbery phases
     const loot: RobberyLoot[] = [];
@@ -323,8 +318,8 @@ export class TrainRobberyService {
           const member = plan.gangMembers[i];
           const character = gangCharacters[i];
 
-          const captured = Math.random() < 0.3;
-          const injured = !captured && Math.random() < 0.4;
+          const captured = SecureRNG.chance(0.3);
+          const injured = !captured && SecureRNG.chance(0.4);
 
           gangMembersFate.push({
             characterId: member.characterId.toString(),
@@ -363,7 +358,7 @@ export class TrainRobberyService {
         };
 
         plan.phase = RobberyPhase.FAILED;
-        robberyPlans.set(robberyId, plan);
+        await robberyStateManager.set(robberyId, plan, { ttl: 10800 });
 
         return result;
       }
@@ -398,7 +393,7 @@ export class TrainRobberyService {
       const member = plan.gangMembers[i];
       const character = gangCharacters[i];
 
-      const escaped = escapeSuccess || Math.random() < 0.7;
+      const escaped = escapeSuccess || SecureRNG.chance(0.7);
       const captured = !escaped;
       const lootShare = escaped ? Math.floor((totalValue * member.cut) / 100) : 0;
 
@@ -412,10 +407,7 @@ export class TrainRobberyService {
       });
 
       if (escaped && lootShare > 0) {
-        await character.addGold(lootShare, TransactionSource.TRAIN_ROBBERY, {
-          robberyId: plan._id.toString(),
-          trainId: plan.targetTrainId,
-        });
+        character.dollars += lootShare;
       }
 
       if (captured) {
@@ -469,7 +461,7 @@ export class TrainRobberyService {
     plan.phase = RobberyPhase.COMPLETE;
     plan.completedAt = new Date();
     plan.executedAt = new Date();
-    robberyPlans.set(robberyId, plan);
+    await robberyStateManager.set(robberyId, plan, { ttl: 10800 });
 
     const result: TrainRobberyResult = {
       robberyId: plan._id as any,
@@ -612,7 +604,7 @@ export class TrainRobberyService {
    * Helper: Roll for phase success
    */
   private static rollPhaseSuccess(chance: number): boolean {
-    return Math.random() < chance;
+    return SecureRNG.chance(chance);
   }
 
   /**
@@ -641,7 +633,7 @@ export class TrainRobberyService {
     for (let i = 0; i < guardsKilled; i++) {
       casualties.push({
         type: 'guard',
-        status: Math.random() < 0.5 ? 'killed' : 'injured',
+        status: SecureRNG.chance(0.5) ? 'killed' : 'injured',
       });
     }
 
@@ -783,12 +775,12 @@ export class TrainRobberyService {
     for (let i = 0; i < agentCount; i++) {
       agents.push({
         name: this.generateAgentName(),
-        level: 5 + Math.floor(Math.random() * 5),
+        level: 5 + SecureRNG.range(0, 4),
         specialty: this.randomSpecialty(),
         stats: {
-          combat: 50 + Math.floor(Math.random() * 30),
-          cunning: 50 + Math.floor(Math.random() * 30),
-          tracking: 60 + Math.floor(Math.random() * 40),
+          combat: 50 + SecureRNG.range(0, 29),
+          cunning: 50 + SecureRNG.range(0, 29),
+          tracking: 60 + SecureRNG.range(0, 39),
         },
       });
     }
@@ -809,7 +801,7 @@ export class TrainRobberyService {
         createdAt: new Date(),
       };
 
-      activePursuits.set(member.characterId.toString(), pursuit);
+      await pursuitStateManager.set(member.characterId.toString(), pursuit, { ttl: 7200 });
     }
 
     logger.info(
@@ -823,7 +815,7 @@ export class TrainRobberyService {
   private static generateAgentName(): string {
     const firstNames = ['John', 'James', 'William', 'Thomas', 'Robert', 'Charles'];
     const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller'];
-    return `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
+    return `${SecureRNG.select(firstNames)} ${SecureRNG.select(lastNames)}`;
   }
 
   /**
@@ -836,30 +828,33 @@ export class TrainRobberyService {
       'detective',
       'negotiator',
     ];
-    return specialties[Math.floor(Math.random() * specialties.length)];
+    return SecureRNG.select(specialties);
   }
 
   /**
    * Get active pursuit for a character
    */
-  static getActivePursuit(characterId: string): PinkertonPursuit | null {
-    return activePursuits.get(characterId) || null;
+  static async getActivePursuit(characterId: string): Promise<PinkertonPursuit | null> {
+    return await pursuitStateManager.get<PinkertonPursuit>(characterId);
   }
 
   /**
    * Get robbery plan by ID
    */
-  static getRobberyPlan(robberyId: string): TrainRobberyPlan | null {
-    return robberyPlans.get(robberyId) || null;
+  static async getRobberyPlan(robberyId: string): Promise<TrainRobberyPlan | null> {
+    return await robberyStateManager.get<TrainRobberyPlan>(robberyId);
   }
 
   /**
    * Get all robbery plans for a character
    */
-  static getCharacterRobberyPlans(characterId: string): TrainRobberyPlan[] {
+  static async getCharacterRobberyPlans(characterId: string): Promise<TrainRobberyPlan[]> {
     const plans: TrainRobberyPlan[] = [];
-    for (const plan of robberyPlans.values()) {
-      if (plan.plannerId.toString() === characterId) {
+    const allKeys = await robberyStateManager.keys('*');
+
+    for (const key of allKeys) {
+      const plan = await robberyStateManager.get<TrainRobberyPlan>(key);
+      if (plan && plan.plannerId.toString() === characterId) {
         plans.push(plan);
       }
     }

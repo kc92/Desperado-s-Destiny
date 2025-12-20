@@ -6,7 +6,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Modal, Button } from '@/components/ui';
 import { MarketListing, ItemRarity } from '@/hooks/useMarketplace';
-import { formatGold } from '@/utils/format';
+import { formatDollars } from '@/utils/format';
 
 interface PlaceBidModalProps {
   isOpen: boolean;
@@ -105,7 +105,7 @@ export const PlaceBidModal: React.FC<PlaceBidModalProps> = ({
     setError('');
 
     if (!isBidValid) {
-      setError(`Bid must be at least ${formatGold(minimumBid)}`);
+      setError(`Bid must be at least ${formatDollars(minimumBid)}`);
       return;
     }
 
@@ -158,7 +158,7 @@ export const PlaceBidModal: React.FC<PlaceBidModalProps> = ({
               {listing.currentBid ? 'Current Bid' : 'Starting Price'}
             </p>
             <p className="text-2xl font-bold text-gold-light">
-              {formatGold(currentBidDisplay)}
+              {formatDollars(currentBidDisplay)}
             </p>
             {listing.currentBidderName && (
               <p className="text-xs text-desert-stone mt-1">
@@ -169,7 +169,7 @@ export const PlaceBidModal: React.FC<PlaceBidModalProps> = ({
           <div className="bg-wood-darker/50 rounded-lg p-4 text-center">
             <p className="text-xs text-desert-stone mb-1">Minimum Bid</p>
             <p className="text-2xl font-bold text-emerald-400">
-              {formatGold(minimumBid)}
+              {formatDollars(minimumBid)}
             </p>
             <p className="text-xs text-desert-stone mt-1">
               +{Math.ceil(currentBidDisplay * 0.05)} increment
@@ -198,7 +198,7 @@ export const PlaceBidModal: React.FC<PlaceBidModalProps> = ({
               >
                 {label}
                 <span className="block text-xs">
-                  {formatGold(amount)}
+                  {formatDollars(amount)}
                 </span>
               </button>
             ))}
@@ -227,12 +227,12 @@ export const PlaceBidModal: React.FC<PlaceBidModalProps> = ({
           {/* Validation Messages */}
           {!isBidValid && bidAmountNum > 0 && (
             <p className="text-xs text-blood-red mt-1">
-              Bid must be at least {formatGold(minimumBid)}
+              Bid must be at least {formatDollars(minimumBid)}
             </p>
           )}
           {!canAfford && bidAmountNum > 0 && (
             <p className="text-xs text-blood-red mt-1">
-              You need {formatGold(bidAmountNum - currentGold)} more gold
+              You need {formatDollars(bidAmountNum - currentGold)} more gold
             </p>
           )}
         </div>
@@ -240,9 +240,9 @@ export const PlaceBidModal: React.FC<PlaceBidModalProps> = ({
         {/* Gold Balance */}
         <div className="bg-wood-darker/50 rounded-lg p-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-desert-stone">Your Gold:</span>
+            <span className="text-sm text-desert-stone">Your Dollars:</span>
             <span className="text-lg font-western text-gold-light">
-              {formatGold(currentGold)}
+              {formatDollars(currentGold)}
             </span>
           </div>
           {canAfford && bidAmountNum > 0 && (
@@ -251,7 +251,7 @@ export const PlaceBidModal: React.FC<PlaceBidModalProps> = ({
               <span
                 className={`text-lg font-western ${goldAfterBid >= 0 ? 'text-emerald-400' : 'text-blood-red'}`}
               >
-                {formatGold(goldAfterBid)}
+                {formatDollars(goldAfterBid)}
               </span>
             </div>
           )}
@@ -280,7 +280,7 @@ export const PlaceBidModal: React.FC<PlaceBidModalProps> = ({
             loadingText="Placing Bid..."
             className="flex-1"
           >
-            Place Bid - {formatGold(bidAmountNum)}
+            Place Bid - {formatDollars(bidAmountNum)}
           </Button>
         </div>
       </div>

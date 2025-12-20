@@ -3,18 +3,34 @@
  * Main application component with routing configuration
  */
 
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useCharacterStore } from '@/store/useCharacterStore';
+import { useAuthBroadcast, type AuthBroadcastMessage } from '@/hooks/useStorageSync';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { GameLayout } from '@/components/layout';
 import { LoadingSpinner } from '@/components/ui';
-import { ChatWindow } from '@/components/chat';
-import { TutorialOverlay, TutorialAutoTrigger } from '@/components/tutorial';
+import { ChatWindow, ChatErrorFallback } from '@/components/chat';
+import { TutorialOverlay, TutorialComplete } from '@/components/tutorial';
 import { LoginRewardAutoPopup } from '@/components/loginRewards';
 import { ToastContainer as NotificationToastContainer } from '@/components/notifications/ToastContainer';
 import { ToastContainer as UIToastContainer } from '@/components/ui/Toast';
-import { ErrorBoundary, GlobalErrorDisplay } from '@/components/errors';
+import {
+  ErrorBoundary,
+  GlobalErrorDisplay,
+  GameErrorFallback,
+  DuelErrorFallback,
+  CombatErrorFallback,
+  GangErrorFallback,
+  MarketplaceErrorFallback,
+  PropertiesErrorFallback,
+  SkillsErrorFallback,
+  ActionsErrorFallback,
+  MailErrorFallback,
+  SettingsErrorFallback,
+  ProfileErrorFallback,
+} from '@/components/errors';
 import { AnimationPreferencesProvider } from '@/contexts';
 
 // Lazy load all page components for code splitting
@@ -24,7 +40,6 @@ const Register = lazy(() => import('@/pages/Register').then(m => ({ default: m.R
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail').then(m => ({ default: m.VerifyEmail })));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
-const AuthDebug = lazy(() => import('@/pages/AuthDebug').then(m => ({ default: m.AuthDebug })));
 const CharacterSelect = lazy(() => import('@/pages/CharacterSelect').then(m => ({ default: m.CharacterSelect })));
 const Game = lazy(() => import('@/pages/Game').then(m => ({ default: m.Game })));
 const Town = lazy(() => import('@/pages/Town'));
@@ -43,6 +58,7 @@ const Inventory = lazy(() => import('@/pages/Inventory').then(m => ({ default: m
 const Notifications = lazy(() => import('@/pages/Notifications').then(m => ({ default: m.Notifications })));
 const Profile = lazy(() => import('@/pages/Profile').then(m => ({ default: m.Profile })));
 const Settings = lazy(() => import('@/pages/Settings').then(m => ({ default: m.Settings })));
+const TwoFactorSetup = lazy(() => import('@/pages/TwoFactorSetup').then(m => ({ default: m.TwoFactorSetup })));
 const Shop = lazy(() => import('@/pages/Shop').then(m => ({ default: m.Shop })));
 const DeckGuide = lazy(() => import('@/pages/DeckGuide').then(m => ({ default: m.DeckGuide })));
 const QuestLog = lazy(() => import('@/pages/QuestLog').then(m => ({ default: m.QuestLog })));
@@ -63,7 +79,20 @@ const DailyContracts = lazy(() => import('@/pages/DailyContractsPage').then(m =>
 const StarMap = lazy(() => import('@/pages/StarMapPage').then(m => ({ default: m.StarMapPage })));
 const ZodiacCalendar = lazy(() => import('@/pages/ZodiacCalendarPage').then(m => ({ default: m.ZodiacCalendarPage })));
 const Marketplace = lazy(() => import('@/pages/MarketplacePage').then(m => ({ default: m.MarketplacePage })));
+const Bank = lazy(() => import('@/pages/Bank').then(m => ({ default: m.Bank })));
+const Fishing = lazy(() => import('@/pages/Fishing').then(m => ({ default: m.Fishing })));
+const Hunting = lazy(() => import('@/pages/Hunting').then(m => ({ default: m.Hunting })));
+const Crafting = lazy(() => import('@/pages/Crafting').then(m => ({ default: m.Crafting })));
+const Companion = lazy(() => import('@/pages/Companion').then(m => ({ default: m.Companion })));
+const Duel = lazy(() => import('@/pages/Duel').then(m => ({ default: m.Duel })));
+const DuelArena = lazy(() => import('@/pages/DuelArena'));
+const Train = lazy(() => import('@/pages/Train').then(m => ({ default: m.Train })));
+const TrainRobbery = lazy(() => import('@/pages/TrainRobbery').then(m => ({ default: m.TrainRobbery })));
+const Stagecoach = lazy(() => import('@/pages/Stagecoach').then(m => ({ default: m.Stagecoach })));
+const StagecoachAmbush = lazy(() => import('@/pages/StagecoachAmbush').then(m => ({ default: m.StagecoachAmbush })));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const ArtAssetDashboard = lazy(() => import('@/pages/admin/ArtAssetDashboard').then(m => ({ default: m.ArtAssetDashboard })));
+const StatusDashboard = lazy(() => import('@/pages/StatusDashboard').then(m => ({ default: m.StatusDashboard })));
 const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })));
 
 // Global flag to track if we've checked auth (persists across React StrictMode remounts)
@@ -73,7 +102,50 @@ let hasCheckedAuthGlobal = false;
  * Main App component with React Router configuration
  */
 function App() {
-  const { checkAuth, isLoading, isAuthenticated } = useAuthStore();
+  const { checkAuth, isLoading: _isLoading, isAuthenticated, user } = useAuthStore();
+  const { currentCharacter, selectCharacter } = useCharacterStore();
+
+  // Handle auth broadcasts from other tabs
+  const handleAuthBroadcast = useCallback((message: AuthBroadcastMessage) => {
+    if (message.type === 'LOGOUT') {
+      // Another tab logged out - clear our state without making another API call
+      // Just update local state since server-side logout already happened
+      useAuthStore.setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+      });
+      // Also clear character state
+      useCharacterStore.getState().clearCharacterState();
+    } else if (message.type === 'LOGIN') {
+      // Another tab logged in - refresh our auth state to pick up the new session
+      // Only re-check if we're not already authenticated or it's a different user
+      if (!isAuthenticated || (message.userId && user?.id !== message.userId)) {
+        checkAuth();
+      }
+    } else if (message.type === 'SESSION_EXPIRED') {
+      // Session expired in another tab - force logout
+      useAuthStore.setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: 'Session expired',
+      });
+      useCharacterStore.getState().clearCharacterState();
+    } else if (message.type === 'CHARACTER_CHANGED') {
+      // Another tab selected a different character
+      if (message.characterId && message.characterId !== currentCharacter?._id) {
+        // Load the newly selected character
+        selectCharacter(message.characterId).catch((error) => {
+          console.warn('Failed to sync character from other tab:', error);
+        });
+      }
+    }
+  }, [checkAuth, isAuthenticated, user?.id, currentCharacter?._id, selectCharacter]);
+
+  // Listen for auth events from other tabs
+  useAuthBroadcast(handleAuthBroadcast);
 
   // Check authentication status on app load by validating session cookie with backend
   // This is the ONLY source of truth - no localStorage persistence
@@ -114,16 +186,22 @@ function App() {
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/status" element={<StatusDashboard />} />
 
-              {/* Debug Route */}
-              <Route path="/auth-debug" element={<AuthDebug />} />
-
-              {/* Admin Route - Protected */}
+              {/* Admin Routes - Protected */}
               <Route
                 path="/admin"
                 element={
                   <ProtectedRoute>
                     <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/art-assets"
+                element={
+                  <ProtectedRoute>
+                    <ArtAssetDashboard />
                   </ProtectedRoute>
                 }
               />
@@ -147,23 +225,56 @@ function App() {
                 }
               >
                 <Route index element={<Location />} />
-                <Route path="dashboard" element={<Game />} />
+                <Route path="dashboard" element={
+                  <ErrorBoundary fallback={<GameErrorFallback />}>
+                    <Game />
+                  </ErrorBoundary>
+                } />
                 <Route path="town" element={<Town />} />
                 <Route path="location" element={<Location />} />
-                <Route path="actions" element={<Actions />} />
+                <Route path="actions" element={
+                  <ErrorBoundary fallback={<ActionsErrorFallback />}>
+                    <Actions />
+                  </ErrorBoundary>
+                } />
                 <Route path="action-challenge" element={<ActionChallenge />} />
-                <Route path="skills" element={<Skills />} />
-                <Route path="combat" element={<Combat />} />
+                <Route path="skills" element={
+                  <ErrorBoundary fallback={<SkillsErrorFallback />}>
+                    <Skills />
+                  </ErrorBoundary>
+                } />
+                <Route path="combat" element={
+                  <ErrorBoundary fallback={<CombatErrorFallback />}>
+                    <Combat />
+                  </ErrorBoundary>
+                } />
                 <Route path="crimes" element={<Crimes />} />
                 <Route path="territory" element={<Territory />} />
-                <Route path="gang" element={<Gang />} />
+                <Route path="gang" element={
+                  <ErrorBoundary fallback={<GangErrorFallback />}>
+                    <Gang />
+                  </ErrorBoundary>
+                } />
                 <Route path="leaderboard" element={<Leaderboard />} />
-                <Route path="mail" element={<Mail />} />
+                <Route path="mail" element={
+                  <ErrorBoundary fallback={<MailErrorFallback />}>
+                    <Mail />
+                  </ErrorBoundary>
+                } />
                 <Route path="friends" element={<Friends />} />
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="notifications" element={<Notifications />} />
-                <Route path="profile/:name" element={<Profile />} />
-                <Route path="settings" element={<Settings />} />
+                <Route path="profile/:name" element={
+                  <ErrorBoundary fallback={<ProfileErrorFallback />}>
+                    <Profile />
+                  </ErrorBoundary>
+                } />
+                <Route path="settings" element={
+                  <ErrorBoundary fallback={<SettingsErrorFallback />}>
+                    <Settings />
+                  </ErrorBoundary>
+                } />
+                <Route path="settings/2fa-setup" element={<TwoFactorSetup />} />
                 <Route path="shop" element={<Shop />} />
                 <Route path="deck-guide" element={<DeckGuide />} />
                 <Route path="quests" element={<QuestLog />} />
@@ -176,14 +287,37 @@ function App() {
                 <Route path="shooting-contest" element={<ShootingContest />} />
                 <Route path="gambling" element={<Gambling />} />
                 <Route path="property-listings" element={<PropertyListings />} />
-                <Route path="properties" element={<MyProperties />} />
+                <Route path="properties" element={
+                  <ErrorBoundary fallback={<PropertiesErrorFallback />}>
+                    <MyProperties />
+                  </ErrorBoundary>
+                } />
                 <Route path="npc-gangs" element={<NPCGangConflict />} />
                 <Route path="mentors" element={<MentorTraining />} />
                 <Route path="daily-rewards" element={<LoginRewards />} />
                 <Route path="contracts" element={<DailyContracts />} />
                 <Route path="star-map" element={<StarMap />} />
                 <Route path="zodiac-calendar" element={<ZodiacCalendar />} />
-                <Route path="marketplace" element={<Marketplace />} />
+                <Route path="marketplace" element={
+                  <ErrorBoundary fallback={<MarketplaceErrorFallback />}>
+                    <Marketplace />
+                  </ErrorBoundary>
+                } />
+                <Route path="bank" element={<Bank />} />
+                <Route path="fishing" element={<Fishing />} />
+                <Route path="hunting" element={<Hunting />} />
+                <Route path="crafting" element={<Crafting />} />
+                <Route path="companions" element={<Companion />} />
+                <Route path="duel" element={
+                  <ErrorBoundary fallback={<DuelErrorFallback />}>
+                    <Duel />
+                  </ErrorBoundary>
+                } />
+                <Route path="duel/:duelId" element={<DuelArena />} />
+                <Route path="train" element={<Train />} />
+                <Route path="train-robbery" element={<TrainRobbery />} />
+                <Route path="stagecoach" element={<Stagecoach />} />
+                <Route path="stagecoach-ambush" element={<StagecoachAmbush />} />
               </Route>
 
               {/* Character Selection - Standalone Protected Route */}
@@ -203,16 +337,20 @@ function App() {
           </Suspense>
 
       {/* Chat Window - Always rendered when authenticated */}
-      {isAuthenticated && <ChatWindow />}
+      {isAuthenticated && (
+        <ErrorBoundary fallback={<ChatErrorFallback />}>
+          <ChatWindow />
+        </ErrorBoundary>
+      )}
 
       {/* Login Reward Popup - Shows on login if reward available */}
       <LoginRewardAutoPopup isAuthenticated={isAuthenticated} />
 
-      {/* Tutorial Overlay - Shown when tutorial is active */}
+      {/* Tutorial Overlay - Shown when tutorial is active (includes TutorialAutoTrigger internally) */}
       <TutorialOverlay />
 
-      {/* Tutorial Auto-Trigger - Detects new players and prompts for tutorial */}
-      <TutorialAutoTrigger />
+      {/* Tutorial Complete - Celebration modal shown when tutorial finishes */}
+      <TutorialComplete />
 
           {/* Toast Notifications - Server notifications */}
           <NotificationToastContainer />

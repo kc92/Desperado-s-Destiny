@@ -17,7 +17,11 @@ import { WeatherService } from './weather.service';
 import { EncounterService } from './encounter.service';
 import { WorldEvent } from '../models/WorldEvent.model';
 import { calculateDangerChance, rollForEncounter } from '../middleware/accessRestriction.middleware';
+import { ZONE_INFO, WorldZoneType, getAdjacentZones, LocationJob } from '@desperados/shared';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
+import { ActionDeckSession } from '../models/ActionDeckSession.model';
+import { initGame, getGameTypeForJobCategory, GameState, Suit } from './deckGames';
 
 /**
  * Travel result interface
@@ -50,6 +54,38 @@ export interface PurchaseResult {
   goldSpent: number;
   message: string;
 }
+
+/**
+ * Job game start result interface
+ */
+export interface JobGameStartResult {
+  success: boolean;
+  gameState?: GameState;
+  jobInfo?: {
+    id: string;
+    name: string;
+    description: string;
+    jobCategory: string;
+    energyCost: number;
+    rewards: {
+      goldMin: number;
+      goldMax: number;
+      xp: number;
+      items?: string[];
+    };
+  };
+  message?: string;
+}
+
+/**
+ * Map job categories to relevant suits for skill bonuses
+ */
+const JOB_CATEGORY_SUITS: Record<string, Suit> = {
+  labor: 'clubs',      // Physical work - Clubs (combat/strength)
+  skilled: 'diamonds', // Precision crafting - Diamonds (craft)
+  dangerous: 'spades', // Risk/crime - Spades (crime)
+  social: 'hearts'     // Social interactions - Hearts (social)
+};
 
 export class LocationService {
   /**
@@ -139,19 +175,31 @@ export class LocationService {
 
   /**
    * Travel to a new location
+   *
+   * NOTE: Refactored to use single atomic transaction (Initiative 12)
+   * - Rolls for encounter BEFORE deducting energy
+   * - Single save operation instead of two
+   * - Crash-safe with MongoDB session
    */
   static async travelToLocation(
     characterId: string,
     targetLocationId: string
   ): Promise<TravelResult> {
+    const session = await mongoose.startSession();
+    await session.startTransaction();
+
     try {
-      const character = await Character.findById(characterId);
+      const character = await Character.findById(characterId).session(session);
       if (!character) {
+        await session.abortTransaction();
+        session.endSession();
         throw new Error('Character not found');
       }
 
       // Check if jailed
       if (character.isCurrentlyJailed()) {
+        await session.abortTransaction();
+        session.endSession();
         return {
           success: false,
           newLocation: null as any,
@@ -163,6 +211,8 @@ export class LocationService {
       // Check if character has an unresolved encounter
       const activeEncounter = await EncounterService.getActiveEncounter(characterId);
       if (activeEncounter) {
+        await session.abortTransaction();
+        session.endSession();
         return {
           success: false,
           newLocation: null as any,
@@ -173,10 +223,12 @@ export class LocationService {
       }
 
       // Get current and target locations
-      const currentLocation = await Location.findById(character.currentLocation);
-      const targetLocation = await Location.findById(targetLocationId);
+      const currentLocation = await Location.findById(character.currentLocation).session(session);
+      const targetLocation = await Location.findById(targetLocationId).session(session);
 
       if (!targetLocation) {
+        await session.abortTransaction();
+        session.endSession();
         return {
           success: false,
           newLocation: null as any,
@@ -221,6 +273,8 @@ export class LocationService {
 
           // Check if weather prevents travel
           if (!WeatherService.isWeatherTravelable(weather.weather, weather.intensity)) {
+            await session.abortTransaction();
+            session.endSession();
             return {
               success: false,
               newLocation: null as any,
@@ -258,9 +312,11 @@ export class LocationService {
         logger.error('Failed to check world events for travel modifiers:', eventError);
       }
 
-      // Check and spend energy
-      character.regenerateEnergy();
+      // Check energy availability (BEFORE deducting)
+      await character.regenerateEnergy();
       if (character.energy < energyCost) {
+        await session.abortTransaction();
+        session.endSession();
         return {
           success: false,
           newLocation: null as any,
@@ -274,6 +330,8 @@ export class LocationService {
         const req = targetLocation.requirements;
 
         if (req.minLevel && character.level < req.minLevel) {
+          await session.abortTransaction();
+          session.endSession();
           return {
             success: false,
             newLocation: null as any,
@@ -283,6 +341,8 @@ export class LocationService {
         }
 
         if (req.gangMember && !character.gangId) {
+          await session.abortTransaction();
+          session.endSession();
           return {
             success: false,
             newLocation: null as any,
@@ -292,20 +352,16 @@ export class LocationService {
         }
       }
 
-      // Deduct energy (but don't complete travel yet - might trigger encounter)
-      character.energy -= energyCost;
-      character.lastActive = new Date();
-      await character.save();
-
-      // Roll for random encounter based on target location danger
+      // Roll for random encounter FIRST (before deducting energy)
       const worldState = await WorldEventService.getWorldState();
       const currentHour = worldState.gameHour;
       const dangerLevel = targetLocation.dangerLevel || 0;
       const encounterChance = calculateDangerChance(dangerLevel, currentHour, character.wantedLevel);
 
+      let encounter = null;
       if (rollForEncounter(encounterChance)) {
         // Trigger random encounter!
-        const encounter = await EncounterService.rollForRandomEncounter(
+        encounter = await EncounterService.rollForRandomEncounter(
           characterId,
           targetLocationId.toString(),
           dangerLevel.toString()
@@ -314,7 +370,34 @@ export class LocationService {
         logger.info(
           `Random encounter triggered for character ${characterId} while traveling to ${targetLocation.name} (${encounterChance}% chance)`
         );
+      }
 
+      // NOW deduct energy and update location/lastActive atomically
+      character.energy -= energyCost;
+      character.lastActive = new Date();
+
+      // If no encounter, complete travel by updating location
+      if (!encounter) {
+        character.currentLocation = targetLocationId;
+      }
+
+      // SINGLE SAVE with transaction
+      await character.save({ session });
+
+      // Commit transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      // Update quest progress for location visit (fire-and-forget, outside transaction)
+      // This is safe because quest progress is not critical to travel completion
+      if (!encounter) {
+        QuestService.onLocationVisited(characterId, targetLocationId).catch(err =>
+          logger.error('Quest update failed after travel:', err)
+        );
+      }
+
+      // Return appropriate result
+      if (encounter) {
         // Return encounter without completing travel
         // Travel will complete after encounter is resolved
         return {
@@ -326,13 +409,7 @@ export class LocationService {
         };
       }
 
-      // No encounter - complete travel normally
-      character.currentLocation = targetLocationId;
-      await character.save();
-
-      // Update quest progress for location visit
-      await QuestService.onLocationVisited(characterId, targetLocationId);
-
+      // No encounter - travel completed successfully
       logger.info(`Character ${characterId} traveled to ${targetLocation.name}, spent ${energyCost} energy`);
 
       return {
@@ -342,6 +419,8 @@ export class LocationService {
         message: `You arrive at ${targetLocation.name}`,
       };
     } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
       logger.error('Error traveling to location:', error);
       throw error;
     }
@@ -471,9 +550,7 @@ export class LocationService {
       }
 
       // Calculate rewards with weather modifier
-      const baseGold = Math.floor(
-        Math.random() * (job.rewards.goldMax - job.rewards.goldMin + 1) + job.rewards.goldMin
-      );
+      const baseGold = SecureRNG.range(job.rewards.goldMin, job.rewards.goldMax);
       const goldEarned = Math.floor(baseGold * jobSuccessModifier);
       const xpEarned = Math.floor(job.rewards.xp * jobSuccessModifier);
       const items = job.rewards.items || [];
@@ -506,6 +583,147 @@ export class LocationService {
       };
     } catch (error) {
       logger.error('Error performing job:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Start a job with deck game
+   * Initiates a deck game session for the job - rewards based on performance
+   */
+  static async startJobWithDeck(
+    characterId: string,
+    locationId: string,
+    jobId: string
+  ): Promise<JobGameStartResult> {
+    try {
+      const character = await Character.findById(characterId);
+      if (!character) {
+        return {
+          success: false,
+          message: 'Character not found',
+        };
+      }
+
+      // Check if character is at the location
+      if (character.currentLocation !== locationId) {
+        return {
+          success: false,
+          message: 'You must be at this location to perform this job',
+        };
+      }
+
+      const location = await Location.findById(locationId);
+      if (!location) {
+        return {
+          success: false,
+          message: 'Location not found',
+        };
+      }
+
+      // Find the job
+      const job = location.jobs.find(j => j.id === jobId);
+      if (!job) {
+        return {
+          success: false,
+          message: 'Job not found at this location',
+        };
+      }
+
+      // Check energy (but don't spend yet - spent on completion)
+      character.regenerateEnergy();
+      if (character.energy < job.energyCost) {
+        return {
+          success: false,
+          message: `Not enough energy. Need ${job.energyCost}, have ${Math.floor(character.energy)}`,
+        };
+      }
+
+      // Check requirements
+      if (job.requirements) {
+        if (job.requirements.minLevel && character.level < job.requirements.minLevel) {
+          return {
+            success: false,
+            message: `Requires level ${job.requirements.minLevel}`,
+          };
+        }
+      }
+
+      // Check cooldown
+      const cooldowns = character.jobCooldowns as Map<string, Date>;
+      const lastJobTime = cooldowns.get(jobId);
+      if (lastJobTime) {
+        const cooldownMinutes = job.cooldownMinutes;
+        const cooldownMs = cooldownMinutes * 60 * 1000;
+        const timeSinceLastJob = Date.now() - lastJobTime.getTime();
+
+        if (timeSinceLastJob < cooldownMs) {
+          const remainingMs = cooldownMs - timeSinceLastJob;
+          const remainingMinutes = Math.ceil(remainingMs / 60000);
+          return {
+            success: false,
+            message: `Job on cooldown. Try again in ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`,
+          };
+        }
+      }
+
+      // Determine game type based on job category
+      const jobCategory = (job as any).jobCategory || 'labor';
+      const gameType = getGameTypeForJobCategory(jobCategory);
+
+      // Determine relevant suit for skill bonus
+      const relevantSuit = JOB_CATEGORY_SUITS[jobCategory] || 'clubs';
+
+      // Get character's skill bonus for this suit
+      const characterSuitBonus = character.getSkillBonusForSuit(relevantSuit);
+
+      logger.info(`[startJobWithDeck] Starting job ${job.name} (${jobCategory}) for character ${characterId}`);
+      logger.info(`[startJobWithDeck] Game type: ${gameType}, Suit: ${relevantSuit}, Skill bonus: ${characterSuitBonus}`);
+
+      // Initialize deck game with character skills
+      const gameState = initGame({
+        gameType,
+        playerId: characterId,
+        difficulty: Math.ceil((job.rewards.goldMax - job.rewards.goldMin) / 10), // Derive difficulty from reward range
+        relevantSuit,
+        timeLimit: 90, // 90 seconds for jobs
+        characterSuitBonus,
+        baseReward: job.rewards.goldMin
+      });
+
+      // Store session in database with job metadata
+      await ActionDeckSession.create({
+        sessionId: gameState.gameId,
+        characterId,
+        actionId: jobId, // Using actionId field for jobId
+        action: {
+          ...job,
+          jobCategory,
+          locationId,
+          isJob: true // Flag to identify this is a job, not an action
+        },
+        character: character.toObject(),
+        gameState,
+        startedAt: new Date(),
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+      });
+
+      logger.info(`[startJobWithDeck] Created session ${gameState.gameId} for job ${job.name}`);
+
+      return {
+        success: true,
+        gameState,
+        jobInfo: {
+          id: job.id,
+          name: job.name,
+          description: job.description,
+          jobCategory,
+          energyCost: job.energyCost,
+          rewards: job.rewards
+        }
+      };
+    } catch (error) {
+      logger.error('Error starting job with deck:', error);
       throw error;
     }
   }
@@ -598,7 +816,7 @@ export class LocationService {
       }
 
       // Check gold
-      if (!character.hasGold(item.price)) {
+      if (!character.hasDollars(item.price)) {
         await session.abortTransaction();
         session.endSession();
         return {
@@ -664,12 +882,180 @@ export class LocationService {
   static async getAllLocationsForMap(): Promise<any[]> {
     try {
       const locations = await Location.find({ isHidden: false })
-        .select('name shortDescription type region icon dangerLevel factionInfluence connections isUnlocked')
+        .select('name shortDescription type region zone isZoneHub icon dangerLevel factionInfluence connections isUnlocked')
         .lean();
 
       return locations;
     } catch (error) {
       logger.error('Error getting locations for map:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all locations in a specific zone
+   */
+  static async getLocationsByZone(zone: WorldZoneType): Promise<ILocation[]> {
+    try {
+      const locations = await Location.find({
+        zone,
+        isHidden: false
+      }).lean() as unknown as ILocation[];
+
+      return locations;
+    } catch (error) {
+      logger.error(`Error getting locations for zone ${zone}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get zone hubs (main entry points for each zone)
+   */
+  static async getZoneHubs(): Promise<ILocation[]> {
+    try {
+      const hubs = await Location.find({
+        isZoneHub: true,
+        isHidden: false,
+      }).lean() as unknown as ILocation[];
+
+      return hubs;
+    } catch (error) {
+      logger.error('Error getting zone hubs:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get zone information for a location
+   */
+  static async getLocationZoneInfo(locationId: string): Promise<{
+    currentZone: WorldZoneType | null;
+    zoneInfo: typeof ZONE_INFO[WorldZoneType] | null;
+    adjacentZones: WorldZoneType[];
+    zoneExits: ILocation[];
+  }> {
+    try {
+      const location = await Location.findById(locationId);
+      if (!location || !location.zone) {
+        return {
+          currentZone: null,
+          zoneInfo: null,
+          adjacentZones: [],
+          zoneExits: [],
+        };
+      }
+
+      const currentZone = location.zone as WorldZoneType;
+      const zoneInfo = ZONE_INFO[currentZone];
+      const adjacentZones = getAdjacentZones(currentZone);
+
+      // Get zone hub locations for adjacent zones
+      const zoneExits = await Location.find({
+        zone: { $in: adjacentZones },
+        isZoneHub: true,
+        isHidden: false,
+      }).lean() as unknown as ILocation[];
+
+      return {
+        currentZone,
+        zoneInfo,
+        adjacentZones,
+        zoneExits,
+      };
+    } catch (error) {
+      logger.error('Error getting location zone info:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get connected locations with zone categorization
+   * Returns local connections (same zone) and zone exits (to other zones)
+   */
+  static async getConnectedLocationsWithZones(locationId: string): Promise<{
+    localConnections: ILocation[];
+    zoneExits: { zone: WorldZoneType; hub: ILocation; energyCost: number }[];
+    currentZone: WorldZoneType | null;
+    zoneInfo: typeof ZONE_INFO[WorldZoneType] | null;
+  }> {
+    try {
+      const location = await Location.findById(locationId);
+      if (!location) {
+        return {
+          localConnections: [],
+          zoneExits: [],
+          currentZone: null,
+          zoneInfo: null,
+        };
+      }
+
+      const currentZone = location.zone as WorldZoneType | undefined;
+      const zoneInfo = currentZone ? ZONE_INFO[currentZone] : null;
+
+      // Get direct connections
+      const connectedIds = location.connections.map(c => c.targetLocationId);
+      const connectedLocations = await Location.find({
+        _id: { $in: connectedIds },
+        isHidden: false,
+      }).lean() as unknown as ILocation[];
+
+      // Separate local connections (same zone) from zone exits
+      const localConnections: ILocation[] = [];
+      const directZoneExits: { zone: WorldZoneType; hub: ILocation; energyCost: number }[] = [];
+
+      for (const connected of connectedLocations) {
+        if (!currentZone || connected.zone === currentZone) {
+          localConnections.push(connected);
+        } else if (connected.isZoneHub && connected.zone) {
+          // This is a direct connection to another zone's hub
+          const connection = location.connections.find(c => c.targetLocationId === connected._id.toString());
+          directZoneExits.push({
+            zone: connected.zone as WorldZoneType,
+            hub: connected,
+            energyCost: connection?.energyCost || 15,
+          });
+        } else {
+          // Different zone but not a hub - still show as local for now
+          localConnections.push(connected);
+        }
+      }
+
+      // If we're at a zone hub, also show connections to adjacent zones
+      if (currentZone && location.isZoneHub) {
+        const adjacentZones = getAdjacentZones(currentZone);
+
+        // Get hubs for adjacent zones that aren't already in directZoneExits
+        const existingZoneExitIds = new Set(directZoneExits.map(e => e.zone));
+        const missingAdjacentZones = adjacentZones.filter(z => !existingZoneExitIds.has(z));
+
+        if (missingAdjacentZones.length > 0) {
+          const additionalHubs = await Location.find({
+            zone: { $in: missingAdjacentZones },
+            isZoneHub: true,
+            isHidden: false,
+          }).lean() as unknown as ILocation[];
+
+          for (const hub of additionalHubs) {
+            if (hub.zone) {
+              directZoneExits.push({
+                zone: hub.zone as WorldZoneType,
+                hub,
+                energyCost: 15, // Default inter-zone travel cost
+              });
+            }
+          }
+        }
+      }
+
+      return {
+        localConnections,
+        zoneExits: directZoneExits,
+        currentZone: currentZone || null,
+        zoneInfo,
+      };
+    } catch (error) {
+      logger.error('Error getting connected locations with zones:', error);
       throw error;
     }
   }

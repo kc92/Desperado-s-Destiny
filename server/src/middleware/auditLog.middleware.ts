@@ -8,7 +8,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { AuditLog } from '../models/AuditLog.model';
-import { logger } from '../utils/logger';
+import logger from '../utils/logger';
 import mongoose from 'mongoose';
 
 /**
@@ -117,7 +117,7 @@ export const auditLogMiddleware = (req: Request, res: Response, next: NextFuncti
       try {
         const responseTime = Date.now() - startTime;
 
-        await AuditLog.log({
+        await AuditLog.create({
           ...requestData,
           statusCode: res.statusCode,
           metadata: {
@@ -128,7 +128,7 @@ export const auditLogMiddleware = (req: Request, res: Response, next: NextFuncti
 
         logger.info('Admin action audited', {
           action: requestData.action,
-          user: req.user?.username,
+          user: req.user?.email,
           statusCode: res.statusCode,
           responseTime,
         });
@@ -136,7 +136,7 @@ export const auditLogMiddleware = (req: Request, res: Response, next: NextFuncti
         logger.error('Failed to create audit log', {
           error: error instanceof Error ? error.message : 'Unknown error',
           action: requestData.action,
-          user: req.user?.username,
+          user: req.user?.email,
         });
       }
     });
@@ -163,7 +163,7 @@ export async function logAdminAction(params: {
   metadata?: Record<string, any>;
 }): Promise<void> {
   try {
-    await AuditLog.log(params);
+    await AuditLog.create(params);
   } catch (error) {
     logger.error('Failed to manually log admin action', {
       error: error instanceof Error ? error.message : 'Unknown error',

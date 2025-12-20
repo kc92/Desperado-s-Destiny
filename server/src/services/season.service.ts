@@ -27,6 +27,7 @@ import {
   getDaysUntilNewMoon,
   getMoonPhaseDescription,
 } from '../data/moonPhases';
+import { SecureRNG } from './base/SecureRNG';
 import { calendarService } from './calendar.service';
 
 class SeasonService {
@@ -210,8 +211,7 @@ class SeasonService {
    */
   async shouldTriggerSupernaturalEncounter(): Promise<boolean> {
     const moonEffects = await this.getCurrentMoonPhaseEffects();
-    const roll = Math.random();
-    return roll < moonEffects.supernaturalEncounterChance;
+    return SecureRNG.chance(moonEffects.supernaturalEncounterChance);
   }
 
   /**

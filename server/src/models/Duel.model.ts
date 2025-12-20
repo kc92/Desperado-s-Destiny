@@ -136,4 +136,13 @@ DuelSchema.index({ challengerId: 1, status: 1 });
 DuelSchema.index({ challengedId: 1, status: 1 });
 DuelSchema.index({ status: 1, expiresAt: 1 });
 
+/**
+ * TTL Index for automatic cleanup
+ * Expired duels are automatically deleted 24 hours after their expiresAt date.
+ * This provides a grace period for reviewing expired duels before permanent removal.
+ *
+ * SECURITY: Prevents database bloat from accumulating expired duels.
+ */
+DuelSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 86400 }); // 24 hours grace period
+
 export const Duel = mongoose.model<IDuel>('Duel', DuelSchema);

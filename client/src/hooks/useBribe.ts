@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Bribe result
 export interface BribeResult {
@@ -87,7 +88,7 @@ export const useBribe = (): UseBribeReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to calculate bribe';
       setError(errorMessage);
-      console.error('[useBribe] Calculate error:', err);
+      logger.error('[useBribe] Calculate error:', err as Error, { context: { npcFaction, requestDifficulty, errorMessage } });
       return null;
     } finally {
       setIsLoading(false);
@@ -107,7 +108,7 @@ export const useBribe = (): UseBribeReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to get bribe options';
       setError(errorMessage);
-      console.error('[useBribe] Get building options error:', err);
+      logger.error('[useBribe] Get building options error:', err as Error, { context: { buildingId, errorMessage } });
       return null;
     } finally {
       setIsLoading(false);
@@ -133,7 +134,7 @@ export const useBribe = (): UseBribeReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to bribe guard';
       setError(errorMessage);
-      console.error('[useBribe] Bribe guard error:', err);
+      logger.error('[useBribe] Bribe guard error:', err as Error, { context: { buildingId, amount, errorMessage } });
       return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
@@ -159,7 +160,7 @@ export const useBribe = (): UseBribeReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to bribe NPC';
       setError(errorMessage);
-      console.error('[useBribe] Bribe NPC error:', err);
+      logger.error('[useBribe] Bribe NPC error:', err as Error, { context: { npcId, amount, errorMessage } });
       return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);

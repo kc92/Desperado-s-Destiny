@@ -8,6 +8,8 @@
  * through variable substitution and dynamic objectives.
  */
 
+import { SecureRNG } from '../services/base/SecureRNG';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -85,25 +87,25 @@ export const FETCH_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'fetch_lost_item',
     type: 'fetch',
-    title: "{NPC}'s Lost {ITEM}",
+    title: "{NPC}'s Missin' {ITEM}",
     description:
-      "{NPC} has lost their precious {ITEM} somewhere near {LOCATION}. They last remember having it when they were {ACTIVITY}. Find it and return it for a reward.",
+      "{NPC}'s gone and lost their precious {ITEM} somewhere 'round {LOCATION}. Last they recollect, they was {ACTIVITY} when they set it down. Finder gets a reward - simple as that.",
     briefing:
-      "I've been searching everywhere for my {ITEM}! I had it just yesterday at {LOCATION}. I was {ACTIVITY} when I must have set it down. It has great sentimental value - belonged to my {FAMILY_MEMBER}. Please, can you find it?",
+      "I been tearin' this town apart lookin' for my {ITEM}! Had it just yesterday over at {LOCATION}. I was {ACTIVITY}, set the damn thing down for one minute, and poof - gone like smoke. It ain't worth much to nobody but me - belonged to my {FAMILY_MEMBER}, God rest 'em. Please, stranger, can you help an old fool find it?",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Search {LOCATION} for the {ITEM}',
+        description: "Poke around {LOCATION} for the {ITEM}",
         location: '{LOCATION}',
       },
       {
         type: 'find_item',
-        description: 'Retrieve the {ITEM}',
+        description: "Get yer hands on the {ITEM}",
         target: '{ITEM}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Return the {ITEM} to {NPC}',
+        description: "Bring the {ITEM} back to {NPC}",
         target: '{NPC}',
       },
     ],
@@ -119,26 +121,26 @@ export const FETCH_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'fetch_rare_ingredient',
     type: 'fetch',
-    title: 'Rare {ITEM} for {NPC}',
+    title: "Rare {ITEM} for {NPC}",
     description:
-      "{NPC} needs a rare {ITEM} that can only be found at {LOCATION}. It's dangerous territory, but the pay is good.",
+      "{NPC}'s got a hankerin' for some rare {ITEM} that only grows out at {LOCATION}. Mean country out there, but the pay's worth the trouble.",
     briefing:
-      "I require a very specific {ITEM} for my work. It only grows at {LOCATION}, and I'm too old for such ventures. The {DANGER} there makes it treacherous, but I'll pay handsomely for your trouble.",
+      "Listen here, I need me a particular {ITEM} for my work. Ain't nothin' else'll do. Only place it grows is out at {LOCATION}, and these old bones ain't up for that journey no more. The {DANGER} out that way's enough to make a man think twice. But I'll pay you proper - more'n fair for your trouble.",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Travel to {LOCATION}',
+        description: "Make yer way to {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'collect_items',
-        description: 'Gather {COUNT} {ITEM}',
+        description: "Rustle up {COUNT} {ITEM}",
         target: '{ITEM}',
         count: '{COUNT}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Deliver the {ITEM} to {NPC}',
+        description: "Bring the {ITEM} to {NPC}",
         target: '{NPC}',
       },
     ],
@@ -154,25 +156,25 @@ export const FETCH_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'fetch_stolen_property',
     type: 'fetch',
-    title: 'Recover {NPC}\'s Stolen {ITEM}',
+    title: "Get Back {NPC}'s Stolen {ITEM}",
     description:
-      "{THIEF} stole {NPC}'s valuable {ITEM}. Track them to {LOCATION} and get it back - by any means necessary.",
+      "That low-down snake {THIEF} done stole {NPC}'s {ITEM}. Word is they're holed up at {LOCATION}. Reckon it's time someone taught 'em what happens to thieves in these parts.",
     briefing:
-      "That snake {THIEF} broke into my place and stole my {ITEM}! Word is they're hiding out at {LOCATION}. I don't care how you get it back, but I want that {ITEM}. And maybe teach {THIEF} a lesson while you're at it.",
+      "*spits* That good-for-nothin' {THIEF} broke into my place in the dead of night and made off with my {ITEM}! Word on the street says the yellow-belly's hidin' out at {LOCATION}. I don't give a damn HOW you get it back, stranger - just bring me my {ITEM}. And if {THIEF} happens to catch a beatin' in the process? Well, that's between you and the Almighty.",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Track {THIEF} to {LOCATION}',
+        description: "Track that snake {THIEF} to {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'find_item',
-        description: 'Recover the stolen {ITEM}',
+        description: "Take back the stolen {ITEM}",
         target: '{ITEM}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Return the {ITEM} to {NPC}',
+        description: "Return the {ITEM} to {NPC}",
         target: '{NPC}',
       },
     ],
@@ -188,25 +190,25 @@ export const FETCH_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'fetch_family_heirloom',
     type: 'fetch',
-    title: 'The {FAMILY} Family Heirloom',
+    title: "The {FAMILY} Family Heirloom",
     description:
-      "An ancient {ITEM} belonging to the {FAMILY} family was buried with their ancestor at {LOCATION}. The family needs it recovered for a {REASON}.",
+      "The {FAMILY} clan's got an old {ITEM} buried with their kin at {LOCATION}. They need it dug up for {REASON}. Grave work ain't pretty, but gold spends the same.",
     briefing:
-      "This is a delicate matter. My {FAMILY_MEMBER} was buried at {LOCATION} with a {ITEM} that we desperately need now. For the {REASON}, we must have it. I know it sounds morbid, but please, our family's future depends on it.",
+      "*lowers voice* This here's a delicate matter, stranger. Not somethin' I'd share with just anybody. My {FAMILY_MEMBER} was laid to rest at {LOCATION} with a {ITEM} - family tradition and all. But now, with {REASON} comin' up, we need that {ITEM} somethin' fierce. I know what I'm askin'. Disturbin' the dead ain't Christian, but... *sighs* ...our family's whole future's ridin' on this. I wouldn't ask if there was another way.",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Travel to {LOCATION}',
+        description: "Head to the burial grounds at {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'find_item',
-        description: 'Locate the {ITEM} at the burial site',
+        description: "Dig up the {ITEM} from the grave",
         target: '{ITEM}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Return the heirloom to {NPC}',
+        description: "Deliver the heirloom to {NPC}",
         target: '{NPC}',
       },
     ],
@@ -222,20 +224,20 @@ export const FETCH_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'fetch_supplies',
     type: 'fetch',
-    title: 'Supply Run to {DESTINATION}',
+    title: "Supply Run to {DESTINATION}",
     description:
-      "{NPC} needs supplies delivered from {ORIGIN} to {DESTINATION}. Simple work, but the road has been dangerous lately.",
+      "{NPC}'s got goods waitin' at {ORIGIN} that need haulin' to {DESTINATION}. Honest work for honest pay - long as the {DANGER} don't catch wind of ya.",
     briefing:
-      "I've got an order of {ITEM} waiting at {ORIGIN} that needs to get to {DESTINATION}. The usual courier hasn't shown up - probably scared off by the {DANGER} on the road. I need someone reliable. You interested?",
+      "Got me a shipment of {ITEM} sittin' at {ORIGIN} that ain't gonna move itself to {DESTINATION}. My regular man ain't showed - reckon the {DANGER} on that road finally spooked him good. Can't say I blame the fool, but I still need them goods moved. You look like you got more sand than most. Interested in earnin' some coin?",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Pick up supplies at {ORIGIN}',
+        description: "Collect the supplies at {ORIGIN}",
         location: '{ORIGIN}',
       },
       {
         type: 'deliver_item',
-        description: 'Deliver {ITEM} to {DESTINATION}',
+        description: "Haul {ITEM} to {DESTINATION}",
         target: '{ITEM}',
         location: '{DESTINATION}',
       },
@@ -259,25 +261,25 @@ export const KILL_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'bounty_outlaw',
     type: 'bounty',
-    title: 'Wanted: {TARGET}',
+    title: "Wanted: {TARGET}",
     description:
-      "{TARGET} is wanted dead or alive for {CRIME}. Last seen near {LOCATION}. Bounty: {BOUNTY} gold.",
+      "{TARGET}'s wanted dead or alive for {CRIME}. Last spotted skulkin' around {LOCATION}. The law's put {BOUNTY} gold on their head - plenty enough to make the risk worth it.",
     briefing:
-      "{TARGET} has been terrorizing this territory long enough. The crimes include {CRIME}, and the law wants them brought to justice. They run with {GANG_COUNT} associates and were last spotted near {LOCATION}. Dead or alive pays the same. Just bring proof.",
+      "*slaps wanted poster on the bar* {TARGET}'s been raisin' hell in this territory long enough. {CRIME}, among other sins. They run with {GANG_COUNT} lowlifes and was last seen near {LOCATION}. *leans in* Now, the law says 'dead or alive' - pays the same either way. Personally? I sleep better when scum like that don't wake up. Bring me proof, you get paid. Simple as that.",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Track {TARGET} to {LOCATION}',
+        description: "Hunt down {TARGET} at {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'kill_target',
-        description: 'Neutralize {TARGET}',
+        description: "Put {TARGET} in the ground - or bring 'em in breathin'",
         target: '{TARGET}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Collect bounty from {SHERIFF}',
+        description: "Collect yer blood money from {SHERIFF}",
         target: '{SHERIFF}',
       },
     ],
@@ -294,25 +296,25 @@ export const KILL_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'kill_predator',
     type: 'kill',
-    title: 'Hunt the {PREDATOR}',
+    title: "Hunt the {PREDATOR}",
     description:
-      "A dangerous {PREDATOR} has been killing livestock near {LOCATION}. The ranchers are offering a reward to whoever puts it down.",
+      "Somethin' mean's been tearin' through livestock out near {LOCATION}. Ranchers want this {PREDATOR} dead 'fore it gets a taste for human flesh.",
     briefing:
-      "We've lost {COUNT} head of cattle to this beast already. It's a big {PREDATOR}, meaner than anything I've seen. Tracks lead toward {LOCATION}. We need it dead before it gets bolder and goes after people. The ranchers' association is offering good money.",
+      "*pulls off hat, wipes brow* We done lost {COUNT} head of cattle to this damn beast already. Big {PREDATOR}, meaner than a rattlesnake with a toothache. Tracks lead toward {LOCATION}. We need it dead, stranger. Dead before it gets bolder - 'fore it starts eyein' the children instead of the calves. The ranchers' association's pooled together good money. You look like you know which end of a rifle does the talkin'.",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Track the {PREDATOR} to {LOCATION}',
+        description: "Track the {PREDATOR} to its territory at {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'kill_target',
-        description: 'Kill the {PREDATOR}',
+        description: "Put down the {PREDATOR}",
         target: '{PREDATOR}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Report to {NPC}',
+        description: "Bring the proof to {NPC}",
         target: '{NPC}',
       },
     ],
@@ -328,20 +330,20 @@ export const KILL_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'kill_gang_members',
     type: 'kill',
-    title: 'Clear Out {GANG}',
+    title: "Clear Out {GANG}",
     description:
-      "{GANG} has set up camp at {LOCATION}. The law needs someone to clear them out before they cause more trouble.",
+      "{GANG}'s gone and set up camp at {LOCATION}, bold as brass. The law wants 'em cleared out - permanent-like - before they cause more trouble than they already have.",
     briefing:
-      "{GANG} has been bold lately. They've set up at {LOCATION} and have been {CRIME} anyone who passes by. We don't have the manpower for a frontal assault, but one skilled individual could slip in and take care of the problem. Interested?",
+      "*exhales smoke* {GANG}'s been gettin' real cocky lately. Set up right there at {LOCATION} like they own the damn place, been {CRIME} anyone fool enough to pass by. We ain't got the manpower for a straight-up fight - not without losin' good men. But one person, skilled and quiet-like? Could slip in there and clean house 'fore they knew what hit 'em. You interested in doin' some housekeepin'?",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Infiltrate {GANG} camp at {LOCATION}',
+        description: "Slip into {GANG}'s camp at {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'defeat_gang',
-        description: 'Eliminate {COUNT} {GANG} members',
+        description: "Send {COUNT} of them {GANG} boys to meet their maker",
         target: '{GANG}',
         count: '{COUNT}',
       },
@@ -359,25 +361,25 @@ export const KILL_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'kill_rival',
     type: 'kill',
-    title: '{NPC}\'s Revenge',
+    title: "{NPC}'s Reckoning",
     description:
-      "{NPC} wants {TARGET} dead for {REASON}. No questions asked, payment on completion.",
+      "{NPC}'s got a powerful need to see {TARGET} dead. {REASON}'s reason enough. No questions asked, payment on delivery of proof.",
     briefing:
-      "{TARGET} wronged me in ways you don't need to know. Let's just say {REASON}. I want them dead. I don't care how, and I don't want to know the details. {GOLD} gold when you bring proof. This stays between us.",
+      "*locks eyes with you* {TARGET} wronged me. How ain't your concern. Let's just say {REASON}. I want 'em dead. Not hurt, not scared - DEAD. I don't care if you shoot 'em, stab 'em, or push 'em off a cliff. And I don't wanna hear the details after. {GOLD} gold when you bring me somethin' to prove the deed's done. This conversation? Never happened. We clear?",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Find {TARGET}',
+        description: "Track {TARGET} to {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'kill_target',
-        description: 'Eliminate {TARGET}',
+        description: "End {TARGET}",
         target: '{TARGET}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Report to {NPC}',
+        description: "Return to {NPC} with proof",
         target: '{NPC}',
       },
     ],
@@ -397,25 +399,25 @@ export const KILL_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'bounty_gang_leader',
     type: 'bounty',
-    title: 'The Head of {GANG}',
+    title: "The Head of {GANG}",
     description:
-      "The leader of {GANG}, known as {TARGET}, has a massive bounty. They're holed up at {LOCATION} with their crew.",
+      "The law wants the head of {GANG} - a sidewinder called {TARGET}. Massive bounty, but they're holed up at {LOCATION} with a small army. This ain't work for the faint of heart.",
     briefing:
-      "{TARGET} is the most wanted criminal in the territory. They lead {GANG} and are responsible for {CRIME}. The bounty is substantial - {BOUNTY} gold. But they won't go down easy. They've got a small army at {LOCATION}. This is not for the faint of heart.",
+      "*slides a thick stack of wanted posters across the desk* {TARGET}. Most wanted outlaw in the whole damn territory. Runs {GANG} - responsible for {CRIME} and God knows what else. The bounty's {BOUNTY} gold - enough to set a man up for life. *pauses* But I ain't gonna lie to you, friend. {TARGET} ain't gonna come quiet, and they sure as hell ain't gonna come alone. Got themselves a small army camped at {LOCATION}. This here's a job for someone who's already made peace with meetin' their maker. You that kind of fool?",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Assault {GANG} stronghold at {LOCATION}',
+        description: "Storm {GANG}'s stronghold at {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'kill_target',
-        description: 'Eliminate {TARGET}',
+        description: "Kill {TARGET} or drag 'em back in irons",
         target: '{TARGET}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Claim bounty from {SHERIFF}',
+        description: "Collect yer reward from {SHERIFF}",
         target: '{SHERIFF}',
       },
     ],
@@ -439,20 +441,20 @@ export const ESCORT_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'escort_traveler',
     type: 'escort',
-    title: 'Escort {NPC} to {DESTINATION}',
+    title: "Get {NPC} to {DESTINATION} Alive",
     description:
-      "{NPC} needs safe passage to {DESTINATION}. The road is dangerous, and they're willing to pay for protection.",
+      "{NPC} needs safe passage to {DESTINATION}, but the roads ain't no place for folk travelin' alone. They're payin' good coin for a gun at their side.",
     briefing:
-      "I must get to {DESTINATION} for {REASON}, but the road isn't safe for someone traveling alone. {DANGER} have been hitting travelers regularly. I'll pay {GOLD} gold if you can get me there safely. I can leave whenever you're ready.",
+      "I gotta get to {DESTINATION} for {REASON}, but I ain't fool enough to try that road alone. {DANGER} been hittin' travelers regular - robbin' 'em blind if they're lucky, leavin' 'em for the buzzards if they ain't. I'll pay {GOLD} gold to anyone who can get me there with my scalp still attached. We leave when you say.",
     objectives: [
       {
         type: 'talk_to_npc',
-        description: 'Meet {NPC}',
+        description: "Meet up with {NPC}",
         target: '{NPC}',
       },
       {
         type: 'protect_npc',
-        description: 'Escort {NPC} to {DESTINATION}',
+        description: "Keep {NPC} breathin' all the way to {DESTINATION}",
         target: '{NPC}',
         location: '{DESTINATION}',
       },
@@ -470,21 +472,21 @@ export const ESCORT_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'escort_witness',
     type: 'escort',
-    title: 'Protect the Witness',
+    title: "Guard the Witness",
     description:
-      "{NPC} witnessed {CRIME} and needs to testify at {DESTINATION}. {GANG} wants them dead before they can talk.",
+      "{NPC} saw {TARGET} commit {CRIME} and needs to live long enough to testify at {DESTINATION}. Problem is, {GANG}'s put a price on their head. Keep 'em alive, and justice gets done.",
     briefing:
-      "This person saw {TARGET} commit {CRIME}. Their testimony could put {TARGET} away for good. But {GANG} has put a price on their head. We need to get them to {DESTINATION} alive. The territory's counting on you.",
+      "*taps badge nervously* This here witness saw {TARGET} commit {CRIME}. Their testimony could put that snake away for good - or swing 'em from a rope, if there's any justice left in this territory. But {GANG}'s caught wind, and they've put a price on this poor soul's head. We gotta get 'em to {DESTINATION} alive. Whole territory's countin' on it. You fail, {TARGET} walks free, and everything folks died for was for nothin'.",
     objectives: [
       {
         type: 'talk_to_npc',
-        description: 'Meet the witness at {ORIGIN}',
+        description: "Pick up the witness at {ORIGIN}",
         target: '{NPC}',
         location: '{ORIGIN}',
       },
       {
         type: 'protect_npc',
-        description: 'Get the witness safely to {DESTINATION}',
+        description: "Deliver the witness to {DESTINATION} - alive",
         target: '{NPC}',
         location: '{DESTINATION}',
       },
@@ -503,20 +505,20 @@ export const ESCORT_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'escort_payroll',
     type: 'escort',
-    title: 'Payroll Guard',
+    title: "Payroll Run",
     description:
-      "Guard the payroll shipment from {ORIGIN} to {DESTINATION}. {GOLD} gold is at stake, and bandits will be watching.",
+      "Guard the mine payroll from {ORIGIN} to {DESTINATION}. {GOLD} in gold - every outlaw with a horse and a gun'll be watchin' for it.",
     briefing:
-      "We've got {GOLD} gold in payroll that needs to get from {ORIGIN} to {DESTINATION}. Every outlaw in the territory knows about these shipments. I need armed guards who won't run at the first sign of trouble. You'll get a cut of the delivery bonus.",
+      "*counts out coins nervously* We got {GOLD} gold in payroll sittin' at {ORIGIN} that needs gettin' to {DESTINATION}. Problem is, every no-good sidewinder in the territory knows about these shipments. It's like ringin' a dinner bell for bandits. I need guards - real guards, not the kind that run at the first gunshot. You'll get a cut of the delivery bonus - generous cut, considerin' the risk. What do you say?",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Secure the payroll at {ORIGIN}',
+        description: "Lock down the payroll at {ORIGIN}",
         location: '{ORIGIN}',
       },
       {
         type: 'deliver_item',
-        description: 'Deliver payroll to {DESTINATION}',
+        description: "Get that gold to {DESTINATION} in one piece",
         target: 'payroll',
         location: '{DESTINATION}',
       },
@@ -533,20 +535,20 @@ export const ESCORT_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'escort_prisoner',
     type: 'escort',
-    title: 'Transport Prisoner to {DESTINATION}',
+    title: "Prisoner Transport to {DESTINATION}",
     description:
-      "{TARGET} has been captured and needs to be transported to {DESTINATION} for trial. Their gang will try to free them.",
+      "That ornery bastard {TARGET} finally got caught, but needs movin' to {DESTINATION} for proper trial. Their gang'll be comin' hard to spring 'em loose.",
     briefing:
-      "We finally caught {TARGET}, but we can't hold them here. They need to be transferred to {DESTINATION} where there's a proper facility. {GANG} will try to break them out, so we need someone who can handle trouble. This is official law business.",
+      "*jangles keys* We finally got {TARGET} in irons, but this jailhouse ain't gonna hold 'em - and their boys know it. Need to transfer the prisoner to {DESTINATION} where they got a real lockup. *leans in* {GANG} WILL come for 'em. They got no choice - if {TARGET} hangs, the whole operation falls apart. I need someone who can put down a rescue attempt without lettin' the prisoner slip away in the chaos. This is official law business, so yer covered if things get bloody.",
     objectives: [
       {
         type: 'talk_to_npc',
-        description: 'Collect prisoner from {SHERIFF}',
+        description: "Collect the prisoner from {SHERIFF}",
         target: '{SHERIFF}',
       },
       {
         type: 'deliver_item',
-        description: 'Deliver {TARGET} to {DESTINATION}',
+        description: "Drag {TARGET} to {DESTINATION} - alive for trial",
         target: '{TARGET}',
         location: '{DESTINATION}',
       },
@@ -572,30 +574,30 @@ export const INVESTIGATION_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'investigate_murder',
     type: 'investigate',
-    title: 'The {VICTIM} Murder',
+    title: "The {VICTIM} Killin'",
     description:
-      "{VICTIM} was found dead at {LOCATION}. The sheriff needs someone to investigate and find the killer.",
+      "Someone done murdered {VICTIM} at {LOCATION}. Sheriff needs a sharp eye to piece together what happened and who's responsible. The dead deserve justice - or at least revenge.",
     briefing:
-      "{VICTIM} was a respected member of this community. Found them dead at {LOCATION} this morning. The scene was {DESCRIPTION}. I need someone with a keen eye to investigate. Talk to people, look for clues. Find who did this.",
+      "*removes hat solemnly* {VICTIM} was a good soul - respected 'round these parts. Found 'em dead at {LOCATION} this mornin'. The scene was {DESCRIPTION}. *spits* Whoever done this didn't just kill someone - they spit in the face of this whole community. I need someone with a sharp eye and a sharper mind to investigate. Talk to folks, look for clues, figure out who had reason to do this. Then you tell me, and we'll see that justice gets done.",
     objectives: [
       {
         type: 'investigate_location',
-        description: 'Examine the crime scene at {LOCATION}',
+        description: "Pick through the crime scene at {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'gather_information',
-        description: 'Question {COUNT} witnesses',
+        description: "Shake down {COUNT} witnesses for what they know",
         count: '{COUNT}',
       },
       {
         type: 'find_item',
-        description: 'Find evidence',
+        description: "Turn up some evidence",
         target: 'evidence',
       },
       {
         type: 'talk_to_npc',
-        description: 'Report findings to {SHERIFF}',
+        description: "Bring yer findings to {SHERIFF}",
         target: '{SHERIFF}',
         hidden: true,
       },
@@ -612,25 +614,25 @@ export const INVESTIGATION_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'investigate_disappearance',
     type: 'investigate',
-    title: 'The Missing {RELATION}',
+    title: "The Vanished {RELATION}",
     description:
-      "{NPC}'s {RELATION}, named {MISSING_NPC}, disappeared {TIME_PERIOD} ago. Find out what happened to them.",
+      "{NPC}'s {RELATION} - goes by {MISSING_NPC} - up and vanished {TIME_PERIOD} back. Could be they ran off, could be somethin' worse. Either way, someone's gotta find the truth.",
     briefing:
-      "My {RELATION} {MISSING_NPC} vanished {TIME_PERIOD} ago. Last seen near {LOCATION}. The sheriff says they probably just left, but I know better. Something's wrong. Please, find out what happened. I need to know, even if... even if it's bad news.",
+      "*wringing hands* My {RELATION} {MISSING_NPC} disappeared {TIME_PERIOD} ago. Just... gone. Last anybody saw 'em was near {LOCATION}. The sheriff says they probably just lit out for greener pastures, but I KNOW my {RELATION}. They wouldn't leave without a word. *voice breaks* Somethin' happened. Please, stranger, find out what. I need to know the truth, even if... even if it ain't the news I'm prayin' for.",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Search {LOCATION} for clues',
+        description: "Nose around {LOCATION} for any sign of {MISSING_NPC}",
         location: '{LOCATION}',
       },
       {
         type: 'gather_information',
-        description: 'Ask around about {MISSING_NPC}',
+        description: "Ask folks about {MISSING_NPC} - somebody saw somethin'",
         target: '{MISSING_NPC}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Report to {NPC}',
+        description: "Break the news to {NPC}",
         target: '{NPC}',
         hidden: true,
       },
@@ -647,31 +649,31 @@ export const INVESTIGATION_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'investigate_smuggling',
     type: 'investigate',
-    title: 'The {CONTRABAND} Trail',
+    title: "The {CONTRABAND} Trail",
     description:
-      "Someone's smuggling {CONTRABAND} through the territory. Find out who and where.",
+      "Someone's runnin' {CONTRABAND} through the territory bold as daylight. The law wants to know who's behind it and where they're operatin' from.",
     briefing:
-      "We've been finding {CONTRABAND} in the area - illegal goods that shouldn't be here. Someone's running a smuggling operation, and I want it shut down. I need you to follow the trail. Find out who's behind it, where they're operating from. Be careful - smugglers don't like questions.",
+      "*slides evidence across desk* We keep findin' {CONTRABAND} around the territory - goods that got no business bein' here. Someone's runnin' a smugglin' operation right under our noses, and I aim to shut it down hard. I need you to follow the trail. Find out who's pullin' the strings, where they're stashin' the goods, how they're movin' it. *lowers voice* Word of warnin' - smugglers don't take kindly to questions. You go pokin' around, you'd best watch yer back.",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Investigate known drop points',
+        description: "Scout the known drop points near {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'gather_information',
-        description: 'Identify smuggling contacts',
+        description: "Identify who's mixed up in this operation",
         count: '{COUNT}',
       },
       {
         type: 'find_item',
-        description: 'Find evidence of the operation',
+        description: "Dig up hard evidence of the smugglin' ring",
         target: 'evidence',
         hidden: true,
       },
       {
         type: 'talk_to_npc',
-        description: 'Report findings to {SHERIFF}',
+        description: "Report back to {SHERIFF}",
         target: '{SHERIFF}',
         hidden: true,
       },
@@ -689,25 +691,25 @@ export const INVESTIGATION_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'investigate_haunting',
     type: 'investigate',
-    title: 'The Haunting at {LOCATION}',
+    title: "The Hauntin' at {LOCATION}",
     description:
-      "Strange occurrences have been reported at {LOCATION}. Some say it's haunted. Find out the truth.",
+      "Folks been seein' things at {LOCATION} - strange lights, sounds that ain't natural, figures movin' in the dark. Some say it's haunted. Some say it's hogwash. Only one way to find out.",
     briefing:
-      "People have been seeing things at {LOCATION}. Strange lights, sounds, figures in the night. Some say it's the ghost of {DECEASED}. Others say it's just superstition. I want to know the truth. Go there, spend some time, and find out what's really happening.",
+      "*crosses self nervously* People been seein' things at {LOCATION}. Strange lights flickerin' where no lights should be. Sounds - like whispers, like screams - in the dead of night. Some folks swear they seen figures movin' in the shadows. Old {DECEASED}'s ghost, they say. Others reckon it's just superstitious nonsense, desert heat gettin' to people's heads. *meets your eyes* I want to know the truth. Go there, spend some time - especially after dark. Find out what's really goin' on. Whatever it is.",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Investigate {LOCATION} during the night',
+        description: "Stake out {LOCATION} after the sun goes down",
         location: '{LOCATION}',
       },
       {
         type: 'investigate_location',
-        description: 'Document the strange occurrences',
+        description: "Keep yer eyes peeled for anythin' unnatural",
         location: '{LOCATION}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Report findings to {NPC}',
+        description: "Tell {NPC} what you found - or didn't",
         target: '{NPC}',
         hidden: true,
       },
@@ -731,15 +733,15 @@ export const DELIVERY_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'delivery_message',
     type: 'delivery',
-    title: 'Urgent Message for {RECIPIENT}',
+    title: "Get This to {RECIPIENT} - Fast",
     description:
-      "{NPC} needs an urgent message delivered to {RECIPIENT} at {DESTINATION}. Time is of the essence.",
+      "{NPC}'s got an urgent message that needs to reach {RECIPIENT} at {DESTINATION}. Time's wastin' and every minute counts.",
     briefing:
-      "This message must reach {RECIPIENT} at {DESTINATION} as quickly as possible. It's a matter of {URGENCY}. I'll pay extra if you get it there fast. Don't read it, don't lose it, and don't let anyone else get their hands on it.",
+      "Listen here - this message needs to be in {RECIPIENT}'s hands at {DESTINATION} FAST. It's a matter of {URGENCY}, and I ain't exaggeratin'. I'll throw in extra coin if you make good time. But listen careful: don't read it, don't lose it, and whatever you do, don't let nobody else lay eyes on it. You get stopped on the road? Swallow the damn thing if you gotta. Now git!",
     objectives: [
       {
         type: 'deliver_item',
-        description: 'Deliver the message to {RECIPIENT}',
+        description: "Get this message to {RECIPIENT}'s hands - nobody else's",
         target: 'message',
         location: '{DESTINATION}',
       },
@@ -757,21 +759,21 @@ export const DELIVERY_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'delivery_dangerous_cargo',
     type: 'delivery',
-    title: 'Deliver {CARGO} to {DESTINATION}',
+    title: "Handle With Care: {CARGO} to {DESTINATION}",
     description:
-      "A crate of {CARGO} needs to get to {DESTINATION}. It's dangerous cargo - handle with extreme care.",
+      "This crate of {CARGO} needs gettin' to {DESTINATION}, but one wrong move and you'll be meetin' yer maker. Handle it like yer holdin' a rattlesnake.",
     briefing:
-      "This {CARGO} is... sensitive. Very volatile. One wrong bump and... well, let's just say be careful. {RECIPIENT} at {DESTINATION} is expecting it. Don't open it, don't drop it, and for the love of all that's holy, don't let it get wet.",
+      "*leans in close* This {CARGO} is... sensitive. The kind of sensitive that goes BOOM if you look at it wrong. One bad bump, one hard jostle, and... *makes explosion gesture* ...well, they'll be scrapin' what's left of you off the canyon walls. {RECIPIENT} at {DESTINATION} is expectin' it. Don't open it - you don't wanna know what's inside. Don't drop it - obvious reasons. And for the love of all that's holy, don't let it get wet. You still want the job?",
     objectives: [
       {
         type: 'deliver_item',
-        description: 'Safely transport {CARGO} to {DESTINATION}',
+        description: "Carry {CARGO} to {DESTINATION} without blowin' yerself up",
         target: '{CARGO}',
         location: '{DESTINATION}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Hand over {CARGO} to {RECIPIENT}',
+        description: "Hand over {CARGO} to {RECIPIENT} - carefully",
         target: '{RECIPIENT}',
       },
     ],
@@ -787,15 +789,15 @@ export const DELIVERY_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'delivery_secret_package',
     type: 'delivery',
-    title: 'The Package',
+    title: "The Package",
     description:
-      "Deliver a mysterious package to {RECIPIENT}. No questions. Big pay.",
+      "Somebody needs a mysterious package delivered to {RECIPIENT}. What's inside ain't yer concern. The gold is.",
     briefing:
-      "I need this package delivered to {RECIPIENT} at {DESTINATION}. What's in it? None of your business. Who's it for? I told you - {RECIPIENT}. Why me? Because I'm paying well. Questions answered? Good. Now, are you in or out?",
+      "*slides a wrapped package across the table* This goes to {RECIPIENT} at {DESTINATION}. *you start to ask a question* Ah-ah. *holds up hand* What's in it? None of yer damn business. Who's it for? I already told you - {RECIPIENT}. Why you? 'Cause I'm payin' good money and you look like you can keep yer mouth shut. Questions answered? *stares* Good. Now, you in or out? I ain't got all night.",
     objectives: [
       {
         type: 'deliver_item',
-        description: 'Deliver the package to {RECIPIENT}',
+        description: "Get the package to {RECIPIENT} - no questions asked",
         target: 'package',
         location: '{DESTINATION}',
       },
@@ -819,25 +821,25 @@ export const SOCIAL_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'social_convince',
     type: 'social',
-    title: 'Persuade {TARGET}',
+    title: "Talk Some Sense Into {TARGET}",
     description:
-      "{NPC} needs you to convince {TARGET} to {ACTION}. Diplomacy is key - no violence.",
+      "{NPC} needs {TARGET} convinced to {ACTION}. It's gonna take a silver tongue, not a quick draw - violence'll only make things worse.",
     briefing:
-      "{TARGET} has been {PROBLEM}. I've tried talking to them, but they won't listen to me. Maybe they'll listen to a stranger. I need you to convince them to {ACTION}. Use charm, use logic, use whatever works. But no violence - that'll only make things worse.",
+      "*sighs heavily* {TARGET}'s been {PROBLEM}, and it's causin' no end of grief. I've tried talkin' to 'em myself, but they won't hear it from me - too much bad blood, I reckon. But a stranger? They might listen. I need you to convince 'em to {ACTION}. Use charm, use logic, use whatever works - hell, lie through yer teeth if you gotta. But no guns, no fists. Violence'll only make a bad situation worse, and then we'll ALL be in a fix.",
     objectives: [
       {
         type: 'talk_to_npc',
-        description: 'Talk to {TARGET}',
+        description: "Feel out {TARGET} - see what makes 'em tick",
         target: '{TARGET}',
       },
       {
         type: 'gather_information',
-        description: 'Find leverage or common ground',
+        description: "Find some leverage or common ground to work with",
         optional: true,
       },
       {
         type: 'talk_to_npc',
-        description: 'Convince {TARGET} to {ACTION}',
+        description: "Talk {TARGET} into {ACTION}",
         target: '{TARGET}',
       },
     ],
@@ -853,25 +855,25 @@ export const SOCIAL_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'social_gather_intel',
     type: 'social',
-    title: 'Ears in {LOCATION}',
+    title: "Keep Yer Ears Open at {LOCATION}",
     description:
-      "{NPC} needs information about {TARGET}. Spend time in {LOCATION} and learn what you can.",
+      "{NPC} needs information on {TARGET}. Head to {LOCATION}, blend in, buy some drinks, and listen for loose lips.",
     briefing:
-      "I need to know what {TARGET} is planning. They spend time at {LOCATION} - go there, buy some drinks, make some friends, and listen. I need specifics: who they're meeting, what they're saying, where they're going. Don't get caught snooping.",
+      "I need to know what {TARGET}'s plannin'. Word is they spend their evenings at {LOCATION} - go there, buy yourself some drinks, make some friends, and keep yer ears open. Folks talk when they've had a few. I need specifics: who they're meetin' with, what they're jawin' about, where they're headin' next. *grabs your arm* But listen - don't get caught snoopin'. {TARGET}'s got eyes everywhere. You get made, you didn't hear nothin' from me.",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Spend time at {LOCATION}',
+        description: "Sidle up to the bar at {LOCATION} and settle in",
         location: '{LOCATION}',
       },
       {
         type: 'gather_information',
-        description: 'Learn about {TARGET}\'s activities',
+        description: "Piece together what {TARGET}'s been up to",
         target: '{TARGET}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Report to {NPC}',
+        description: "Bring what you learned back to {NPC}",
         target: '{NPC}',
       },
     ],
@@ -886,25 +888,25 @@ export const SOCIAL_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'social_mediate',
     type: 'social',
-    title: 'Peace Between {NPC1} and {NPC2}',
+    title: "Stop {NPC1} and {NPC2} From Killin' Each Other",
     description:
-      "{NPC1} and {NPC2} are feuding over {DISPUTE}. Someone needs to mediate before it turns violent.",
+      "{NPC1} and {NPC2}'s feud over {DISPUTE} is about to turn bloody. Someone needs to step in 'fore bullets start flyin'.",
     briefing:
-      "{NPC1} and {NPC2} have been at each other's throats over {DISPUTE}. It's getting worse. If someone doesn't step in soon, there'll be blood. Neither will back down - they both think they're right. We need an outside party to mediate. Think you can talk sense into them?",
+      "*rubs temples* {NPC1} and {NPC2} been at each other's throats over {DISPUTE}. Started as harsh words, now they're both wearin' iron everywhere they go. If somebody don't step in soon, there's gonna be blood in the street. Problem is, neither one'll back down - they both think they're in the right, stubborn as mules the both of 'em. I need an outsider - someone with no stake in the fight - to knock some sense into 'em. Reckon you can talk two mule-headed fools down from killin' each other?",
     objectives: [
       {
         type: 'talk_to_npc',
-        description: 'Hear {NPC1}\'s side',
+        description: "Let {NPC1} tell their side of it",
         target: '{NPC1}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Hear {NPC2}\'s side',
+        description: "Hear {NPC2}'s grievances",
         target: '{NPC2}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Negotiate a settlement',
+        description: "Hammer out some kind of peace",
         target: '{NPC1}',
       },
     ],
@@ -927,30 +929,30 @@ export const HEIST_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'heist_steal_document',
     type: 'heist',
-    title: 'The {DOCUMENT} Job',
+    title: "The {DOCUMENT} Job",
     description:
-      "{NPC} needs a {DOCUMENT} stolen from {TARGET}'s office at {LOCATION}. Stealth required.",
+      "{NPC}'s got their eye on a {DOCUMENT} locked up tight in {TARGET}'s office at {LOCATION}. Gonna take a light touch and lighter feet to get in and out without raisin' hell.",
     briefing:
-      "{TARGET} has a {DOCUMENT} that I need. It's locked up in their office at {LOCATION}. Guards, locks, the works. I need someone who can get in, get the {DOCUMENT}, and get out without being seen. Can you handle that kind of work?",
+      "*checks over shoulder, lowers voice* {TARGET}'s got a {DOCUMENT} that I need. Bad. It's locked up tight in their office at {LOCATION} - guards, locks, the whole nine yards. I need someone who can slip in quiet-like, get their hands on that {DOCUMENT}, and ghost out without nobody bein' the wiser. *meets your eyes* This ain't the kind of work for folks with shaky hands or loose lips. You the type that can handle a job like this, or should I keep lookin'?",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Infiltrate {LOCATION}',
+        description: "Slip into {LOCATION} without bein' seen",
         location: '{LOCATION}',
       },
       {
         type: 'steal_item',
-        description: 'Steal the {DOCUMENT}',
+        description: "Get yer hands on that {DOCUMENT}",
         target: '{DOCUMENT}',
       },
       {
         type: 'escape_location',
-        description: 'Escape without being detected',
+        description: "Ghost out without raisin' any alarms",
         location: '{LOCATION}',
       },
       {
         type: 'talk_to_npc',
-        description: 'Deliver {DOCUMENT} to {NPC}',
+        description: "Bring the {DOCUMENT} to {NPC}",
         target: '{NPC}',
       },
     ],
@@ -970,30 +972,30 @@ export const HEIST_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'sabotage_operation',
     type: 'sabotage',
-    title: 'Sabotage the {OPERATION}',
+    title: "Wreck {TARGET}'s {OPERATION}",
     description:
-      "{NPC} wants {TARGET}'s {OPERATION} at {LOCATION} sabotaged. Make it look like an accident.",
+      "{NPC}'s gettin' run out of business by {TARGET}'s {OPERATION} at {LOCATION}. They want it sabotaged - and they want it to look like bad luck.",
     briefing:
-      "{TARGET}'s {OPERATION} at {LOCATION} is putting me out of business. I need it... stopped. Equipment broken, supplies ruined, whatever it takes. But make it look natural - an accident, bad luck. If this leads back to me, we both lose.",
+      "*grits teeth* {TARGET}'s {OPERATION} at {LOCATION} is killin' me. Takin' food outta my family's mouths. I need it... stopped. Equipment busted, supplies ruined, workers scared off - I don't much care how. BUT - *grabs your arm* - it's gotta look natural. An accident. Bad luck. Divine intervention, if you're feelin' creative. If this leads back to me, we're both swingin' from the same rope. Make it look good, make it stick, and I'll make it worth yer while.",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Scout {LOCATION}',
+        description: "Scout {LOCATION} for weak points",
         location: '{LOCATION}',
       },
       {
         type: 'investigate_location',
-        description: 'Find vulnerabilities in the {OPERATION}',
+        description: "Figure out how to bring down the {OPERATION}",
         location: '{LOCATION}',
       },
       {
         type: 'steal_item',
-        description: 'Sabotage the {OPERATION}',
+        description: "Sabotage the {OPERATION} good and proper",
         target: '{OPERATION}',
       },
       {
         type: 'escape_location',
-        description: 'Leave without suspicion',
+        description: "Clear out before anyone gets suspicious",
         location: '{LOCATION}',
       },
     ],
@@ -1013,31 +1015,31 @@ export const HEIST_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'heist_rob_stagecoach',
     type: 'heist',
-    title: 'The {TOWN} Stagecoach',
+    title: "Hit the {TOWN} Stage",
     description:
-      "A stagecoach carrying {CARGO} passes through {LOCATION} every {DAY}. {NPC} has a plan.",
+      "The {TOWN} stagecoach rolls through {LOCATION} every {DAY}, heavy with {CARGO}. {NPC}'s got a plan to relieve 'em of that burden - just needs another gun.",
     briefing:
-      "The {TOWN} stagecoach carries {CARGO} worth a fortune. It passes through {LOCATION} every {DAY}. The guards are {GUARD_STATUS}. I've got a plan, but I need another gun. We split the take {SPLIT}. You in?",
+      "*spreads a crude map on the table* The {TOWN} stagecoach - she carries {CARGO} worth a king's ransom. Rolls through {LOCATION} every {DAY}, regular as clockwork. The guards are {GUARD_STATUS} - ain't gonna be easy, but it ain't gonna be impossible neither. I got me a plan, but I need another gun I can trust. *taps the map* We hit 'em here, where the road narrows. Split the take {SPLIT}. *looks up* Well? You got the stones for some highway work, or you just another yellow-belly pretendin' to be an outlaw?",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Set up ambush at {LOCATION}',
+        description: "Get into position at {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'defeat_gang',
-        description: 'Neutralize stagecoach guards',
+        description: "Take down the stagecoach guards",
         target: 'guards',
         count: '{GUARD_COUNT}',
       },
       {
         type: 'steal_item',
-        description: 'Secure the {CARGO}',
+        description: "Grab the {CARGO} before anyone gets brave",
         target: '{CARGO}',
       },
       {
         type: 'escape_location',
-        description: 'Escape before reinforcements arrive',
+        description: "Ride out fast before the posse comes",
         location: '{LOCATION}',
       },
     ],
@@ -1064,30 +1066,30 @@ export const RESCUE_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'rescue_kidnapped',
     type: 'rescue',
-    title: 'Rescue {VICTIM} from {GANG}',
+    title: "Get {VICTIM} Back From {GANG}",
     description:
-      "{GANG} has kidnapped {VICTIM}. They're being held at {LOCATION}. Get them out alive.",
+      "{GANG}'s snatched {VICTIM} and they're holdin' 'em at {LOCATION}. Time to kick down some doors and get 'em out alive - or die tryin'.",
     briefing:
-      "They took my {RELATION} {VICTIM}! {GANG} is demanding {RANSOM} gold, but even if I pay, who knows if they'll keep their word. Please, rescue {VICTIM} from {LOCATION}. I'll pay you {REWARD} gold - everything I have. Just bring them back safe.",
+      "*grabbing your arm desperately* They took my {RELATION} {VICTIM}! {GANG} - those animals - they're demandin' {RANSOM} gold in ransom. But even if I pay, who knows if those snakes'll keep their word? They might just take the money and... *voice breaks* Please, stranger, rescue {VICTIM} from {LOCATION}. I'll pay you {REWARD} gold - every cent I got in this world. Just bring my {RELATION} back breathin'. That's all I ask.",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Infiltrate {GANG} hideout at {LOCATION}',
+        description: "Break into {GANG}'s hideout at {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'find_item',
-        description: 'Locate {VICTIM}',
+        description: "Find where they're keepin' {VICTIM}",
         target: '{VICTIM}',
       },
       {
         type: 'protect_npc',
-        description: 'Rescue {VICTIM}',
+        description: "Get {VICTIM} loose and keep 'em breathin'",
         target: '{VICTIM}',
       },
       {
         type: 'escape_location',
-        description: 'Escape with {VICTIM}',
+        description: "Fight yer way out with {VICTIM}",
         location: '{LOCATION}',
       },
     ],
@@ -1104,25 +1106,25 @@ export const RESCUE_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'rescue_trapped_miners',
     type: 'rescue',
-    title: 'Mine Collapse at {LOCATION}',
+    title: "Mine Collapse at {LOCATION}",
     description:
-      "A mine collapse has trapped {COUNT} miners at {LOCATION}. Time is running out to dig them out.",
+      "The mine at {LOCATION}'s caved in with {COUNT} souls trapped inside. Air's runnin' out fast - every minute counts.",
     briefing:
-      "The mine at {LOCATION} collapsed! There are {COUNT} miners trapped inside. We've been digging, but it's slow going and they're running out of air. We need help - strong backs and brave hearts. Every minute counts!",
+      "*covered in dust, wild-eyed* The mine at {LOCATION} - she collapsed! {COUNT} men trapped down there in the dark. We been diggin' but it's slow goin' and they're runnin' outta air. You can hear 'em tappin' on the walls - three taps, pause, three taps. The signal for 'we're alive.' But them taps is gettin' weaker. We need help, stranger - strong backs and folks who ain't afraid of tight spaces. Every minute we stand here jawin' is another minute them boys got less air to breathe!",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Reach the mine at {LOCATION}',
+        description: "Get to the collapsed mine at {LOCATION} - fast",
         location: '{LOCATION}',
       },
       {
         type: 'investigate_location',
-        description: 'Find the safest rescue route',
+        description: "Find a way through that won't bring the whole thing down",
         location: '{LOCATION}',
       },
       {
         type: 'collect_items',
-        description: 'Clear debris blocking the tunnel',
+        description: "Dig through the rubble - them boys is countin' on you",
         target: 'debris',
         count: '{COUNT}',
       },
@@ -1140,20 +1142,20 @@ export const RESCUE_QUEST_TEMPLATES: QuestTemplate[] = [
   {
     id: 'rescue_stranded_travelers',
     type: 'rescue',
-    title: 'Stranded in the {TERRAIN}',
+    title: "Stranded Souls in the {TERRAIN}",
     description:
-      "A group of travelers is stranded in the {TERRAIN} near {LOCATION}. Bad weather is closing in.",
+      "Wagon party's stuck out in the {TERRAIN} near {LOCATION}. {WEATHER}'s rollin' in fast. If nobody reaches 'em soon, the desert'll claim 'em all.",
     briefing:
-      "There's a wagon party stuck in the {TERRAIN} near {LOCATION}. {OBSTACLE} has them pinned down, and a {WEATHER} is rolling in. If someone doesn't reach them soon, they won't make it. We need a volunteer for the rescue party.",
+      "*points toward the horizon* There's a wagon party stranded out in the {TERRAIN} near {LOCATION}. {OBSTACLE}'s got 'em pinned down good, and you see them clouds? {WEATHER}'s comin' in hard and fast. If somebody don't reach 'em 'fore that storm hits, they're dead. Men, women, children - all of 'em. Buzzard food. *grabs saddle* I need a volunteer who knows these lands, someone who can ride fast and shoot straight. This ain't gonna be easy, but them folk's only hope is someone with enough guts to try. You that someone?",
     objectives: [
       {
         type: 'visit_location',
-        description: 'Navigate to the travelers at {LOCATION}',
+        description: "Push through to the stranded travelers at {LOCATION}",
         location: '{LOCATION}',
       },
       {
         type: 'protect_npc',
-        description: 'Guide the travelers to safety',
+        description: "Lead them folks back to safety",
         target: 'travelers',
       },
     ],
@@ -1165,6 +1167,310 @@ export const RESCUE_QUEST_TEMPLATES: QuestTemplate[] = [
     levelRange: { min: 3, max: 15 },
     tags: ['rescue', 'heroic', 'exploration'],
     giverRoles: ['sheriff', 'merchant'],
+  },
+];
+
+// ============================================================================
+// GHOST RIDERS QUEST CHAIN - AAA SUPERNATURAL STORYLINE
+// 5 connected quests with morally grey choices (Fallout New Vegas style)
+// The Ghost Riders are condemned cavalry who refuse to stay dead
+// ============================================================================
+
+export const GHOST_RIDERS_QUEST_CHAIN: QuestTemplate[] = [
+  // QUEST 1: STRANGE HOOFBEATS
+  {
+    id: 'ghost_riders_1_strange_hoofbeats',
+    type: 'investigate',
+    title: 'Strange Hoofbeats',
+    description:
+      "Folks in Whiskey Bend have been hearin' hoofbeats at midnight - dozens of horses ridin' hard across the desert. But come mornin', there ain't no tracks. The preacher says it's just the wind. The drunk at the saloon says it's the Devil's cavalry. Either way, someone needs to find out.",
+    briefing:
+      "Listen, stranger - I ain't one for ghost stories. Been livin' out here thirty years and seen everything this desert's got to offer. But these last few nights... *lowers voice* ...I heard 'em. Horses, dozens of 'em, ridin' like hell itself was chasin' 'em. Came from the direction of Dead Man's Canyon. I went to look at dawn - nothin'. Not a single hoofprint. The Kaiowa call that place cursed, say the spirits of soldiers ride there still. I need someone with sand to go out there at midnight and see what's what. You look like you ain't afraid of the dark.",
+    objectives: [
+      {
+        type: 'visit_location',
+        description: "Wait at Dead Man's Canyon after midnight",
+        location: "Dead Man's Canyon",
+      },
+      {
+        type: 'investigate_location',
+        description: 'Witness the phenomenon',
+        location: "Dead Man's Canyon",
+      },
+      {
+        type: 'gather_information',
+        description: 'Survive the encounter',
+      },
+      {
+        type: 'talk_to_npc',
+        description: "Report to the old-timer at Whiskey Bend",
+        target: 'old-timer',
+        hidden: true,
+      },
+    ],
+    rewards: {
+      gold: '150',
+      xp: '200',
+      reputation: [{ faction: 'settlerAlliance', amount: '15' }],
+    },
+    levelRange: { min: 15, max: 35 },
+    tags: ['supernatural', 'investigation', 'ghost_riders_chain'],
+    giverRoles: ['rancher'],
+  },
+
+  // QUEST 2: THE CAPTAIN'S JOURNAL
+  {
+    id: 'ghost_riders_2_captains_journal',
+    type: 'fetch',
+    title: "The Captain's Journal",
+    description:
+      "You saw them - the Ghost Riders. A cavalry unit, maybe fifty strong, ridin' hard through the night on horses that leave no tracks and make no sound until they're almost on top of you. Their uniforms were Confederate gray, torn and bloodied. The lead rider turned to look at you with eyes like burnin' coals. Now you need answers. The Kaiowa elder might know somethin'. So might that journal buried with Captain Ezra Holloway at the old cemetery.",
+    briefing:
+      "So you saw 'em too. *exhales slowly* Ain't many who see the Riders and live to tell it. Means they want somethin' from you. I've been diggin' through old records - turns out that canyon's got history. Confederate cavalry unit, got caught in a ambush back in '64. Captain Ezra Holloway and his boys. Never found the bodies. But someone found his journal, buried it with an empty coffin in the old cemetery outside town. That journal might tell us what happened - and why they won't stay dead. There's also an old Kaiowa who knows stories about that canyon. Might be worth askin' both.",
+    objectives: [
+      {
+        type: 'visit_location',
+        description: "Dig up Captain Holloway's grave at the old cemetery",
+        location: 'old cemetery',
+      },
+      {
+        type: 'find_item',
+        description: "Retrieve Captain Holloway's journal",
+        target: "captain's journal",
+      },
+      {
+        type: 'talk_to_npc',
+        description: "Speak with the Kaiowa elder about Dead Man's Canyon",
+        target: 'Kaiowa elder',
+        optional: true,
+      },
+      {
+        type: 'gather_information',
+        description: 'Piece together what happened in 1864',
+      },
+    ],
+    rewards: {
+      gold: '200',
+      xp: '300',
+      reputation: [
+        { faction: 'settlerAlliance', amount: '20' },
+        { faction: 'kaiowa', amount: '10' },
+      ],
+      item: "captain's-journal",
+    },
+    prerequisites: ['ghost_riders_1_strange_hoofbeats'],
+    levelRange: { min: 18, max: 38 },
+    tags: ['supernatural', 'fetch', 'ghost_riders_chain', 'graverobbing'],
+    giverRoles: ['rancher', 'preacher'],
+  },
+
+  // QUEST 3: THE MASSACRE AT COLD SPRING
+  {
+    id: 'ghost_riders_3_massacre_at_cold_spring',
+    type: 'investigate',
+    title: 'The Massacre at Cold Spring',
+    description:
+      "The journal tells a dark tale. Captain Holloway's company wasn't ambushed - they were the ambushers. Attacked a Kaiowa village at Cold Spring, killed everyone: men, women, children. But a medicine man cursed them with his dying breath. 'Ride forever,' he said. 'Ride until you undo what was done.' The Kaiowa elder says the curse can be broken, but it requires finding what remains of the village and performin' a ritual. Question is - do these murderers deserve release?",
+    briefing:
+      "*reads from journal* 'God forgive me for what we did at Cold Spring. The men had gone mad with bloodlust. I tried to stop them, but...' *closes book* These weren't soldiers, they were butchers. The Kaiowa elder says the curse bound them to ride until they make amends - but the dead can't bring back the dead. There's a way to end it, though. The village at Cold Spring - or what's left of it - still stands. The bones of the murdered are still there, unburied. Give them proper burial, perform the Kaiowa death rites, and the spirits might rest. But partner... *leans in* ...part of me thinks maybe they deserve to ride forever.",
+    objectives: [
+      {
+        type: 'visit_location',
+        description: "Travel to the ruins of Cold Spring village",
+        location: 'Cold Spring',
+      },
+      {
+        type: 'investigate_location',
+        description: 'Find the remains of the massacre victims',
+        location: 'Cold Spring',
+      },
+      {
+        type: 'talk_to_npc',
+        description: 'Learn the Kaiowa death rites from the elder',
+        target: 'Kaiowa elder',
+      },
+      {
+        type: 'collect_items',
+        description: 'Gather sacred herbs for the ritual',
+        target: 'sacred-herbs',
+        count: '7',
+      },
+    ],
+    rewards: {
+      gold: '250',
+      xp: '400',
+      reputation: [{ faction: 'kaiowa', amount: '30' }],
+    },
+    prerequisites: ['ghost_riders_2_captains_journal'],
+    levelRange: { min: 20, max: 40 },
+    tags: ['supernatural', 'investigation', 'ghost_riders_chain', 'kaiowa', 'morally_grey'],
+    giverRoles: ['preacher'],
+  },
+
+  // QUEST 4: THE CHOICE - MORALLY GREY BRANCHING
+  {
+    id: 'ghost_riders_4_the_reckoning',
+    type: 'social',
+    title: 'The Reckoning',
+    description:
+      "You stand at Cold Spring, bones of the innocent at your feet, herbs for the ritual in your pack. The Kaiowa death rites could end this. But Captain Holloway's ghost appeared to you in the night. He claims his men went mad because they found something in that canyon - a darkness older than man - and the massacre was its work, not theirs. He begs you to find this darkness and destroy it instead. The Kaiowa elder says this is a trick, that the captain just wants freedom without atonement. Someone's lying. Or maybe no one is.",
+    briefing:
+      "*The ghost of Captain Holloway speaks* 'Please... listen. We found something in that canyon. An old mine, older than any white man should've built. There was writing on the walls - not English, not Spanish, not any language I knew. And sounds... whisperin' from deep below. My men changed after we went in there. Their eyes went dark. They did things... things I couldn't stop 'em from. We weren't ourselves. The darkness used us.' *The Kaiowa elder speaks* 'The white soldier lies. His guilt seeks escape. Evil men always blame spirits for what they choose to do. Perform the rites. Give peace to my ancestors. Let these murderers ride forever.'",
+    objectives: [
+      {
+        type: 'talk_to_npc',
+        description: "Listen to Captain Holloway's ghost",
+        target: "Captain Holloway's ghost",
+      },
+      {
+        type: 'talk_to_npc',
+        description: "Hear the Kaiowa elder's counsel",
+        target: 'Kaiowa elder',
+      },
+      {
+        type: 'investigate_location',
+        description: 'CHOICE: Investigate the old mine in the canyon',
+        location: "Dead Man's Canyon mine",
+        optional: true,
+      },
+      {
+        type: 'visit_location',
+        description: 'CHOICE: Perform the death rites at Cold Spring',
+        location: 'Cold Spring',
+        optional: true,
+      },
+    ],
+    rewards: {
+      gold: '300',
+      xp: '500',
+      reputation: [{ faction: 'kaiowa', amount: '-20' }], // OR +40 depending on choice
+    },
+    consequences: {
+      choice_mine: {
+        description: 'Investigate the mine to find the truth',
+        leads_to: 'ghost_riders_5a_into_darkness',
+        reputation_change: { kaiowa: -20, settlerAlliance: 20 },
+      },
+      choice_ritual: {
+        description: 'Perform the death rites, damn the cavalry forever',
+        leads_to: 'ghost_riders_5b_eternal_ride',
+        reputation_change: { kaiowa: 40, settlerAlliance: -10 },
+      },
+    },
+    prerequisites: ['ghost_riders_3_massacre_at_cold_spring'],
+    levelRange: { min: 22, max: 42 },
+    tags: ['supernatural', 'social', 'ghost_riders_chain', 'morally_grey', 'branching'],
+    giverRoles: ['preacher'],
+  },
+
+  // QUEST 5A: INTO DARKNESS (Investigate the Mine)
+  {
+    id: 'ghost_riders_5a_into_darkness',
+    type: 'investigate',
+    title: 'Into Darkness',
+    description:
+      "You chose to investigate the mine. The captain's ghost leads you to an entrance hidden by a century of desert dust. Inside, the walls are carved with symbols that hurt to look at. Something old and hungry waits in the deep. The Kaiowa elder refuses to help you now - 'You've chosen the murderer's lie,' he says. 'Face what waits alone.' But maybe what waits down there was the real monster all along.",
+    briefing:
+      "*Descending into the mine, Captain Holloway's ghost walks beside you* 'I came down here once before, in life. What I saw... it broke somethin' in me. Broke somethin' in all of us. It's old, whatever it is. Older than the Kaiowa, older than the land itself. It whispered to us, showed us visions of blood and fire. My men... they couldn't resist. I couldn't resist. The massacre wasn't just murder - it was a sacrifice. The thing fed on it.' *The tunnel opens into a vast chamber* 'It's still here. It's been waiting. Destroy it, and maybe... maybe we can finally rest.'",
+    objectives: [
+      {
+        type: 'visit_location',
+        description: 'Descend into the ancient mine',
+        location: "Dead Man's Canyon mine",
+      },
+      {
+        type: 'investigate_location',
+        description: 'Navigate the tunnels carved with forbidden symbols',
+        location: 'mine depths',
+      },
+      {
+        type: 'find_item',
+        description: 'Find the source of the darkness',
+        target: 'eldritch-artifact',
+      },
+      {
+        type: 'kill_target',
+        description: 'Destroy the ancient hunger',
+        target: 'The Whispering Dark',
+      },
+      {
+        type: 'escape_location',
+        description: 'Escape the collapsing mine',
+        location: "Dead Man's Canyon mine",
+      },
+    ],
+    rewards: {
+      gold: '500',
+      xp: '1000',
+      item: 'ghost-riders-cavalry-saber',
+      reputation: [
+        { faction: 'settlerAlliance', amount: '50' },
+        { faction: 'kaiowa', amount: '-30' },
+      ],
+      unlock: 'GHOST_RIDERS_FREED',
+    },
+    prerequisites: ['ghost_riders_4_the_reckoning'],
+    levelRange: { min: 25, max: 45 },
+    tags: ['supernatural', 'combat', 'ghost_riders_chain', 'cosmic_horror', 'ending_a'],
+    giverRoles: ['preacher'],
+    failConditions: ['player death in mine'],
+  },
+
+  // QUEST 5B: ETERNAL RIDE (Perform the Death Rites)
+  {
+    id: 'ghost_riders_5b_eternal_ride',
+    type: 'social',
+    title: 'Eternal Ride',
+    description:
+      "You chose to honor the dead at Cold Spring. The captain's ghost screams as you begin the ritual, begging you to stop. 'We didn't know! It wasn't our fault!' But wrong is wrong, and fifty innocent souls deserve rest more than fifty murderers deserve freedom. The Kaiowa elder guides you through the death rites. As dawn breaks, the ghosts of Cold Spring rise - and so do the Ghost Riders, one final time, to face the judgment they've been fleeing for a hundred years.",
+    briefing:
+      "*The Kaiowa elder chants as you prepare the ritual* 'The bones must be washed in sacred water. The herbs must be burned at the cardinal points. And the names - you must speak the names of the dead, each one, so they know they are remembered.' *Captain Holloway's ghost appears, desperate* 'Please! We were possessed! The darkness made us do it!' *The elder continues, unmoved* 'Speak the names. There are forty-seven souls who died that day. Women. Children. They deserve peace. These soldiers deserve to ride forever with their guilt.'",
+    objectives: [
+      {
+        type: 'collect_items',
+        description: 'Gather sacred water from the spring',
+        target: 'sacred-water',
+        count: '1',
+      },
+      {
+        type: 'visit_location',
+        description: 'Burn the herbs at the four cardinal points',
+        location: 'Cold Spring',
+      },
+      {
+        type: 'talk_to_npc',
+        description: 'Speak the names of the forty-seven dead',
+        target: 'massacre victims',
+      },
+      {
+        type: 'survive_time',
+        description: 'Complete the ritual while the Ghost Riders attack',
+        count: '5', // minutes
+      },
+      {
+        type: 'talk_to_npc',
+        description: 'Watch the Ghost Riders face their judgment',
+        target: 'Kaiowa spirits',
+        hidden: true,
+      },
+    ],
+    rewards: {
+      gold: '400',
+      xp: '1000',
+      item: 'kaiowa-blessing-amulet',
+      reputation: [
+        { faction: 'kaiowa', amount: '75' },
+        { faction: 'settlerAlliance', amount: '-20' },
+      ],
+      unlock: 'GHOST_RIDERS_DAMNED',
+    },
+    prerequisites: ['ghost_riders_4_the_reckoning'],
+    levelRange: { min: 25, max: 45 },
+    tags: ['supernatural', 'ritual', 'ghost_riders_chain', 'kaiowa', 'ending_b'],
+    giverRoles: ['preacher'],
+    consequences: {
+      outcome: "The Ghost Riders are condemned to ride forever, but the massacre victims finally rest. Captain Holloway's screams echo through the canyon as his company is dragged into the spirit world. The Kaiowa elder thanks you - 'Justice is done. The ancestors are at peace.' Some in town call you a hero. Others whisper that you condemned souls who might have been innocent. The truth? Maybe there never was one.",
+    },
   },
 ];
 
@@ -1181,6 +1487,7 @@ export const ALL_QUEST_TEMPLATES: QuestTemplate[] = [
   ...SOCIAL_QUEST_TEMPLATES,
   ...HEIST_QUEST_TEMPLATES,
   ...RESCUE_QUEST_TEMPLATES,
+  ...GHOST_RIDERS_QUEST_CHAIN,
 ];
 
 // ============================================================================
@@ -1296,7 +1603,7 @@ export function getRandomQuestVariable(
   poolName: keyof typeof QUEST_VARIABLE_POOLS
 ): string {
   const pool = QUEST_VARIABLE_POOLS[poolName];
-  return pool[Math.floor(Math.random() * pool.length)];
+  return SecureRNG.select(pool);
 }
 
 /**

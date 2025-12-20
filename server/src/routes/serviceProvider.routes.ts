@@ -12,7 +12,9 @@ import {
   useService,
   getAllProviders,
 } from '../controllers/serviceProvider.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = express.Router();
 
@@ -21,22 +23,22 @@ const router = express.Router();
  */
 
 // Get all service providers
-router.get('/', getAllProviders);
+router.get('/', asyncHandler(getAllProviders));
 
 // Get provider schedule
-router.get('/:providerId/schedule', getProviderSchedule);
+router.get('/:providerId/schedule', asyncHandler(getProviderSchedule));
 
 /**
  * Protected routes (auth required)
  */
 
 // Get service providers at a location
-router.get('/location/:locationId', requireAuth, getProvidersAtLocation);
+router.get('/location/:locationId', requireAuth, asyncHandler(getProvidersAtLocation));
 
 // Get available services from a provider
-router.get('/:providerId/services', requireAuth, getAvailableServices);
+router.get('/:providerId/services', requireAuth, asyncHandler(getAvailableServices));
 
 // Use a service
-router.post('/:providerId/use-service', requireAuth, useService);
+router.post('/:providerId/use-service', requireAuth, requireCsrfToken, asyncHandler(useService));
 
 export default router;

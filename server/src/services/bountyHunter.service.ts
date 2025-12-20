@@ -23,9 +23,11 @@ import {
 } from '../data/bountyHunters';
 import { BountyService } from './bounty.service';
 import { Character } from '../models/Character.model';
-import { GoldService } from './gold.service';
-import { TransactionSource } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
+import karmaService from './karma.service';
 
 /**
  * Mongoose model for hunter encounters
@@ -117,14 +119,13 @@ export class BountyHunterService {
 
       // Check spawn rates based on wanted rank
       const spawnChance = this.getSpawnChance(wantedLevel.wantedRank);
-      const roll = Math.random();
 
-      if (roll > spawnChance) {
+      if (!SecureRNG.chance(spawnChance)) {
         return { shouldSpawn: false };
       }
 
       // Select random hunter from available pool
-      const hunter = localHunters[Math.floor(Math.random() * localHunters.length)];
+      const hunter = SecureRNG.select(localHunters);
 
       // Check if hunter is already tracking this character
       const existingEncounter = await HunterEncounterModel.findOne({
@@ -246,18 +247,19 @@ export class BountyHunterService {
         throw new Error('Character not found');
       }
 
-      if (!character.hasGold(encounter.payOffAmount)) {
+      const characterBalance = character.dollars ?? character.gold ?? 0;
+      if (characterBalance < encounter.payOffAmount) {
         await session.abortTransaction();
         session.endSession();
         return {
           success: false,
-          message: `Insufficient gold. Need ${encounter.payOffAmount}, have ${character.gold}`,
+          message: `Insufficient dollars. Need ${encounter.payOffAmount}, have ${characterBalance}`,
           accepted: false,
         };
       }
 
-      // Deduct gold
-      await GoldService.deductGold(
+      // Deduct dollars
+      await DollarService.deductDollars(
         character._id as any,
         encounter.payOffAmount,
         TransactionSource.BOUNTY_PAYOFF,
@@ -265,6 +267,7 @@ export class BountyHunterService {
           encounterId: encounter._id,
           hunterName: encounter.hunterName,
           description: `Paid off ${encounter.hunterName} to avoid capture`,
+          currencyType: CurrencyType.DOLLAR,
         },
         session
       );
@@ -277,15 +280,26 @@ export class BountyHunterService {
       await session.commitTransaction();
       session.endSession();
 
+      // DEITY SYSTEM: Record karma for paying off bounty hunter
+      // This is helping a criminal (yourself) escape justice - corruption
+      try {
+        await karmaService.recordAction(
+          characterId,
+          'HELPED_CRIMINAL_ESCAPE',
+          `Paid off bounty hunter ${encounter.hunterName} for ${encounter.payOffAmount} dollars to avoid capture`
+        );
+        logger.debug('Karma recorded for hunter payoff: HELPED_CRIMINAL_ESCAPE');
+      } catch (karmaError) {
+        logger.warn('Failed to record karma for hunter payoff:', karmaError);
+      }
+
       const hunter = getHunterById(encounter.hunterId);
       const message = hunter?.dialogue.payoffLines
-        ? hunter.dialogue.payoffLines[
-            Math.floor(Math.random() * hunter.dialogue.payoffLines.length)
-          ]
-        : 'The hunter takes your gold and walks away.';
+        ? SecureRNG.select(hunter.dialogue.payoffLines)
+        : 'The hunter takes your dollars and walks away.';
 
       logger.info(
-        `${character.name} paid off ${encounter.hunterName} for ${encounter.payOffAmount} gold`
+        `${character.name} paid off ${encounter.hunterName} for ${encounter.payOffAmount} dollars`
       );
 
       return {
@@ -355,19 +369,20 @@ export class BountyHunterService {
         hunter.hireConfig.baseCost +
         Math.floor(wantedLevel.totalBounty * hunter.hireConfig.costMultiplier);
 
-      // Check if employer has enough gold
-      if (!employer.hasGold(cost)) {
+      // Check if employer has enough dollars
+      const employerBalance = employer.dollars ?? employer.gold ?? 0;
+      if (employerBalance < cost) {
         await session.abortTransaction();
         session.endSession();
         return {
           success: false,
-          message: `Insufficient gold. Need ${cost}, have ${employer.gold}`,
+          message: `Insufficient dollars. Need ${cost}, have ${employerBalance}`,
           cost,
         };
       }
 
-      // Deduct gold
-      await GoldService.deductGold(
+      // Deduct dollars
+      await DollarService.deductDollars(
         employer._id as any,
         cost,
         TransactionSource.HIRE_HUNTER,
@@ -377,6 +392,7 @@ export class BountyHunterService {
           targetId: target._id,
           targetName: target.name,
           description: `Hired ${hunter.name} to hunt ${target.name}`,
+          currencyType: CurrencyType.DOLLAR,
         },
         session
       );
@@ -412,14 +428,26 @@ export class BountyHunterService {
       await session.commitTransaction();
       session.endSession();
 
+      // DEITY SYSTEM: Record karma for hiring bounty hunter
+      // If target has a bounty, this is justice; if innocent, it's persecution
+      try {
+        const karmaActionType = wantedLevel.totalBounty > 0 ? 'TURNED_IN_CRIMINAL' : 'NPC_BETRAYED';
+        await karmaService.recordAction(
+          employerId,
+          karmaActionType,
+          `Hired bounty hunter ${hunter.name} to track ${target.name}${wantedLevel.totalBounty > 0 ? ` (${wantedLevel.totalBounty} dollar bounty)` : ' (no bounty - persecution)'}`
+        );
+        logger.debug(`Karma recorded for hiring hunter: ${karmaActionType}`);
+      } catch (karmaError) {
+        logger.warn('Failed to record karma for hiring hunter:', karmaError);
+      }
+
       const message = hunter.dialogue.hireLines
-        ? hunter.dialogue.hireLines[
-            Math.floor(Math.random() * hunter.dialogue.hireLines.length)
-          ]
+        ? SecureRNG.select(hunter.dialogue.hireLines)
         : `${hunter.name} has been hired to track ${target.name}`;
 
       logger.info(
-        `${employer.name} hired ${hunter.name} to hunt ${target.name} for ${cost} gold`
+        `${employer.name} hired ${hunter.name} to hunt ${target.name} for ${cost} dollars`
       );
 
       return {

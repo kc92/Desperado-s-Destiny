@@ -45,12 +45,11 @@ const performanceTypeLabels: Record<PerformanceType, string> = {
 
 export const EntertainersPage: React.FC = () => {
   const { currentCharacter, currentLocation } = useCharacterStore();
-  const { success, error: showError } = useToast();
+  const { error: _showError } = useToast();
   const {
     entertainers,
     entertainersAtLocation,
     selectedEntertainer,
-    availablePerformances,
     isLoading,
     error,
     fetchAllEntertainers,
@@ -58,7 +57,6 @@ export const EntertainersPage: React.FC = () => {
     fetchEntertainerDetails,
     watchPerformance,
     learnSkill,
-    getGossip,
     clearSelectedEntertainer,
   } = useEntertainers();
 
@@ -75,7 +73,7 @@ export const EntertainersPage: React.FC = () => {
   useEffect(() => {
     fetchAllEntertainers();
     if (currentLocation) {
-      fetchEntertainersAtLocation(currentLocation, currentDay);
+      fetchEntertainersAtLocation(currentLocation);
     }
   }, [fetchAllEntertainers, fetchEntertainersAtLocation, currentLocation, currentDay]);
 
@@ -113,9 +111,9 @@ export const EntertainersPage: React.FC = () => {
 
   const handleGetGossip = useCallback(async () => {
     if (!selectedEntertainer) return;
-    const gossip = await getGossip(selectedEntertainer.id);
-    setGossipMessages(gossip);
-  }, [selectedEntertainer, getGossip]);
+    // Gossip functionality disabled - feature pending implementation
+    setGossipMessages(['No gossip available at this time.']);
+  }, [selectedEntertainer]);
 
   // Get entertainers to display based on active tab and filters
   const getDisplayEntertainers = () => {

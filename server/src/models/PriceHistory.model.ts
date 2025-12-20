@@ -82,9 +82,9 @@ export interface IPriceHistory extends Document {
  * Price History model static methods
  */
 export interface IPriceHistoryModel extends Model<IPriceHistory> {
-  findOrCreateByItemId(itemId: string, itemName: string, category: string, rarity?: string): Promise<IPriceHistory>;
-  recordSale(itemId: string, price: number, quantity: number, listingId?: string, sellerId?: string, buyerId?: string): Promise<IPriceHistory>;
-  updateStats(itemId: string): Promise<IPriceHistory | null>;
+  findOrCreateByItemId(itemId: string, itemName: string, category: string, rarity?: string, session?: mongoose.ClientSession): Promise<IPriceHistory>;
+  recordSale(itemId: string, price: number, quantity: number, listingId?: string, sellerId?: string, buyerId?: string, session?: mongoose.ClientSession): Promise<IPriceHistory>;
+  updateStats(itemId: string, session?: mongoose.ClientSession): Promise<IPriceHistory | null>;
   getTopItems(category?: string, limit?: number): Promise<IPriceHistory[]>;
   getTrendingItems(limit?: number): Promise<IPriceHistory[]>;
 }
@@ -262,12 +262,16 @@ PriceHistorySchema.statics.findOrCreateByItemId = async function(
   itemId: string,
   itemName: string,
   category: string,
-  rarity: string = 'common'
+  rarity: string = 'common',
+  session?: mongoose.ClientSession
 ): Promise<IPriceHistory> {
-  let priceHistory = await this.findOne({ itemId });
+  const query = this.findOne({ itemId });
+  if (session) query.session(session);
+
+  let priceHistory = await query;
 
   if (!priceHistory) {
-    priceHistory = await this.create({
+    const docData = {
       itemId,
       itemName,
       category,
@@ -288,7 +292,14 @@ PriceHistorySchema.statics.findOrCreateByItemId = async function(
       activeListings: 0,
       averageListingDuration: 0,
       lastUpdated: new Date()
-    });
+    };
+
+    if (session) {
+      const docs = await this.create([docData], { session });
+      priceHistory = docs[0];
+    } else {
+      priceHistory = await this.create(docData);
+    }
   }
 
   return priceHistory;
@@ -303,9 +314,13 @@ PriceHistorySchema.statics.recordSale = async function(
   quantity: number,
   listingId?: string,
   sellerId?: string,
-  buyerId?: string
+  buyerId?: string,
+  session?: mongoose.ClientSession
 ): Promise<IPriceHistory> {
-  const priceHistory = await this.findOne({ itemId });
+  const query = this.findOne({ itemId });
+  if (session) query.session(session);
+
+  const priceHistory = await query;
   if (!priceHistory) {
     throw new Error(`Price history not found for item: ${itemId}`);
   }
@@ -331,18 +346,22 @@ PriceHistorySchema.statics.recordSale = async function(
   priceHistory.lastUpdated = new Date();
 
   // Update statistics
-  await priceHistory.save();
+  await priceHistory.save(session ? { session } : undefined);
   // Call updateStats using self-reference
-  return (this as IPriceHistoryModel).updateStats(itemId);
+  return (this as IPriceHistoryModel).updateStats(itemId, session);
 };
 
 /**
  * Static: Update aggregated statistics for an item
  */
 PriceHistorySchema.statics.updateStats = async function(
-  itemId: string
+  itemId: string,
+  session?: mongoose.ClientSession
 ): Promise<IPriceHistory | null> {
-  const priceHistory = await this.findOne({ itemId });
+  const query = this.findOne({ itemId });
+  if (session) query.session(session);
+
+  const priceHistory = await query;
   if (!priceHistory || priceHistory.sales.length === 0) {
     return priceHistory;
   }
@@ -442,7 +461,7 @@ PriceHistorySchema.statics.updateStats = async function(
   }
 
   priceHistory.lastUpdated = new Date();
-  await priceHistory.save();
+  await priceHistory.save(session ? { session } : undefined);
 
   return priceHistory;
 };

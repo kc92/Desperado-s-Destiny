@@ -18,7 +18,23 @@ import { GangBase } from '../models/GangBase.model';
 import { PropertyTaxService } from '../services/propertyTax.service';
 import { ForeclosureService } from '../services/foreclosure.service';
 import { DelinquencyStage, TaxPaymentStatus, TAX_CONSTANTS } from '@desperados/shared';
+import { withLock } from '../utils/distributedLock';
+import { getRedisClient } from '../config/redis';
 import logger from '../utils/logger';
+
+/**
+ * Generate a unique key for the current week (ISO week number)
+ * Used for idempotency to prevent duplicate tax bill generation
+ */
+function getWeekKey(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  // Calculate ISO week number
+  const startOfYear = new Date(year, 0, 1);
+  const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+  const week = Math.ceil((days + startOfYear.getDay() + 1) / 7);
+  return `${year}-W${week.toString().padStart(2, '0')}`;
+}
 
 /**
  * Generate weekly tax bills for all properties
@@ -43,9 +59,10 @@ export async function generateWeeklyTaxBills(): Promise<void> {
 
     for (const gangBase of gangBases) {
       try {
-        // Create or update tax record
+        // Create or update tax record - pass session for transaction support
         const taxRecord = await PropertyTaxService.createGangBaseTaxRecord(
-          gangBase._id.toString()
+          gangBase._id.toString(),
+          { session } // Pass session to ensure operations are part of the outer transaction
         );
 
         if (taxRecord) {
@@ -348,20 +365,31 @@ export async function generateTaxStatistics(): Promise<{
  * Combines all daily operations
  */
 export async function runDailyTaxJobs(): Promise<void> {
-  logger.info('[TaxCollection] ========== Starting Daily Tax Jobs ==========');
+  const lockKey = 'job:daily-tax';
 
   try {
-    await sendTaxDueReminders();
-    await processAutoPayments();
-    await updateDelinquencyStages();
-    await createForeclosureAuctions();
-    await completeEndedAuctions();
-    await processBankruptcyExpirations();
-    await updateBankruptcyCooldowns();
-    await generateTaxStatistics();
+    await withLock(lockKey, async () => {
+      logger.info('[TaxCollection] ========== Starting Daily Tax Jobs ==========');
 
-    logger.info('[TaxCollection] ========== Daily Tax Jobs Complete ==========');
+      await sendTaxDueReminders();
+      await processAutoPayments();
+      await updateDelinquencyStages();
+      await createForeclosureAuctions();
+      await completeEndedAuctions();
+      await processBankruptcyExpirations();
+      await updateBankruptcyCooldowns();
+      await generateTaxStatistics();
+
+      logger.info('[TaxCollection] ========== Daily Tax Jobs Complete ==========');
+    }, {
+      ttl: 3600, // 60 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('[TaxCollection] Daily tax jobs already running on another instance, skipping');
+      return;
+    }
     logger.error('[TaxCollection] Error in daily tax jobs:', error);
     throw error;
   }
@@ -370,17 +398,46 @@ export async function runDailyTaxJobs(): Promise<void> {
 /**
  * Main weekly tax collection job
  * Run every Sunday at midnight
+ *
+ * SECURITY: Uses Redis-based idempotency to prevent duplicate tax bill generation
+ * if the job runs multiple times in the same week (e.g., server restart, cron overlap)
  */
 export async function runWeeklyTaxCollection(): Promise<void> {
-  logger.info('[TaxCollection] ========== Starting Weekly Tax Collection ==========');
+  const lockKey = 'job:weekly-tax-collection';
+  const weekKey = getWeekKey();
+  const idempotencyKey = `executed:weekly-tax-collection:${weekKey}`;
 
   try {
-    await generateWeeklyTaxBills();
-    await processAutoPayments();
-    await generateTaxStatistics();
+    await withLock(lockKey, async () => {
+      // Check if already executed this week (idempotency)
+      const redis = getRedisClient();
+      const alreadyExecuted = await redis.exists(idempotencyKey);
 
-    logger.info('[TaxCollection] ========== Weekly Tax Collection Complete ==========');
+      if (alreadyExecuted) {
+        logger.info(`[TaxCollection] Weekly tax collection already executed for ${weekKey}, skipping`);
+        return;
+      }
+
+      logger.info('[TaxCollection] ========== Starting Weekly Tax Collection ==========');
+      logger.info(`[TaxCollection] Week: ${weekKey}`);
+
+      await generateWeeklyTaxBills();
+      await processAutoPayments();
+      await generateTaxStatistics();
+
+      // Mark as executed for this week (expires in 8 days to ensure coverage)
+      await redis.setEx(idempotencyKey, 8 * 24 * 60 * 60, 'completed');
+
+      logger.info('[TaxCollection] ========== Weekly Tax Collection Complete ==========');
+    }, {
+      ttl: 3600, // 60 minute lock TTL
+      retries: 0 // Don't retry - skip if locked
+    });
   } catch (error) {
+    if ((error as Error).message?.includes('lock')) {
+      logger.debug('[TaxCollection] Weekly tax collection already running on another instance, skipping');
+      return;
+    }
     logger.error('[TaxCollection] Error in weekly tax collection:', error);
     throw error;
   }

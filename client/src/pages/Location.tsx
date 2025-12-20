@@ -5,8 +5,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { useErrorStore } from '@/store/useErrorStore';
 import { Card, Button, LoadingSpinner, Modal } from '@/components/ui';
 import { api } from '@/services/api';
+import { logger } from '@/services/logger.service';
+import { DeckGame, GameState, DeckGameResult, ActionResult } from '@/components/game/deckgames/DeckGame';
 
 interface LocationJob {
   id: string;
@@ -58,6 +61,39 @@ interface LocationConnection {
   targetLocationId: string;
   energyCost: number;
   description?: string;
+}
+
+// Zone types from shared constants
+type WorldZoneType =
+  | 'settler_territory'
+  | 'sangre_canyon'
+  | 'coalition_lands'
+  | 'outlaw_territory'
+  | 'frontier'
+  | 'ranch_country'
+  | 'sacred_mountains';
+
+interface ZoneInfo {
+  id: WorldZoneType;
+  name: string;
+  description: string;
+  icon: string;
+  theme: string;
+  dangerRange: [number, number];
+  primaryFaction: 'settler' | 'nahi' | 'frontera' | 'neutral';
+}
+
+interface ZoneExit {
+  zone: WorldZoneType;
+  hub: LocationData;
+  energyCost: number;
+}
+
+interface ZoneTravelOptions {
+  localConnections: LocationData[];
+  zoneExits: ZoneExit[];
+  currentZone: WorldZoneType | null;
+  zoneInfo: ZoneInfo | null;
 }
 
 interface LocationData {
@@ -131,6 +167,9 @@ export const Location: React.FC = () => {
   // Job state
   const [performingJob, setPerformingJob] = useState<string | null>(null);
   const [jobResult, setJobResult] = useState<any>(null);
+  // Job deck game state
+  const [activeJobGame, setActiveJobGame] = useState<GameState | null>(null);
+  const [activeJobInfo, setActiveJobInfo] = useState<{ id: string; name: string; description: string; jobCategory: string; energyCost: number; rewards: any } | null>(null);
 
   // Shop state
   const [selectedShop, setSelectedShop] = useState<LocationShop | null>(null);
@@ -151,6 +190,9 @@ export const Location: React.FC = () => {
   const [buildingsLoading, setBuildingsLoading] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<TownBuilding | null>(null);
 
+  // Zone travel state
+  const [zoneTravelOptions, setZoneTravelOptions] = useState<ZoneTravelOptions | null>(null);
+
   // Fetch current location
   const fetchLocation = async () => {
     try {
@@ -160,10 +202,11 @@ export const Location: React.FC = () => {
       const locationData = response.data.data.location;
       setLocation(locationData);
 
-      // Fetch location-specific crimes and buildings
+      // Fetch location-specific crimes, buildings, and zone travel
       if (locationData?._id) {
         fetchCrimes(locationData._id);
         fetchBuildings(locationData._id);
+        fetchZoneTravelOptions();
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load location');
@@ -180,7 +223,7 @@ export const Location: React.FC = () => {
       const crimeActions = response.data.data.actions?.CRIME || [];
       setCrimes(crimeActions);
     } catch (err: any) {
-      console.error('Failed to fetch crimes:', err);
+      logger.error('Failed to fetch crimes for location', err, { locationId });
     } finally {
       setCrimesLoading(false);
     }
@@ -195,10 +238,23 @@ export const Location: React.FC = () => {
         setBuildings(response.data.data.buildings);
       }
     } catch (err: any) {
-      console.error('Failed to fetch buildings:', err);
+      logger.error('Failed to fetch buildings for location', err, { locationId });
       setBuildings([]);
     } finally {
       setBuildingsLoading(false);
+    }
+  };
+
+  // Fetch zone-aware travel options
+  const fetchZoneTravelOptions = async () => {
+    try {
+      const response = await api.get('/locations/current/travel-options');
+      if (response.data.success && response.data.data) {
+        setZoneTravelOptions(response.data.data);
+      }
+    } catch (err: any) {
+      logger.error('Failed to fetch zone travel options', err);
+      setZoneTravelOptions(null);
     }
   };
 
@@ -210,7 +266,7 @@ export const Location: React.FC = () => {
       await refreshCharacter();
       await fetchLocation();
     } catch (err: any) {
-      console.error('Failed to enter building:', err);
+      logger.error('Failed to enter building from UI', err, { buildingId });
     }
   };
 
@@ -221,7 +277,7 @@ export const Location: React.FC = () => {
       await refreshCharacter();
       await fetchLocation();
     } catch (err: any) {
-      console.error('Failed to exit building:', err);
+      logger.error('Failed to exit building from UI', err);
       setError(err.response?.data?.message || 'Failed to exit building');
     }
   };
@@ -232,22 +288,61 @@ export const Location: React.FC = () => {
     }
   }, [currentCharacter]);
 
-  // Perform a job
+  // Start a job with deck game
   const handlePerformJob = async (jobId: string) => {
     try {
       setPerformingJob(jobId);
       setJobResult(null);
-      const response = await api.post(`/locations/current/jobs/${jobId}`);
-      setJobResult(response.data.data.result);
-      await refreshCharacter();
+      // Start the deck game
+      const response = await api.post(`/locations/current/jobs/${jobId}/start`);
+      const { gameState, availableActions, jobInfo } = response.data.data;
+      // Merge availableActions into gameState (backend returns them separately)
+      setActiveJobGame({ ...gameState, availableActions });
+      setActiveJobInfo(jobInfo);
     } catch (err: any) {
+      // Clear global error since we're handling it locally with better context
+      useErrorStore.getState().clearErrors();
+
+      const errorMessage = err.response?.data?.message || 'Failed to start job';
       setJobResult({
         success: false,
-        message: err.response?.data?.message || 'Failed to perform job'
+        message: errorMessage
       });
     } finally {
       setPerformingJob(null);
     }
+  };
+
+  // Handle job deck game completion
+  const handleJobGameComplete = (result: { gameResult: DeckGameResult; actionResult?: ActionResult }) => {
+    logger.info('[Location] Job game completed', result);
+
+    if (result.actionResult) {
+      setJobResult({
+        success: result.actionResult.success,
+        goldEarned: result.actionResult.rewardsGained.gold,
+        xpEarned: result.actionResult.rewardsGained.xp,
+        items: result.actionResult.rewardsGained.items,
+        message: `You completed ${result.actionResult.actionName} and earned ${result.actionResult.rewardsGained.gold} gold and ${result.actionResult.rewardsGained.xp} XP!`,
+        score: result.gameResult.score,
+        handName: result.gameResult.handName,
+      });
+    }
+
+    setActiveJobGame(null);
+    setActiveJobInfo(null);
+    refreshCharacter();
+  };
+
+  // Handle job forfeit
+  const handleJobForfeit = () => {
+    logger.info('[Location] Job game forfeited');
+    setActiveJobGame(null);
+    setActiveJobInfo(null);
+    setJobResult({
+      success: false,
+      message: 'Job cancelled - no energy spent'
+    });
   };
 
   // Purchase an item
@@ -272,6 +367,13 @@ export const Location: React.FC = () => {
       const response = await api.post('/locations/travel', { targetLocationId: targetId });
       await refreshCharacter();
       setLocation(response.data.data.result.newLocation);
+      // Refetch zone travel options for new location
+      fetchZoneTravelOptions();
+      // Also refetch buildings if needed
+      if (response.data.data.result.newLocation?._id) {
+        fetchBuildings(response.data.data.result.newLocation._id);
+        fetchCrimes(response.data.data.result.newLocation._id);
+      }
       setTravelingTo(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to travel');
@@ -354,6 +456,13 @@ export const Location: React.FC = () => {
               {location.name}
             </h1>
             <p className="text-amber-200/80 mt-2">{location.shortDescription}</p>
+            {/* Zone Badge */}
+            {zoneTravelOptions?.zoneInfo && (
+              <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-gray-800/60 rounded-full border border-gray-600">
+                <span className="text-sm">{zoneTravelOptions.zoneInfo.icon}</span>
+                <span className="text-xs text-gray-300">{zoneTravelOptions.zoneInfo.name}</span>
+              </div>
+            )}
           </div>
           <div className="text-right">
             <p className={`font-semibold ${getDangerColor(location.dangerLevel)}`}>
@@ -641,8 +750,111 @@ export const Location: React.FC = () => {
         </Card>
       )}
 
-      {/* Travel Section */}
-      {location.connectedLocations && location.connectedLocations.length > 0 && (
+      {/* Zone-Aware Travel Section */}
+      {zoneTravelOptions && (zoneTravelOptions.localConnections.length > 0 || zoneTravelOptions.zoneExits.length > 0) && (
+        <Card className="p-6">
+          {/* Zone Header */}
+          {zoneTravelOptions.zoneInfo && (
+            <div className="mb-4 p-3 bg-gradient-to-r from-gray-800/50 to-gray-700/50 rounded-lg border border-gray-600">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{zoneTravelOptions.zoneInfo.icon}</span>
+                <div>
+                  <p className="text-sm text-gray-400">Current Zone</p>
+                  <h3 className="font-bold text-amber-200">{zoneTravelOptions.zoneInfo.name}</h3>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">{zoneTravelOptions.zoneInfo.description}</p>
+            </div>
+          )}
+
+          {/* Local Connections (same zone) */}
+          {zoneTravelOptions.localConnections.length > 0 && (
+            <>
+              <h2 className="text-xl font-bold text-amber-400 mb-4">🗺️ Nearby Locations</h2>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
+                {zoneTravelOptions.localConnections.map(dest => {
+                  const connection = location.connections.find(c => c.targetLocationId === dest._id);
+                  const energyCost = connection?.energyCost || 10;
+                  return (
+                    <div
+                      key={dest._id}
+                      className="p-4 bg-gray-800/50 rounded-lg border border-gray-700"
+                      data-testid={`travel-destination-${dest._id}`}
+                      data-location-name={dest.name}
+                      data-location-type={dest.type}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{dest.icon || '📍'}</span>
+                        <div>
+                          <h3 className="font-semibold text-amber-300">{dest.name}</h3>
+                          <p className="text-xs text-gray-500">{dest.shortDescription}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="text-sm text-blue-400">⚡ {energyCost} energy</span>
+                        <Button
+                          size="sm"
+                          onClick={() => handleTravel(dest._id)}
+                          disabled={travelingTo === dest._id || (currentCharacter?.energy || 0) < energyCost}
+                          data-testid={`travel-button-${dest._id}`}
+                        >
+                          {travelingTo === dest._id ? 'Traveling...' : 'Go'}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Zone Exits (to other zones) */}
+          {zoneTravelOptions.zoneExits.length > 0 && (
+            <>
+              <h2 className="text-xl font-bold text-purple-400 mb-4">🌐 Travel to Other Zones</h2>
+              <p className="text-sm text-gray-400 mb-4">
+                Journey to major hubs in distant territories. Longer travel, but opens new opportunities.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {zoneTravelOptions.zoneExits.map(exit => (
+                  <div
+                    key={exit.hub._id}
+                    className="p-4 bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-lg border border-purple-700/50"
+                    data-testid={`zone-exit-${exit.hub._id}`}
+                    data-zone={exit.zone}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl">{exit.hub.icon || '🏛️'}</span>
+                      <div>
+                        <h3 className="font-semibold text-purple-200">{exit.hub.name}</h3>
+                        <p className="text-xs text-purple-400 capitalize">
+                          {exit.zone.replace(/_/g, ' ')}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-3">{exit.hub.shortDescription}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-blue-400">⚡ {exit.energyCost} energy</span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="bg-purple-900/50 hover:bg-purple-800/50 border-purple-700"
+                        onClick={() => handleTravel(exit.hub._id)}
+                        disabled={travelingTo === exit.hub._id || (currentCharacter?.energy || 0) < exit.energyCost}
+                      >
+                        {travelingTo === exit.hub._id ? 'Traveling...' : 'Journey'}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+      )}
+
+      {/* Fallback: Original Travel Section (if zone travel fails) */}
+      {!zoneTravelOptions && location.connectedLocations && location.connectedLocations.length > 0 && (
         <Card className="p-6">
           <h2 className="text-xl font-bold text-amber-400 mb-4">🗺️ Travel</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -757,6 +969,33 @@ export const Location: React.FC = () => {
                 ))}
               </div>
             )}
+          </div>
+        </Modal>
+      )}
+
+      {/* Job Deck Game Modal */}
+      {activeJobGame && activeJobInfo && (
+        <Modal
+          isOpen={true}
+          onClose={handleJobForfeit}
+          title={`Working: ${activeJobInfo.name}`}
+          size="xl"
+        >
+          <div className="p-4">
+            <DeckGame
+              initialState={activeJobGame}
+              actionInfo={{
+                name: activeJobInfo.name,
+                type: 'job',
+                difficulty: 1,
+                energyCost: activeJobInfo.energyCost,
+                rewards: activeJobInfo.rewards,
+              }}
+              onComplete={handleJobGameComplete}
+              onForfeit={handleJobForfeit}
+              context="job"
+              jobId={activeJobInfo.id}
+            />
           </div>
         </Modal>
       )}

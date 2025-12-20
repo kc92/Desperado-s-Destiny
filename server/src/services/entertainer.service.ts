@@ -17,6 +17,8 @@ import {
   getAvailablePerformances
 } from '../data/wanderingEntertainers';
 import { Character } from '../models/Character.model';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
 
 /**
  * Result of watching a performance
@@ -37,7 +39,7 @@ export interface PerformanceResult {
     expiresAt: Date;
   }>;
   experienceGained: number;
-  goldEarned?: number;
+  dollarsEarned?: number;
   itemReceived?: string;
   trustGained: number;
 }
@@ -114,7 +116,7 @@ export async function watchPerformance(
     }> = [];
 
     let experienceGained = 0;
-    let goldEarned = 0;
+    let dollarsEarned = 0;
     let itemReceived: string | undefined;
 
     if (performance.rewards) {
@@ -124,10 +126,19 @@ export async function watchPerformance(
         character.experience += experienceGained;
       }
 
-      // Gold
+      // Dollars
       if (performance.rewards.gold) {
-        goldEarned = performance.rewards.gold;
-        character.gold += goldEarned;
+        dollarsEarned = performance.rewards.gold;
+        await DollarService.addDollars(
+          character._id.toString(),
+          dollarsEarned,
+          TransactionSource.JOB_INCOME,
+          {
+            entertainerId,
+            performanceId,
+            performanceName: performance.name
+          }
+        );
       }
 
       // Item
@@ -167,7 +178,7 @@ export async function watchPerformance(
       moodChange,
       buffsApplied: buffsApplied.length > 0 ? buffsApplied : undefined,
       experienceGained,
-      goldEarned: goldEarned > 0 ? goldEarned : undefined,
+      dollarsEarned: dollarsEarned > 0 ? dollarsEarned : undefined,
       itemReceived,
       trustGained
     };
@@ -230,11 +241,11 @@ export async function learnSkillFromEntertainer(
       };
     }
 
-    // Check gold
-    if (character.gold < skill.goldCost) {
+    // Check dollars
+    if (character.dollars < skill.goldCost) {
       return {
         success: false,
-        message: `Not enough gold. Need ${skill.goldCost}, have ${character.gold}`,
+        message: `Not enough dollars. Need ${skill.goldCost}, have ${character.dollars}`,
         energyCost: skill.energyCost,
         goldCost: skill.goldCost,
         trustRequired: skill.trustRequired,
@@ -244,7 +255,16 @@ export async function learnSkillFromEntertainer(
 
     // Deduct costs
     character.energy -= skill.energyCost;
-    character.gold -= skill.goldCost;
+    await DollarService.deductDollars(
+      character._id.toString(),
+      skill.goldCost,
+      TransactionSource.SHOP_PURCHASE,
+      {
+        entertainerId,
+        skillId,
+        skillName: skill.skillName
+      }
+    );
 
     // Apply skill effect
     const effectApplied = {

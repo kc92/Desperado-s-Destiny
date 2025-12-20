@@ -16,9 +16,38 @@ import type {
 import { gangService } from '@/services/gang.service';
 import { socketService } from '@/services/socket.service';
 import { useEffect } from 'react';
+import { logger } from '@/services/logger.service';
 
-// Type assertion helper for socket events not in ServerToClientEvents
-type AnyEventHandler = (...args: any[]) => void;
+// =============================================================================
+// SOCKET LISTENER TRACKING (Prevents memory leaks from duplicate listeners)
+// Pattern from useChatStore - tracks all registered listeners for proper cleanup
+// =============================================================================
+
+interface RegisteredGangListener {
+  event: string;
+  handler: (...args: unknown[]) => void;
+}
+
+const registeredGangListeners: RegisteredGangListener[] = [];
+
+/**
+ * Add a socket listener and track it for cleanup
+ */
+const addTrackedGangListener = (event: string, handler: (...args: unknown[]) => void): void => {
+  socketService.on(event, handler);
+  registeredGangListeners.push({ event, handler });
+};
+
+/**
+ * Remove all tracked gang socket listeners
+ * Called before re-initialization and on cleanup
+ */
+const removeAllTrackedGangListeners = (): void => {
+  registeredGangListeners.forEach(({ event, handler }) => {
+    socketService.off(event, handler);
+  });
+  registeredGangListeners.length = 0; // Clear the array
+};
 
 interface GangStore {
   currentGang: Gang | null;
@@ -96,7 +125,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to load gang';
-      console.error('Failed to fetch current gang:', error);
+      logger.error('Failed to fetch current gang', error as Error, { context: 'useGangStore.fetchCurrentGang' });
       set({
         isLoading: false,
         error: message,
@@ -125,7 +154,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to create gang';
-      console.error('Failed to create gang:', error);
+      logger.error('Failed to create gang', error as Error, { context: 'useGangStore.createGang', name, tag });
       set({
         isCreating: false,
         error: message,
@@ -155,7 +184,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to load gangs';
-      console.error('Failed to fetch gangs:', error);
+      logger.error('Failed to fetch gangs', error as Error, { context: 'useGangStore.fetchGangs', filters });
       set({
         gangs: [],
         isLoading: false,
@@ -185,7 +214,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to load gang';
-      console.error('Failed to fetch gang:', error);
+      logger.error('Failed to fetch gang', error as Error, { context: 'useGangStore.fetchGang', gangId: id });
       set({
         isLoading: false,
         error: message,
@@ -211,7 +240,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to join gang';
-      console.error('Failed to join gang:', error);
+      logger.error('Failed to join gang', error as Error, { context: 'useGangStore.joinGang', gangId });
       set({
         isLoading: false,
         error: message,
@@ -237,7 +266,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to leave gang';
-      console.error('Failed to leave gang:', error);
+      logger.error('Failed to leave gang', error as Error, { context: 'useGangStore.leaveGang' });
       set({
         isLoading: false,
         error: message,
@@ -263,7 +292,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to kick member';
-      console.error('Failed to kick member:', error);
+      logger.error('Failed to kick member', error as Error, { context: 'useGangStore.kickMember', gangId, characterId });
       set({
         isLoading: false,
         error: message,
@@ -289,7 +318,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to promote member';
-      console.error('Failed to promote member:', error);
+      logger.error('Failed to promote member', error as Error, { context: 'useGangStore.promoteMember', gangId, characterId, newRole });
       set({
         isLoading: false,
         error: message,
@@ -315,7 +344,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to deposit';
-      console.error('Failed to deposit:', error);
+      logger.error('Failed to deposit', error as Error, { context: 'useGangStore.depositToBank', gangId, amount });
       set({
         isDepositing: false,
         error: message,
@@ -341,7 +370,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to withdraw';
-      console.error('Failed to withdraw:', error);
+      logger.error('Failed to withdraw', error as Error, { context: 'useGangStore.withdrawFromBank', gangId, amount });
       set({
         isWithdrawing: false,
         error: message,
@@ -367,7 +396,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to purchase upgrade';
-      console.error('Failed to purchase upgrade:', error);
+      logger.error('Failed to purchase upgrade', error as Error, { context: 'useGangStore.purchaseUpgrade', gangId, upgradeType });
       set({
         isUpgrading: false,
         error: message,
@@ -393,7 +422,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to disband gang';
-      console.error('Failed to disband gang:', error);
+      logger.error('Failed to disband gang', error as Error, { context: 'useGangStore.disbandGang', gangId });
       set({
         isLoading: false,
         error: message,
@@ -423,7 +452,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to load transactions';
-      console.error('Failed to fetch transactions:', error);
+      logger.error('Failed to fetch transactions', error as Error, { context: 'useGangStore.fetchBankTransactions', gangId, limit, offset });
       set({
         isLoading: false,
         error: message,
@@ -448,7 +477,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to load territories';
-      console.error('Failed to fetch territories:', error);
+      logger.error('Failed to fetch territories', error as Error, { context: 'useGangStore.fetchTerritories' });
       set({
         isLoading: false,
         error: message,
@@ -477,7 +506,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to load territory';
-      console.error('Failed to fetch territory:', error);
+      logger.error('Failed to fetch territory', error as Error, { context: 'useGangStore.fetchTerritory', territoryId: id });
       set({
         isLoading: false,
         error: message,
@@ -507,7 +536,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to declare war';
-      console.error('Failed to declare war:', error);
+      logger.error('Failed to declare war', error as Error, { context: 'useGangStore.declareWar', territoryId, funding });
       set({
         isLoading: false,
         error: message,
@@ -536,7 +565,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to contribute to war';
-      console.error('Failed to contribute to war:', error);
+      logger.error('Failed to contribute to war', error as Error, { context: 'useGangStore.contributeToWar', warId, amount });
       set({
         isLoading: false,
         error: message,
@@ -562,7 +591,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to load active wars';
-      console.error('Failed to fetch active wars:', error);
+      logger.error('Failed to fetch active wars', error as Error, { context: 'useGangStore.fetchActiveWars' });
       set({
         isLoading: false,
         error: message,
@@ -591,7 +620,7 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to load war';
-      console.error('Failed to fetch war:', error);
+      logger.error('Failed to fetch war', error as Error, { context: 'useGangStore.fetchWar', warId });
       set({
         isLoading: false,
         error: message,
@@ -614,109 +643,137 @@ export const useGangStore = create<GangStore>((set, _get) => ({
 
   initializeSocketListeners: () => {
     if (!socketService.isConnected()) {
-      console.warn('[GangStore] Socket not connected, skipping listener initialization');
+      logger.warn('[GangStore] Socket not connected, skipping listener initialization', { context: 'useGangStore.initializeSocketListeners' });
       return () => {};
     }
 
-    const handleMemberJoined = (data: { gangId: string; member: { characterId: string; characterName: string; level: number; role: GangRole; joinedAt: Date; contribution: number } }) => {
+    // MEMORY LEAK FIX: Clean up any existing listeners before registering new ones
+    // This prevents duplicate listeners from accumulating on re-renders
+    if (registeredGangListeners.length > 0) {
+      logger.debug('[GangStore] Cleaning up existing listeners before re-initialization', {
+        context: 'useGangStore.initializeSocketListeners',
+        existingListenerCount: registeredGangListeners.length
+      });
+      removeAllTrackedGangListeners();
+    }
+
+    // Handler for member joined events
+    const handleMemberJoined = (data: unknown) => {
+      const typedData = data as { gangId: string; member: { characterId: string; characterName: string; level: number; role: GangRole; joinedAt: Date; contribution: number } };
       set((state) => {
-        if (!state.currentGang || state.currentGang._id !== data.gangId) return state;
+        if (!state.currentGang || state.currentGang._id !== typedData.gangId) return state;
 
         return {
           currentGang: {
             ...state.currentGang,
-            members: [...state.currentGang.members, data.member],
+            members: [...state.currentGang.members, typedData.member],
           },
         };
       });
     };
 
-    const handleMemberLeft = (data: { gangId: string; characterId: string }) => {
+    // Handler for member left events
+    const handleMemberLeft = (data: unknown) => {
+      const typedData = data as { gangId: string; characterId: string };
       set((state) => {
-        if (!state.currentGang || state.currentGang._id !== data.gangId) return state;
+        if (!state.currentGang || state.currentGang._id !== typedData.gangId) return state;
 
         return {
           currentGang: {
             ...state.currentGang,
-            members: state.currentGang.members.filter((m) => m.characterId !== data.characterId),
+            members: state.currentGang.members.filter((m) => m.characterId !== typedData.characterId),
           },
         };
       });
     };
 
-    const handleMemberPromoted = (data: { gangId: string; characterId: string; newRole: GangRole }) => {
+    // Handler for member promoted events
+    const handleMemberPromoted = (data: unknown) => {
+      const typedData = data as { gangId: string; characterId: string; newRole: GangRole };
       set((state) => {
-        if (!state.currentGang || state.currentGang._id !== data.gangId) return state;
+        if (!state.currentGang || state.currentGang._id !== typedData.gangId) return state;
 
         return {
           currentGang: {
             ...state.currentGang,
             members: state.currentGang.members.map((m) =>
-              m.characterId === data.characterId ? { ...m, role: data.newRole } : m
+              m.characterId === typedData.characterId ? { ...m, role: typedData.newRole } : m
             ),
           },
         };
       });
     };
 
-    const handleBankUpdated = (data: { gangId: string; newBalance: number }) => {
+    // Handler for bank updated events
+    const handleBankUpdated = (data: unknown) => {
+      const typedData = data as { gangId: string; newBalance: number };
       set((state) => {
-        if (!state.currentGang || state.currentGang._id !== data.gangId) return state;
+        if (!state.currentGang || state.currentGang._id !== typedData.gangId) return state;
 
         return {
           currentGang: {
             ...state.currentGang,
-            bank: data.newBalance,
+            bank: typedData.newBalance,
           },
         };
       });
     };
 
-    const handleUpgradePurchased = (data: { gangId: string; gang: Gang }) => {
+    // Handler for upgrade purchased events
+    const handleUpgradePurchased = (data: unknown) => {
+      const typedData = data as { gangId: string; gang: Gang };
       set((state) => {
-        if (!state.currentGang || state.currentGang._id !== data.gangId) return state;
+        if (!state.currentGang || state.currentGang._id !== typedData.gangId) return state;
 
         return {
-          currentGang: data.gang,
+          currentGang: typedData.gang,
         };
       });
     };
 
-    const handleWarDeclared = (war: GangWar) => {
+    // Handler for war declared events
+    const handleWarDeclared = (data: unknown) => {
+      const war = data as GangWar;
       set((state) => ({
         activeWars: [...state.activeWars, war],
         territories: state.territories.map((t) =>
-          t._id === war.territoryId ? { ...t, isUnderSiege: true, activeWarId: war._id } : t
+          war.contestedZones?.includes(t._id) ? { ...t, isUnderSiege: true, activeWarId: war._id } : t
         ),
       }));
     };
 
-    const handleWarContributed = (data: { warId: string; capturePoints: number; war: GangWar }) => {
+    // Handler for war contributed events
+    const handleWarContributed = (data: unknown) => {
+      const typedData = data as { warId: string; capturePoints: number; war: GangWar };
       set((state) => ({
-        activeWars: state.activeWars.map((w) => (w._id === data.warId ? data.war : w)),
-        selectedWar: state.selectedWar?._id === data.warId ? data.war : state.selectedWar,
+        activeWars: state.activeWars.map((w) => (w._id === typedData.warId ? typedData.war : w)),
+        selectedWar: state.selectedWar?._id === typedData.warId ? typedData.war : state.selectedWar,
       }));
     };
 
-    const handleWarResolved = (data: { warId: string; territoryId: string; winnerGangId: string | null }) => {
+    // Handler for war resolved events
+    const handleWarResolved = (data: unknown) => {
+      const typedData = data as { warId: string; territoryId: string; winnerGangId: string | null };
       set((state) => ({
-        activeWars: state.activeWars.filter((w) => w._id !== data.warId),
+        activeWars: state.activeWars.filter((w) => w._id !== typedData.warId),
         territories: state.territories.map((t) =>
-          t._id === data.territoryId
-            ? { ...t, isUnderSiege: false, activeWarId: null, controllingGangId: data.winnerGangId }
+          t._id === typedData.territoryId
+            ? { ...t, isUnderSiege: false, activeWarId: null, controllingGangId: typedData.winnerGangId }
             : t
         ),
       }));
     };
 
-    const handleTerritoryConquered = (data: { territoryId: string; newOwnerGangId: string; newOwnerGangName: string }) => {
+    // Handler for territory conquered events
+    const handleTerritoryConquered = (data: unknown) => {
+      const typedData = data as { territoryId: string; newOwnerGangId: string; newOwnerGangName: string };
       set((state) => ({
         territories: state.territories.map((t) =>
-          t._id === data.territoryId
+          t._id === typedData.territoryId
             ? {
                 ...t,
-                controllingGangId: data.newOwnerGangId,
-                controllingGangName: data.newOwnerGangName,
+                controllingGangId: typedData.newOwnerGangId,
+                controllingGangName: typedData.newOwnerGangName,
                 lastConquered: new Date(),
               }
             : t
@@ -724,27 +781,24 @@ export const useGangStore = create<GangStore>((set, _get) => ({
       }));
     };
 
-    socketService.on('gang:member_joined' as any, handleMemberJoined as AnyEventHandler);
-    socketService.on('gang:member_left' as any, handleMemberLeft as AnyEventHandler);
-    socketService.on('gang:member_promoted' as any, handleMemberPromoted as AnyEventHandler);
-    socketService.on('gang:bank_updated' as any, handleBankUpdated as AnyEventHandler);
-    socketService.on('gang:upgrade_purchased' as any, handleUpgradePurchased as AnyEventHandler);
-    socketService.on('territory:war_declared' as any, handleWarDeclared as AnyEventHandler);
-    socketService.on('territory:war_contributed' as any, handleWarContributed as AnyEventHandler);
-    socketService.on('territory:war_resolved' as any, handleWarResolved as AnyEventHandler);
-    socketService.on('territory:conquered' as any, handleTerritoryConquered as AnyEventHandler);
+    // Register all listeners with tracking for proper cleanup
+    addTrackedGangListener('gang:member_joined', handleMemberJoined);
+    addTrackedGangListener('gang:member_left', handleMemberLeft);
+    addTrackedGangListener('gang:member_promoted', handleMemberPromoted);
+    addTrackedGangListener('gang:bank_updated', handleBankUpdated);
+    addTrackedGangListener('gang:upgrade_purchased', handleUpgradePurchased);
+    addTrackedGangListener('territory:war_declared', handleWarDeclared);
+    addTrackedGangListener('territory:war_contributed', handleWarContributed);
+    addTrackedGangListener('territory:war_resolved', handleWarResolved);
+    addTrackedGangListener('territory:conquered', handleTerritoryConquered);
 
-    return () => {
-      socketService.off('gang:member_joined' as any, handleMemberJoined as AnyEventHandler);
-      socketService.off('gang:member_left' as any, handleMemberLeft as AnyEventHandler);
-      socketService.off('gang:member_promoted' as any, handleMemberPromoted as AnyEventHandler);
-      socketService.off('gang:bank_updated' as any, handleBankUpdated as AnyEventHandler);
-      socketService.off('gang:upgrade_purchased' as any, handleUpgradePurchased as AnyEventHandler);
-      socketService.off('territory:war_declared' as any, handleWarDeclared as AnyEventHandler);
-      socketService.off('territory:war_contributed' as any, handleWarContributed as AnyEventHandler);
-      socketService.off('territory:war_resolved' as any, handleWarResolved as AnyEventHandler);
-      socketService.off('territory:conquered' as any, handleTerritoryConquered as AnyEventHandler);
-    };
+    logger.debug('[GangStore] Socket listeners initialized', {
+      context: 'useGangStore.initializeSocketListeners',
+      listenerCount: registeredGangListeners.length
+    });
+
+    // Return cleanup function that removes all tracked listeners
+    return removeAllTrackedGangListeners;
   },
 }));
 

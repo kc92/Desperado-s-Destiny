@@ -6,7 +6,8 @@
 
 import { Router } from 'express';
 import { PropertyTaxController } from '../controllers/propertyTax.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
@@ -34,14 +35,14 @@ router.get('/:propertyId/calculate', asyncHandler(PropertyTaxController.calculat
  * Pay taxes for a property
  * Body: { payerId: string, amount: number }
  */
-router.post('/:propertyId/pay', asyncHandler(PropertyTaxController.payTaxes));
+router.post('/:propertyId/pay', requireCsrfToken, asyncHandler(PropertyTaxController.payTaxes));
 
 /**
  * POST /api/property-tax/:propertyId/auto-pay
  * Enable or disable auto-pay for a property
  * Body: { ownerId: string, enabled: boolean }
  */
-router.post('/:propertyId/auto-pay', asyncHandler(PropertyTaxController.setAutoPay));
+router.post('/:propertyId/auto-pay', requireCsrfToken, asyncHandler(PropertyTaxController.setAutoPay));
 
 /**
  * POST /api/property-tax/gang-base/:gangBaseId/create
@@ -49,6 +50,7 @@ router.post('/:propertyId/auto-pay', asyncHandler(PropertyTaxController.setAutoP
  */
 router.post(
   '/gang-base/:gangBaseId/create',
+  requireCsrfToken,
   asyncHandler(PropertyTaxController.createGangBaseTaxRecord)
 );
 
@@ -56,12 +58,12 @@ router.post(
  * POST /api/property-tax/process-auto-payments
  * Process all pending auto-payments (Admin/System)
  */
-router.post('/process-auto-payments', asyncHandler(PropertyTaxController.processAutoPayments));
+router.post('/process-auto-payments', requireCsrfToken, asyncHandler(PropertyTaxController.processAutoPayments));
 
 /**
  * POST /api/property-tax/send-reminders
  * Send tax due reminders (Admin/System)
  */
-router.post('/send-reminders', asyncHandler(PropertyTaxController.sendReminders));
+router.post('/send-reminders', requireCsrfToken, asyncHandler(PropertyTaxController.sendReminders));
 
 export default router;

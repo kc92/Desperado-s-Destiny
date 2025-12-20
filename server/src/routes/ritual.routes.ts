@@ -5,8 +5,9 @@
 
 import { Router } from 'express';
 import { RitualController } from '../controllers/ritual.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -44,24 +45,24 @@ router.get('/:ritualId/check', asyncHandler(RitualController.canPerformRitual));
  * Start performing a ritual
  * Body: { participants?: string[] }
  */
-router.post('/:ritualId/start', asyncHandler(RitualController.startRitual));
+router.post('/:ritualId/start', requireCsrfToken, asyncHandler(RitualController.startRitual));
 
 /**
  * POST /api/rituals/complete
  * Complete the active ritual (if time has elapsed)
  */
-router.post('/complete', asyncHandler(RitualController.completeRitual));
+router.post('/complete', requireCsrfToken, asyncHandler(RitualController.completeRitual));
 
 /**
  * POST /api/rituals/cancel
  * Cancel the active ritual (causes backlash)
  */
-router.post('/cancel', asyncHandler(RitualController.cancelRitual));
+router.post('/cancel', requireCsrfToken, asyncHandler(RitualController.cancelRitual));
 
 /**
  * POST /api/rituals/:ritualId/discover
  * Discover/learn a ritual
  */
-router.post('/:ritualId/discover', asyncHandler(RitualController.discoverRitual));
+router.post('/:ritualId/discover', requireCsrfToken, asyncHandler(RitualController.discoverRitual));
 
 export default router;

@@ -400,6 +400,25 @@ Ready to finish polishin' this frontier gem?
 
 ---
 
+## CRITICAL: NEVER KILL YOUR OWN PROCESSES
+
+**⚠️ ABSOLUTE RULE: When troubleshooting the game server, NEVER use commands that kill all node processes!**
+
+This includes:
+- `taskkill /F /IM node.exe` - This kills Claude Code itself!
+- `pkill node` or `killall node` - Same problem on Linux/Mac
+- Any broad process killing command
+
+**Instead, use targeted approaches:**
+1. **Find specific PIDs:** `netstat -ano | findstr :5001` to find what's on the port
+2. **Kill specific PID:** `taskkill /F /PID <specific_pid>`
+3. **Use the KillShell tool** to stop specific background shells you started
+4. **Restart via npm:** Just run `npm run dev` in a new shell - nodemon handles restarts
+
+**Why this matters:** Claude Code runs as a Node.js process. If you kill all node processes, you terminate yourself mid-session, losing all context and leaving the user stranded.
+
+---
+
 ## IF YOU GET LOST
 
 1. **Read this file** (.claude/context.md) - You're reading it now!

@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { logger } from '@/services/logger.service';
 
 // Discovery status
 export type DiscoveryStatus = 'UNKNOWN' | 'RUMORED' | 'TRACKED' | 'DISCOVERED' | 'HUNTED' | 'DEFEATED';
@@ -277,7 +278,7 @@ export const useLegendaryHunt = (): UseLegendaryHuntReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch legendaries';
       setError(errorMessage);
-      console.error('[useLegendaryHunt] Fetch legendaries error:', err);
+      logger.error('Fetch legendaries error', err as Error, { context: 'useLegendaryHunt' });
     } finally {
       setIsLoading(false);
     }
@@ -291,7 +292,7 @@ export const useLegendaryHunt = (): UseLegendaryHuntReturn => {
       );
       return response.data.data.legendary;
     } catch (err: any) {
-      console.error('[useLegendaryHunt] Fetch legendary error:', err);
+      logger.error('Fetch legendary error', err as Error, { context: 'useLegendaryHunt' });
       return null;
     }
   }, []);
@@ -304,7 +305,7 @@ export const useLegendaryHunt = (): UseLegendaryHuntReturn => {
       );
       setTrophies(response.data.data.trophies || []);
     } catch (err: any) {
-      console.error('[useLegendaryHunt] Fetch trophies error:', err);
+      logger.error('Fetch trophies error', err as Error, { context: 'useLegendaryHunt' });
     }
   }, []);
 
@@ -316,7 +317,7 @@ export const useLegendaryHunt = (): UseLegendaryHuntReturn => {
       );
       return response.data.data.rating;
     } catch (err: any) {
-      console.error('[useLegendaryHunt] Get difficulty rating error:', err);
+      logger.error('Get difficulty rating error', err as Error, { context: 'useLegendaryHunt' });
       return null;
     }
   }, []);
@@ -333,7 +334,7 @@ export const useLegendaryHunt = (): UseLegendaryHuntReturn => {
       );
       return response.data.data.leaderboard || [];
     } catch (err: any) {
-      console.error('[useLegendaryHunt] Get leaderboard error:', err);
+      logger.error('Get leaderboard error', err as Error, { context: 'useLegendaryHunt' });
       return [];
     }
   }, []);
@@ -355,7 +356,7 @@ export const useLegendaryHunt = (): UseLegendaryHuntReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to discover clue';
       setError(errorMessage);
-      console.error('[useLegendaryHunt] Discover clue error:', err);
+      logger.error('Discover clue error', err as Error, { context: 'useLegendaryHunt' });
       return { success: false, message: errorMessage, clueNumber: 0, totalClues: 0, clueText: '', discoveryProgress: 0 };
     } finally {
       setIsLoading(false);
@@ -379,7 +380,7 @@ export const useLegendaryHunt = (): UseLegendaryHuntReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to hear rumor';
       setError(errorMessage);
-      console.error('[useLegendaryHunt] Hear rumor error:', err);
+      logger.error('Hear rumor error', err as Error, { context: 'useLegendaryHunt' });
       return { success: false, message: errorMessage, rumorText: '', rumorCount: 0 };
     } finally {
       setIsLoading(false);
@@ -411,7 +412,7 @@ export const useLegendaryHunt = (): UseLegendaryHuntReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to initiate hunt';
       setError(errorMessage);
-      console.error('[useLegendaryHunt] Initiate hunt error:', err);
+      logger.error('Initiate hunt error', err as Error, { context: 'useLegendaryHunt' });
       return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
@@ -444,7 +445,7 @@ export const useLegendaryHunt = (): UseLegendaryHuntReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to execute turn';
       setError(errorMessage);
-      console.error('[useLegendaryHunt] Execute turn error:', err);
+      logger.error('Execute turn error', err as Error, { context: 'useLegendaryHunt' });
       return {
         success: false,
         message: errorMessage,
@@ -473,7 +474,7 @@ export const useLegendaryHunt = (): UseLegendaryHuntReturn => {
       setCurrentSession(session);
       return session;
     } catch (err: any) {
-      console.error('[useLegendaryHunt] Get session error:', err);
+      logger.error('Get session error', err as Error, { context: 'useLegendaryHunt' });
       return null;
     }
   }, []);

@@ -9,8 +9,8 @@
 import mongoose from 'mongoose';
 import { LoginReward, ILoginReward, RewardItem, ClaimedReward } from '../models/LoginReward.model';
 import { Character } from '../models/Character.model';
-import { TransactionSource } from '../models/GoldTransaction.model';
-import { GoldService } from './gold.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
 import {
   generateRewardItem,
   getRewardForDay,
@@ -204,74 +204,123 @@ export class LoginRewardService {
   }
 
   /**
-   * Claim today's reward
+   * Claim today's reward (transaction-safe to prevent race conditions)
    */
   static async claimDailyReward(characterId: string | mongoose.Types.ObjectId): Promise<ClaimResponse> {
-    const record = await this.getOrCreateRecord(characterId);
-    const now = new Date();
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Check if already claimed today
-    if (record.lastClaimDate && this.isSameDay(record.lastClaimDate, now)) {
-      throw new Error('Already claimed today\'s reward. Come back tomorrow!');
-    }
+    try {
+      // Ensure record exists before transaction
+      await this.getOrCreateRecord(characterId);
 
-    // Generate the reward
-    const reward = generateRewardItem(record.currentDay);
-    if (!reward) {
-      throw new Error('Failed to generate reward');
-    }
+      // Lock the record within transaction for atomic check-and-update
+      const record = await LoginReward.findOne({
+        character: new mongoose.Types.ObjectId(characterId.toString())
+      }).session(session);
 
-    // Apply the reward
-    await this.applyReward(characterId.toString(), reward, record.currentDay, record.currentWeek);
-
-    // Create claimed reward record
-    const dayOfWeek = ((record.currentDay - 1) % 7) + 1;
-    const claimedReward: ClaimedReward = {
-      day: dayOfWeek,
-      week: record.currentWeek,
-      absoluteDay: record.currentDay,
-      reward,
-      claimedAt: now
-    };
-
-    // Update record
-    const newDay = record.currentDay >= 28 ? 1 : record.currentDay + 1;
-    const newWeek = Math.ceil(newDay / 7);
-
-    // If cycling back to day 1, reset monthly bonus claim flag
-    const shouldResetCycle = record.currentDay >= 28;
-
-    record.currentDay = newDay;
-    record.currentWeek = newWeek;
-    record.lastClaimDate = now;
-    record.totalDaysClaimed += 1;
-    record.claimedRewards.push(claimedReward);
-
-    if (shouldResetCycle) {
-      record.monthlyBonusClaimed = false;
-      record.cycleStartDate = now;
-      // Keep only last 28 claimed rewards to prevent unbounded growth
-      if (record.claimedRewards.length > 56) {
-        record.claimedRewards = record.claimedRewards.slice(-28);
+      if (!record) {
+        await session.abortTransaction();
+        throw new Error('Login reward record not found');
       }
+
+      const now = new Date();
+
+      // Check if already claimed today - this check is now atomic within the transaction
+      if (record.lastClaimDate && this.isSameDay(record.lastClaimDate, now)) {
+        await session.abortTransaction();
+        throw new Error('Already claimed today\'s reward. Come back tomorrow!');
+      }
+
+      // Generate the reward
+      const reward = generateRewardItem(record.currentDay);
+      if (!reward) {
+        await session.abortTransaction();
+        throw new Error('Failed to generate reward');
+      }
+
+      // Apply the reward within the transaction
+      await this.applyRewardWithSession(
+        characterId.toString(),
+        reward,
+        record.currentDay,
+        record.currentWeek,
+        session
+      );
+
+      // Create claimed reward record
+      const dayOfWeek = ((record.currentDay - 1) % 7) + 1;
+      const claimedReward: ClaimedReward = {
+        day: dayOfWeek,
+        week: record.currentWeek,
+        absoluteDay: record.currentDay,
+        reward,
+        claimedAt: now
+      };
+
+      // Calculate new values
+      const newDay = record.currentDay >= 28 ? 1 : record.currentDay + 1;
+      const newWeek = Math.ceil(newDay / 7);
+      const shouldResetCycle = record.currentDay >= 28;
+      const newTotalDaysClaimed = record.totalDaysClaimed + 1;
+
+      // Atomic update within transaction
+      const updateData: Record<string, unknown> = {
+        $set: {
+          currentDay: newDay,
+          currentWeek: newWeek,
+          lastClaimDate: now
+        },
+        $inc: { totalDaysClaimed: 1 },
+        $push: { claimedRewards: claimedReward }
+      };
+
+      // Handle cycle reset
+      if (shouldResetCycle) {
+        updateData.$set = {
+          ...updateData.$set as Record<string, unknown>,
+          monthlyBonusClaimed: false,
+          cycleStartDate: now
+        };
+      }
+
+      await LoginReward.findOneAndUpdate(
+        { character: new mongoose.Types.ObjectId(characterId.toString()) },
+        updateData,
+        { session }
+      );
+
+      // Trim old claimed rewards if needed (outside main update to avoid conflicts)
+      if (shouldResetCycle && record.claimedRewards.length > 55) {
+        await LoginReward.findOneAndUpdate(
+          { character: new mongoose.Types.ObjectId(characterId.toString()) },
+          { $set: { claimedRewards: record.claimedRewards.slice(-27).concat([claimedReward]) } },
+          { session }
+        );
+      }
+
+      await session.commitTransaction();
+
+      logger.info(
+        `Character ${characterId} claimed day ${record.currentDay} reward: ` +
+        `${reward.type} - ${reward.itemName || reward.amount || 'reward'}`
+      );
+
+      return {
+        success: true,
+        reward,
+        newDay,
+        newWeek,
+        totalDaysClaimed: newTotalDaysClaimed,
+        isMonthlyBonusAvailable: newTotalDaysClaimed >= 28 && !record.monthlyBonusClaimed,
+        message: `Claimed day ${record.currentDay} reward!`
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    await record.save();
-
-    logger.info(
-      `Character ${characterId} claimed day ${record.currentDay - 1} reward: ` +
-      `${reward.type} - ${reward.itemName || reward.amount || 'reward'}`
-    );
-
-    return {
-      success: true,
-      reward,
-      newDay,
-      newWeek,
-      totalDaysClaimed: record.totalDaysClaimed,
-      isMonthlyBonusAvailable: record.totalDaysClaimed >= 28 && !record.monthlyBonusClaimed,
-      message: `Claimed day ${record.currentDay - 1 || 28} reward!`
-    };
   }
 
   /**
@@ -289,9 +338,9 @@ export class LoginRewardService {
     }
 
     switch (reward.type) {
-      case 'gold':
+      case 'dollars':
         if (reward.amount) {
-          await GoldService.addGold(
+          await DollarService.addDollars(
             characterId,
             reward.amount,
             TransactionSource.LOGIN_REWARD,
@@ -326,6 +375,85 @@ export class LoginRewardService {
             });
           }
           await character.save();
+        }
+        break;
+    }
+  }
+
+  /**
+   * Apply a reward to a character within a transaction session
+   * Used by claimDailyReward to ensure atomicity
+   */
+  private static async applyRewardWithSession(
+    characterId: string,
+    reward: RewardItem,
+    day: number,
+    week: number,
+    session: mongoose.ClientSession
+  ): Promise<void> {
+    const character = await Character.findById(characterId).session(session);
+    if (!character) {
+      throw new Error('Character not found');
+    }
+
+    switch (reward.type) {
+      case 'dollars':
+        if (reward.amount) {
+          // Use DollarService.addDollars with session for atomic dollar addition + transaction record
+          await DollarService.addDollars(
+            characterId,
+            reward.amount,
+            TransactionSource.LOGIN_REWARD,
+            { day, week },
+            session
+          );
+        }
+        break;
+
+      case 'energy':
+        if (reward.amount) {
+          const newEnergy = Math.min(
+            character.energy + reward.amount,
+            character.maxEnergy
+          );
+          await Character.findByIdAndUpdate(
+            characterId,
+            { $set: { energy: newEnergy } },
+            { session }
+          );
+        }
+        break;
+
+      case 'item':
+      case 'material':
+      case 'premium':
+        if (reward.itemId) {
+          // Check if item exists in inventory
+          const existingItemIndex = character.inventory.findIndex(i => i.itemId === reward.itemId);
+
+          if (existingItemIndex >= 0) {
+            // Increment existing item quantity using positional operator
+            await Character.findOneAndUpdate(
+              { _id: characterId, 'inventory.itemId': reward.itemId },
+              { $inc: { 'inventory.$.quantity': 1 } },
+              { session }
+            );
+          } else {
+            // Add new item to inventory
+            await Character.findByIdAndUpdate(
+              characterId,
+              {
+                $push: {
+                  inventory: {
+                    itemId: reward.itemId,
+                    quantity: 1,
+                    acquiredAt: new Date()
+                  }
+                }
+              },
+              { session }
+            );
+          }
         }
         break;
     }
@@ -421,8 +549,8 @@ export class LoginRewardService {
     }
 
     // Apply monthly bonus rewards
-    // 1. Gold
-    await GoldService.addGold(
+    // 1. Dollars
+    await DollarService.addDollars(
       characterId.toString(),
       MONTHLY_BONUS.gold,
       TransactionSource.LOGIN_MONTHLY_BONUS,
@@ -475,7 +603,7 @@ export class LoginRewardService {
     totalDaysClaimed: number;
     currentStreak: number;
     longestStreak: number;
-    goldEarned: number;
+    dollarsEarned: number;
     itemsReceived: number;
     premiumRewardsReceived: number;
     monthlyBonusesClaimed: number;
@@ -483,13 +611,13 @@ export class LoginRewardService {
     const record = await this.getOrCreateRecord(characterId);
 
     // Calculate statistics from claimed rewards
-    let goldEarned = 0;
+    let dollarsEarned = 0;
     let itemsReceived = 0;
     let premiumRewardsReceived = 0;
 
     for (const claimed of record.claimedRewards) {
-      if (claimed.reward.type === 'gold' && claimed.reward.amount) {
-        goldEarned += claimed.reward.amount;
+      if (claimed.reward.type === 'dollars' && claimed.reward.amount) {
+        dollarsEarned += claimed.reward.amount;
       } else if (['item', 'material'].includes(claimed.reward.type)) {
         itemsReceived++;
       } else if (claimed.reward.type === 'premium') {
@@ -510,7 +638,7 @@ export class LoginRewardService {
       totalDaysClaimed: record.totalDaysClaimed,
       currentStreak,
       longestStreak,
-      goldEarned,
+      dollarsEarned,
       itemsReceived,
       premiumRewardsReceived,
       monthlyBonusesClaimed

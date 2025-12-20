@@ -16,40 +16,117 @@ import {
 import { ListingType, MarketItemRarity } from '../models/MarketListing.model';
 
 /**
+ * Input validation constants
+ */
+const VALIDATION = {
+  MAX_PAGE: 1000,
+  MAX_LIMIT: 100,
+  DEFAULT_LIMIT: 20,
+  MAX_PRICE: 1_000_000_000, // 1 billion gold max
+  MAX_SEARCH_LENGTH: 100,
+  MIN_SEARCH_LENGTH: 2,
+  VALID_RARITIES: ['common', 'uncommon', 'rare', 'epic', 'legendary'] as const,
+  VALID_LISTING_TYPES: ['buyout', 'auction'] as const,
+  VALID_SORT_ORDERS: ['asc', 'desc'] as const,
+} as const;
+
+/**
+ * Safely parse a positive integer with bounds checking
+ * Returns defaultVal if invalid, and clamps to max
+ */
+const parsePositiveInt = (
+  value: string | undefined,
+  defaultVal: number,
+  max: number = VALIDATION.MAX_PRICE
+): number => {
+  if (value === undefined || value === null || value === '') return defaultVal;
+  const parsed = parseInt(value, 10);
+  if (isNaN(parsed) || parsed < 0) return defaultVal;
+  return Math.min(parsed, max);
+};
+
+/**
+ * Validate that a value is in a whitelist
+ */
+const isValidEnum = <T extends string>(value: unknown, validValues: readonly T[]): value is T => {
+  return typeof value === 'string' && validValues.includes(value as T);
+};
+
+/**
+ * Validate and sanitize search query
+ */
+const sanitizeSearch = (query: string | undefined): string | undefined => {
+  if (!query || typeof query !== 'string') return undefined;
+  const trimmed = query.trim();
+  if (trimmed.length === 0 || trimmed.length > VALIDATION.MAX_SEARCH_LENGTH) return undefined;
+  return trimmed;
+};
+
+/**
  * Get marketplace listings with filters and pagination
  * GET /api/market/listings
  */
 export const getListings = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
-    // Build filters from query params
+    // Build filters from query params with proper validation
     const filters: ListingFilters = {};
 
-    if (req.query.category) filters.category = req.query.category as string;
+    // Validate category against known categories
+    if (req.query.category) {
+      const category = req.query.category as string;
+      // Only accept if it's a valid category key
+      if (MARKET_CATEGORIES[category as keyof typeof MARKET_CATEGORIES]) {
+        filters.category = category;
+      }
+    }
+
     if (req.query.subcategory) filters.subcategory = req.query.subcategory as string;
-    if (req.query.listingType) filters.listingType = req.query.listingType as ListingType;
+
+    // Validate listing type against whitelist
+    if (req.query.listingType && isValidEnum(req.query.listingType, VALIDATION.VALID_LISTING_TYPES)) {
+      filters.listingType = req.query.listingType as ListingType;
+    }
+
     if (req.query.sellerId) filters.sellerId = req.query.sellerId as string;
     if (req.query.itemId) filters.itemId = req.query.itemId as string;
-    if (req.query.search) filters.search = req.query.search as string;
+
+    // Validate and sanitize search query (max length check)
+    const sanitizedSearch = sanitizeSearch(req.query.search as string);
+    if (sanitizedSearch) filters.search = sanitizedSearch;
+
     if (req.query.featured === 'true') filters.featured = true;
 
+    // Validate rarity against whitelist
     if (req.query.rarity) {
       const rarityParam = req.query.rarity;
       if (Array.isArray(rarityParam)) {
-        filters.rarity = rarityParam as MarketItemRarity[];
-      } else {
+        // Filter to only valid rarities
+        const validRarities = rarityParam.filter(r =>
+          isValidEnum(r, VALIDATION.VALID_RARITIES)
+        ) as MarketItemRarity[];
+        if (validRarities.length > 0) {
+          filters.rarity = validRarities;
+        }
+      } else if (isValidEnum(rarityParam, VALIDATION.VALID_RARITIES)) {
         filters.rarity = rarityParam as MarketItemRarity;
       }
     }
 
-    if (req.query.minPrice) filters.minPrice = parseInt(req.query.minPrice as string, 10);
-    if (req.query.maxPrice) filters.maxPrice = parseInt(req.query.maxPrice as string, 10);
+    // Use safe integer parsing with bounds checking for prices
+    if (req.query.minPrice) {
+      filters.minPrice = parsePositiveInt(req.query.minPrice as string, 0, VALIDATION.MAX_PRICE);
+    }
+    if (req.query.maxPrice) {
+      filters.maxPrice = parsePositiveInt(req.query.maxPrice as string, VALIDATION.MAX_PRICE, VALIDATION.MAX_PRICE);
+    }
 
-    // Build pagination from query params
+    // Build pagination with safe integer parsing and bounds
+    const sortOrder = req.query.sortOrder;
     const pagination: Pagination = {
-      page: parseInt(req.query.page as string, 10) || 1,
-      limit: parseInt(req.query.limit as string, 10) || 20,
+      page: parsePositiveInt(req.query.page as string, 1, VALIDATION.MAX_PAGE),
+      limit: parsePositiveInt(req.query.limit as string, VALIDATION.DEFAULT_LIMIT, VALIDATION.MAX_LIMIT),
       sortBy: req.query.sortBy as string || 'listedAt',
-      sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc'
+      sortOrder: isValidEnum(sortOrder, VALIDATION.VALID_SORT_ORDERS) ? sortOrder : 'desc'
     };
 
     const result = await MarketplaceService.getListings(filters, pagination);
@@ -311,8 +388,8 @@ export const getPurchaseHistory = asyncHandler(
     const characterId = req.character!._id.toString();
 
     const pagination: Pagination = {
-      page: parseInt(req.query.page as string, 10) || 1,
-      limit: parseInt(req.query.limit as string, 10) || 20
+      page: parsePositiveInt(req.query.page as string, 1, VALIDATION.MAX_PAGE),
+      limit: parsePositiveInt(req.query.limit as string, VALIDATION.DEFAULT_LIMIT, VALIDATION.MAX_LIMIT)
     };
 
     const result = await MarketplaceService.getPurchaseHistory(characterId, pagination);
@@ -333,8 +410,8 @@ export const getSalesHistory = asyncHandler(
     const characterId = req.character!._id.toString();
 
     const pagination: Pagination = {
-      page: parseInt(req.query.page as string, 10) || 1,
-      limit: parseInt(req.query.limit as string, 10) || 20
+      page: parsePositiveInt(req.query.page as string, 1, VALIDATION.MAX_PAGE),
+      limit: parsePositiveInt(req.query.limit as string, VALIDATION.DEFAULT_LIMIT, VALIDATION.MAX_LIMIT)
     };
 
     const result = await MarketplaceService.getSalesHistory(characterId, pagination);
@@ -353,7 +430,8 @@ export const getSalesHistory = asyncHandler(
 export const getPriceHistory = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
     const { itemId } = req.params;
-    const days = parseInt(req.query.days as string, 10) || 30;
+    // Limit days to reasonable bounds (1-365)
+    const days = parsePositiveInt(req.query.days as string, 30, 365);
 
     const priceHistory = await MarketplaceService.getPriceHistory(itemId, days);
 
@@ -424,19 +502,33 @@ export const getCategories = asyncHandler(
  */
 export const searchListings = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
-    const query = req.query.q as string;
+    const rawQuery = req.query.q as string;
+    const query = sanitizeSearch(rawQuery);
 
-    if (!query || query.length < 2) {
+    // Validate search query length
+    if (!query || query.length < VALIDATION.MIN_SEARCH_LENGTH) {
       return res.status(400).json({
         success: false,
-        error: 'Search query must be at least 2 characters'
+        error: `Search query must be between ${VALIDATION.MIN_SEARCH_LENGTH} and ${VALIDATION.MAX_SEARCH_LENGTH} characters`
       });
     }
 
     const filters: ListingFilters = {};
-    if (req.query.category) filters.category = req.query.category as string;
+
+    // Validate category
+    if (req.query.category) {
+      const category = req.query.category as string;
+      if (MARKET_CATEGORIES[category as keyof typeof MARKET_CATEGORIES]) {
+        filters.category = category;
+      }
+    }
+
     if (req.query.subcategory) filters.subcategory = req.query.subcategory as string;
-    if (req.query.rarity) filters.rarity = req.query.rarity as MarketItemRarity;
+
+    // Validate rarity against whitelist
+    if (req.query.rarity && isValidEnum(req.query.rarity, VALIDATION.VALID_RARITIES)) {
+      filters.rarity = req.query.rarity as MarketItemRarity;
+    }
 
     const listings = await MarketplaceService.searchListings(query, filters);
 

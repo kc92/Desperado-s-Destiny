@@ -5,10 +5,11 @@
  */
 
 import { Response } from 'express';
-import { AuthRequest } from '../middleware/requireAuth';
-import { GoldService } from '../services/gold.service';
+import { AuthRequest } from '../middleware/auth.middleware';
+import { DollarService } from '../services/dollar.service';
 import { Character } from '../models/Character.model';
 import logger from '../utils/logger';
+import { sanitizeErrorMessage } from '../utils/errors';
 
 export class GoldController {
   /**
@@ -27,19 +28,19 @@ export class GoldController {
         return;
       }
 
-      const balance = await GoldService.getBalance(character._id as any);
+      const balance = await DollarService.getBalance(character._id as any);
 
       res.json({
         success: true,
         data: {
-          gold: balance,
+          dollars: balance,
           characterId: (character._id as any).toString(),
           characterName: character.name,
         },
       });
     } catch (error: any) {
       logger.error('Error fetching gold balance:', error);
-      res.status(500).json({ error: error.message || 'Internal server error' });
+      res.status(500).json({ error: sanitizeErrorMessage(error) });
     }
   }
 
@@ -59,22 +60,30 @@ export class GoldController {
         return;
       }
 
-      const limit = parseInt(req.query['limit'] as string) || 50;
-      const offset = parseInt(req.query['offset'] as string) || 0;
+      // H8 SECURITY FIX: Safer numeric parsing with bounds validation
+      // Use Number() to get the actual value (parseInt stops at non-digit chars)
+      const limitRaw = Number(req.query['limit']);
+      const offsetRaw = Number(req.query['offset']);
 
-      // Validate pagination params
+      // Default to safe values if parsing fails or value is missing
+      // Note: Number(undefined) returns NaN, Number("") returns 0
+      const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.floor(limitRaw) : 50;
+      const offset = Number.isFinite(offsetRaw) && offsetRaw >= 0 ? Math.floor(offsetRaw) : 0;
+
+      // Validate pagination params - H8: Add upper bound on offset to prevent DoS
       if (limit < 1 || limit > 100) {
         res.status(400).json({ error: 'Limit must be between 1 and 100' });
         return;
       }
 
-      if (offset < 0) {
-        res.status(400).json({ error: 'Offset must be non-negative' });
+      const MAX_OFFSET = 100000; // Prevent massive skip values
+      if (offset < 0 || offset > MAX_OFFSET) {
+        res.status(400).json({ error: `Offset must be between 0 and ${MAX_OFFSET}` });
         return;
       }
 
-      const history = await GoldService.getTransactionHistory(character._id as any, limit, offset);
-      const stats = await GoldService.getStatistics(character._id as any);
+      const history = await DollarService.getTransactionHistory(character._id as any, limit, offset);
+      const stats = await DollarService.getStatistics(character._id as any);
 
       res.json({
         success: true,
@@ -91,7 +100,7 @@ export class GoldController {
       });
     } catch (error: any) {
       logger.error('Error fetching gold history:', error);
-      res.status(500).json({ error: error.message || 'Internal server error' });
+      res.status(500).json({ error: sanitizeErrorMessage(error) });
     }
   }
 
@@ -111,8 +120,8 @@ export class GoldController {
         return;
       }
 
-      const stats = await GoldService.getStatistics(character._id as any);
-      const currentBalance = await GoldService.getBalance(character._id as any);
+      const stats = await DollarService.getStatistics(character._id as any);
+      const currentBalance = await DollarService.getBalance(character._id as any);
 
       res.json({
         success: true,
@@ -123,7 +132,7 @@ export class GoldController {
       });
     } catch (error: any) {
       logger.error('Error fetching gold statistics:', error);
-      res.status(500).json({ error: error.message || 'Internal server error' });
+      res.status(500).json({ error: sanitizeErrorMessage(error) });
     }
   }
 }

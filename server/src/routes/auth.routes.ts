@@ -9,9 +9,12 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import {
   loginRateLimiter,
   registrationRateLimiter,
-  passwordResetRateLimiter
+  passwordResetRateLimiter,
+  twoFactorRateLimiter,
+  emailVerificationRateLimiter
 } from '../middleware/rateLimiter';
 import { requireAuth } from '../middleware/auth.middleware';
+import { validate, AuthSchemas } from '../validation';
 import {
   register,
   verifyEmail,
@@ -22,8 +25,21 @@ import {
   resetPassword,
   getPreferences,
   updatePreferences,
-  checkUsername
+  checkUsername,
+  resendVerificationEmail,
+  refreshToken,
+  complete2FALogin
 } from '../controllers/auth.controller';
+import {
+  initiateSetup as twoFactorSetup,
+  verifySetup as twoFactorVerifySetup,
+  verifyToken as twoFactorVerify,
+  disable as twoFactorDisable,
+  cancelSetup as twoFactorCancelSetup,
+  regenerateBackupCodes as twoFactorBackupCodes,
+  getStatus as twoFactorStatus
+} from '../controllers/twoFactor.controller';
+import { getCsrfToken, requireCsrfToken, requireCsrfTokenWithRotation } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -55,7 +71,7 @@ const router = Router();
  */
 router.get('/check-username', asyncHandler(checkUsername));
 
-router.post('/register', registrationRateLimiter, asyncHandler(register));
+router.post('/register', registrationRateLimiter, validate(AuthSchemas.register), asyncHandler(register));
 
 /**
  * POST /api/auth/verify-email
@@ -68,7 +84,21 @@ router.post('/register', registrationRateLimiter, asyncHandler(register));
  * - 200: Email verified successfully
  * - 400: Invalid or expired token
  */
-router.post('/verify-email', asyncHandler(verifyEmail));
+router.post('/verify-email', emailVerificationRateLimiter, asyncHandler(verifyEmail));
+
+/**
+ * POST /api/auth/resend-verification
+ * Resend verification email
+ *
+ * Body:
+ * - email: string (required)
+ *
+ * Response:
+ * - 200: If email exists and is unverified, email sent
+ *
+ * Rate limited: 3 requests per hour (prevents spam)
+ */
+router.post('/resend-verification', passwordResetRateLimiter, asyncHandler(resendVerificationEmail));
 
 /**
  * POST /api/auth/login
@@ -85,7 +115,21 @@ router.post('/verify-email', asyncHandler(verifyEmail));
  *
  * Rate limited: 5 requests per 15 minutes (prevents brute force)
  */
-router.post('/login', loginRateLimiter, asyncHandler(login));
+router.post('/login', loginRateLimiter, validate(AuthSchemas.login), asyncHandler(login));
+
+/**
+ * POST /api/auth/2fa/complete-login
+ * Complete 2FA login by verifying TOTP code
+ * Called after login returns requires2FA: true
+ *
+ * Body:
+ * - token: string (6-digit TOTP or 8-char backup code)
+ *
+ * Response:
+ * - 200: Login successful with user data
+ * - 401: Invalid code or expired session
+ */
+router.post('/2fa/complete-login', twoFactorRateLimiter, asyncHandler(complete2FALogin));
 
 /**
  * POST /api/auth/logout
@@ -95,6 +139,19 @@ router.post('/login', loginRateLimiter, asyncHandler(login));
  * - 200: Logout successful (clears cookie)
  */
 router.post('/logout', asyncHandler(logout));
+
+/**
+ * POST /api/auth/refresh
+ * Refresh access token using refresh token
+ *
+ * Body:
+ * - refreshToken: string (optional if sent via cookie)
+ *
+ * Response:
+ * - 200: New access token returned and set in cookie
+ * - 401: Invalid or expired refresh token
+ */
+router.post('/refresh', asyncHandler(refreshToken));
 
 /**
  * GET /api/auth/me
@@ -137,7 +194,7 @@ router.post('/forgot-password', passwordResetRateLimiter, asyncHandler(forgotPas
  *
  * Rate limited: 3 requests per hour (prevents abuse)
  */
-router.post('/reset-password', passwordResetRateLimiter, asyncHandler(resetPassword));
+router.post('/reset-password', passwordResetRateLimiter, requireCsrfTokenWithRotation, validate(AuthSchemas.resetPassword), asyncHandler(resetPassword));
 
 /**
  * GET /api/auth/preferences
@@ -167,6 +224,100 @@ router.get('/preferences', requireAuth, asyncHandler(getPreferences));
  * - 200: Preferences updated
  * - 401: Not authenticated
  */
-router.put('/preferences', requireAuth, asyncHandler(updatePreferences));
+router.put('/preferences', requireAuth, requireCsrfToken, asyncHandler(updatePreferences));
+
+/**
+ * GET /api/auth/csrf-token
+ * Get a fresh CSRF token for form submissions
+ *
+ * Headers:
+ * - Cookie: token=<jwt>
+ *
+ * Response:
+ * - 200: { csrfToken: string }
+ * - 401: Not authenticated
+ */
+router.get('/csrf-token', requireAuth, getCsrfToken);
+
+// =============================================================================
+// Two-Factor Authentication Routes
+// =============================================================================
+
+/**
+ * GET /api/auth/2fa/status
+ * Get 2FA status for current user
+ *
+ * Response:
+ * - 200: { enabled: boolean, pendingSetup: boolean, backupCodesRemaining: number }
+ */
+router.get('/2fa/status', requireAuth, asyncHandler(twoFactorStatus));
+
+/**
+ * GET /api/auth/2fa/setup
+ * Initiate 2FA setup - returns QR code and backup codes
+ *
+ * Response:
+ * - 200: { qrCodeUrl: string, secret: string, backupCodes: string[] }
+ * - 400: 2FA already enabled
+ */
+router.get('/2fa/setup', requireAuth, asyncHandler(twoFactorSetup));
+
+/**
+ * POST /api/auth/2fa/verify-setup
+ * Verify initial 2FA setup with a code from authenticator app
+ *
+ * Body:
+ * - token: string (6-digit TOTP code)
+ *
+ * Response:
+ * - 200: 2FA enabled successfully
+ * - 400: Invalid verification code or setup not initiated
+ */
+router.post('/2fa/verify-setup', requireAuth, twoFactorRateLimiter, requireCsrfToken, asyncHandler(twoFactorVerifySetup));
+
+/**
+ * POST /api/auth/2fa/verify
+ * Verify 2FA token during login flow
+ *
+ * Body:
+ * - token: string (6-digit TOTP or 8-char backup code)
+ *
+ * Response:
+ * - 200: Verification successful
+ * - 401: Invalid verification code
+ */
+router.post('/2fa/verify', requireAuth, twoFactorRateLimiter, requireCsrfToken, asyncHandler(twoFactorVerify));
+
+/**
+ * POST /api/auth/2fa/disable
+ * Disable 2FA (requires password confirmation)
+ *
+ * Body:
+ * - password: string (current password)
+ *
+ * Response:
+ * - 200: 2FA disabled
+ * - 401: Invalid password
+ */
+router.post('/2fa/disable', requireAuth, requireCsrfToken, asyncHandler(twoFactorDisable));
+
+/**
+ * POST /api/auth/2fa/cancel-setup
+ * Cancel pending 2FA setup
+ *
+ * Response:
+ * - 200: Setup cancelled
+ */
+router.post('/2fa/cancel-setup', requireAuth, requireCsrfToken, asyncHandler(twoFactorCancelSetup));
+
+/**
+ * POST /api/auth/2fa/backup-codes
+ * Regenerate backup codes (invalidates previous codes)
+ *
+ * Response:
+ * - 200: { backupCodes: string[] }
+ * - 400: 2FA not enabled
+ */
+router.post('/2fa/backup-codes', requireAuth, requireCsrfToken, asyncHandler(twoFactorBackupCodes));
 
 export default router;

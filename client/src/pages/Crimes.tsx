@@ -17,6 +17,7 @@ import { JailScreen } from '@/components/game/JailScreen';
 // import { LoadingSpinner } from '@/components/ui';
 // import { ActionType } from '@desperados/shared';
 import { crimeService } from '@/services/crime.service';
+import { logger } from '@/services/logger.service';
 
 type TabType = 'crimes' | 'bounties' | 'history';
 
@@ -52,7 +53,7 @@ export const Crimes: React.FC = () => {
       const data = await crimeService.getBounties();
       setBounties(data);
     } catch (error) {
-      console.error('Failed to load bounties:', error);
+      logger.error('Failed to load bounties', error as Error, { context: 'Crimes.loadBounties' });
     } finally {
       setIsLoadingBounties(false);
     }
@@ -62,11 +63,11 @@ export const Crimes: React.FC = () => {
   const handleAttemptCrime = async (action: any) => {
     if (!currentCharacter) return;
     try {
-      await attemptAction(action._id);
+      await attemptAction(action._id, currentCharacter._id);
       // Reload crime status after action
       await loadCrimeStatus?.();
     } catch (error) {
-      console.error('Failed to attempt crime:', error);
+      logger.error('Failed to attempt crime', error as Error, { context: 'Crimes.handleAttemptCrime', actionId: action._id, characterId: currentCharacter._id });
     }
   };
 
@@ -81,7 +82,7 @@ export const Crimes: React.FC = () => {
       await loadBounties(); // Reload bounties after arrest
       return result.success;
     } catch (error) {
-      console.error('Failed to arrest player:', error);
+      logger.error('Failed to arrest player', error as Error, { context: 'Crimes.handleConfirmArrest', targetId });
       return false;
     }
   };
@@ -92,7 +93,7 @@ export const Crimes: React.FC = () => {
       await payBail?.();
       await loadCrimeStatus?.();
     } catch (error) {
-      console.error('Failed to pay bail:', error);
+      logger.error('Failed to pay bail', error as Error, { context: 'Crimes.handlePayBail' });
     }
   };
 
@@ -108,7 +109,7 @@ export const Crimes: React.FC = () => {
       await loadCrimeStatus?.();
       setShowWantedPoster(false);
     } catch (error) {
-      console.error('Failed to lay low:', error);
+      logger.error('Failed to lay low', error as Error, { context: 'Crimes.handleLayLow', useGold });
     }
   };
 

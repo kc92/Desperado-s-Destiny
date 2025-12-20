@@ -6,8 +6,10 @@
  */
 
 import mongoose from 'mongoose';
+import logger from '../utils/logger';
 import { Location } from '../models/Location.model';
 import { frontierLocations } from '../data/locations/frontier_locations';
+import { ZONES } from '@desperados/shared';
 
 // Location IDs for consistent references
 export const LOCATION_IDS = {
@@ -28,6 +30,16 @@ export const LOCATION_IDS = {
   ABANDONED_MINE: new mongoose.Types.ObjectId('6501a0000000000000000010'),
   DUSTY_CROSSROADS: new mongoose.Types.ObjectId('6501a0000000000000000011'),
   SNAKE_CREEK: new mongoose.Types.ObjectId('6501a0000000000000000012'),
+  // Atlas Sacred Sites & Wilderness
+  WHISPERING_STONES: new mongoose.Types.ObjectId('6501a0000000000000000030'),
+  ANCESTORS_SPRING: new mongoose.Types.ObjectId('6501a0000000000000000031'),
+  BONE_GARDEN: new mongoose.Types.ObjectId('6501a0000000000000000032'),
+  ECHO_CAVES: new mongoose.Types.ObjectId('6501a0000000000000000033'),
+  COYOTES_CROSSROADS: new mongoose.Types.ObjectId('6501a0000000000000000034'),
+  RAILROAD_WOUND: new mongoose.Types.ObjectId('6501a0000000000000000035'),
+  THE_BADLANDS: new mongoose.Types.ObjectId('6501a0000000000000000036'),
+  SACRED_HEART_MOUNTAINS: new mongoose.Types.ObjectId('6501a0000000000000000037'),
+  DEAD_MANS_STRETCH: new mongoose.Types.ObjectId('6501a0000000000000000038'),
 };
 
 // Starting location IDs for each faction
@@ -46,6 +58,8 @@ const locationSeeds = [
     shortDescription: 'Settler capital and boomtown',
     type: 'settlement',
     region: 'town',
+    zone: ZONES.SETTLER_TERRITORY,
+    isZoneHub: true,
     icon: '🏘️',
     atmosphere: 'The dusty streets buzz with activity. Piano music drifts from saloons, hammers ring from the blacksmith, and the constant murmur of commerce fills the air. The red canyon walls tower above, glowing like blood at sunset.',
     availableActions: [],
@@ -131,7 +145,9 @@ const locationSeeds = [
       { targetLocationId: LOCATION_IDS.FORT_ASHFORD.toString(), travelTime: 0, energyCost: 5, description: 'To Fort Ashford' },
       { targetLocationId: LOCATION_IDS.SANGRE_CANYON.toString(), travelTime: 0, energyCost: 12, description: 'West to Sangre Canyon' },
       { targetLocationId: LOCATION_IDS.GOLDFINGERS_MINE.toString(), travelTime: 0, energyCost: 10, description: 'To Goldfinger\'s Mine' },
-      { targetLocationId: LOCATION_IDS.WHISKEY_BEND.toString(), travelTime: 0, energyCost: 15, description: 'South to Whiskey Bend' }
+      { targetLocationId: LOCATION_IDS.WHISKEY_BEND.toString(), travelTime: 0, energyCost: 15, description: 'South to Whiskey Bend' },
+      { targetLocationId: '6501a0000000000000000020', travelTime: 0, energyCost: 3, description: 'To Western Outpost' },
+      { targetLocationId: LOCATION_IDS.RAILROAD_WOUND.toString(), travelTime: 0, energyCost: 8, description: 'East to Railroad Wound' }
     ],
     dangerLevel: 3,
     factionInfluence: { settlerAlliance: 80, nahiCoalition: 5, frontera: 15 },
@@ -147,6 +163,8 @@ const locationSeeds = [
     shortDescription: 'Outlaw haven and black market hub',
     type: 'settlement',
     region: 'outlaw_territory',
+    zone: ZONES.OUTLAW_TERRITORY,
+    isZoneHub: true,
     icon: '🏴',
     atmosphere: 'Music and shouting in Spanish mix with gun oil and chili peppers. Armed outlaws eye strangers carefully. The Frontera Code is law here.',
     availableActions: [],
@@ -207,7 +225,9 @@ const locationSeeds = [
     connections: [
       { targetLocationId: LOCATION_IDS.RED_GULCH.toString(), travelTime: 0, energyCost: 10, description: 'North to Red Gulch' },
       { targetLocationId: LOCATION_IDS.KAIOWA_MESA.toString(), travelTime: 0, energyCost: 15, description: 'Northeast to Kaiowa Mesa' },
-      { targetLocationId: LOCATION_IDS.SANGRE_CANYON.toString(), travelTime: 0, energyCost: 10, description: 'Northwest to Sangre Canyon' }
+      { targetLocationId: LOCATION_IDS.SANGRE_CANYON.toString(), travelTime: 0, energyCost: 10, description: 'Northwest to Sangre Canyon' },
+      { targetLocationId: '6501a0000000000000000022', travelTime: 0, energyCost: 3, description: 'To Smuggler\'s Den' },
+      { targetLocationId: LOCATION_IDS.THE_BADLANDS.toString(), travelTime: 0, energyCost: 18, description: 'South to The Badlands' }
     ],
     dangerLevel: 6,
     factionInfluence: { settlerAlliance: 10, nahiCoalition: 15, frontera: 75 },
@@ -223,6 +243,8 @@ const locationSeeds = [
     shortDescription: 'U.S. Army garrison',
     type: 'fort',
     region: 'town',
+    zone: ZONES.SETTLER_TERRITORY,
+    isZoneHub: false,
     icon: '🏰',
     atmosphere: 'Disciplined routine rules here. Bugle calls mark the hours, soldiers drill in formation. The stockade holds Coalition prisoners.',
     availableActions: [],
@@ -289,6 +311,8 @@ const locationSeeds = [
     shortDescription: 'Coalition stronghold and spiritual center',
     type: 'mesa',
     region: 'sacred_lands',
+    zone: ZONES.COALITION_LANDS,
+    isZoneHub: true,
     icon: '🏔️',
     atmosphere: 'Wind whispers constantly. Drums and chanting drift from ceremonial grounds. Children learn traditional ways while warriors patrol the trails.',
     availableActions: [],
@@ -350,7 +374,11 @@ const locationSeeds = [
     connections: [
       { targetLocationId: LOCATION_IDS.THE_FRONTERA.toString(), travelTime: 0, energyCost: 15, description: 'Southwest to The Frontera' },
       { targetLocationId: LOCATION_IDS.THUNDERBIRDS_PERCH.toString(), travelTime: 0, energyCost: 8, description: 'North to Thunderbird\'s Perch' },
-      { targetLocationId: LOCATION_IDS.THE_SCAR.toString(), travelTime: 0, energyCost: 15, description: 'West to The Scar' }
+      { targetLocationId: LOCATION_IDS.THE_SCAR.toString(), travelTime: 0, energyCost: 15, description: 'West to The Scar' },
+      { targetLocationId: '6501a0000000000000000021', travelTime: 0, energyCost: 3, description: 'To Sacred Springs' },
+      { targetLocationId: LOCATION_IDS.ANCESTORS_SPRING.toString(), travelTime: 0, energyCost: 10, description: 'South to Ancestor\'s Spring' },
+      { targetLocationId: LOCATION_IDS.BONE_GARDEN.toString(), travelTime: 0, energyCost: 12, description: 'West to Bone Garden', requirements: { faction: 'NAHI_COALITION', factionStanding: 'friendly' } },
+      { targetLocationId: LOCATION_IDS.RAILROAD_WOUND.toString(), travelTime: 0, energyCost: 12, description: 'South to Railroad Wound' }
     ],
     dangerLevel: 5,
     factionInfluence: { settlerAlliance: 5, nahiCoalition: 90, frontera: 5 },
@@ -366,6 +394,8 @@ const locationSeeds = [
     shortDescription: 'Central canyon with Rio Sangre',
     type: 'canyon',
     region: 'devils_canyon',
+    zone: ZONES.SANGRE_CANYON,
+    isZoneHub: true,
     icon: '🏜️',
     atmosphere: 'The Rio Sangre flows cold and clear through towering red walls. Ancient petroglyphs decorate cliff faces.',
     availableActions: [],
@@ -405,7 +435,10 @@ const locationSeeds = [
       { targetLocationId: LOCATION_IDS.RED_GULCH.toString(), travelTime: 0, energyCost: 12, description: 'East to Red Gulch' },
       { targetLocationId: LOCATION_IDS.THE_FRONTERA.toString(), travelTime: 0, energyCost: 10, description: 'Southeast to The Frontera' },
       { targetLocationId: LOCATION_IDS.GOLDFINGERS_MINE.toString(), travelTime: 0, energyCost: 8, description: 'North to Goldfinger\'s Mine' },
-      { targetLocationId: LOCATION_IDS.DUSTY_TRAIL.toString(), travelTime: 0, energyCost: 10, description: 'South to Dusty Trail' }
+      { targetLocationId: LOCATION_IDS.DUSTY_TRAIL.toString(), travelTime: 0, energyCost: 10, description: 'South to Dusty Trail' },
+      { targetLocationId: LOCATION_IDS.ECHO_CAVES.toString(), travelTime: 0, energyCost: 8, description: 'North to Echo Caves' },
+      { targetLocationId: LOCATION_IDS.COYOTES_CROSSROADS.toString(), travelTime: 0, energyCost: 12, description: 'South to Coyote\'s Crossroads' },
+      { targetLocationId: LOCATION_IDS.DEAD_MANS_STRETCH.toString(), travelTime: 0, energyCost: 10, description: 'South to Dead Man\'s Stretch' }
     ],
     dangerLevel: 7,
     factionInfluence: { settlerAlliance: 30, nahiCoalition: 30, frontera: 40 },
@@ -421,6 +454,8 @@ const locationSeeds = [
     shortDescription: 'Primary gold mine (haunted)',
     type: 'mine',
     region: 'sangre_mountains',
+    zone: ZONES.SANGRE_CANYON,
+    isZoneHub: false,
     icon: '⛏️',
     atmosphere: 'Steam engines thump and pickaxes crack. Exhausted miners emerge covered in red dust. Workers whisper about seeing Goldfinger\'s ghost.',
     availableActions: [],
@@ -488,6 +523,8 @@ const locationSeeds = [
     shortDescription: 'Sacred peak (extremely dangerous)',
     type: 'sacred_site',
     region: 'sacred_lands',
+    zone: ZONES.SACRED_MOUNTAINS,
+    isZoneHub: false,
     icon: '⛰️',
     atmosphere: 'Wind howls constantly. Thunder rumbles even when clear. Prayer offerings flutter from rock cairns.',
     availableActions: [],
@@ -506,7 +543,9 @@ const locationSeeds = [
       }
     ],
     connections: [
-      { targetLocationId: LOCATION_IDS.KAIOWA_MESA.toString(), travelTime: 0, energyCost: 8, description: 'South to Kaiowa Mesa' }
+      { targetLocationId: LOCATION_IDS.KAIOWA_MESA.toString(), travelTime: 0, energyCost: 8, description: 'South to Kaiowa Mesa' },
+      { targetLocationId: LOCATION_IDS.WHISPERING_STONES.toString(), travelTime: 0, energyCost: 15, description: 'North to Whispering Stones' },
+      { targetLocationId: LOCATION_IDS.SACRED_HEART_MOUNTAINS.toString(), travelTime: 0, energyCost: 10, description: 'West to Sacred Heart Mountains' }
     ],
     dangerLevel: 9,
     factionInfluence: { settlerAlliance: 0, nahiCoalition: 95, frontera: 5 },
@@ -523,6 +562,8 @@ const locationSeeds = [
     shortDescription: 'Forbidden abyss (cosmic horror site)',
     type: 'canyon',
     region: 'devils_canyon',
+    zone: ZONES.SACRED_MOUNTAINS,
+    isZoneHub: false,
     icon: '🕳️',
     atmosphere: 'Unnatural cold emanates from the fissure despite the desert heat. Whispers rise from depths that should be silent. Shadows move with no source. Animals refuse to approach within a mile. The wrongness is palpable - reality feels thin here, as if the universe itself recoils from what sleeps below.',
     availableActions: [],
@@ -531,7 +572,8 @@ const locationSeeds = [
     shops: [],
     npcs: [],
     connections: [
-      { targetLocationId: LOCATION_IDS.KAIOWA_MESA.toString(), travelTime: 0, energyCost: 15, description: 'East to Kaiowa Mesa' }
+      { targetLocationId: LOCATION_IDS.KAIOWA_MESA.toString(), travelTime: 0, energyCost: 15, description: 'East to Kaiowa Mesa' },
+      { targetLocationId: LOCATION_IDS.SACRED_HEART_MOUNTAINS.toString(), travelTime: 0, energyCost: 12, description: 'North to Sacred Heart Mountains' }
     ],
     dangerLevel: 10,
     factionInfluence: { settlerAlliance: 0, nahiCoalition: 100, frontera: 0 },
@@ -548,6 +590,8 @@ const locationSeeds = [
     shortDescription: 'Main trade route (bandit territory)',
     type: 'wilderness',
     region: 'dusty_flats',
+    zone: ZONES.RANCH_COUNTRY,
+    isZoneHub: false,
     icon: '🛤️',
     atmosphere: 'Heat shimmers off the flat expanse. Wagon ruts cut deep. Scattered bones mark failed journeys.',
     availableActions: [],
@@ -576,7 +620,8 @@ const locationSeeds = [
     npcs: [],
     connections: [
       { targetLocationId: LOCATION_IDS.SANGRE_CANYON.toString(), travelTime: 0, energyCost: 10, description: 'North to Sangre Canyon' },
-      { targetLocationId: LOCATION_IDS.LONGHORN_RANCH.toString(), travelTime: 0, energyCost: 8, description: 'East to Longhorn Ranch' }
+      { targetLocationId: LOCATION_IDS.LONGHORN_RANCH.toString(), travelTime: 0, energyCost: 8, description: 'East to Longhorn Ranch' },
+      { targetLocationId: LOCATION_IDS.DEAD_MANS_STRETCH.toString(), travelTime: 0, energyCost: 12, description: 'North to Dead Man\'s Stretch' }
     ],
     dangerLevel: 7,
     factionInfluence: { settlerAlliance: 40, nahiCoalition: 10, frontera: 50 },
@@ -592,6 +637,8 @@ const locationSeeds = [
     shortDescription: 'Major cattle ranch',
     type: 'ranch',
     region: 'dusty_flats',
+    zone: ZONES.RANCH_COUNTRY,
+    isZoneHub: true,
     icon: '🐄',
     atmosphere: 'Cattle low in vast herds. Cowboys work the range from dawn to dusk. Brands sizzle, leather creaks.',
     availableActions: [],
@@ -646,6 +693,8 @@ const locationSeeds = [
     shortDescription: 'Sacred hot springs (neutral ground)',
     type: 'springs',
     region: 'sacred_lands',
+    zone: ZONES.COALITION_LANDS,
+    isZoneHub: false,
     icon: '♨️',
     atmosphere: 'Steam rises from turquoise pools. Peace prevails here - weapons are forbidden.',
     availableActions: [],
@@ -704,6 +753,8 @@ const locationSeeds = [
     shortDescription: 'Gambling and vice town',
     type: 'settlement',
     region: 'frontier',
+    zone: ZONES.FRONTIER,
+    isZoneHub: true,
     icon: '🎰',
     atmosphere: 'Piano music and laughter spill from every doorway. Cards shuffle and dice roll at all hours.',
     availableActions: [],
@@ -764,7 +815,8 @@ const locationSeeds = [
     ],
     connections: [
       { targetLocationId: LOCATION_IDS.SPIRIT_SPRINGS.toString(), travelTime: 0, energyCost: 12, description: 'West to Spirit Springs' },
-      { targetLocationId: LOCATION_IDS.RED_GULCH.toString(), travelTime: 0, energyCost: 15, description: 'North to Red Gulch' }
+      { targetLocationId: LOCATION_IDS.RED_GULCH.toString(), travelTime: 0, energyCost: 15, description: 'North to Red Gulch' },
+      { targetLocationId: LOCATION_IDS.COYOTES_CROSSROADS.toString(), travelTime: 0, energyCost: 10, description: 'West to Coyote\'s Crossroads' }
     ],
     dangerLevel: 5,
     factionInfluence: { settlerAlliance: 45, nahiCoalition: 5, frontera: 50 },
@@ -780,6 +832,8 @@ const locationSeeds = [
     shortDescription: 'Lawless desert wasteland (raider territory)',
     type: 'wasteland',
     region: 'dusty_flats',
+    zone: ZONES.OUTLAW_TERRITORY,
+    isZoneHub: false,
     icon: '☠️',
     atmosphere: 'Dust devils dance across cracked earth. Scavenged metal structures rust under a merciless sun. The air shimmers with heat and the stench of desperation. Distant screams from the fighting pits echo across the dunes. Carrion birds circle endlessly. This is a land where hope died and predators thrived.',
     availableActions: [],
@@ -789,13 +843,339 @@ const locationSeeds = [
     npcs: [],
     connections: [
       { targetLocationId: LOCATION_IDS.DUSTY_TRAIL.toString(), travelTime: 0, energyCost: 20, description: 'Northeast to Dusty Trail' },
-      { targetLocationId: LOCATION_IDS.THE_FRONTERA.toString(), travelTime: 0, energyCost: 18, description: 'East to The Frontera' }
+      { targetLocationId: LOCATION_IDS.THE_FRONTERA.toString(), travelTime: 0, energyCost: 18, description: 'East to The Frontera' },
+      { targetLocationId: LOCATION_IDS.THE_BADLANDS.toString(), travelTime: 0, energyCost: 15, description: 'West to The Badlands' }
     ],
     dangerLevel: 8,
     factionInfluence: { settlerAlliance: 5, nahiCoalition: 0, frontera: 95 },
     isUnlocked: true,
     isHidden: false,
     requirements: { minLevel: 25 }
+  },
+
+  // ===== 14. WHISPERING STONES - Circle of the Ancients =====
+  {
+    _id: LOCATION_IDS.WHISPERING_STONES,
+    name: 'Whispering Stones',
+    description: 'A perfect circle of seven standing stones atop a windswept plateau. Each stone is 15 feet tall, carved from black basalt not native to this region. The stones emit continuous low-frequency sounds - whispers that some claim to understand before going mad.',
+    shortDescription: 'Ancient stone circle (dangerous)',
+    type: 'sacred_site',
+    region: 'sacred_lands',
+    zone: ZONES.SACRED_MOUNTAINS,
+    isZoneHub: false,
+    icon: '🗿',
+    atmosphere: 'The constant whispers fill your mind. The stones are cold to the touch, even under the blazing sun. Compasses spin wildly here. Those who listen too long hear prophecy... or madness.',
+    availableActions: [],
+    availableCrimes: [],
+    jobs: [],
+    shops: [],
+    npcs: [],
+    connections: [
+      { targetLocationId: LOCATION_IDS.THUNDERBIRDS_PERCH.toString(), travelTime: 0, energyCost: 15, description: 'South to Thunderbird\'s Perch' }
+    ],
+    dangerLevel: 10,
+    factionInfluence: { settlerAlliance: 0, nahiCoalition: 50, frontera: 0 },
+    isUnlocked: true,
+    isHidden: false,
+    requirements: { minLevel: 25 }
+  },
+
+  // ===== 15. ANCESTOR'S SPRING (Destroyed) =====
+  {
+    _id: LOCATION_IDS.ANCESTORS_SPRING,
+    name: "Ancestor's Spring",
+    description: 'Once the most sacred Tseka site, now a scar of mud, rubble, and mine tailings. The spring ran dry in 1867 when mining disrupted the aquifer. Dead cottonwoods stand like gravestones over what was lost forever.',
+    shortDescription: 'Destroyed sacred spring (Coalition grief)',
+    type: 'ruins',
+    region: 'sacred_lands',
+    zone: ZONES.COALITION_LANDS,
+    isZoneHub: false,
+    icon: '💔',
+    atmosphere: 'The land itself feels wounded. Bitter spirits linger here. Coalition members who visit experience profound grief. Some report hearing water flowing - the ghost of the spring.',
+    availableActions: [],
+    availableCrimes: [],
+    jobs: [],
+    shops: [],
+    npcs: [],
+    connections: [
+      { targetLocationId: LOCATION_IDS.KAIOWA_MESA.toString(), travelTime: 0, energyCost: 10, description: 'North to Kaiowa Mesa' }
+    ],
+    dangerLevel: 5,
+    factionInfluence: { settlerAlliance: 0, nahiCoalition: 100, frontera: 0 },
+    isUnlocked: true,
+    isHidden: false,
+    requirements: { minLevel: 10 }
+  },
+
+  // ===== 16. BONE GARDEN - Where the Dead Speak =====
+  {
+    _id: LOCATION_IDS.BONE_GARDEN,
+    name: 'Bone Garden',
+    description: 'A hidden valley filled with thousands of burial cairns, bone scaffolds, and grave markers. This is the primary burial site for all three Coalition nations. The sheer number of dead creates a powerful spiritual nexus where the Bone Mother presides.',
+    shortDescription: 'Ancient burial ground (spirits)',
+    type: 'sacred_site',
+    region: 'sacred_lands',
+    zone: ZONES.COALITION_LANDS,
+    isZoneHub: false,
+    icon: '💀',
+    atmosphere: 'Whispers of the dead surround you. The Bone Mother judges all who enter. Offerings must be left at the entrance. Those who show respect may speak with ancestors. Those who violate the garden face ancient curses.',
+    availableActions: [],
+    availableCrimes: [],
+    jobs: [],
+    shops: [],
+    npcs: [
+      {
+        id: 'bone-mother-spirit',
+        name: 'The Bone Mother',
+        title: 'Guardian of the Dead',
+        description: 'An ancient death spirit appearing as a skeletal figure in tattered burial shroud.',
+        dialogue: ['Leave your offering...', 'The dead have much to say to those who listen...'],
+        quests: ['speak-with-dead']
+      }
+    ],
+    connections: [
+      { targetLocationId: LOCATION_IDS.KAIOWA_MESA.toString(), travelTime: 0, energyCost: 12, description: 'East to Kaiowa Mesa' }
+    ],
+    dangerLevel: 7,
+    factionInfluence: { settlerAlliance: 0, nahiCoalition: 100, frontera: 0 },
+    isUnlocked: true,
+    isHidden: true,
+    requirements: { minLevel: 15, faction: 'NAHI_COALITION', factionStanding: 'friendly' }
+  },
+
+  // ===== 17. ECHO CAVES - Halls of Prophecy =====
+  {
+    _id: LOCATION_IDS.ECHO_CAVES,
+    name: 'Echo Caves',
+    description: 'A vast cave system with extraordinary acoustic properties. Sounds echo for minutes, creating overlapping layers. Some echoes seem to originate from the future - sounds that haven\'t happened yet.',
+    shortDescription: 'Prophetic cave system',
+    type: 'cave',
+    region: 'devils_canyon',
+    zone: ZONES.SANGRE_CANYON,
+    isZoneHub: false,
+    icon: '🔊',
+    atmosphere: 'Time feels thin here. Past, present, and future blur in the echoing chambers. Shamans use these caves for prophecy. The deeper you go, the stranger the echoes become.',
+    availableActions: [],
+    availableCrimes: [],
+    jobs: [
+      {
+        id: 'cave-exploration',
+        name: 'Explore Caves',
+        description: 'Map deeper sections of the cave system.',
+        energyCost: 20,
+        cooldownMinutes: 60,
+        rewards: { goldMin: 10, goldMax: 30, xp: 40, items: ['cave-crystal'] },
+        requirements: { minLevel: 10 }
+      }
+    ],
+    shops: [],
+    npcs: [],
+    connections: [
+      { targetLocationId: LOCATION_IDS.SANGRE_CANYON.toString(), travelTime: 0, energyCost: 8, description: 'South to Sangre Canyon' }
+    ],
+    dangerLevel: 6,
+    factionInfluence: { settlerAlliance: 20, nahiCoalition: 50, frontera: 30 },
+    isUnlocked: true,
+    isHidden: false,
+    requirements: { minLevel: 8 }
+  },
+
+  // ===== 18. COYOTE'S CROSSROADS =====
+  {
+    _id: LOCATION_IDS.COYOTES_CROSSROADS,
+    name: "Coyote's Crossroads",
+    description: 'The only place where four canyons intersect, creating a perfect cross shape. This is the domain of the Coyote King, the trickster spirit. Strange things happen here - nothing is as it seems.',
+    shortDescription: 'Trickster spirit domain',
+    type: 'sacred_site',
+    region: 'frontier',
+    zone: ZONES.FRONTIER,
+    isZoneHub: false,
+    icon: '🦊',
+    atmosphere: 'Luck bends strangely here. The Coyote King appears to test the worthy - or humiliate the foolish. Those who pass his trials gain blessings. Those who fail... learn lessons the hard way.',
+    availableActions: [],
+    availableCrimes: [],
+    jobs: [],
+    shops: [],
+    npcs: [
+      {
+        id: 'coyote-king-avatar',
+        name: 'Laughing Coyote',
+        title: 'Mysterious Stranger',
+        description: 'A figure who might be the Coyote King himself - or just a very clever old man.',
+        dialogue: ['Care to play a game?', 'The crossroads remember those who pass through...', 'Fortune favors the bold and the foolish equally.'],
+        quests: ['coyotes-trial']
+      }
+    ],
+    connections: [
+      { targetLocationId: LOCATION_IDS.WHISKEY_BEND.toString(), travelTime: 0, energyCost: 10, description: 'East to Whiskey Bend' },
+      { targetLocationId: LOCATION_IDS.SANGRE_CANYON.toString(), travelTime: 0, energyCost: 12, description: 'North to Sangre Canyon' }
+    ],
+    dangerLevel: 5,
+    factionInfluence: { settlerAlliance: 20, nahiCoalition: 30, frontera: 50 },
+    isUnlocked: true,
+    isHidden: false,
+    requirements: { minLevel: 5 }
+  },
+
+  // ===== 19. THE RAILROAD WOUND =====
+  {
+    _id: LOCATION_IDS.RAILROAD_WOUND,
+    name: 'The Railroad Wound',
+    description: 'Where the railroad tracks cut through Kaiowa sacred lands. The Coalition calls it "The Railroad Wound" - a scar where technology violated sacred balance. The Iron Horse Revenant, a ghost train, is said to appear at midnight.',
+    shortDescription: 'Railroad through sacred land',
+    type: 'train_station',
+    region: 'town',
+    zone: ZONES.SETTLER_TERRITORY,
+    isZoneHub: false,
+    icon: '🚂',
+    atmosphere: 'Iron rails slice through red stone. Scattered buffalo bones bleach in the sun. Workers speak of accidents and a ghost train that runs the old routes. The land itself seems to resist progress.',
+    availableActions: [],
+    availableCrimes: ['Train Robbery', 'Sabotage'],
+    jobs: [
+      {
+        id: 'railroad-work',
+        name: 'Railroad Work',
+        description: 'Maintain the tracks and assist operations.',
+        energyCost: 20,
+        cooldownMinutes: 45,
+        rewards: { goldMin: 15, goldMax: 30, xp: 30, items: [] },
+        requirements: { minLevel: 1 }
+      }
+    ],
+    shops: [],
+    npcs: [
+      {
+        id: 'railroad-foreman',
+        name: 'Hank Wheeler',
+        title: 'Railroad Foreman',
+        description: 'A gruff man who dismisses talk of ghosts but crosses himself when the midnight train whistle blows.',
+        faction: 'SETTLER_ALLIANCE',
+        dialogue: ['We got schedules to keep.', 'Don\'t listen to superstitious nonsense.'],
+        quests: ['ghost-train-investigation']
+      }
+    ],
+    connections: [
+      { targetLocationId: LOCATION_IDS.RED_GULCH.toString(), travelTime: 0, energyCost: 8, description: 'West to Red Gulch' },
+      { targetLocationId: LOCATION_IDS.KAIOWA_MESA.toString(), travelTime: 0, energyCost: 12, description: 'North to Kaiowa Mesa' }
+    ],
+    dangerLevel: 4,
+    factionInfluence: { settlerAlliance: 85, nahiCoalition: 5, frontera: 10 },
+    isUnlocked: true,
+    isHidden: false
+  },
+
+  // ===== 20. THE BADLANDS =====
+  {
+    _id: LOCATION_IDS.THE_BADLANDS,
+    name: 'The Badlands',
+    description: 'A volcanic desolation of black rock, hot springs, and sulfurous vents. Nothing grows here. The most desperate outlaws and the most dangerous predators make their homes in this hellscape.',
+    shortDescription: 'Volcanic desolation',
+    type: 'wilderness',
+    region: 'outlaw_territory',
+    zone: ZONES.OUTLAW_TERRITORY,
+    isZoneHub: false,
+    icon: '🌋',
+    atmosphere: 'Sulfur burns your nostrils. Steam vents hiss from cracks in the black stone. The heat is oppressive even at night. Only the truly desperate or truly dangerous come here.',
+    availableActions: [],
+    availableCrimes: [],
+    jobs: [
+      {
+        id: 'sulfur-mining',
+        name: 'Collect Sulfur',
+        description: 'Harvest sulfur deposits from the vents.',
+        energyCost: 25,
+        cooldownMinutes: 60,
+        rewards: { goldMin: 20, goldMax: 40, xp: 35, items: ['sulfur'] },
+        requirements: { minLevel: 15 }
+      }
+    ],
+    shops: [],
+    npcs: [],
+    connections: [
+      { targetLocationId: LOCATION_IDS.THE_WASTES.toString(), travelTime: 0, energyCost: 15, description: 'East to The Wastes' },
+      { targetLocationId: LOCATION_IDS.THE_FRONTERA.toString(), travelTime: 0, energyCost: 18, description: 'North to The Frontera' }
+    ],
+    dangerLevel: 9,
+    factionInfluence: { settlerAlliance: 0, nahiCoalition: 0, frontera: 100 },
+    isUnlocked: true,
+    isHidden: false,
+    requirements: { minLevel: 20 }
+  },
+
+  // ===== 21. SACRED HEART MOUNTAINS =====
+  {
+    _id: LOCATION_IDS.SACRED_HEART_MOUNTAINS,
+    name: 'Sacred Heart Mountains',
+    description: 'The towering peaks that guard the northern reaches. Ancient spirits dwell in these heights. The air grows thin and the paths treacherous. Only the most devoted pilgrims reach the summit shrines.',
+    shortDescription: 'Mystical mountain range',
+    type: 'sacred_site',
+    region: 'sangre_mountains',
+    zone: ZONES.SACRED_MOUNTAINS,
+    isZoneHub: false,
+    icon: '🏔️',
+    atmosphere: 'The wind carries voices of ancestors. Prayer flags flutter from every peak. Snow caps gleam even in summer. The spirits here are ancient beyond memory.',
+    availableActions: [],
+    availableCrimes: [],
+    jobs: [
+      {
+        id: 'mountain-guide',
+        name: 'Mountain Guide',
+        description: 'Lead pilgrims safely through the passes.',
+        energyCost: 20,
+        cooldownMinutes: 45,
+        rewards: { goldMin: 15, goldMax: 28, xp: 35, items: [] },
+        requirements: { minLevel: 12 }
+      }
+    ],
+    shops: [],
+    npcs: [],
+    connections: [
+      { targetLocationId: LOCATION_IDS.THUNDERBIRDS_PERCH.toString(), travelTime: 0, energyCost: 10, description: 'East to Thunderbird\'s Perch' },
+      { targetLocationId: LOCATION_IDS.THE_SCAR.toString(), travelTime: 0, energyCost: 12, description: 'South to The Scar' }
+    ],
+    dangerLevel: 8,
+    factionInfluence: { settlerAlliance: 5, nahiCoalition: 90, frontera: 5 },
+    isUnlocked: true,
+    isHidden: false,
+    requirements: { minLevel: 18 }
+  },
+
+  // ===== 22. DEAD MAN'S STRETCH =====
+  {
+    _id: LOCATION_IDS.DEAD_MANS_STRETCH,
+    name: "Dead Man's Stretch",
+    description: 'A treacherous passage through the canyon where countless travelers have met their end. Bleached bones line the trail. Bandits lurk in the shadows. The only direct route between settlements - and the most dangerous.',
+    shortDescription: 'Deadly canyon passage',
+    type: 'canyon',
+    region: 'devils_canyon',
+    zone: ZONES.SANGRE_CANYON,
+    isZoneHub: false,
+    icon: '☠️',
+    atmosphere: 'The walls close in here. Shadows hide a thousand ambush points. Vultures circle overhead. Every traveler moves with hand on weapon, eyes scanning the cliffs.',
+    availableActions: [],
+    availableCrimes: ['Stage Coach Robbery', 'Ambush Travelers'],
+    jobs: [
+      {
+        id: 'stretch-escort',
+        name: 'Escort Duty',
+        description: 'Guard travelers through the most dangerous stretch.',
+        energyCost: 25,
+        cooldownMinutes: 60,
+        rewards: { goldMin: 30, goldMax: 50, xp: 45, items: [] },
+        requirements: { minLevel: 10 }
+      }
+    ],
+    shops: [],
+    npcs: [],
+    connections: [
+      { targetLocationId: LOCATION_IDS.SANGRE_CANYON.toString(), travelTime: 0, energyCost: 10, description: 'North to Sangre Canyon' },
+      { targetLocationId: LOCATION_IDS.DUSTY_TRAIL.toString(), travelTime: 0, energyCost: 12, description: 'South to Dusty Trail' }
+    ],
+    dangerLevel: 9,
+    factionInfluence: { settlerAlliance: 20, nahiCoalition: 20, frontera: 60 },
+    isUnlocked: true,
+    isHidden: false,
+    requirements: { minLevel: 8 }
   }
 ];
 
@@ -812,7 +1192,7 @@ export async function seedLocations(): Promise<void> {
 
     console.log(`Successfully seeded ${locationSeeds.length + frontierLocations.length} locations`);
   } catch (error) {
-    console.error('Error seeding locations:', error);
+    logger.error('Error seeding locations', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }

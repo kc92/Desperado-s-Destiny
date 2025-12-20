@@ -5,7 +5,8 @@
 
 import { create } from 'zustand';
 import type { Friend, FriendWithOnlineStatus } from '@desperados/shared';
-import { api } from '@/services/api';
+import { friendService } from '@/services/friend.service';
+import { logger } from '@/services/logger.service';
 
 interface FriendStore {
   friends: FriendWithOnlineStatus[];
@@ -33,16 +34,19 @@ export const useFriendStore = create<FriendStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await api.get('/friends');
+      const friends = await friendService.getFriends();
 
       set({
-        friends: response.data.data,
+        friends,
         isLoading: false
       });
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch friends';
+      logger.error('Failed to fetch friends', error, { errorMessage });
+
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to fetch friends'
+        error: errorMessage
       });
       throw error;
     }
@@ -52,16 +56,19 @@ export const useFriendStore = create<FriendStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await api.get('/friends/requests');
+      const requests = await friendService.getFriendRequests();
 
       set({
-        requests: response.data.data,
+        requests,
         isLoading: false
       });
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch friend requests';
+      logger.error('Failed to fetch friend requests', error, { errorMessage });
+
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to fetch friend requests'
+        error: errorMessage
       });
       throw error;
     }
@@ -71,14 +78,17 @@ export const useFriendStore = create<FriendStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.post('/friends/request', { recipientId });
+      await friendService.sendFriendRequest(recipientId);
       set({ isLoading: false });
 
       await get().fetchFriends();
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to send friend request';
+      logger.error('Failed to send friend request', error, { recipientId, errorMessage });
+
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to send friend request'
+        error: errorMessage
       });
       throw error;
     }
@@ -88,15 +98,18 @@ export const useFriendStore = create<FriendStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.post(`/friends/${requestId}/accept`);
+      await friendService.acceptFriendRequest(requestId);
       set({ isLoading: false });
 
       await get().fetchRequests();
       await get().fetchFriends();
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to accept friend request';
+      logger.error('Failed to accept friend request', error, { requestId, errorMessage });
+
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to accept friend request'
+        error: errorMessage
       });
       throw error;
     }
@@ -106,14 +119,17 @@ export const useFriendStore = create<FriendStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.post(`/friends/${requestId}/reject`);
+      await friendService.rejectFriendRequest(requestId);
       set({ isLoading: false });
 
       await get().fetchRequests();
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to reject friend request';
+      logger.error('Failed to reject friend request', error, { requestId, errorMessage });
+
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to reject friend request'
+        error: errorMessage
       });
       throw error;
     }
@@ -123,14 +139,17 @@ export const useFriendStore = create<FriendStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.delete(`/friends/${friendId}`);
+      await friendService.removeFriend(friendId);
       set({ isLoading: false });
 
       await get().fetchFriends();
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to remove friend';
+      logger.error('Failed to remove friend', error, { friendId, errorMessage });
+
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to remove friend'
+        error: errorMessage
       });
       throw error;
     }
@@ -140,14 +159,17 @@ export const useFriendStore = create<FriendStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.post(`/friends/block/${userId}`);
+      await friendService.blockUser(userId);
       set({ isLoading: false });
 
       await get().fetchFriends();
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to block user';
+      logger.error('Failed to block user', error, { userId, errorMessage });
+
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to block user'
+        error: errorMessage
       });
       throw error;
     }

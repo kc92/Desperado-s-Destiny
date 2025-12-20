@@ -7,8 +7,8 @@
 import mongoose from 'mongoose';
 import { AnimalCompanion, IAnimalCompanion } from '../models/AnimalCompanion.model';
 import { Character, ICharacter } from '../models/Character.model';
-import { GoldService } from './gold.service';
-import { TransactionSource } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import {
   CompanionSpecies,
   CompanionAbilityId,
@@ -153,16 +153,16 @@ export class CompanionService {
         throw new AppError('Kennel is full', 400);
       }
 
-      // Check gold
-      if (!character.hasGold(speciesDef.purchasePrice)) {
+      // Check dollars
+      if (!character.hasDollars(speciesDef.purchasePrice)) {
         throw new AppError(
-          `Insufficient gold. Need ${speciesDef.purchasePrice}, have ${character.gold}`,
+          `Insufficient dollars. Need ${speciesDef.purchasePrice}, have ${character.dollars}`,
           400
         );
       }
 
-      // Deduct gold
-      await character.deductGold(
+      // Deduct dollars
+      await character.deductDollars(
         speciesDef.purchasePrice,
         TransactionSource.COMPANION_PURCHASE,
         { species, name }
@@ -205,7 +205,7 @@ export class CompanionService {
       session.endSession();
 
       logger.info(
-        `Character ${character.name} purchased ${species} companion "${name}" for ${speciesDef.purchasePrice} gold`
+        `Character ${character.name} purchased ${species} companion "${name}" for ${speciesDef.purchasePrice} dollars`
       );
 
       return companion;
@@ -303,13 +303,13 @@ export class CompanionService {
 
       const foodCost = speciesDef.careRequirements.dailyFoodCost;
 
-      // Check gold
-      if (!character.hasGold(foodCost)) {
-        throw new AppError(`Insufficient gold. Need ${foodCost}, have ${character.gold}`, 400);
+      // Check dollars
+      if (!character.hasDollars(foodCost)) {
+        throw new AppError(`Insufficient dollars. Need ${foodCost}, have ${character.dollars}`, 400);
       }
 
-      // Deduct gold
-      await character.deductGold(
+      // Deduct dollars
+      await character.deductDollars(
         foodCost,
         TransactionSource.COMPANION_CARE,
         { companionId: companion._id, companionName: companion.name, action: 'feed' }
@@ -376,13 +376,13 @@ export class CompanionService {
       // Calculate cost
       const healCost = Math.ceil(healthDeficit * COMPANION_CONSTANTS.HEAL_COST_PER_HP);
 
-      // Check gold
-      if (!character.hasGold(healCost)) {
-        throw new AppError(`Insufficient gold. Need ${healCost}, have ${character.gold}`, 400);
+      // Check dollars
+      if (!character.hasDollars(healCost)) {
+        throw new AppError(`Insufficient dollars. Need ${healCost}, have ${character.dollars}`, 400);
       }
 
-      // Deduct gold
-      await character.deductGold(
+      // Deduct dollars
+      await character.deductDollars(
         healCost,
         TransactionSource.COMPANION_CARE,
         { companionId: companion._id, companionName: companion.name, action: 'heal' }
@@ -454,13 +454,13 @@ export class CompanionService {
 
       const trainingCost = Math.ceil(ability.power * 10);
 
-      // Check gold
-      if (!character.hasGold(trainingCost)) {
-        throw new AppError(`Insufficient gold. Need ${trainingCost}, have ${character.gold}`, 400);
+      // Check dollars
+      if (!character.hasDollars(trainingCost)) {
+        throw new AppError(`Insufficient dollars. Need ${trainingCost}, have ${character.dollars}`, 400);
       }
 
-      // Deduct gold
-      await character.deductGold(
+      // Deduct dollars
+      await character.deductDollars(
         trainingCost,
         TransactionSource.COMPANION_CARE,
         { companionId: companion._id, companionName: companion.name, action: 'train', abilityId }

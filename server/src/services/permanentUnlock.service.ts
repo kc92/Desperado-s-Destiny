@@ -170,7 +170,7 @@ async function evaluateRequirement(
     }
 
     case UnlockRequirementType.CHARACTER_LEVEL: {
-      const characters = await Character.find({ userId: objectId });
+      const characters = await Character.find({ userId: objectId }).select('level').lean();
       const maxLevel = Math.max(...characters.map(c => c.level || 1), 0);
       const requiredLevel = requirement.minValue || 0;
 
@@ -244,7 +244,7 @@ async function evaluateRequirement(
     }
 
     case UnlockRequirementType.GANG_RANK: {
-      const characters = await Character.find({ userId: objectId });
+      const characters = await Character.find({ userId: objectId }).select('gangRank').lean();
       // TODO: Add gangRank to Character model (or calculate from gang membership)
       const maxGangRank = Math.max(...characters.map(c => (c as any).gangRank || 0), 0);
       const requiredRank = requirement.minValue || 0;

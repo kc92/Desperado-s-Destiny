@@ -33,16 +33,20 @@ export const getActiveQuests = asyncHandler(
     const characterId = req.character!._id.toString();
     const quests = await QuestService.getActiveQuests(characterId);
 
-    // Get definitions for each quest
-    const questsWithDefs = await Promise.all(
-      quests.map(async (quest) => {
-        const definition = await QuestDefinition.findOne({ questId: quest.questId });
-        return {
-          ...quest.toObject(),
-          definition
-        };
-      })
+    // Batch load all quest definitions in a single query
+    const questIds = quests.map(quest => quest.questId);
+    const definitions = await QuestDefinition.find({ questId: { $in: questIds } });
+
+    // Create a map for O(1) lookups
+    const definitionMap = new Map(
+      definitions.map(def => [def.questId, def])
     );
+
+    // Attach definitions to quests
+    const questsWithDefs = quests.map(quest => ({
+      ...quest.toObject(),
+      definition: definitionMap.get(quest.questId)
+    }));
 
     res.status(200).json({
       success: true,

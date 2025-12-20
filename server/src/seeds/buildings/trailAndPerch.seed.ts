@@ -7,6 +7,7 @@
  */
 
 import mongoose from 'mongoose';
+import logger from '../../utils/logger';
 import { Location } from '../../models/Location.model';
 import { LOCATION_IDS } from '../locations.seed';
 
@@ -1139,7 +1140,7 @@ export async function seedDustyTrailBuildings(): Promise<void> {
 
     console.log(`Successfully seeded ${dustyTrailBuildings.length} Dusty Trail buildings`);
   } catch (error) {
-    console.error('Error seeding Dusty Trail buildings:', error);
+    logger.error('Error seeding Dusty Trail buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }
@@ -1163,7 +1164,7 @@ export async function seedThunderbirdsPerchBuildings(): Promise<void> {
 
     console.log(`Successfully seeded ${thunderbirdsPerchBuildings.length} Thunderbird\'s Perch buildings`);
   } catch (error) {
-    console.error('Error seeding Thunderbird\'s Perch buildings:', error);
+    logger.error('Error seeding Thunderbird\'s Perch buildings', { error: error instanceof Error ? error.message : error });
     throw error;
   }
 }

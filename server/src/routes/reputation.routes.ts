@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import { ReputationController } from '../controllers/reputation.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();

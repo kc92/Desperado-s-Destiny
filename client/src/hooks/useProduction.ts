@@ -6,6 +6,7 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useCharacterStore } from '@/store/useCharacterStore';
+import { dispatchItemCrafted } from '@/utils/tutorialEvents';
 
 /**
  * Production status enum
@@ -267,10 +268,17 @@ export const useProduction = (): UseProductionReturn => {
         await refreshCharacter();
         await fetchActiveProductions();
         await fetchCompletedProductions();
+
+        // Dispatch tutorial event for crafting
+        const result = response.data.data.result;
+        if (result?.items?.length > 0) {
+          dispatchItemCrafted(result.items[0].itemId);
+        }
+
         return {
           success: true,
           message: response.data.data.message,
-          result: response.data.data.result,
+          result: result,
         };
       } catch (err: unknown) {
         const errorMessage =

@@ -5,12 +5,12 @@
 
 import React, { useState } from 'react';
 import { Card, Button, Modal } from '@/components/ui';
-import { formatGold } from '@/utils/format';
-import type {
-  PropertyUpgrade,
-  PropertyType,
-  PropertyTier,
+import { formatDollars } from '@/utils/format';
+import {
   UpgradeCategory,
+  type PropertyUpgrade,
+  type PropertyType,
+  type PropertyTier,
 } from '@desperados/shared';
 
 /**
@@ -61,7 +61,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'livestock_pen',
         name: 'Livestock Pen',
         description: 'Expand capacity for livestock',
-        category: 'capacity',
+        category: UpgradeCategory.CAPACITY,
         cost: 500,
         minTier: 1,
         maxLevel: 5,
@@ -72,7 +72,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'crop_field',
         name: 'Crop Field',
         description: 'Additional farming plots',
-        category: 'capacity',
+        category: UpgradeCategory.CAPACITY,
         cost: 400,
         minTier: 1,
         maxLevel: 5,
@@ -83,7 +83,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'well',
         name: 'Well',
         description: 'Water supply for irrigation',
-        category: 'efficiency',
+        category: UpgradeCategory.EFFICIENCY,
         cost: 600,
         minTier: 2,
         maxLevel: 3,
@@ -94,7 +94,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'barn',
         name: 'Barn',
         description: 'Storage and shelter for animals',
-        category: 'capacity',
+        category: UpgradeCategory.CAPACITY,
         cost: 800,
         minTier: 2,
         maxLevel: 3,
@@ -105,7 +105,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'windmill',
         name: 'Windmill',
         description: 'Automated grain processing',
-        category: 'efficiency',
+        category: UpgradeCategory.EFFICIENCY,
         cost: 1200,
         minTier: 3,
         maxLevel: 3,
@@ -118,7 +118,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'display_cases',
         name: 'Display Cases',
         description: 'Attract more customers',
-        category: 'efficiency',
+        category: UpgradeCategory.EFFICIENCY,
         cost: 400,
         minTier: 1,
         maxLevel: 5,
@@ -129,7 +129,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'back_room',
         name: 'Back Room',
         description: 'Additional storage space',
-        category: 'capacity',
+        category: UpgradeCategory.CAPACITY,
         cost: 500,
         minTier: 1,
         maxLevel: 3,
@@ -140,7 +140,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'sign',
         name: 'Shop Sign',
         description: 'Increase visibility',
-        category: 'efficiency',
+        category: UpgradeCategory.EFFICIENCY,
         cost: 200,
         minTier: 1,
         maxLevel: 3,
@@ -151,7 +151,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'security',
         name: 'Security System',
         description: 'Protect against theft',
-        category: 'defense',
+        category: UpgradeCategory.DEFENSE,
         cost: 800,
         minTier: 2,
         maxLevel: 3,
@@ -162,7 +162,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'expanded_inventory',
         name: 'Expanded Inventory',
         description: 'Stock more item types',
-        category: 'specialty',
+        category: UpgradeCategory.SPECIALTY,
         cost: 1000,
         minTier: 3,
         maxLevel: 3,
@@ -175,7 +175,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'forge',
         name: 'Forge',
         description: 'Metalworking capabilities',
-        category: 'specialty',
+        category: UpgradeCategory.SPECIALTY,
         cost: 600,
         minTier: 1,
         maxLevel: 5,
@@ -186,7 +186,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'workbench',
         name: 'Workbench',
         description: 'Improved crafting station',
-        category: 'efficiency',
+        category: UpgradeCategory.EFFICIENCY,
         cost: 400,
         minTier: 1,
         maxLevel: 5,
@@ -197,7 +197,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'tool_rack',
         name: 'Tool Rack',
         description: 'Organized tool storage',
-        category: 'capacity',
+        category: UpgradeCategory.CAPACITY,
         cost: 300,
         minTier: 1,
         maxLevel: 3,
@@ -208,7 +208,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'quality_tools',
         name: 'Quality Tools',
         description: 'Better crafting equipment',
-        category: 'efficiency',
+        category: UpgradeCategory.EFFICIENCY,
         cost: 800,
         minTier: 2,
         maxLevel: 3,
@@ -219,7 +219,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'ventilation',
         name: 'Ventilation',
         description: 'Improved working conditions',
-        category: 'comfort',
+        category: UpgradeCategory.COMFORT,
         cost: 500,
         minTier: 2,
         maxLevel: 3,
@@ -232,7 +232,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'bedroom',
         name: 'Bedroom',
         description: 'Additional sleeping quarters',
-        category: 'comfort',
+        category: UpgradeCategory.COMFORT,
         cost: 400,
         minTier: 1,
         maxLevel: 3,
@@ -243,7 +243,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'kitchen',
         name: 'Kitchen',
         description: 'Cooking facilities',
-        category: 'specialty',
+        category: UpgradeCategory.SPECIALTY,
         cost: 500,
         minTier: 1,
         maxLevel: 3,
@@ -254,7 +254,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'cellar',
         name: 'Cellar',
         description: 'Underground storage',
-        category: 'capacity',
+        category: UpgradeCategory.CAPACITY,
         cost: 600,
         minTier: 2,
         maxLevel: 3,
@@ -265,7 +265,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'garden',
         name: 'Garden',
         description: 'Small herb garden',
-        category: 'specialty',
+        category: UpgradeCategory.SPECIALTY,
         cost: 300,
         minTier: 1,
         maxLevel: 3,
@@ -276,7 +276,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'security_system',
         name: 'Security System',
         description: 'Protect your home',
-        category: 'defense',
+        category: UpgradeCategory.DEFENSE,
         cost: 700,
         minTier: 2,
         maxLevel: 3,
@@ -289,7 +289,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'support_beams',
         name: 'Support Beams',
         description: 'Reinforce mine shafts',
-        category: 'defense',
+        category: UpgradeCategory.DEFENSE,
         cost: 500,
         minTier: 1,
         maxLevel: 5,
@@ -300,7 +300,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'rail_system',
         name: 'Rail System',
         description: 'Transport ore faster',
-        category: 'efficiency',
+        category: UpgradeCategory.EFFICIENCY,
         cost: 800,
         minTier: 2,
         maxLevel: 3,
@@ -311,7 +311,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'ventilation_shaft',
         name: 'Ventilation Shaft',
         description: 'Fresh air for miners',
-        category: 'comfort',
+        category: UpgradeCategory.COMFORT,
         cost: 600,
         minTier: 2,
         maxLevel: 3,
@@ -322,7 +322,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'explosives_storage',
         name: 'Explosives Storage',
         description: 'Safe storage for blasting materials',
-        category: 'capacity',
+        category: UpgradeCategory.CAPACITY,
         cost: 700,
         minTier: 2,
         maxLevel: 3,
@@ -333,7 +333,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'water_pump',
         name: 'Water Pump',
         description: 'Remove water from shafts',
-        category: 'efficiency',
+        category: UpgradeCategory.EFFICIENCY,
         cost: 1000,
         minTier: 3,
         maxLevel: 3,
@@ -346,7 +346,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'bar_expansion',
         name: 'Bar Expansion',
         description: 'Larger bar area',
-        category: 'capacity',
+        category: UpgradeCategory.CAPACITY,
         cost: 600,
         minTier: 1,
         maxLevel: 5,
@@ -357,7 +357,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'stage',
         name: 'Stage',
         description: 'Entertainment platform',
-        category: 'specialty',
+        category: UpgradeCategory.SPECIALTY,
         cost: 800,
         minTier: 2,
         maxLevel: 3,
@@ -368,7 +368,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'rooms',
         name: 'Rooms Upstairs',
         description: 'Lodging for guests',
-        category: 'specialty',
+        category: UpgradeCategory.SPECIALTY,
         cost: 1000,
         minTier: 2,
         maxLevel: 3,
@@ -379,7 +379,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'gaming_tables',
         name: 'Gaming Tables',
         description: 'Gambling facilities',
-        category: 'specialty',
+        category: UpgradeCategory.SPECIALTY,
         cost: 700,
         minTier: 1,
         maxLevel: 5,
@@ -390,7 +390,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'bouncer',
         name: 'Bouncer Station',
         description: 'Security presence',
-        category: 'defense',
+        category: UpgradeCategory.DEFENSE,
         cost: 500,
         minTier: 2,
         maxLevel: 3,
@@ -403,7 +403,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'horse_stalls',
         name: 'Horse Stalls',
         description: 'More horse capacity',
-        category: 'capacity',
+        category: UpgradeCategory.CAPACITY,
         cost: 500,
         minTier: 1,
         maxLevel: 5,
@@ -414,7 +414,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'training_ring',
         name: 'Training Ring',
         description: 'Horse training area',
-        category: 'specialty',
+        category: UpgradeCategory.SPECIALTY,
         cost: 800,
         minTier: 2,
         maxLevel: 3,
@@ -425,7 +425,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'tack_room',
         name: 'Tack Room',
         description: 'Equipment storage',
-        category: 'capacity',
+        category: UpgradeCategory.CAPACITY,
         cost: 400,
         minTier: 1,
         maxLevel: 3,
@@ -436,7 +436,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'feed_storage',
         name: 'Feed Storage',
         description: 'Bulk feed storage',
-        category: 'efficiency',
+        category: UpgradeCategory.EFFICIENCY,
         cost: 300,
         minTier: 1,
         maxLevel: 3,
@@ -447,7 +447,7 @@ function getAvailableUpgrades(propertyType: PropertyType): UpgradeOption[] {
         upgradeType: 'breeding_pen',
         name: 'Breeding Pen',
         description: 'Horse breeding facilities',
-        category: 'specialty',
+        category: UpgradeCategory.SPECIALTY,
         cost: 1200,
         minTier: 3,
         maxLevel: 3,
@@ -541,7 +541,7 @@ const UpgradeOptionCard: React.FC<{
             </span>
             <span className="text-desert-stone">|</span>
             <span className={canAfford ? 'text-gold-light' : 'text-red-400'}>
-              Cost: {formatGold(upgrade.cost)}
+              Cost: {formatDollars(upgrade.cost)}
             </span>
           </div>
 
@@ -620,7 +620,7 @@ const UpgradeOptionCard: React.FC<{
             </div>
             <div>
               <span className="text-desert-stone">Cost:</span>
-              <span className="text-gold-light ml-2">{formatGold(upgrade.cost)}</span>
+              <span className="text-gold-light ml-2">{formatDollars(upgrade.cost)}</span>
             </div>
           </div>
 
@@ -725,8 +725,8 @@ export const UpgradePanel: React.FC<UpgradePanelProps> = ({
       {/* Gold display */}
       <Card variant="leather" className="p-3">
         <div className="flex justify-between items-center">
-          <span className="text-desert-stone">Your Gold:</span>
-          <span className="text-gold-light font-western">{formatGold(characterGold)}</span>
+          <span className="text-desert-stone">Your Dollars:</span>
+          <span className="text-gold-light font-western">{formatDollars(characterGold)}</span>
         </div>
       </Card>
 

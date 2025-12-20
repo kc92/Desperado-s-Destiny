@@ -7,11 +7,13 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, InternalAxiosRequ
 import type { ApiResponse, ApiError } from '@/types';
 import { useErrorStore } from '@/store/useErrorStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useCsrfStore } from '@/store/useCsrfStore';
+import { logger } from '@/services/logger.service';
 
 // In development, use proxy (relative URLs), in production use absolute URLs
 const API_BASE_URL = import.meta.env.DEV
   ? '' // Use proxy in development
-  : (import.meta.env.VITE_API_URL || 'http://localhost:5000');
+  : import.meta.env.VITE_API_URL || ''; // Production: require explicit config or use relative URL
 
 /**
  * Create axios instance with default configuration
@@ -27,20 +29,23 @@ const apiClient: AxiosInstance = axios.create({
 
 /**
  * Request interceptor
- * Add auth token or other headers before request is sent
+ * Add CSRF token to mutation requests
  */
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // You can add authorization token here if using JWT
-    // const token = localStorage.getItem('authToken');
-    // if (token && config.headers) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    // Add CSRF token to mutation requests (POST, PUT, PATCH, DELETE)
+    const method = config.method?.toLowerCase();
+    if (['post', 'put', 'patch', 'delete'].includes(method || '')) {
+      const csrfToken = useCsrfStore.getState().token;
+      if (csrfToken && config.headers) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
 
     return config;
   },
   (error: AxiosError) => {
-    console.error('[API Request Error]', error);
+    logger.error('[API Request Error]', error as Error, { context: 'apiClient.request.interceptor' });
     return Promise.reject(error);
   }
 );
@@ -51,6 +56,11 @@ apiClient.interceptors.request.use(
  */
 apiClient.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
+    // Update CSRF token if returned in response header (token rotation)
+    const newCsrfToken = response.headers['x-csrf-token'];
+    if (newCsrfToken) {
+      useCsrfStore.getState().setToken(newCsrfToken);
+    }
     return response;
   },
   (error: AxiosError<ApiError>) => {
@@ -65,10 +75,20 @@ apiClient.interceptors.response.use(
         case 401: {
           // Clear auth state - ProtectedRoute will handle redirect to login
           useAuthStore.getState().setUser(null);
+          useCsrfStore.getState().clearToken();
           // Don't add 401 to error store since it's expected behavior
           break;
         }
-        case 403:
+        case 403: {
+          // Check if it's a CSRF error - attempt token refresh and retry
+          const errorCode = error.response.data?.code;
+          if (errorCode === 'CSRF_INVALID' || errorCode === 'CSRF_MISSING') {
+            // CSRF token was invalid - clear it so next request fetches fresh one
+            useCsrfStore.getState().clearToken();
+          }
+          // Error is added to error store below
+          break;
+        }
         case 404:
         case 500:
           // Error is added to error store below

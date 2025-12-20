@@ -12,7 +12,7 @@ import {
   ClaimRewardModal,
   MonthlyBonus
 } from '@/components/loginRewards';
-import { useLoginRewards, CalendarDay, LoginStatistics } from '@/hooks/useLoginRewards';
+import { useLoginRewards, CalendarDay } from '@/hooks/useLoginRewards';
 
 export const LoginRewards: React.FC = () => {
   const {
@@ -28,11 +28,11 @@ export const LoginRewards: React.FC = () => {
     fetchStatistics,
     claimReward,
     claimMonthlyBonus,
-    setShowClaimModal,
+    setShowClaimModal: _setShowClaimModal,
     clearLastClaimedReward
   } = useLoginRewards();
 
-  const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
+  const [_selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
 
   // Load data on mount
   useEffect(() => {

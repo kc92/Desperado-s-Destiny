@@ -24,7 +24,8 @@ const trustLevelColors: Record<number, string> = {
   5: 'bg-purple-500',
 };
 
-const trustLevelNames: Record<number, string> = {
+// Trust level names for display (exported for use in other components)
+export const TRUST_LEVEL_NAMES: Record<number, string> = {
   0: 'Stranger',
   1: 'Acquaintance',
   2: 'Friend',

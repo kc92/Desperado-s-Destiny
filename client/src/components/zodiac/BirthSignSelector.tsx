@@ -38,7 +38,6 @@ export const BirthSignSelector: React.FC<BirthSignSelectorProps> = ({
   onClose,
   onSelect,
   currentBirthSign,
-  isLoading = false,
 }) => {
   const [selectedSign, setSelectedSign] = useState<FrontierSign | null>(null);
   const [confirmStep, setConfirmStep] = useState(false);

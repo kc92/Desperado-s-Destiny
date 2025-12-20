@@ -14,6 +14,7 @@ interface MessageInputProps {
   isSending: boolean;
   mutedUntil: Date | null;
   disabled?: boolean;
+  autoFocus?: boolean;
 }
 
 // Simple profanity filter - checks for common inappropriate words

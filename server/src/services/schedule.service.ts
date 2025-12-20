@@ -19,6 +19,7 @@ import {
 } from '@desperados/shared';
 import { TimeService } from './time.service';
 import { NPC_SCHEDULES, SCHEDULE_TEMPLATES, ACTIVITY_DIALOGUE_PATTERNS } from '../data/npcSchedules';
+import { SecureRNG } from './base/SecureRNG';
 import logger from '../utils/logger';
 
 /**
@@ -268,7 +269,7 @@ export class ScheduleService {
     }
 
     // Return random dialogue from options
-    return dialogueOptions[Math.floor(Math.random() * dialogueOptions.length)] || 'Hello.';
+    return SecureRNG.select(dialogueOptions) || 'Hello.';
   }
 
   /**

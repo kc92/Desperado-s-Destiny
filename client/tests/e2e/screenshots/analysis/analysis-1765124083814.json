@@ -1,0 +1,263 @@
+{
+  "timestamp": "2025-12-07T16:14:18.939Z",
+  "steps": [
+    {
+      "step": "Landing Page Load",
+      "status": "RUNNING",
+      "timestamp": "2025-12-07T16:14:18.954Z"
+    },
+    {
+      "step": "Landing Page Load",
+      "status": "PASS",
+      "timestamp": "2025-12-07T16:14:20.734Z",
+      "loadTime": 1469,
+      "hasGameName": true
+    },
+    {
+      "step": "Navigate to Registration",
+      "status": "RUNNING",
+      "timestamp": "2025-12-07T16:14:20.735Z"
+    },
+    {
+      "step": "Navigate to Registration",
+      "status": "PASS",
+      "timestamp": "2025-12-07T16:14:21.063Z"
+    },
+    {
+      "step": "Fill Registration Form",
+      "status": "RUNNING",
+      "timestamp": "2025-12-07T16:14:21.064Z"
+    },
+    {
+      "step": "Fill Registration Form",
+      "status": "PASS",
+      "timestamp": "2025-12-07T16:14:23.562Z",
+      "hasLabels": true,
+      "fieldsCount": 2
+    },
+    {
+      "step": "Submit Registration",
+      "status": "RUNNING",
+      "timestamp": "2025-12-07T16:14:23.563Z"
+    },
+    {
+      "step": "Submit Registration",
+      "status": "PASS",
+      "timestamp": "2025-12-07T16:14:24.020Z"
+    },
+    {
+      "step": "Login Check",
+      "status": "RUNNING",
+      "timestamp": "2025-12-07T16:14:24.021Z"
+    },
+    {
+      "step": "Login Check",
+      "status": "PASS",
+      "timestamp": "2025-12-07T16:14:24.021Z",
+      "loginRequired": false
+    },
+    {
+      "step": "Character Creation Start",
+      "status": "RUNNING",
+      "timestamp": "2025-12-07T16:14:24.022Z"
+    },
+    {
+      "step": "Character Creation Start",
+      "status": "FAIL",
+      "timestamp": "2025-12-07T16:14:36.307Z",
+      "error": "Waiting for selector `#character-name, input[id=\"character-name\"]` failed"
+    },
+    {
+      "step": "Complete Character Creation",
+      "status": "RUNNING",
+      "timestamp": "2025-12-07T16:14:36.319Z"
+    },
+    {
+      "step": "Complete Character Creation",
+      "status": "PASS",
+      "timestamp": "2025-12-07T16:14:37.329Z"
+    },
+    {
+      "step": "Verify Game Dashboard",
+      "status": "RUNNING",
+      "timestamp": "2025-12-07T16:14:37.330Z"
+    },
+    {
+      "step": "Verify Game Dashboard",
+      "status": "PASS",
+      "timestamp": "2025-12-07T16:14:40.472Z",
+      "url": "http://localhost:5175/characters",
+      "uiElements": {
+        "hasEnergy": false,
+        "hasGold": false,
+        "hasLevel": false,
+        "hasHealth": false,
+        "hasNavigation": false
+      },
+      "hasTutorial": true
+    },
+    {
+      "step": "Test Navigation",
+      "status": "RUNNING",
+      "timestamp": "2025-12-07T16:14:40.473Z"
+    },
+    {
+      "step": "Test Navigation",
+      "status": "PASS",
+      "timestamp": "2025-12-07T16:14:40.478Z",
+      "navLinksCount": 0
+    },
+    {
+      "step": "Test Responsive Design",
+      "status": "RUNNING",
+      "timestamp": "2025-12-07T16:14:40.479Z"
+    },
+    {
+      "step": "Test Responsive Design",
+      "status": "PASS",
+      "timestamp": "2025-12-07T16:14:43.813Z"
+    }
+  ],
+  "issues": [
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "description": "Landing Page: Found 3 small-click-targets",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:20.717Z"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "description": "Landing Page: Found 2 potential-contrast-issues",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:20.723Z"
+    },
+    {
+      "severity": "critical",
+      "category": "functionality",
+      "description": "No visible registration button found on landing page",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:20.738Z"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "description": "Registration Page: Found 2 small-click-targets",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:21.060Z"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "description": "Character Creation: Found 1 small-click-targets",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:26.166Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "No final \"Create Character\" button found",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:37.325Z"
+    },
+    {
+      "severity": "low",
+      "category": "accessibility",
+      "description": "Game Dashboard: Found 1 small-click-targets",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:40.448Z"
+    },
+    {
+      "severity": "critical",
+      "category": "functionality",
+      "description": "Not on game page after character creation: http://localhost:5175/characters",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:40.452Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Dashboard missing: hasEnergy",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:40.456Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Dashboard missing: hasGold",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:40.461Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Dashboard missing: hasLevel",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:40.464Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Dashboard missing: hasHealth",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:40.466Z"
+    },
+    {
+      "severity": "high",
+      "category": "functionality",
+      "description": "Dashboard missing: hasNavigation",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:40.468Z"
+    },
+    {
+      "severity": "critical",
+      "category": "functionality",
+      "description": "No navigation links found",
+      "screenshot": null,
+      "timestamp": "2025-12-07T16:14:40.475Z"
+    }
+  ],
+  "screenshots": [
+    {
+      "step": "landing",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\01-landing-page-2025-12-07T16-14-20-453Z.png"
+    },
+    {
+      "step": "register-page",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\02-register-page-2025-12-07T16-14-20-875Z.png"
+    },
+    {
+      "step": "register-filled",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\03-register-form-filled-2025-12-07T16-14-23-384Z.png"
+    },
+    {
+      "step": "register-submitted",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\04-register-submitted-2025-12-07T16-14-23-889Z.png"
+    },
+    {
+      "step": "character-start",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\06-character-creation-start-2025-12-07T16-14-26-026Z.png"
+    },
+    {
+      "step": "character-error",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\06-ERROR-character-creation-2025-12-07T16-14-36-178Z.png"
+    },
+    {
+      "step": "dashboard",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\11-game-dashboard-2025-12-07T16-14-40-334Z.png"
+    },
+    {
+      "step": "responsive-mobile",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\13-responsive-mobile-2025-12-07T16-14-41-487Z.png"
+    },
+    {
+      "step": "responsive-tablet",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\13-responsive-tablet-2025-12-07T16-14-42-583Z.png"
+    },
+    {
+      "step": "responsive-desktop",
+      "path": "C:\\Users\\kaine\\Documents\\Desperados Destiny Dev\\client\\tests\\e2e\\screenshots\\13-responsive-desktop-2025-12-07T16-14-43-688Z.png"
+    }
+  ]
+}

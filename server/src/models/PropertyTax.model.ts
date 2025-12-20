@@ -60,6 +60,13 @@ export interface IPropertyTax extends Document {
 }
 
 /**
+ * Options for model methods that support transactions
+ */
+export interface PropertyTaxTransactionOptions {
+  session?: mongoose.ClientSession;
+}
+
+/**
  * Property Tax model interface
  */
 export interface IPropertyTaxModel extends Model<IPropertyTax> {
@@ -74,7 +81,8 @@ export interface IPropertyTaxModel extends Model<IPropertyTax> {
     ownerId: mongoose.Types.ObjectId,
     ownerType: 'gang' | 'character',
     ownerName: string,
-    propertyData: any
+    propertyData: any,
+    options?: PropertyTaxTransactionOptions
   ): Promise<IPropertyTax>;
 }
 
@@ -472,6 +480,7 @@ PropertyTaxSchema.statics.findByStatus = async function (
 
 /**
  * Static method: Create a new tax record
+ * @param options - Optional transaction options (pass session for outer transaction support)
  */
 PropertyTaxSchema.statics.createTaxRecord = async function (
   propertyId: mongoose.Types.ObjectId,
@@ -479,8 +488,10 @@ PropertyTaxSchema.statics.createTaxRecord = async function (
   ownerId: mongoose.Types.ObjectId,
   ownerType: 'gang' | 'character',
   ownerName: string,
-  propertyData: any
+  propertyData: any,
+  options: PropertyTaxTransactionOptions = {}
 ): Promise<IPropertyTax> {
+  const { session } = options;
   const taxRecord = new this({
     propertyId,
     propertyType,
@@ -506,7 +517,8 @@ PropertyTaxSchema.statics.createTaxRecord = async function (
   taxRecord.taxCalculation = calculation;
   taxRecord.dueDate = calculation.dueDate;
 
-  await taxRecord.save();
+  // Save with session if provided (for transaction support)
+  await taxRecord.save({ session });
   return taxRecord;
 };
 

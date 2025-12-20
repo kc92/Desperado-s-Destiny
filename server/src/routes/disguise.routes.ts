@@ -6,9 +6,10 @@
 
 import { Router } from 'express';
 import { DisguiseController } from '../controllers/disguise.controller';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 
 const router = Router();
 
@@ -45,19 +46,19 @@ router.get('/available', asyncHandler(DisguiseController.getAvailable));
  * Apply a disguise to the character
  * Body: { disguiseId: string }
  */
-router.post('/apply', asyncHandler(DisguiseController.apply));
+router.post('/apply', requireCsrfToken, asyncHandler(DisguiseController.apply));
 
 /**
  * POST /api/disguise/remove
  * Remove current disguise
  */
-router.post('/remove', asyncHandler(DisguiseController.remove));
+router.post('/remove', requireCsrfToken, asyncHandler(DisguiseController.remove));
 
 /**
  * POST /api/disguise/check-detection
  * Check if disguise is detected (used during actions)
  * Body: { dangerLevel: number }
  */
-router.post('/check-detection', asyncHandler(DisguiseController.checkDetection));
+router.post('/check-detection', requireCsrfToken, asyncHandler(DisguiseController.checkDetection));
 
 export default router;

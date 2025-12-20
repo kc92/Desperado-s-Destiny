@@ -6,6 +6,7 @@
 import apiClient from './api';
 import type { ApiResponse } from '@/types';
 import type { Action, ActionResult, ActionType } from '@desperados/shared';
+import { logger } from '@/services/logger.service';
 
 interface GetActionsResponse {
   actions: Action[];
@@ -53,7 +54,7 @@ export const actionService = {
       const response = await apiClient.get<ApiResponse<GetActionsResponse>>(url);
       return response.data;
     } catch (error: any) {
-      console.error('Failed to get actions:', error);
+      logger.error('Failed to get actions', error as Error, { context: 'actionService.getActions', filters });
       return {
         success: false,
         error: error.message || 'Failed to load actions',
@@ -71,7 +72,7 @@ export const actionService = {
       );
       return response.data;
     } catch (error: any) {
-      console.error('Failed to get action:', error);
+      logger.error('Failed to get action', error as Error, { context: 'actionService.getAction', actionId });
       return {
         success: false,
         error: error.message || 'Failed to load action',
@@ -98,7 +99,7 @@ export const actionService = {
       );
       return response.data;
     } catch (error: any) {
-      console.error('Failed to attempt challenge:', error);
+      logger.error('Failed to attempt challenge', error as Error, { context: 'actionService.attemptChallenge', actionId, characterId });
       return {
         success: false,
         error: error.message || 'Failed to attempt action',
@@ -132,7 +133,7 @@ export const actionService = {
       const response = await apiClient.get<ApiResponse<GetActionHistoryResponse>>(url);
       return response.data;
     } catch (error: any) {
-      console.error('Failed to get action history:', error);
+      logger.error('Failed to get action history', error as Error, { context: 'actionService.getActionHistory', characterId, filters });
       return {
         success: false,
         error: error.message || 'Failed to load action history',

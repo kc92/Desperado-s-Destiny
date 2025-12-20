@@ -5,7 +5,8 @@
 
 import { create } from 'zustand';
 import type { Mail, SendMailRequest } from '@desperados/shared';
-import { api } from '@/services/api';
+import { mailService } from '@/services/mail.service';
+import { logger } from '@/services/logger.service';
 
 interface MailStore {
   inbox: Mail[];
@@ -34,19 +35,26 @@ export const useMailStore = create<MailStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await api.get('/mail/inbox', {
-        params: { unread_only: unreadOnly, limit, offset }
-      });
+      const response = unreadOnly
+        ? await mailService.getUnreadMail({ limit, offset })
+        : await mailService.getInbox({ limit, offset });
 
       set({
-        inbox: response.data.data,
-        unreadCount: response.data.unreadCount,
+        inbox: unreadOnly ? response : response.data,
+        unreadCount: unreadOnly ? 0 : response.unreadCount || 0,
         isLoading: false
       });
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch inbox';
+      logger.error('Failed to fetch inbox', error as Error, {
+        context: 'useMailStore.fetchInbox',
+        unreadOnly,
+        limit,
+        offset
+      });
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to fetch inbox'
+        error: errorMessage
       });
       throw error;
     }
@@ -56,18 +64,22 @@ export const useMailStore = create<MailStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await api.get('/mail/sent', {
-        params: { limit, offset }
-      });
+      const response = await mailService.getSentMail({ limit, offset });
 
       set({
-        sent: response.data.data,
+        sent: response.data,
         isLoading: false
       });
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to fetch sent mail';
+      logger.error('Failed to fetch sent mail', error as Error, {
+        context: 'useMailStore.fetchSent',
+        limit,
+        offset
+      });
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to fetch sent mail'
+        error: errorMessage
       });
       throw error;
     }
@@ -77,15 +89,21 @@ export const useMailStore = create<MailStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.post('/mail/send', mail);
+      await mailService.sendMail(mail);
       set({ isLoading: false });
 
       await get().fetchSent();
       await get().fetchUnreadCount();
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to send mail';
+      logger.error('Failed to send mail', error as Error, {
+        context: 'useMailStore.sendMail',
+        recipientId: mail.recipientId,
+        hasGoldAttachment: !!mail.goldAttachment
+      });
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to send mail'
+        error: errorMessage
       });
       throw error;
     }
@@ -95,17 +113,21 @@ export const useMailStore = create<MailStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await api.post(`/mail/${mailId}/claim`);
-      const goldClaimed = response.data.data.goldClaimed;
+      const goldClaimed = await mailService.claimAttachment(mailId);
 
       await get().fetchInbox();
 
       set({ isLoading: false });
       return goldClaimed;
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to claim attachment';
+      logger.error('Failed to claim attachment', error as Error, {
+        context: 'useMailStore.claimAttachment',
+        mailId
+      });
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to claim attachment'
+        error: errorMessage
       });
       throw error;
     }
@@ -115,7 +137,7 @@ export const useMailStore = create<MailStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await api.delete(`/mail/${mailId}`);
+      await mailService.deleteMail(mailId);
 
       await get().fetchInbox();
       await get().fetchSent();
@@ -123,9 +145,14 @@ export const useMailStore = create<MailStore>((set, get) => ({
 
       set({ isLoading: false });
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to delete mail';
+      logger.error('Failed to delete mail', error as Error, {
+        context: 'useMailStore.deleteMail',
+        mailId
+      });
       set({
         isLoading: false,
-        error: error.response?.data?.message || 'Failed to delete mail'
+        error: errorMessage
       });
       throw error;
     }
@@ -133,10 +160,12 @@ export const useMailStore = create<MailStore>((set, get) => ({
 
   fetchUnreadCount: async () => {
     try {
-      const response = await api.get('/mail/unread-count');
-      set({ unreadCount: response.data.data.count });
+      const count = await mailService.getUnreadCount();
+      set({ unreadCount: count });
     } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+      logger.error('Failed to fetch unread count', error as Error, {
+        context: 'useMailStore.fetchUnreadCount'
+      });
     }
   },
 

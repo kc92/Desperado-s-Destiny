@@ -9,6 +9,7 @@ import { PropertyWorker, IPropertyWorker } from '../models/PropertyWorker.model'
 import { Character } from '../models/Character.model';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import { WorkerSpecialization, WorkerTrait, WorkerListing } from '@desperados/shared';
+import { SecureRNG } from './base/SecureRNG';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -143,23 +144,23 @@ export class WorkerManagementService {
 
     for (let i = 0; i < count; i++) {
       const specializations = Object.values(WorkerSpecialization);
-      const specialization =
-        specializations[Math.floor(Math.random() * specializations.length)];
+      const specialization = SecureRNG.select(specializations);
 
       // Skill level based on property level
       const baseSkill = 10 + propertyLevel * 5;
       const skillLevel = Math.min(
         100,
-        baseSkill + Math.floor(Math.random() * 20) - 10
+        baseSkill + SecureRNG.range(-10, 10)
       );
 
       // Generate traits (0-2 traits)
-      const traitCount = Math.random() < 0.3 ? 2 : Math.random() < 0.6 ? 1 : 0;
+      const traitRoll = SecureRNG.float(0, 1);
+      const traitCount = traitRoll < 0.3 ? 2 : traitRoll < 0.6 ? 1 : 0;
       const traits: WorkerTrait[] = [];
       const availableTraits = Object.values(WORKER_TRAITS);
 
       for (let j = 0; j < traitCount; j++) {
-        const trait = availableTraits[Math.floor(Math.random() * availableTraits.length)];
+        const trait = SecureRNG.select(availableTraits);
         if (!traits.find((t) => t.traitId === trait.traitId)) {
           traits.push(trait);
         }
@@ -177,15 +178,13 @@ export class WorkerManagementService {
       const weeklyWage = Math.floor(baseWage);
 
       // Generate name
-      const firstName =
-        WORKER_FIRST_NAMES[Math.floor(Math.random() * WORKER_FIRST_NAMES.length)];
-      const lastName =
-        WORKER_LAST_NAMES[Math.floor(Math.random() * WORKER_LAST_NAMES.length)];
+      const firstName = SecureRNG.select(WORKER_FIRST_NAMES);
+      const lastName = SecureRNG.select(WORKER_LAST_NAMES);
       const name = `${firstName} ${lastName}`;
 
       // Base stats
-      const loyalty = 40 + Math.floor(Math.random() * 40);
-      const efficiency = 0.8 + Math.random() * 0.6; // 0.8 to 1.4
+      const loyalty = SecureRNG.range(40, 80);
+      const efficiency = 0.8 + SecureRNG.float(0, 1) * 0.6; // 0.8 to 1.4
 
       // Apply loyalty from traits
       let finalLoyalty = loyalty;
@@ -232,14 +231,15 @@ export class WorkerManagementService {
 
       // Check if can afford
       const hiringCost = listing.weeklyWage; // First week upfront
-      if (!character.hasGold(hiringCost)) {
-        throw new Error(`Insufficient gold (need ${hiringCost})`);
+      if (!character.hasDollars(hiringCost)) {
+        throw new Error(`Insufficient dollars (need ${hiringCost})`);
       }
 
-      // Deduct gold
-      await character.deductGold(hiringCost, TransactionSource.WORKER_HIRE, {
+      // Deduct dollars
+      await character.deductDollars(hiringCost, TransactionSource.WORKER_HIRE, {
         workerName: listing.name,
         specialization: listing.specialization,
+        currencyType: 'DOLLAR',
       });
 
       // Calculate morale based on traits
@@ -316,8 +316,9 @@ export class WorkerManagementService {
 
         const character = await Character.findById(characterId).session(session);
         if (character) {
-          await character.deductGold(severancePay, TransactionSource.WORKER_SEVERANCE, {
+          await character.deductDollars(severancePay, TransactionSource.WORKER_SEVERANCE, {
             workerName: worker.name,
+            currencyType: 'DOLLAR',
           });
           await character.save({ session });
         }
@@ -332,7 +333,7 @@ export class WorkerManagementService {
         success: true,
         severancePay,
         message: severancePay > 0
-          ? `Fired ${worker.name} and paid ${severancePay} gold severance`
+          ? `Fired ${worker.name} and paid ${severancePay} dollars severance`
           : `Fired ${worker.name}`,
       };
     } catch (error) {
@@ -372,10 +373,11 @@ export class WorkerManagementService {
       for (const worker of workersDue) {
         const wage = worker.weeklyWage;
 
-        if (character.hasGold(wage)) {
-          await character.deductGold(wage, TransactionSource.WORKER_WAGE, {
+        if (character.hasDollars(wage)) {
+          await character.deductDollars(wage, TransactionSource.WORKER_WAGE, {
             workerName: worker.name,
             workerId: worker.workerId,
+            currencyType: 'DOLLAR',
           });
 
           worker.payWage();
@@ -448,13 +450,14 @@ export class WorkerManagementService {
         throw new Error('Character not found');
       }
 
-      if (!character.hasGold(trainingCost)) {
-        throw new Error(`Insufficient gold (need ${trainingCost})`);
+      if (!character.hasDollars(trainingCost)) {
+        throw new Error(`Insufficient dollars (need ${trainingCost})`);
       }
 
-      await character.deductGold(trainingCost, TransactionSource.WORKER_TRAINING, {
+      await character.deductDollars(trainingCost, TransactionSource.WORKER_TRAINING, {
         workerName: worker.name,
         workerId: worker.workerId,
+        currencyType: 'DOLLAR',
       });
 
       // Increase skill (1-5 points based on current level)
@@ -568,12 +571,13 @@ export class WorkerManagementService {
           throw new Error('Character not found');
         }
 
-        if (!character.hasGold(bonus)) {
-          throw new Error(`Insufficient gold for bonus (need ${bonus})`);
+        if (!character.hasDollars(bonus)) {
+          throw new Error(`Insufficient dollars for bonus (need ${bonus})`);
         }
 
-        await character.deductGold(bonus, TransactionSource.STRIKE_RESOLUTION, {
+        await character.deductDollars(bonus, TransactionSource.STRIKE_RESOLUTION, {
           workerName: worker.name,
+          currencyType: 'DOLLAR',
         });
 
         // Bonus greatly improves morale and loyalty

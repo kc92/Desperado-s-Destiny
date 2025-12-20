@@ -19,6 +19,8 @@ import type { Action } from '@desperados/shared';
 import { DeckGame, GameState, DeckGameResult, ActionResult } from '@/components/game/deckgames';
 import { api } from '@/services/api';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { logger } from '@/services/logger.service';
+import { dispatchJobCompleted } from '@/utils/tutorialEvents';
 
 interface ActionCategory {
   type: ActionType;
@@ -190,7 +192,7 @@ export const Actions: React.FC = () => {
       // Show the game modal
       setShowGameModal(true);
     } catch (error: any) {
-      console.error('Failed to start action:', error);
+      logger.error('Failed to start action from UI', error, { actionId: action._id });
       setActionResult({
         success: false,
         message: error.response?.data?.error || 'Failed to start action. Please try again.'
@@ -204,6 +206,11 @@ export const Actions: React.FC = () => {
   const handleGameComplete = (result: { gameResult: DeckGameResult; actionResult?: ActionResult }) => {
     setShowGameModal(false);
     setActiveGame(null);
+
+    // Dispatch tutorial event for action completion
+    if (result.gameResult.success && selectedAction?.id) {
+      dispatchJobCompleted(selectedAction.id);
+    }
 
     // Play appropriate sound
     if (result.gameResult.success) {

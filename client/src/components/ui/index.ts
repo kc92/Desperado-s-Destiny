@@ -10,6 +10,7 @@ export { EmptyState } from './EmptyState';
 export { Input } from './Input';
 export { LoadingSpinner } from './LoadingSpinner';
 export { Modal } from './Modal';
+export { ProgressBar } from './ProgressBar';
 export { NavLink } from './NavLink';
 export {
   Skeleton,

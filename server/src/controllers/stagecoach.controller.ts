@@ -410,7 +410,7 @@ export class StagecoachController {
     try {
       const characterId = req.character!._id.toString();
 
-      const plan = StagecoachAmbushService.getActivePlan(characterId);
+      const plan = await StagecoachAmbushService.getActivePlan(characterId);
 
       res.json({
         success: true,
@@ -507,7 +507,7 @@ export class StagecoachController {
     try {
       const characterId = req.character!._id.toString();
 
-      const success = StagecoachAmbushService.cancelPlan(characterId);
+      const success = await StagecoachAmbushService.cancelPlan(characterId);
 
       res.json({
         success,

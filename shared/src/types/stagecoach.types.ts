@@ -261,7 +261,7 @@ export interface AmbushPlan {
   strategy: 'roadblock' | 'canyon_trap' | 'bridge_sabotage' | 'surprise_attack';
   objectives: ('cargo' | 'passengers' | 'mail' | 'strongbox')[];
   escapeRoute: string;
-  status: 'planning' | 'setup' | 'ready' | 'executed' | 'failed';
+  status: 'planning' | 'setup' | 'ready' | 'executed' | 'failed' | 'cancelled';
 }
 
 /**

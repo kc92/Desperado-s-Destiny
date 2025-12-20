@@ -5,122 +5,24 @@
 
 import React, { useEffect, useState } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
-import { Card, Button, Modal, EmptyState, LoadingSpinner } from '@/components/ui';
+import { Card, Button, Modal, EmptyState } from '@/components/ui';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/store/useToastStore';
-import { formatGold, formatTimeAgo } from '@/utils/format';
-import api from '@/services/api';
-
-// Types
-type GameType = 'blackjack' | 'roulette' | 'craps' | 'faro' | 'three_card_monte' | 'wheel_of_fortune';
-
-interface GamblingLocation {
-  _id: string;
-  name: string;
-  description: string;
-  availableGames: GameType[];
-  minBet: number;
-  maxBet: number;
-  houseEdge: number;
-}
-
-interface GameSession {
-  _id: string;
-  gameType: GameType;
-  locationId: string;
-  status: 'active' | 'completed' | 'abandoned';
-  currentBet: number;
-  totalWagered: number;
-  totalWon: number;
-  netResult: number;
-  handsPlayed: number;
-  startTime: string;
-  endTime?: string;
-}
-
-interface BlackjackHand {
-  cards: { suit: string; value: string; numericValue: number }[];
-  total: number;
-  isBusted: boolean;
-  isBlackjack: boolean;
-}
-
-interface BlackjackState {
-  playerHand: BlackjackHand;
-  dealerHand: BlackjackHand;
-  dealerHidden: boolean;
-  currentBet: number;
-  canHit: boolean;
-  canStand: boolean;
-  canDouble: boolean;
-  canSplit: boolean;
-  result?: 'win' | 'lose' | 'push' | 'blackjack';
-  payout?: number;
-}
-
-interface RouletteState {
-  currentBet: number;
-  selectedBets: { type: string; value: number | string; amount: number }[];
-  result?: number;
-  winningBets: string[];
-  payout?: number;
-}
-
-interface CrapsState {
-  currentBet: number;
-  betType: 'pass' | 'dont_pass' | 'come' | 'dont_come' | 'field' | 'any_seven';
-  point: number | null;
-  dice: [number, number];
-  result?: 'win' | 'lose' | 'point_set';
-  payout?: number;
-}
-
-interface FaroState {
-  currentBet: number;
-  selectedCard: string;
-  losingCard?: string;
-  winningCard?: string;
-  result?: 'win' | 'lose' | 'push';
-  payout?: number;
-}
-
-interface ThreeCardMonteState {
-  currentBet: number;
-  selectedPosition: number | null;
-  queenPosition?: number;
-  revealed: boolean;
-  result?: 'win' | 'lose';
-  payout?: number;
-}
-
-interface WheelOfFortuneState {
-  currentBet: number;
-  selectedSegment: number;
-  spinResult?: number;
-  isSpinning: boolean;
-  result?: 'win' | 'lose';
-  payout?: number;
-}
-
-interface SessionHistory {
-  _id: string;
-  gameType: GameType;
-  locationName: string;
-  totalWagered: number;
-  netResult: number;
-  handsPlayed: number;
-  endTime: string;
-}
-
-interface LeaderboardEntry {
-  rank: number;
-  characterId: string;
-  characterName: string;
-  gameType: GameType;
-  biggestWin: number;
-  totalWon: number;
-  winRate: number;
-}
+import { formatDollars, formatTimeAgo } from '@/utils/format';
+import { logger } from '@/services/logger.service';
+import gamblingService, {
+  type GameType,
+  type GamblingLocation,
+  type GameSession,
+  type BlackjackState,
+  type RouletteState,
+  type CrapsState,
+  type FaroState,
+  type ThreeCardMonteState,
+  type WheelOfFortuneState,
+  type SessionHistory,
+  type LeaderboardEntry,
+} from '@/services/gambling.service';
 
 type TabType = 'games' | 'session' | 'history' | 'leaderboard';
 
@@ -184,31 +86,31 @@ export const Gambling: React.FC = () => {
 
   const loadLocations = async () => {
     try {
-      const response = await api.get('/gambling/locations');
-      setLocations(response.data.data?.locations || []);
-    } catch (err: any) {
-      console.error('Failed to load locations:', err);
-      setLocations(getMockLocations());
+      const locations = await gamblingService.getLocations();
+      setLocations(locations);
+    } catch (err: unknown) {
+      logger.error('Failed to load locations', err as Error, { context: 'Gambling.loadLocations' });
+      setLocations([]);
     }
   };
 
   const loadSessionHistory = async () => {
     try {
-      const response = await api.get('/gambling/sessions/history');
-      setSessionHistory(response.data.data?.sessions || []);
-    } catch (err: any) {
-      console.error('Failed to load history:', err);
-      setSessionHistory(getMockHistory());
+      const sessions = await gamblingService.getHistory();
+      setSessionHistory(sessions);
+    } catch (err: unknown) {
+      logger.error('Failed to load history', err as Error, { context: 'Gambling.loadSessionHistory' });
+      setSessionHistory([]);
     }
   };
 
   const loadLeaderboard = async () => {
     try {
-      const response = await api.get('/gambling/leaderboard');
-      setLeaderboard(response.data.data?.leaderboard || []);
-    } catch (err: any) {
-      console.error('Failed to load leaderboard:', err);
-      setLeaderboard(getMockLeaderboard());
+      const leaderboard = await gamblingService.getLeaderboard();
+      setLeaderboard(leaderboard);
+    } catch (err: unknown) {
+      logger.error('Failed to load leaderboard', err as Error, { context: 'Gambling.loadLeaderboard' });
+      setLeaderboard([]);
     }
   };
 
@@ -217,12 +119,12 @@ export const Gambling: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await api.post('/gambling/sessions/start', {
+      const result = await gamblingService.startSession({
         locationId: location._id,
         gameType: game,
       });
 
-      setActiveSession(response.data.data?.session || {
+      setActiveSession(result.session || {
         _id: 'local-session',
         gameType: game,
         locationId: location._id,
@@ -239,7 +141,7 @@ export const Gambling: React.FC = () => {
       setActiveTab('session');
       setShowLocationModal(false);
       info('Game Started', `Welcome to ${getGameName(game)}!`);
-    } catch (err: any) {
+    } catch {
       // Start local session for demo
       setActiveSession({
         _id: 'local-session',
@@ -266,16 +168,16 @@ export const Gambling: React.FC = () => {
     if (!activeSession) return;
 
     try {
-      await api.post(`/gambling/sessions/${activeSession._id}/end`);
+      await gamblingService.endSession(activeSession._id);
     } catch (err) {
-      console.error('Failed to end session:', err);
+      logger.error('Failed to end session', err as Error, { context: 'Gambling.handleEndSession', sessionId: activeSession._id });
     }
 
     if (activeSession.netResult !== 0) {
       if (activeSession.netResult > 0) {
-        success('Session Complete', `You won ${formatGold(activeSession.netResult)}!`);
+        success('Session Complete', `You won ${formatDollars(activeSession.netResult)}!`);
       } else {
-        info('Session Complete', `You lost ${formatGold(Math.abs(activeSession.netResult))}`);
+        info('Session Complete', `You lost ${formatDollars(Math.abs(activeSession.netResult))}`);
       }
     }
 
@@ -309,15 +211,15 @@ export const Gambling: React.FC = () => {
     setIsPlaying(true);
 
     try {
-      const response = await api.post(`/gambling/sessions/${activeSession._id}/bet`, {
+      const result = await gamblingService.playBlackjack(
+        activeSession._id,
         action,
-        betAmount: action === 'deal' ? betAmount : undefined,
-      });
+        action === 'deal' ? betAmount : undefined
+      );
 
-      const result = response.data.data;
       setBlackjackState(result);
       updateSessionStats(result);
-    } catch (err) {
+    } catch {
       // Simulate locally
       simulateBlackjack(action);
     } finally {
@@ -531,13 +433,13 @@ export const Gambling: React.FC = () => {
     setIsPlaying(true);
 
     try {
-      const response = await api.post(`/gambling/sessions/${activeSession._id}/bet`, {
-        bets: rouletteState.selectedBets,
-      });
-      const result = response.data.data;
+      const result = await gamblingService.playRoulette(
+        activeSession._id,
+        rouletteState.selectedBets
+      );
       setRouletteState((prev) => prev ? { ...prev, ...result } : null);
       updateSessionStats(result);
-    } catch (err) {
+    } catch {
       // Simulate locally
       simulateRoulette();
     } finally {
@@ -598,7 +500,7 @@ export const Gambling: React.FC = () => {
     updateLocalSession(payout, totalBet);
     if (payout > 0 && currentCharacter) {
       updateCharacter({ gold: currentCharacter.gold + payout });
-      success('You Won!', `Payout: ${formatGold(payout)}`);
+      success('You Won!', `Payout: ${formatDollars(payout)}`);
     }
   };
 
@@ -633,7 +535,7 @@ export const Gambling: React.FC = () => {
     updateLocalSession(payout, 0);
     if (payout > 0) {
       updateCharacter({ gold: currentCharacter.gold + payout });
-      success('You Won!', `Payout: ${formatGold(payout)}`);
+      success('You Won!', `Payout: ${formatDollars(payout)}`);
     }
 
     setIsPlaying(false);
@@ -668,7 +570,7 @@ export const Gambling: React.FC = () => {
     updateLocalSession(payout, 0);
     if (payout > 0) {
       updateCharacter({ gold: currentCharacter.gold + payout });
-      success('You Won!', `The Queen was there! Payout: ${formatGold(payout)}`);
+      success('You Won!', `The Queen was there! Payout: ${formatDollars(payout)}`);
     }
 
     setIsPlaying(false);
@@ -737,7 +639,7 @@ export const Gambling: React.FC = () => {
       updateLocalSession(payout, 0);
       if (payout > 0) {
         updateCharacter({ gold: currentCharacter.gold + payout });
-        success('You Won!', `Payout: ${formatGold(payout)}`);
+        success('You Won!', `Payout: ${formatDollars(payout)}`);
       }
     } else if (result === 'point_set') {
       info('Point Set', `The point is ${total}. Roll again!`);
@@ -793,7 +695,7 @@ export const Gambling: React.FC = () => {
     if (payout > 0) {
       updateCharacter({ gold: currentCharacter.gold + payout });
       if (result === 'win') {
-        success('You Won!', `Payout: ${formatGold(payout)}`);
+        success('You Won!', `Payout: ${formatDollars(payout)}`);
       }
     }
 
@@ -879,9 +781,9 @@ export const Gambling: React.FC = () => {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-desert-stone">Your Gold</p>
+              <p className="text-sm text-desert-stone">Your Dollars</p>
               <p className="text-2xl font-western text-gold-light">
-                {formatGold(currentCharacter.gold)}
+                {formatDollars(currentCharacter.gold)}
               </p>
             </div>
           </div>
@@ -889,10 +791,10 @@ export const Gambling: React.FC = () => {
           {/* Tab Navigation */}
           <div className="flex flex-wrap gap-2">
             {([
-              { id: 'games', label: 'Games', icon: '🎰' },
+              { id: 'games', label: 'Games', icon: '🎰', disabled: false },
               { id: 'session', label: 'Active Game', icon: '🃏', disabled: !activeSession },
-              { id: 'history', label: 'History', icon: '📜' },
-              { id: 'leaderboard', label: 'High Rollers', icon: '🏆' },
+              { id: 'history', label: 'History', icon: '📜', disabled: false },
+              { id: 'leaderboard', label: 'High Rollers', icon: '🏆', disabled: false },
             ] as const).map((tab) => (
               <button
                 key={tab.id}
@@ -930,16 +832,16 @@ export const Gambling: React.FC = () => {
               </div>
               <div>
                 <span className="text-xs text-desert-stone">Wagered</span>
-                <p className="font-bold text-desert-sand">{formatGold(activeSession.totalWagered)}</p>
+                <p className="font-bold text-desert-sand">{formatDollars(activeSession.totalWagered)}</p>
               </div>
               <div>
                 <span className="text-xs text-desert-stone">Won</span>
-                <p className="font-bold text-green-400">{formatGold(activeSession.totalWon)}</p>
+                <p className="font-bold text-green-400">{formatDollars(activeSession.totalWon)}</p>
               </div>
               <div>
                 <span className="text-xs text-desert-stone">Net</span>
                 <p className={`font-bold ${activeSession.netResult >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {activeSession.netResult >= 0 ? '+' : ''}{formatGold(activeSession.netResult)}
+                  {activeSession.netResult >= 0 ? '+' : ''}{formatDollars(activeSession.netResult)}
                 </p>
               </div>
             </div>
@@ -1029,7 +931,7 @@ export const Gambling: React.FC = () => {
                             size="sm"
                             onClick={() => setBetAmount(Math.min(amt, currentCharacter.gold))}
                           >
-                            {formatGold(amt)}
+                            {formatDollars(amt)}
                           </Button>
                         ))}
                       </div>
@@ -1103,7 +1005,7 @@ export const Gambling: React.FC = () => {
                         {blackjackState.result === 'lose' && 'DEALER WINS'}
                         {blackjackState.result === 'push' && 'PUSH'}
                         {blackjackState.payout !== undefined && blackjackState.payout > 0 && (
-                          <p className="text-lg">{formatGold(blackjackState.payout)}</p>
+                          <p className="text-lg">{formatDollars(blackjackState.payout)}</p>
                         )}
                       </div>
                     )}
@@ -1204,7 +1106,7 @@ export const Gambling: React.FC = () => {
                       wheelState.result === 'win' ? 'text-green-500' : 'text-red-500'
                     }`}>
                       Result: {wheelState.spinResult}x
-                      {wheelState.result === 'win' && ` - You Won ${formatGold(wheelState.payout || 0)}!`}
+                      {wheelState.result === 'win' && ` - You Won ${formatDollars(wheelState.payout || 0)}!`}
                       {wheelState.result === 'lose' && ' - Better luck next time!'}
                     </div>
                   )}
@@ -1226,7 +1128,7 @@ export const Gambling: React.FC = () => {
                     isLoading={wheelState?.isSpinning}
                     loadingText="Spinning..."
                   >
-                    Spin the Wheel ({formatGold(betAmount)})
+                    Spin the Wheel ({formatDollars(betAmount)})
                   </Button>
                 </div>
               </div>
@@ -1297,7 +1199,7 @@ export const Gambling: React.FC = () => {
                       monteState.result === 'win' ? 'text-green-500' : 'text-red-500'
                     }`}>
                       {monteState.result === 'win'
-                        ? `You Found the Queen! Won ${formatGold(monteState.payout || 0)}!`
+                        ? `You Found the Queen! Won ${formatDollars(monteState.payout || 0)}!`
                         : 'The Queen was hidden elsewhere!'
                       }
                     </div>
@@ -1432,7 +1334,7 @@ export const Gambling: React.FC = () => {
                           crapsState.result === 'win' ? 'text-green-500' : 'text-red-500'
                         }`}>
                           {crapsState.result === 'win'
-                            ? `You Won ${formatGold(crapsState.payout || 0)}!`
+                            ? `You Won ${formatDollars(crapsState.payout || 0)}!`
                             : 'You Lost!'
                           }
                         </div>
@@ -1525,7 +1427,7 @@ export const Gambling: React.FC = () => {
                         faroState.result === 'win' ? 'text-green-500' :
                         faroState.result === 'push' ? 'text-yellow-500' : 'text-red-500'
                       }`}>
-                        {faroState.result === 'win' && `You Won ${formatGold(faroState.payout || 0)}!`}
+                        {faroState.result === 'win' && `You Won ${formatDollars(faroState.payout || 0)}!`}
                         {faroState.result === 'push' && 'Push - Bet Returned'}
                         {faroState.result === 'lose' && 'You Lost!'}
                       </div>
@@ -1603,6 +1505,7 @@ export const Gambling: React.FC = () => {
                             setRouletteState({
                               currentBet: betAmount,
                               selectedBets: [{ type: bet.type, value: bet.type, amount: betAmount }],
+                              winningBets: [],
                             });
                           } else if (!rouletteState.result) {
                             setRouletteState((prev) => ({
@@ -1626,12 +1529,12 @@ export const Gambling: React.FC = () => {
                       <div className="flex flex-wrap gap-2">
                         {rouletteState.selectedBets.map((bet, i) => (
                           <span key={i} className="px-2 py-1 bg-wood-dark/20 rounded text-sm">
-                            {bet.type}: {formatGold(bet.amount)}
+                            {bet.type}: {formatDollars(bet.amount)}
                           </span>
                         ))}
                       </div>
                       <p className="text-sm text-wood-dark mt-2">
-                        Total: {formatGold(rouletteState.selectedBets.reduce((sum, b) => sum + b.amount, 0))}
+                        Total: {formatDollars(rouletteState.selectedBets.reduce((sum, b) => sum + b.amount, 0))}
                       </p>
                     </div>
                   )}
@@ -1649,7 +1552,7 @@ export const Gambling: React.FC = () => {
                         rouletteState.payout && rouletteState.payout > 0 ? 'text-green-500' : 'text-red-500'
                       }`}>
                         {rouletteState.payout && rouletteState.payout > 0
-                          ? `You Won ${formatGold(rouletteState.payout)}!`
+                          ? `You Won ${formatDollars(rouletteState.payout)}!`
                           : 'No Winning Bets'
                         }
                       </div>
@@ -1726,7 +1629,7 @@ export const Gambling: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <p className={`font-bold ${session.netResult >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {session.netResult >= 0 ? '+' : ''}{formatGold(session.netResult)}
+                        {session.netResult >= 0 ? '+' : ''}{formatDollars(session.netResult)}
                       </p>
                       <p className="text-xs text-wood-grain">
                         {formatTimeAgo(new Date(session.endTime))}
@@ -1781,10 +1684,10 @@ export const Gambling: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <div className="font-bold text-gold-dark">
-                          Biggest Win: {formatGold(entry.biggestWin)}
+                          Biggest Win: {formatDollars(entry.biggestWin)}
                         </div>
                         <div className="text-sm text-wood-grain">
-                          Total: {formatGold(entry.totalWon)} ({(entry.winRate * 100).toFixed(1)}% win rate)
+                          Total: {formatDollars(entry.totalWon)} ({(entry.winRate * 100).toFixed(1)}% win rate)
                         </div>
                       </div>
                     </div>
@@ -1820,8 +1723,8 @@ export const Gambling: React.FC = () => {
                 <h4 className="font-western text-wood-dark">{location.name}</h4>
                 <p className="text-sm text-wood-grain">{location.description}</p>
                 <div className="flex gap-4 mt-2 text-xs text-wood-grain">
-                  <span>Min Bet: {formatGold(location.minBet)}</span>
-                  <span>Max Bet: {formatGold(location.maxBet)}</span>
+                  <span>Min Bet: {formatDollars(location.minBet)}</span>
+                  <span>Max Bet: {formatDollars(location.maxBet)}</span>
                 </div>
               </button>
             ))}
@@ -1878,85 +1781,6 @@ function calculateHandTotal(cards: { numericValue: number; value: string }[]) {
 function isRed(num: number): boolean {
   const reds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
   return reds.includes(num);
-}
-
-// Mock data functions
-function getMockLocations(): GamblingLocation[] {
-  return [
-    {
-      _id: 'loc1',
-      name: 'The Lucky Star Saloon',
-      description: 'A rowdy saloon with all the games you could want',
-      availableGames: ['blackjack', 'roulette', 'craps', 'faro', 'three_card_monte', 'wheel_of_fortune'],
-      minBet: 10,
-      maxBet: 10000,
-      houseEdge: 0.02,
-    },
-    {
-      _id: 'loc2',
-      name: 'The Silver Dollar Casino',
-      description: 'High-stakes gambling for the serious player',
-      availableGames: ['blackjack', 'roulette', 'faro'],
-      minBet: 100,
-      maxBet: 50000,
-      houseEdge: 0.015,
-    },
-  ];
-}
-
-function getMockHistory(): SessionHistory[] {
-  return [
-    {
-      _id: '1',
-      gameType: 'blackjack',
-      locationName: 'Lucky Star Saloon',
-      totalWagered: 5000,
-      netResult: 1200,
-      handsPlayed: 25,
-      endTime: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      _id: '2',
-      gameType: 'roulette',
-      locationName: 'Silver Dollar Casino',
-      totalWagered: 3000,
-      netResult: -800,
-      handsPlayed: 15,
-      endTime: new Date(Date.now() - 86400000).toISOString(),
-    },
-  ];
-}
-
-function getMockLeaderboard(): LeaderboardEntry[] {
-  return [
-    {
-      rank: 1,
-      characterId: 'c1',
-      characterName: 'Lucky Lou',
-      gameType: 'blackjack',
-      biggestWin: 25000,
-      totalWon: 150000,
-      winRate: 0.58,
-    },
-    {
-      rank: 2,
-      characterId: 'c2',
-      characterName: 'Poker Pete',
-      gameType: 'roulette',
-      biggestWin: 18000,
-      totalWon: 95000,
-      winRate: 0.52,
-    },
-    {
-      rank: 3,
-      characterId: 'c3',
-      characterName: 'High Roller Hannah',
-      gameType: 'craps',
-      biggestWin: 15000,
-      totalWon: 72000,
-      winRate: 0.55,
-    },
-  ];
 }
 
 export default Gambling;

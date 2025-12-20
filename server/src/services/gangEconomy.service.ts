@@ -137,9 +137,9 @@ export class GangEconomyService {
         throw new Error('Character not found');
       }
 
-      // Deduct from character's gold
-      const { GoldService } = await import('./gold.service');
-      await GoldService.deductGold(characterId, amount, 'gang_bank_deposit' as any, { gangId, accountType }, session);
+      // Deduct from character's dollars
+      const { DollarService } = await import('./dollar.service');
+      await DollarService.deductDollars(characterId, amount, 'gang_bank_deposit' as any, { gangId, accountType }, session);
 
       // Add to gang account
       economy.addToAccount(accountType, amount);
@@ -147,7 +147,7 @@ export class GangEconomyService {
 
       await session.commitTransaction();
 
-      logger.info(`Character ${characterId} deposited ${amount} gold to gang ${gangId} ${accountType}`);
+      logger.info(`Character ${characterId} deposited ${amount} dollars to gang ${gangId} ${accountType}`);
 
       return economy;
     } catch (error) {
@@ -161,6 +161,7 @@ export class GangEconomyService {
 
   /**
    * Withdraw from gang bank account (officer+ only)
+   * H9 SECURITY FIX: Re-verifies gang membership within transaction to prevent TOCTOU attacks
    */
   static async withdrawFromAccount(
     gangId: string,
@@ -187,12 +188,23 @@ export class GangEconomyService {
         throw new Error('Gang economy not found');
       }
 
+      // H9 SECURITY FIX: Re-verify gang membership and role WITHIN the transaction
+      // This prevents Time-of-Check to Time-of-Use (TOCTOU) attacks where
+      // a member could be demoted/removed after the initial check but before withdrawal
       const gang = await Gang.findById(gangId).session(session);
       if (!gang) {
         throw new Error('Gang not found');
       }
 
+      // H9: Verify member still exists in gang and has officer+ role
+      const member = gang.members.find(m => m.characterId.toString() === characterId);
+      if (!member) {
+        logger.warn(`[SECURITY] Withdrawal attempt by non-member: ${characterId} for gang ${gangId}`);
+        throw new Error('You are no longer a member of this gang');
+      }
+
       if (!gang.isOfficer(characterId)) {
+        logger.warn(`[SECURITY] Withdrawal attempt by non-officer: ${characterId} (role: ${member.role}) for gang ${gangId}`);
         throw new Error('Only officers and leaders can withdraw from gang accounts');
       }
 
@@ -200,13 +212,13 @@ export class GangEconomyService {
       economy.deductFromAccount(accountType, amount);
       await economy.save({ session });
 
-      // Add to character's gold
-      const { GoldService } = await import('./gold.service');
-      await GoldService.addGold(characterId, amount, 'gang_bank_withdrawal' as any, { gangId, accountType }, session);
+      // Add to character's dollars
+      const { DollarService } = await import('./dollar.service');
+      await DollarService.addDollars(characterId, amount, 'gang_bank_withdrawal' as any, { gangId, accountType }, session);
 
       await session.commitTransaction();
 
-      logger.info(`Character ${characterId} withdrew ${amount} gold from gang ${gangId} ${accountType}`);
+      logger.info(`Character ${characterId} withdrew ${amount} dollars from gang ${gangId} ${accountType}`);
 
       return economy;
     } catch (error) {
@@ -220,6 +232,7 @@ export class GangEconomyService {
 
   /**
    * Transfer between gang accounts
+   * H9 SECURITY FIX: Re-verifies gang membership within transaction
    */
   static async transferBetweenAccounts(
     gangId: string,
@@ -242,13 +255,22 @@ export class GangEconomyService {
         throw new Error('Gang economy not found');
       }
 
+      // H9 SECURITY FIX: Re-verify gang membership and role WITHIN the transaction
       const gang = await Gang.findById(gangId).session(session);
       if (!gang) {
         throw new Error('Gang not found');
       }
 
+      // H9: Verify member still exists in gang
+      const member = gang.members.find(m => m.characterId.toString() === characterId);
+      if (!member) {
+        logger.warn(`[SECURITY] Transfer attempt by non-member: ${characterId} for gang ${gangId}`);
+        throw new Error('You are no longer a member of this gang');
+      }
+
       // Only officers can transfer funds
       if (!gang.isOfficer(characterId)) {
+        logger.warn(`[SECURITY] Transfer attempt by non-officer: ${characterId} (role: ${member.role}) for gang ${gangId}`);
         throw new Error('Only officers and leaders can transfer funds');
       }
 
@@ -266,7 +288,7 @@ export class GangEconomyService {
       await session.commitTransaction();
 
       logger.info(
-        `Gang ${gangId} transferred ${amount} gold from ${fromAccount} to ${toAccount}`
+        `Gang ${gangId} transferred ${amount} dollars from ${fromAccount} to ${toAccount}`
       );
 
       return economy;
@@ -363,7 +385,7 @@ export class GangEconomyService {
       await session.commitTransaction();
 
       logger.info(
-        `Gang ${gang.name} purchased ${businessType} business for ${config.startupCost} gold`
+        `Gang ${gang.name} purchased ${businessType} business for ${config.startupCost} dollars`
       );
 
       return business[0];
@@ -422,7 +444,7 @@ export class GangEconomyService {
 
       await session.commitTransaction();
 
-      logger.info(`Gang ${gang.name} sold business ${business.name} for ${salePrice} gold`);
+      logger.info(`Gang ${gang.name} sold business ${business.name} for ${salePrice} dollars`);
 
       return salePrice;
     } catch (error) {
@@ -547,12 +569,29 @@ export class GangEconomyService {
 
   /**
    * Process weekly payroll (automated job)
+   *
+   * @param gangId - The gang ID to process payroll for
+   * @param externalSession - Optional external session for transaction consistency.
+   *                          When called from batch jobs, pass the job's session to ensure
+   *                          all operations are part of the same transaction.
+   *
+   * SECURITY: Supports external session parameter for proper transaction rollback
+   * when called from batch processing jobs. If external session is provided,
+   * this method will NOT manage transaction lifecycle (no commit/abort/end).
    */
-  static async processPayroll(gangId: string): Promise<number> {
-    const session = await mongoose.startSession();
+  static async processPayroll(
+    gangId: string,
+    externalSession?: mongoose.ClientSession
+  ): Promise<number> {
+    // Use external session if provided, otherwise create our own
+    const useExternalSession = !!externalSession;
+    const session = externalSession || await mongoose.startSession();
 
     try {
-      await session.startTransaction();
+      // Only start transaction if we're managing our own session
+      if (!useExternalSession) {
+        await session.startTransaction();
+      }
 
       const economy = await GangEconomy.findOne({ gangId: new mongoose.Types.ObjectId(gangId) }).session(session);
       if (!economy) {
@@ -563,14 +602,18 @@ export class GangEconomyService {
 
       if (totalPayroll === 0) {
         // No payroll set
-        await session.commitTransaction();
+        if (!useExternalSession) {
+          await session.commitTransaction();
+        }
         return 0;
       }
 
       if (!economy.canAfford(GangBankAccountType.OPERATING_FUND, totalPayroll)) {
         logger.warn(`Gang ${gangId} cannot afford payroll of ${totalPayroll}`);
         // Don't fail, just skip payroll this week
-        await session.commitTransaction();
+        if (!useExternalSession) {
+          await session.commitTransaction();
+        }
         return 0;
       }
 
@@ -578,9 +621,9 @@ export class GangEconomyService {
       economy.deductFromAccount(GangBankAccountType.OPERATING_FUND, totalPayroll);
 
       // Pay each member
-      const { GoldService } = await import('./gold.service');
+      const { DollarService } = await import('./dollar.service');
       for (const wage of economy.payroll.weeklyWages) {
-        await GoldService.addGold(
+        await DollarService.addDollars(
           wage.memberId,
           wage.amount,
           'gang_payroll' as any,
@@ -591,7 +634,7 @@ export class GangEconomyService {
 
       for (const bonus of economy.payroll.officerBonuses) {
         if (bonus.bonuses && bonus.bonuses > 0) {
-          await GoldService.addGold(
+          await DollarService.addDollars(
             bonus.memberId,
             bonus.bonuses,
             'gang_payroll' as any,
@@ -606,17 +649,27 @@ export class GangEconomyService {
       economy.payroll.nextPayday = this.calculateNextPayday();
 
       await economy.save({ session });
-      await session.commitTransaction();
 
-      logger.info(`Processed payroll for gang ${gangId}: ${totalPayroll} gold`);
+      // Only commit if we're managing our own session
+      if (!useExternalSession) {
+        await session.commitTransaction();
+      }
+
+      logger.info(`Processed payroll for gang ${gangId}: ${totalPayroll} dollars`);
 
       return totalPayroll;
     } catch (error) {
-      await session.abortTransaction();
+      // Only abort if we're managing our own session
+      if (!useExternalSession) {
+        await session.abortTransaction();
+      }
       logger.error('Error processing payroll:', error);
       throw error;
     } finally {
-      session.endSession();
+      // Only end session if we created it
+      if (!useExternalSession) {
+        session.endSession();
+      }
     }
   }
 }

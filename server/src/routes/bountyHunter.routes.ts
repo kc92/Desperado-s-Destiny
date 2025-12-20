@@ -5,7 +5,9 @@
  */
 
 import express from 'express';
-import { requireAuth } from '../middleware/requireAuth';
+import { requireAuth } from '../middleware/auth.middleware';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
 import {
   checkHunterSpawn,
   getAvailableHunters,
@@ -24,31 +26,31 @@ const router = express.Router();
  */
 
 // Get all hunters (public info)
-router.get('/', getAllHunters);
+router.get('/', asyncHandler(getAllHunters));
 
 // Get specific hunter details
-router.get('/:hunterId', getHunterDetails);
+router.get('/:hunterId', asyncHandler(getHunterDetails));
 
 /**
  * Protected routes (auth required)
  */
 
 // Check if hunter should spawn
-router.post('/check-spawn', requireAuth, checkHunterSpawn);
+router.post('/check-spawn', requireAuth, requireCsrfToken, asyncHandler(checkHunterSpawn));
 
 // Get available hunters for hire
-router.get('/available/list', requireAuth, getAvailableHunters);
+router.get('/available/list', requireAuth, asyncHandler(getAvailableHunters));
 
 // Hire a hunter
-router.post('/hire', requireAuth, hireHunter);
+router.post('/hire', requireAuth, requireCsrfToken, asyncHandler(hireHunter));
 
 // Get active encounters
-router.get('/encounters/active', requireAuth, getActiveEncounters);
+router.get('/encounters/active', requireAuth, asyncHandler(getActiveEncounters));
 
 // Pay off a hunter
-router.post('/payoff', requireAuth, payOffHunter);
+router.post('/payoff', requireAuth, requireCsrfToken, asyncHandler(payOffHunter));
 
 // Resolve encounter
-router.post('/resolve', requireAuth, resolveEncounter);
+router.post('/resolve', requireAuth, requireCsrfToken, asyncHandler(resolveEncounter));
 
 export default router;

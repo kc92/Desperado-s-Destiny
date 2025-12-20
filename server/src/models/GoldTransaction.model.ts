@@ -1,11 +1,21 @@
 /**
- * Gold Transaction Model
+ * Currency Transaction Model
  *
- * Mongoose schema for tracking all gold movements in the game economy
+ * Mongoose schema for tracking all currency/resource movements in the game economy
+ * Supports: Dollars (primary currency), Gold Resource, Silver Resource
  * Provides complete audit trail for debugging and anti-cheat purposes
  */
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
+
+/**
+ * Currency type enum - what type of currency/resource is being transacted
+ */
+export enum CurrencyType {
+  DOLLAR = 'DOLLAR',           // Primary currency (was "gold")
+  GOLD_RESOURCE = 'GOLD_RESOURCE',   // Gold bars/nuggets (valuable material)
+  SILVER_RESOURCE = 'SILVER_RESOURCE', // Silver bars/nuggets (common material)
+}
 
 /**
  * Transaction type enum
@@ -14,6 +24,7 @@ export enum TransactionType {
   EARNED = 'EARNED',
   SPENT = 'SPENT',
   TRANSFERRED = 'TRANSFERRED',
+  EXCHANGED = 'EXCHANGED',     // Resource exchanged for currency (or vice versa)
 }
 
 /**
@@ -88,6 +99,9 @@ export enum TransactionSource {
   WORKER_SEVERANCE = 'WORKER_SEVERANCE',
   STRIKE_RESOLUTION = 'STRIKE_RESOLUTION',
 
+  // Tutorial sources
+  TUTORIAL_REWARD = 'TUTORIAL_REWARD',
+
   // Gambling sources (Phase 13, Wave 13.1)
   GAMBLING_WIN = 'GAMBLING_WIN',
   GAMBLING_LOSS = 'GAMBLING_LOSS',
@@ -148,18 +162,60 @@ export enum TransactionSource {
   MARKETPLACE_BID_REFUND = 'MARKETPLACE_BID_REFUND',
   MARKETPLACE_AUCTION_WIN = 'MARKETPLACE_AUCTION_WIN',
   MARKETPLACE_LISTING_EXPIRED = 'MARKETPLACE_LISTING_EXPIRED',
+
+  // Property sources
+  PROPERTY_PURCHASE = 'PROPERTY_PURCHASE',
+
+  // NPC interaction sources
+  NPC_INTERACTION = 'NPC_INTERACTION',
+  NPC_TRADE = 'NPC_TRADE',
+
+  // Quest sources
+  QUEST_COMPLETION = 'QUEST_COMPLETION',
+
+  // Combat loot sources
+  COMBAT_LOOT = 'COMBAT_LOOT',
+
+  // Horse racing sources (Phase 13, Wave 13.2)
+  RACE_BET = 'RACE_BET',
+  RACE_PAYOUT = 'RACE_PAYOUT',
+  RACE_REFUND = 'RACE_REFUND',
+
+  // Horse ownership sources
+  HORSE_PURCHASE = 'HORSE_PURCHASE',
+  HORSE_CARE = 'HORSE_CARE',
+  HORSE_SALE = 'HORSE_SALE',
+
+  // Shooting contest sources
+  SHOOTING_CONTEST_ENTRY = 'SHOOTING_CONTEST_ENTRY',
+  SHOOTING_CONTEST_PRIZE = 'SHOOTING_CONTEST_PRIZE',
+
+  // Holiday sources
+  HOLIDAY_REWARD = 'HOLIDAY_REWARD',
+  HOLIDAY_CURRENCY_CONVERSION = 'HOLIDAY_CURRENCY_CONVERSION',
+
+  // Subscription sources (Phase 12, Wave 12.1)
+  SUBSCRIPTION_RENEWAL = 'SUBSCRIPTION_RENEWAL',
+  SUBSCRIPTION_PURCHASE = 'SUBSCRIPTION_PURCHASE',
+
+  // Wealth tax sources (Phase 3.3 Balance Fix)
+  WEALTH_TAX = 'WEALTH_TAX',
 }
 
 /**
- * Gold Transaction document interface
+ * Currency Transaction document interface
  */
 export interface IGoldTransaction extends Document {
   characterId: mongoose.Types.ObjectId;
+  currencyType: CurrencyType;  // Which currency/resource is being transacted
   amount: number; // Positive for EARNED, negative for SPENT
   type: TransactionType;
   source: TransactionSource;
   balanceBefore: number;
   balanceAfter: number;
+  // Exchange-specific fields (only used when type === EXCHANGED)
+  exchangeRate?: number;       // Rate at time of exchange (e.g., 100 = $100 per gold)
+  exchangedFrom?: CurrencyType; // Source currency in exchange transactions
   metadata?: {
     npcId?: mongoose.Types.ObjectId;
     crimeId?: string;
@@ -172,13 +228,20 @@ export interface IGoldTransaction extends Document {
 }
 
 /**
- * Gold Transaction schema definition
+ * Currency Transaction schema definition
  */
 const GoldTransactionSchema = new Schema<IGoldTransaction>({
   characterId: {
     type: Schema.Types.ObjectId,
     ref: 'Character',
     required: true,
+    index: true
+  },
+  currencyType: {
+    type: String,
+    enum: Object.values(CurrencyType),
+    required: true,
+    default: CurrencyType.DOLLAR,
     index: true
   },
   amount: {
@@ -205,6 +268,15 @@ const GoldTransactionSchema = new Schema<IGoldTransaction>({
     required: true,
     min: 0
   },
+  // Exchange-specific fields
+  exchangeRate: {
+    type: Number,
+    min: 0
+  },
+  exchangedFrom: {
+    type: String,
+    enum: Object.values(CurrencyType)
+  },
   metadata: {
     type: Schema.Types.Mixed
   },
@@ -219,8 +291,10 @@ const GoldTransactionSchema = new Schema<IGoldTransaction>({
  * Indexes for efficient querying
  */
 GoldTransactionSchema.index({ characterId: 1, timestamp: -1 });
+GoldTransactionSchema.index({ characterId: 1, currencyType: 1, timestamp: -1 });
 GoldTransactionSchema.index({ source: 1, timestamp: -1 });
 GoldTransactionSchema.index({ type: 1, timestamp: -1 });
+GoldTransactionSchema.index({ currencyType: 1, timestamp: -1 });
 
 /**
  * Gold Transaction model

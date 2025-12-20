@@ -33,6 +33,11 @@ import {
   getClueText,
   DISCOVERY_MILESTONES,
 } from '../data/legendaryClues';
+import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { withLock } from '../utils/distributedLock';
 
 /**
  * Get all legendary animals with character's progress
@@ -108,7 +113,7 @@ export async function getLegendaryAnimals(
       legendaries: result as any[],
     };
   } catch (error) {
-    console.error('Error getting legendary animals:', error);
+    logger.error('Error getting legendary animals', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     return {
       success: false,
       legendaries: [],
@@ -200,7 +205,7 @@ export async function discoverClue(
       message: clueText,
     };
   } catch (error) {
-    console.error('Error discovering clue:', error);
+    logger.error('Error discovering clue', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     return {
       success: false,
       message: 'Failed to discover clue',
@@ -232,7 +237,7 @@ export async function hearRumor(
         };
       }
 
-      targetLegendary = knownLegendaries[Math.floor(Math.random() * knownLegendaries.length)].id;
+      targetLegendary = SecureRNG.select(knownLegendaries).id;
     }
 
     const legendary = getLegendaryById(targetLegendary);
@@ -295,7 +300,7 @@ export async function hearRumor(
       message: rumor.rumor,
     };
   } catch (error) {
-    console.error('Error hearing rumor:', error);
+    logger.error('Error hearing rumor', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     return {
       success: false,
       message: 'Failed to hear rumor',
@@ -426,7 +431,7 @@ export async function initiateLegendaryHunt(
       message: `You've engaged ${legendary.name} - ${legendary.title}!`,
     };
   } catch (error) {
-    console.error('Error initiating legendary hunt:', error);
+    logger.error('Error initiating legendary hunt', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     return {
       success: false,
       error: 'Failed to initiate hunt',
@@ -462,7 +467,7 @@ export async function getLegendaryTrophies(
       };
     }).filter(Boolean) as LegendaryTrophy[];
   } catch (error) {
-    console.error('Error getting legendary trophies:', error);
+    logger.error('Error getting legendary trophies', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     return [];
   }
 }
@@ -505,7 +510,7 @@ export async function getLegendaryLeaderboard(
       entries: entries.filter(Boolean),
     };
   } catch (error) {
-    console.error('Error getting leaderboard:', error);
+    logger.error('Error getting leaderboard', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
     return null;
   }
 }
@@ -525,115 +530,129 @@ export async function awardLegendaryRewards(
   achievement?: string;
   permanentBonus?: any;
 }> {
-  try {
-    const legendary = getLegendaryById(legendaryId);
-    if (!legendary) {
-      throw new Error('Legendary not found');
-    }
+  // Use distributed lock to prevent race conditions when awarding rewards
+  const lockKey = `lock:legendhunt:${legendaryId}:${characterId}`;
 
-    const character = await Character.findById(characterId);
-    if (!character) {
-      throw new Error('Character not found');
-    }
-
-    const hunt = await LegendaryHunt.findOne({ characterId, legendaryId });
-    if (!hunt) {
-      throw new Error('Hunt record not found');
-    }
-
-    // Calculate gold reward
-    const goldReward = Math.floor(
-      Math.random() * (legendary.goldReward.max - legendary.goldReward.min) +
-      legendary.goldReward.min
-    );
-
-    // Award gold
-    character.gold += goldReward;
-
-    // Award experience
-    character.experience += legendary.experienceReward;
-
-    // Award guaranteed drops
-    const items = [...legendary.guaranteedDrops];
-
-    // Roll for possible drops
-    if (legendary.possibleDrops) {
-      legendary.possibleDrops.forEach(drop => {
-        if (Math.random() <= drop.dropChance) {
-          items.push(drop);
-        }
-      });
-    }
-
-    // Add items to inventory (simplified)
-    // In full implementation, would add to character inventory
-
-    // Award title if first defeat
-    let title: string | undefined;
-    if (hunt.defeatedCount === 1 && !hunt.titleUnlocked) {
-      title = legendary.titleUnlocked;
-      hunt.titleUnlocked = true;
-      // In full implementation, would add to character titles
-    }
-
-    // Award achievement
-    let achievement: string | undefined;
-    if (hunt.defeatedCount === 1) {
-      achievement = legendary.achievementId;
-      // Create achievement
-      await Achievement.create({
-        characterId,
-        achievementType: legendary.achievementId,
-        title: legendary.titleUnlocked,
-        description: `Defeated ${legendary.name} - ${legendary.title}`,
-        category: 'special',
-        tier: 'legendary',
-        progress: 1,
-        target: 1,
-        completed: true,
-        completedAt: new Date(),
-        reward: {
-          gold: goldReward,
-          experience: legendary.experienceReward,
-        },
-      });
-    }
-
-    // Apply permanent bonus if first defeat
-    let permanentBonus = undefined;
-    if (legendary.permanentBonus && hunt.defeatedCount === 1 && !hunt.permanentBonusApplied) {
-      permanentBonus = legendary.permanentBonus;
-      hunt.permanentBonusApplied = true;
-
-      // Apply bonus to character
-      const bonusType = legendary.permanentBonus.type;
-      if (bonusType === 'cunning' || bonusType === 'spirit' || bonusType === 'combat' || bonusType === 'craft') {
-        character.stats[bonusType] += legendary.permanentBonus.amount;
-      } else if (bonusType === 'max_energy') {
-        character.maxEnergy += legendary.permanentBonus.amount;
+  return withLock(lockKey, async () => {
+    try {
+      const legendary = getLegendaryById(legendaryId);
+      if (!legendary) {
+        throw new Error('Legendary not found');
       }
-      // Other bonus types would be applied to appropriate fields
+
+      const character = await Character.findById(characterId);
+      if (!character) {
+        throw new Error('Character not found');
+      }
+
+      const hunt = await LegendaryHunt.findOne({ characterId, legendaryId });
+      if (!hunt) {
+        throw new Error('Hunt record not found');
+      }
+
+      // Calculate dollars reward
+      const dollarsReward = SecureRNG.range(legendary.goldReward.min, legendary.goldReward.max);
+
+      // Award experience
+      character.experience += legendary.experienceReward;
+
+      // Award dollars through DollarService
+      await DollarService.addDollars(
+        character._id.toString(),
+        dollarsReward,
+        TransactionSource.HUNTING,
+        {
+          legendaryId,
+          legendaryName: legendary.name,
+          legendaryTitle: legendary.title,
+          sessionTurns: session.turnCount,
+          damageDone: session.totalDamageDone,
+          currencyType: CurrencyType.DOLLAR
+        }
+      );
+
+      // Award guaranteed drops
+      const items = [...legendary.guaranteedDrops];
+
+      // Roll for possible drops
+      if (legendary.possibleDrops) {
+        legendary.possibleDrops.forEach(drop => {
+          if (SecureRNG.chance(drop.dropChance)) {
+            items.push(drop);
+          }
+        });
+      }
+
+      // Add items to inventory (simplified)
+      // In full implementation, would add to character inventory
+
+      // Award title if first defeat
+      let title: string | undefined;
+      if (hunt.defeatedCount === 1 && !hunt.titleUnlocked) {
+        title = legendary.titleUnlocked;
+        hunt.titleUnlocked = true;
+        // In full implementation, would add to character titles
+      }
+
+      // Award achievement
+      let achievement: string | undefined;
+      if (hunt.defeatedCount === 1) {
+        achievement = legendary.achievementId;
+        // Create achievement
+        await Achievement.create({
+          characterId,
+          achievementType: legendary.achievementId,
+          title: legendary.titleUnlocked,
+          description: `Defeated ${legendary.name} - ${legendary.title}`,
+          category: 'special',
+          tier: 'legendary',
+          progress: 1,
+          target: 1,
+          completed: true,
+          completedAt: new Date(),
+          reward: {
+            dollars: dollarsReward,
+            experience: legendary.experienceReward,
+          },
+        });
+      }
+
+      // Apply permanent bonus if first defeat
+      let permanentBonus = undefined;
+      if (legendary.permanentBonus && hunt.defeatedCount === 1 && !hunt.permanentBonusApplied) {
+        permanentBonus = legendary.permanentBonus;
+        hunt.permanentBonusApplied = true;
+
+        // Apply bonus to character
+        const bonusType = legendary.permanentBonus.type;
+        if (bonusType === 'cunning' || bonusType === 'spirit' || bonusType === 'combat' || bonusType === 'craft') {
+          character.stats[bonusType] += legendary.permanentBonus.amount;
+        } else if (bonusType === 'max_energy') {
+          character.maxEnergy += legendary.permanentBonus.amount;
+        }
+        // Other bonus types would be applied to appropriate fields
+      }
+
+      // Mark trophy obtained
+      hunt.trophyObtained = true;
+      hunt.rewardsClaimed = true;
+
+      await character.save();
+      await hunt.save();
+
+      return {
+        gold: dollarsReward,
+        experience: legendary.experienceReward,
+        items,
+        title,
+        achievement,
+        permanentBonus,
+      };
+    } catch (error) {
+      logger.error('Error awarding legendary rewards', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
+      throw error;
     }
-
-    // Mark trophy obtained
-    hunt.trophyObtained = true;
-    hunt.rewardsClaimed = true;
-
-    await character.save();
-    await hunt.save();
-
-    return {
-      gold: goldReward,
-      experience: legendary.experienceReward,
-      items,
-      title,
-      achievement,
-      permanentBonus,
-    };
-  } catch (error) {
-    console.error('Error awarding legendary rewards:', error);
-    throw error;
-  }
+  }, { ttl: 30, retries: 3 });
 }
 
 /**

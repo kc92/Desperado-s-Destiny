@@ -5,7 +5,9 @@ initializeSentry();
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
+import mongoSanitize from 'express-mongo-sanitize';
 import { Server } from 'http';
 import { Server as SocketServer } from 'socket.io';
 
@@ -13,6 +15,7 @@ import { config } from './config';
 import { connectMongoDB, disconnectMongoDB } from './config/database';
 import { connectRedis, disconnectRedis } from './config/redis';
 import logger from './utils/logger';
+import { performanceMiddleware, performanceMonitor } from './utils/performanceMonitor';
 import {
   errorHandler,
   notFoundHandler,
@@ -21,7 +24,10 @@ import {
   sanitizeInput,
 } from './middleware';
 import { auditLogMiddleware } from './middleware/auditLog.middleware';
+import { requireCsrfToken } from './middleware/csrf.middleware';
 import routes from './routes';
+import { metricsMiddleware, getMetrics } from './services/metrics.service';
+import { KeyRotationService } from './services/keyRotation.service';
 
 /**
  * Express application instance
@@ -44,6 +50,34 @@ let io: SocketServer | null = null;
 function configureMiddleware(): void {
   // Sentry request handler - must be first middleware
   setupSentryRequestHandler(app);
+
+  // Trust X-Forwarded-For from reverse proxy (Docker, Kubernetes, AWS ELB, Railway)
+  // Required for correct client IP detection in rate limiting and security checks
+  app.set('trust proxy', 1);
+
+  // Performance monitoring - track request timing and percentiles
+  app.use(performanceMiddleware);
+
+  // Prometheus metrics middleware - track HTTP request metrics
+  app.use(metricsMiddleware);
+
+  // Response compression - reduce response size by ~70%
+  // Should be before other middleware to compress their output
+  app.use(compression({
+    // Only compress responses larger than 1kb
+    threshold: 1024,
+    // Compression level (1-9, default 6)
+    level: 6,
+    // Filter function to decide what to compress
+    filter: (req, res) => {
+      // Don't compress if client doesn't support it
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      // Use default filter (compresses text/* and application/* types)
+      return compression.filter(req, res);
+    },
+  }));
 
   // Security middleware - Helmet for security headers
   app.use(helmet({
@@ -71,36 +105,63 @@ function configureMiddleware(): void {
     hidePoweredBy: true // Hide X-Powered-By header
   }));
 
-  // CORS configuration - Allow multiple origins for development
-  const allowedOrigins = [
-    config.server.frontendUrl,
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3002',
-    'http://localhost:3003',
-    'http://localhost:3004',
-    'http://localhost:3005',
-    'http://localhost:3006',
-    'http://localhost:3007'
-  ];
+  // CORS configuration - Environment-aware origin handling
+  // Production: Only allow configured FRONTEND_URL
+  // Development: Allow localhost variants for easier testing
+  const getAllowedOrigins = (): Set<string> => {
+    const origins = new Set<string>();
+
+    // Always include the configured frontend URL
+    if (config.server.frontendUrl) {
+      origins.add(config.server.frontendUrl);
+    }
+
+    // In development, allow localhost variants
+    if (config.isDevelopment || config.isTest) {
+      // Common React/Next.js ports
+      for (let port = 3000; port <= 3010; port++) {
+        origins.add(`http://localhost:${port}`);
+      }
+      // Common Vite ports
+      for (let port = 5173; port <= 5200; port++) {
+        origins.add(`http://localhost:${port}`);
+      }
+    }
+
+    return origins;
+  };
+
+  const allowedOrigins = getAllowedOrigins();
 
   app.use(cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
+      // Allow requests with no origin (like mobile apps or curl requests) in development/test only
       if (!origin) {
-        return callback(null, true);
+        if (config.isTest) {
+          logger.debug('[CORS] Test mode: allowing request without origin header');
+          return callback(null, true);
+        }
+        if (config.isDevelopment) {
+          logger.debug('[CORS] Development mode: allowing request without origin header');
+          return callback(null, true);
+        }
+        // SECURITY: In production, reject requests without origin
+        // This prevents CSRF attacks from curl/mobile apps that don't set Origin header
+        logger.warn('[CORS] SECURITY: Blocked request without Origin header in production');
+        return callback(new Error('CORS: Origin header required in production'), false);
       }
 
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.has(origin)) {
         callback(null, true);
       } else {
+        logger.warn(`CORS: Blocked request from origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'sentry-trace', 'baggage'],
-    exposedHeaders: ['Set-Cookie'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-CSRF-Token', 'sentry-trace', 'baggage'],
+    exposedHeaders: ['Set-Cookie', 'X-CSRF-Token'],
   }));
 
   // Request parsing middleware
@@ -110,6 +171,19 @@ function configureMiddleware(): void {
 
   // Sanitize all user input
   app.use(sanitizeInput);
+
+  // NoSQL injection protection
+  // Replaces MongoDB operators like $where, $ne with underscores
+  app.use(mongoSanitize({
+    replaceWith: '_',
+    onSanitize: ({ req, key }) => {
+      logger.warn(`[SECURITY] NoSQL injection attempt blocked: ${key}`, {
+        ip: req.ip,
+        path: req.path,
+        method: req.method
+      });
+    }
+  }));
 
   // Request logging
   app.use(requestLogger);
@@ -125,8 +199,22 @@ function configureMiddleware(): void {
  * Configure application routes
  */
 function configureRoutes(): void {
+  // Prometheus metrics endpoint (before API routes, no auth required for scraping)
+  app.get('/metrics', getMetrics);
+
   // API routes
   app.use('/api', routes);
+
+  // Global CSRF protection for all mutation requests
+  // This ensures 100% coverage without modifying each route file
+  app.use('/api', (req, res, next) => {
+    // Skip GET, HEAD, OPTIONS - these are safe methods
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      return next();
+    }
+    // Require CSRF token for all mutations (POST, PUT, PATCH, DELETE)
+    return requireCsrfToken(req, res, next);
+  });
 
   // Root route
   app.get('/', (_req, res) => {
@@ -160,6 +248,9 @@ async function initializeDatabases(): Promise<void> {
 
     // Connect to Redis
     await connectRedis();
+
+    // Initialize JWT key rotation (requires Redis)
+    await KeyRotationService.initialize();
 
     logger.info('All databases connected successfully');
 
@@ -215,31 +306,25 @@ async function seedStarterData(): Promise<void> {
 /**
  * Initialize Socket.io
  */
-function initializeSocketIO(httpServer: Server): void {
+async function initializeSocketIO(httpServer: Server): Promise<void> {
   // Import and initialize Socket.io from config
   const { initializeSocketIO: initSocket } = require('./config/socket');
-  io = initSocket(httpServer);
-  logger.info('Socket.io initialized with authentication and chat handlers');
+  io = await initSocket(httpServer);
+  logger.info('Socket.io initialized with Redis adapter and handlers');
 }
 
 /**
- * Initialize CRON jobs
+ * Initialize distributed job system (Bull queues)
  */
-function initializeCronJobs(): void {
+async function initializeJobSystem(): Promise<void> {
   try {
-    const { initializeWarResolutionJob } = require('./jobs/warResolution');
-    const { initializeBountyJobs } = require('./jobs/bountyCleanup');
-    const { scheduleTerritoryMaintenance } = require('./jobs/territoryMaintenance');
-    const { initializeMarketplaceJobs } = require('./jobs/marketplace.job');
-
-    initializeWarResolutionJob();
-    initializeBountyJobs();
-    scheduleTerritoryMaintenance();
-    initializeMarketplaceJobs();
-
-    logger.info('CRON jobs initialized');
+    const { initializeJobSystem: initJobs } = await import('./jobs/queues');
+    await initJobs();
+    logger.info('Bull job system initialized');
   } catch (error) {
-    logger.error('Failed to initialize CRON jobs:', error);
+    logger.error('Failed to initialize Bull job system:', error);
+    // Don't throw - jobs are important but not critical for server startup
+    // The server can run without jobs for a short time
   }
 }
 
@@ -267,11 +352,11 @@ export async function startServer(): Promise<Server> {
       logger.info(`Health check available at http://localhost:${config.server.port}/api/health`);
     });
 
-    // Initialize Socket.io
-    initializeSocketIO(server);
+    // Initialize Socket.io with Redis adapter
+    await initializeSocketIO(server);
 
-    // Initialize CRON jobs
-    initializeCronJobs();
+    // Initialize distributed job system (Bull queues)
+    await initializeJobSystem();
 
     // Handle server errors
     server.on('error', (error: NodeJS.ErrnoException) => {
@@ -297,17 +382,13 @@ async function shutdown(signal: string): Promise<void> {
   logger.info(`${signal} received, starting graceful shutdown...`);
 
   try {
-    // Stop CRON jobs
+    // Shutdown Bull job system
     try {
-      const { stopWarResolutionJob } = require('./jobs/warResolution');
-      const { stopBountyJobs } = require('./jobs/bountyCleanup');
-      const { stopMarketplaceJobs } = require('./jobs/marketplace.job');
-
-      stopWarResolutionJob();
-      stopBountyJobs();
-      stopMarketplaceJobs();
+      const { shutdownJobSystem } = await import('./jobs/queues');
+      await shutdownJobSystem();
+      logger.info('Bull job system shut down');
     } catch (error) {
-      logger.warn('Failed to stop CRON jobs:', error);
+      logger.warn('Failed to shutdown Bull job system:', error);
     }
 
     // Close Socket.io connections

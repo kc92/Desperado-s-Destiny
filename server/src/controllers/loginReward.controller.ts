@@ -6,7 +6,7 @@
  */
 
 import { Response } from 'express';
-import { AuthRequest } from '../middleware/requireAuth';
+import { AuthRequest } from '../middleware/auth.middleware';
 import { LoginRewardService } from '../services/loginReward.service';
 import { Character } from '../models/Character.model';
 import logger from '../utils/logger';

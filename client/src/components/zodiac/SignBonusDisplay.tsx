@@ -5,7 +5,6 @@
 
 import React from 'react';
 import type { SignBonus, BonusType } from '@/types/zodiac.types';
-import { Card } from '@/components/ui';
 
 interface SignBonusDisplayProps {
   bonuses: SignBonus[];

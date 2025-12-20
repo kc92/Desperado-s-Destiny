@@ -5,8 +5,10 @@
 
 import mongoose from 'mongoose';
 import { Character, ICharacter } from '../models/Character.model';
-import { TransactionSource } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
+import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 export interface DisguiseType {
   id: string;
@@ -133,13 +135,13 @@ export class DisguiseService {
         }
       }
 
-      // Check if character has enough gold
-      if (!character.hasGold(disguise.cost)) {
+      // Check if character has enough dollars
+      if (character.dollars < disguise.cost) {
         await session.abortTransaction();
         session.endSession();
         return {
           success: false,
-          message: `Insufficient gold. Need ${disguise.cost}, have ${character.gold}.`,
+          message: `Insufficient dollars. Need $${disguise.cost}, have $${character.dollars}.`,
         };
       }
 
@@ -155,15 +157,15 @@ export class DisguiseService {
         }
       }
 
-      // Deduct gold
-      const { GoldService } = await import('./gold.service');
-      await GoldService.deductGold(
+      // Deduct dollars
+      await DollarService.deductDollars(
         characterId,
         disguise.cost,
         TransactionSource.DISGUISE_PURCHASE,
         {
           disguiseId,
           disguiseName: disguise.name,
+          currencyType: CurrencyType.DOLLAR,
         },
         session
       );
@@ -258,8 +260,7 @@ export class DisguiseService {
     // + wanted level * 3
     const detectionChance = 5 + buildingDangerLevel + character.wantedLevel * 3;
 
-    const roll = Math.random() * 100;
-    const detected = roll < detectionChance;
+    const detected = SecureRNG.chance(detectionChance / 100);
 
     if (detected) {
       // Remove disguise on detection
@@ -288,10 +289,10 @@ export class DisguiseService {
   /**
    * Get available disguises for character
    */
-  static getAvailableDisguises(characterGold: number): DisguiseType[] {
+  static getAvailableDisguises(characterDollars: number): DisguiseType[] {
     return DISGUISE_TYPES.map((disguise) => ({
       ...disguise,
-      canAfford: characterGold >= disguise.cost,
+      canAfford: characterDollars >= disguise.cost,
     })) as any;
   }
 

@@ -1,7 +1,9 @@
 /**
  * Socket.io Client Service
  *
- * Singleton service for managing WebSocket connections to the chat server
+ * Singleton service for managing WebSocket connections to the chat server.
+ * Includes enhanced error handling, reconnection with exponential backoff,
+ * and proper status reporting.
  */
 
 import { io, Socket } from 'socket.io-client';
@@ -9,10 +11,29 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
 } from '@desperados/shared';
+import { logger } from '@/services/logger.service';
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 type StatusCallback = (status: ConnectionStatus) => void;
+
+/**
+ * Result of an emit operation
+ */
+export interface EmitResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Disconnect reasons that should trigger auto-reconnect
+ */
+const AUTO_RECONNECT_REASONS = [
+  'io server disconnect',
+  'transport close',
+  'transport error',
+  'ping timeout',
+];
 
 class SocketService {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
@@ -55,15 +76,18 @@ class SocketService {
     });
 
     this.socket.on('disconnect', (reason) => {
+      logger.info('[Socket] Disconnected', { reason });
       this.updateStatus('disconnected');
 
-      if (reason === 'io server disconnect') {
-        this.socket?.connect();
+      // Auto-reconnect for recoverable disconnect reasons
+      if (AUTO_RECONNECT_REASONS.includes(reason)) {
+        logger.info('[Socket] Attempting auto-reconnect', { reason });
+        this.attemptReconnect();
       }
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('[Socket] Connection error:', error.message);
+      logger.error('[Socket] Connection error', error as Error, { context: 'socketService.connect_error' });
       this.updateStatus('error');
     });
 
@@ -76,7 +100,7 @@ class SocketService {
       }
     });
 
-    this.socket.io.on('reconnect', (attempt) => {
+    this.socket.io.on('reconnect', (_attempt) => {
       this._reconnectAttempts = 0;
       this.updateStatus('connected');
     });
@@ -155,17 +179,108 @@ class SocketService {
   }
 
   /**
-   * Emit a socket event
+   * Attempt to reconnect with exponential backoff
+   */
+  private attemptReconnect(attempt = 1): void {
+    const maxAttempts = this.maxReconnectAttempts;
+    const baseDelay = this.reconnectDelay;
+    const maxDelay = 30000; // 30 seconds max
+
+    if (attempt > maxAttempts) {
+      logger.error('[Socket] Max reconnect attempts reached', new Error('Max reconnect attempts'), {
+        attempts: attempt - 1,
+      });
+      this.updateStatus('error');
+      return;
+    }
+
+    // Exponential backoff with jitter
+    const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
+    const jitter = Math.random() * 1000;
+    const actualDelay = delay + jitter;
+
+    logger.info('[Socket] Scheduling reconnect', { attempt, delay: actualDelay });
+
+    setTimeout(() => {
+      // Don't reconnect if already connected or status changed
+      if (this.socket?.connected) {
+        logger.info('[Socket] Already reconnected, skipping attempt');
+        return;
+      }
+
+      logger.info('[Socket] Attempting reconnect', { attempt });
+      this.socket?.connect();
+
+      // Check connection after a short delay
+      setTimeout(() => {
+        if (!this.socket?.connected) {
+          this.attemptReconnect(attempt + 1);
+        }
+      }, 2000);
+    }, actualDelay);
+  }
+
+  /**
+   * Emit a socket event with success/failure indication
+   * Returns false if socket is not connected
    */
   emit<E extends keyof ClientToServerEvents>(
     event: E,
     ...args: Parameters<ClientToServerEvents[E]>
-  ): void {
+  ): boolean {
     if (!this.socket?.connected) {
-      return;
+      logger.warn('[Socket] Cannot emit - not connected', { event });
+      return false;
     }
 
-    this.socket.emit(event, ...args);
+    try {
+      this.socket.emit(event, ...args);
+      return true;
+    } catch (error) {
+      logger.error('[Socket] Emit failed', error as Error, { event });
+      return false;
+    }
+  }
+
+  /**
+   * Emit with callback for acknowledgment-based responses
+   * Use for operations that need confirmation
+   */
+  emitWithAck<E extends keyof ClientToServerEvents>(
+    event: E,
+    args: Parameters<ClientToServerEvents[E]>[0],
+    callback: (error: Error | null, response?: any) => void,
+    timeoutMs = 10000
+  ): boolean {
+    if (!this.socket?.connected) {
+      callback(new Error('Socket not connected'));
+      return false;
+    }
+
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      callback(new Error('Socket operation timed out'));
+    }, timeoutMs);
+
+    try {
+      this.socket.emit(event, args, (response: any) => {
+        if (timedOut) return;
+
+        clearTimeout(timeoutId);
+
+        if (response?.error) {
+          callback(new Error(response.error));
+        } else {
+          callback(null, response);
+        }
+      });
+      return true;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      callback(error as Error);
+      return false;
+    }
   }
 
   /**
