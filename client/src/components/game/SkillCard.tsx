@@ -15,6 +15,7 @@ interface SkillCardProps {
   isTraining: boolean;
   canTrain: boolean;
   onTrain: () => void;
+  tabIndex?: number;
 }
 
 const categoryColors = {
@@ -89,6 +90,7 @@ function calculateTrainingTime(baseTimeMs: number, currentLevel: number): number
 /**
  * Western-styled skill card with parchment background
  * Memoized to prevent unnecessary re-renders in skill lists
+ * Supports keyboard navigation (Enter/Space to train)
  */
 export const SkillCard: React.FC<SkillCardProps> = React.memo(({
   skill,
@@ -96,6 +98,7 @@ export const SkillCard: React.FC<SkillCardProps> = React.memo(({
   isTraining,
   canTrain,
   onTrain,
+  tabIndex = 0,
 }) => {
   const colors = categoryColors[skill.category as SkillCategory];
   const isMaxLevel = skillData.level >= skill.maxLevel;
@@ -125,6 +128,19 @@ export const SkillCard: React.FC<SkillCardProps> = React.memo(({
     buttonVariant = 'ghost';
   }
 
+  /**
+   * Handle keyboard navigation on the card
+   * Enter or Space triggers the train action if available
+   */
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (canTrain && !isMaxLevel && !isTraining) {
+        onTrain();
+      }
+    }
+  };
+
   return (
     <div
       className={`
@@ -132,10 +148,14 @@ export const SkillCard: React.FC<SkillCardProps> = React.memo(({
         border-4 ${colors.border}
         transition-all duration-200
         hover:scale-102 hover:shadow-xl
+        focus:outline-none focus:ring-2 focus:ring-gold-light focus:ring-offset-2 focus:ring-offset-wood-dark
         ${isTraining ? 'ring-2 ring-gold-light animate-pulse-gold' : ''}
+        ${canTrain ? 'cursor-pointer' : ''}
       `}
       role="article"
-      aria-label={`${skill.name} skill card`}
+      aria-label={`${skill.name} skill card, Level ${skillData.level}${canTrain ? ', Press Enter to train' : ''}`}
+      tabIndex={tabIndex}
+      onKeyDown={handleKeyDown}
     >
       {/* Header: Icon + Name + Level */}
       <div className="flex items-start justify-between mb-3">
@@ -252,7 +272,8 @@ export const SkillCard: React.FC<SkillCardProps> = React.memo(({
     prevProps.skillData.xp === nextProps.skillData.xp &&
     prevProps.skillData.xpToNextLevel === nextProps.skillData.xpToNextLevel &&
     prevProps.isTraining === nextProps.isTraining &&
-    prevProps.canTrain === nextProps.canTrain
+    prevProps.canTrain === nextProps.canTrain &&
+    prevProps.tabIndex === nextProps.tabIndex
   );
 });
 

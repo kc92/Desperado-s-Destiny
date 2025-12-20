@@ -21,6 +21,7 @@ import {
 import { Character, ICharacter } from '../models/Character.model';
 import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import { DollarService } from './dollar.service';
+import { SkillService } from './skill.service';
 import { AppError, NotFoundError, ValidationError } from '../utils/errors';
 import {
   ALL_CONTRACT_TEMPLATES,
@@ -347,6 +348,15 @@ export class DailyContractService {
             );
           }
         }
+      }
+
+      // Skill XP
+      if (rewards.skillXp && rewards.skillXp.length > 0) {
+        await SkillService.awardMultipleSkillXP(
+          characterId,
+          rewards.skillXp,
+          session
+        );
       }
 
       // Update contract status
@@ -731,6 +741,14 @@ export class DailyContractService {
       rewards.reputation = { [faction]: template.reputationReward.amount };
     }
 
+    // Add skill XP rewards from template
+    if (template.skillXpRewards && template.skillXpRewards.length > 0) {
+      rewards.skillXp = template.skillXpRewards.map(reward => ({
+        skillId: reward.skillId,
+        amount: reward.amount
+      }));
+    }
+
     // Build target
     const target = {
       type: template.targetType,
@@ -742,6 +760,20 @@ export class DailyContractService {
     const expiresAt = new Date();
     expiresAt.setUTCHours(23, 59, 59, 999);
 
+    // Build requirements with skill requirements
+    const requirements: any = {
+      amount: progressMax,
+      ...template.requirements
+    };
+
+    // Add skill requirements from template
+    if (template.requiredSkills && template.requiredSkills.length > 0) {
+      requirements.skills = template.requiredSkills.map(skill => ({
+        skillId: skill.skillId,
+        minLevel: skill.minLevel
+      }));
+    }
+
     return {
       id: uuidv4(),
       templateId: template.id,
@@ -749,10 +781,7 @@ export class DailyContractService {
       title,
       description,
       target,
-      requirements: {
-        amount: progressMax,
-        ...template.requirements
-      },
+      requirements,
       rewards,
       difficulty: template.difficulty,
       status: 'available',

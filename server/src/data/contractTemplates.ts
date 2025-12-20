@@ -5,7 +5,7 @@
  * Part of the Competitor Parity Plan - Phase B
  */
 
-import { ContractType, ContractDifficulty, ContractTarget, ContractRequirements, ContractRewards } from '../models/DailyContract.model';
+import { ContractType, ContractDifficulty, ContractTarget, ContractRequirements, ContractRewards, SkillRequirement, SkillXpReward } from '../models/DailyContract.model';
 import logger from '../utils/logger';
 import { SecureRNG } from '../services/base/SecureRNG';
 
@@ -31,6 +31,9 @@ export interface ContractTemplate {
   };
   itemReward?: string;
   requirements?: Partial<ContractRequirements>;
+  // Skill integration
+  requiredSkills?: SkillRequirement[];  // Skills required to attempt
+  skillXpRewards?: SkillXpReward[];     // Skill XP granted on completion
 }
 
 /**
@@ -127,6 +130,7 @@ export const PLACEHOLDER_DATA = {
 
 /**
  * Crime Contracts (15 templates)
+ * Primary skills: Lockpicking, Pickpocketing, Stealth, Deception
  */
 export const CRIME_CONTRACTS: ContractTemplate[] = [
   {
@@ -138,7 +142,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 75, xp: 40 }
+    baseRewards: { gold: 75, xp: 40 },
+    requiredSkills: [{ skillId: 'intimidation', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'intimidation', amount: 15 }]
   },
   {
     id: 'crime_steal_item',
@@ -149,7 +155,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 120, xp: 65 }
+    baseRewards: { gold: 120, xp: 65 },
+    requiredSkills: [{ skillId: 'lockpicking', minLevel: 5 }, { skillId: 'stealth', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'lockpicking', amount: 25 }, { skillId: 'stealth', amount: 15 }]
   },
   {
     id: 'crime_pickpocket_multiple',
@@ -160,7 +168,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 3,
     levelScaling: true,
-    baseRewards: { gold: 60, xp: 35 }
+    baseRewards: { gold: 60, xp: 35 },
+    requiredSkills: [{ skillId: 'pickpocketing', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'pickpocketing', amount: 20 }]
   },
   {
     id: 'crime_break_into_safe',
@@ -172,7 +182,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 200, xp: 100 },
-    itemReward: 'gold_nugget'
+    itemReward: 'gold_nugget',
+    requiredSkills: [{ skillId: 'lockpicking', minLevel: 10 }, { skillId: 'stealth', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'lockpicking', amount: 50 }, { skillId: 'stealth', amount: 30 }]
   },
   {
     id: 'crime_forge_documents',
@@ -183,7 +195,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 2,
     levelScaling: false,
-    baseRewards: { gold: 100, xp: 55 }
+    baseRewards: { gold: 100, xp: 55 },
+    requiredSkills: [{ skillId: 'deception', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'deception', amount: 25 }]
   },
   {
     id: 'crime_run_contraband',
@@ -194,7 +208,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 150, xp: 75 }
+    baseRewards: { gold: 150, xp: 75 },
+    requiredSkills: [{ skillId: 'stealth', minLevel: 5 }, { skillId: 'riding', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'stealth', amount: 20 }, { skillId: 'riding', amount: 15 }]
   },
   {
     id: 'crime_cattle_rustling',
@@ -205,7 +221,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 5,
     levelScaling: true,
-    baseRewards: { gold: 180, xp: 90 }
+    baseRewards: { gold: 180, xp: 90 },
+    requiredSkills: [{ skillId: 'stealth', minLevel: 8 }, { skillId: 'animal_handling', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'stealth', amount: 35 }, { skillId: 'animal_handling', amount: 25 }]
   },
   {
     id: 'crime_collect_protection',
@@ -216,7 +234,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 3,
     levelScaling: false,
-    baseRewards: { gold: 90, xp: 45 }
+    baseRewards: { gold: 90, xp: 45 },
+    requiredSkills: [{ skillId: 'intimidation', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'intimidation', amount: 15 }]
   },
   {
     id: 'crime_sabotage_equipment',
@@ -228,7 +248,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 130, xp: 70 },
-    reputationReward: { faction: 'frontera', amount: 5 }
+    reputationReward: { faction: 'frontera', amount: 5 },
+    requiredSkills: [{ skillId: 'stealth', minLevel: 5 }, { skillId: 'tinkering', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'stealth', amount: 20 }, { skillId: 'tinkering', amount: 25 }]
   },
   {
     id: 'crime_plant_evidence',
@@ -239,7 +261,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 110, xp: 60 }
+    baseRewards: { gold: 110, xp: 60 },
+    requiredSkills: [{ skillId: 'deception', minLevel: 5 }, { skillId: 'stealth', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'deception', amount: 25 }, { skillId: 'stealth', amount: 20 }]
   },
   {
     id: 'crime_train_heist_scout',
@@ -250,7 +274,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 70, xp: 40 }
+    baseRewards: { gold: 70, xp: 40 },
+    requiredSkills: [{ skillId: 'reconnaissance', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'reconnaissance', amount: 20 }]
   },
   {
     id: 'crime_bribe_official',
@@ -261,7 +287,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 85, xp: 50 }
+    baseRewards: { gold: 85, xp: 50 },
+    requiredSkills: [{ skillId: 'persuasion', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'persuasion', amount: 25 }]
   },
   {
     id: 'crime_eliminate_witness',
@@ -272,7 +300,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 175, xp: 85 }
+    baseRewards: { gold: 175, xp: 85 },
+    requiredSkills: [{ skillId: 'intimidation', minLevel: 10 }],
+    skillXpRewards: [{ skillId: 'intimidation', amount: 40 }]
   },
   {
     id: 'crime_steal_horse',
@@ -283,7 +313,9 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 220, xp: 110 }
+    baseRewards: { gold: 220, xp: 110 },
+    requiredSkills: [{ skillId: 'stealth', minLevel: 10 }, { skillId: 'animal_handling', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'stealth', amount: 40 }, { skillId: 'animal_handling', amount: 35 }]
   },
   {
     id: 'crime_intercept_mail',
@@ -294,12 +326,15 @@ export const CRIME_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 95, xp: 55 }
+    baseRewards: { gold: 95, xp: 55 },
+    requiredSkills: [{ skillId: 'riding', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'riding', amount: 25 }]
   }
 ];
 
 /**
  * Combat Contracts (12 templates)
+ * Primary skills: Firearms, Brawling, Intimidation, Tactics
  */
 export const COMBAT_CONTRACTS: ContractTemplate[] = [
   {
@@ -311,7 +346,9 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 3,
     levelScaling: true,
-    baseRewards: { gold: 80, xp: 50 }
+    baseRewards: { gold: 80, xp: 50 },
+    requiredSkills: [{ skillId: 'firearms', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'firearms', amount: 20 }]
   },
   {
     id: 'combat_win_duels',
@@ -322,7 +359,9 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 2,
     levelScaling: true,
-    baseRewards: { gold: 100, xp: 65 }
+    baseRewards: { gold: 100, xp: 65 },
+    requiredSkills: [{ skillId: 'firearms', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'firearms', amount: 35 }]
   },
   {
     id: 'combat_bounty_hunter',
@@ -333,7 +372,9 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 250, xp: 120 }
+    baseRewards: { gold: 250, xp: 120 },
+    requiredSkills: [{ skillId: 'firearms', minLevel: 12 }, { skillId: 'tactics', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'firearms', amount: 50 }, { skillId: 'tactics', amount: 35 }]
   },
   {
     id: 'combat_gang_skirmish',
@@ -345,7 +386,9 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 180, xp: 95 },
-    reputationReward: { faction: 'frontera', amount: 10 }
+    reputationReward: { faction: 'frontera', amount: 10 },
+    requiredSkills: [{ skillId: 'firearms', minLevel: 10 }, { skillId: 'tactics', minLevel: 10 }],
+    skillXpRewards: [{ skillId: 'firearms', amount: 40 }, { skillId: 'tactics', amount: 40 }]
   },
   {
     id: 'combat_protect_convoy',
@@ -356,7 +399,9 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 5,
     levelScaling: false,
-    baseRewards: { gold: 140, xp: 80 }
+    baseRewards: { gold: 140, xp: 80 },
+    requiredSkills: [{ skillId: 'firearms', minLevel: 5 }, { skillId: 'riding', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'firearms', amount: 25 }, { skillId: 'riding', amount: 20 }]
   },
   {
     id: 'combat_clear_hideout',
@@ -367,7 +412,9 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 8,
     levelScaling: true,
-    baseRewards: { gold: 200, xp: 110 }
+    baseRewards: { gold: 200, xp: 110 },
+    requiredSkills: [{ skillId: 'firearms', minLevel: 12 }, { skillId: 'tactics', minLevel: 10 }],
+    skillXpRewards: [{ skillId: 'firearms', amount: 45 }, { skillId: 'tactics', amount: 35 }]
   },
   {
     id: 'combat_fight_club',
@@ -378,7 +425,9 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 3,
     levelScaling: false,
-    baseRewards: { gold: 120, xp: 70 }
+    baseRewards: { gold: 120, xp: 70 },
+    requiredSkills: [{ skillId: 'brawling', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'brawling', amount: 35 }]
   },
   {
     id: 'combat_hunting_predators',
@@ -389,7 +438,9 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 4,
     levelScaling: true,
-    baseRewards: { gold: 70, xp: 45 }
+    baseRewards: { gold: 70, xp: 45 },
+    requiredSkills: [{ skillId: 'hunting', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'hunting', amount: 20 }]
   },
   {
     id: 'combat_arena_champion',
@@ -401,7 +452,9 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 300, xp: 150 },
-    itemReward: 'championship_belt'
+    itemReward: 'championship_belt',
+    requiredSkills: [{ skillId: 'firearms', minLevel: 15 }, { skillId: 'brawling', minLevel: 10 }],
+    skillXpRewards: [{ skillId: 'firearms', amount: 60 }, { skillId: 'brawling', amount: 40 }]
   },
   {
     id: 'combat_rescue_hostage',
@@ -413,7 +466,9 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 6,
     levelScaling: false,
     baseRewards: { gold: 175, xp: 90 },
-    reputationReward: { faction: 'settlerAlliance', amount: 15 }
+    reputationReward: { faction: 'settlerAlliance', amount: 15 },
+    requiredSkills: [{ skillId: 'firearms', minLevel: 10 }, { skillId: 'tactics', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'firearms', amount: 40 }, { skillId: 'tactics', amount: 30 }]
   },
   {
     id: 'combat_target_practice',
@@ -424,7 +479,9 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 10,
     levelScaling: false,
-    baseRewards: { gold: 50, xp: 35 }
+    baseRewards: { gold: 50, xp: 35 },
+    requiredSkills: [{ skillId: 'firearms', minLevel: 1 }],
+    skillXpRewards: [{ skillId: 'firearms', amount: 15 }]
   },
   {
     id: 'combat_defend_town',
@@ -436,12 +493,15 @@ export const COMBAT_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 10,
     levelScaling: true,
     baseRewards: { gold: 160, xp: 85 },
-    reputationReward: { faction: 'settlerAlliance', amount: 10 }
+    reputationReward: { faction: 'settlerAlliance', amount: 10 },
+    requiredSkills: [{ skillId: 'firearms', minLevel: 8 }, { skillId: 'tactics', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'firearms', amount: 30 }, { skillId: 'tactics', amount: 25 }]
   }
 ];
 
 /**
  * Social Contracts (15 templates)
+ * Primary skills: Persuasion, Gambling, Deception, Leadership
  */
 export const SOCIAL_CONTRACTS: ContractTemplate[] = [
   {
@@ -453,7 +513,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 3,
     levelScaling: false,
-    baseRewards: { gold: 60, xp: 35 }
+    baseRewards: { gold: 60, xp: 35 },
+    requiredSkills: [{ skillId: 'perception', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'perception', amount: 15 }]
   },
   {
     id: 'social_improve_reputation',
@@ -465,7 +527,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 80, xp: 50 },
-    reputationReward: { faction: 'variable', amount: 15 }
+    reputationReward: { faction: 'variable', amount: 15 },
+    requiredSkills: [{ skillId: 'persuasion', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'persuasion', amount: 25 }]
   },
   {
     id: 'social_play_poker',
@@ -476,7 +540,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 5,
     levelScaling: false,
-    baseRewards: { gold: 50, xp: 30 }
+    baseRewards: { gold: 50, xp: 30 },
+    requiredSkills: [{ skillId: 'gambling', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'gambling', amount: 20 }]
   },
   {
     id: 'social_spread_rumor',
@@ -487,7 +553,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 3,
     levelScaling: false,
-    baseRewards: { gold: 55, xp: 30 }
+    baseRewards: { gold: 55, xp: 30 },
+    requiredSkills: [{ skillId: 'deception', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'deception', amount: 15 }]
   },
   {
     id: 'social_attend_gathering',
@@ -498,7 +566,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 40, xp: 25 }
+    baseRewards: { gold: 40, xp: 25 },
+    requiredSkills: [{ skillId: 'persuasion', minLevel: 1 }],
+    skillXpRewards: [{ skillId: 'persuasion', amount: 10 }]
   },
   {
     id: 'social_recruit_gang_member',
@@ -509,7 +579,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 100, xp: 60 }
+    baseRewards: { gold: 100, xp: 60 },
+    requiredSkills: [{ skillId: 'leadership', minLevel: 5 }, { skillId: 'persuasion', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'leadership', amount: 25 }, { skillId: 'persuasion', amount: 20 }]
   },
   {
     id: 'social_make_contact',
@@ -520,7 +592,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 75, xp: 45 }
+    baseRewards: { gold: 75, xp: 45 },
+    requiredSkills: [{ skillId: 'persuasion', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'persuasion', amount: 25 }]
   },
   {
     id: 'social_negotiate_deal',
@@ -531,7 +605,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 150, xp: 80 }
+    baseRewards: { gold: 150, xp: 80 },
+    requiredSkills: [{ skillId: 'persuasion', minLevel: 10 }, { skillId: 'deception', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'persuasion', amount: 40 }, { skillId: 'deception', amount: 25 }]
   },
   {
     id: 'social_buy_drinks',
@@ -542,7 +618,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 3,
     levelScaling: false,
-    baseRewards: { gold: 30, xp: 20 }
+    baseRewards: { gold: 30, xp: 20 },
+    requiredSkills: [{ skillId: 'persuasion', minLevel: 1 }],
+    skillXpRewards: [{ skillId: 'persuasion', amount: 10 }]
   },
   {
     id: 'social_settle_dispute',
@@ -554,7 +632,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 85, xp: 50 },
-    reputationReward: { faction: 'settlerAlliance', amount: 5 }
+    reputationReward: { faction: 'settlerAlliance', amount: 5 },
+    requiredSkills: [{ skillId: 'persuasion', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'persuasion', amount: 30 }]
   },
   {
     id: 'social_charm_bartender',
@@ -565,7 +645,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 45, xp: 25 }
+    baseRewards: { gold: 45, xp: 25 },
+    requiredSkills: [{ skillId: 'persuasion', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'persuasion', amount: 15 }]
   },
   {
     id: 'social_write_letters',
@@ -576,7 +658,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 3,
     levelScaling: false,
-    baseRewards: { gold: 35, xp: 20 }
+    baseRewards: { gold: 35, xp: 20 },
+    requiredSkills: [{ skillId: 'deception', minLevel: 1 }],
+    skillXpRewards: [{ skillId: 'deception', amount: 10 }]
   },
   {
     id: 'social_entertain_crowd',
@@ -587,7 +671,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 70, xp: 40 }
+    baseRewards: { gold: 70, xp: 40 },
+    requiredSkills: [{ skillId: 'persuasion', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'persuasion', amount: 25 }]
   },
   {
     id: 'social_attend_sermon',
@@ -599,7 +685,9 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 25, xp: 15 },
-    reputationReward: { faction: 'settlerAlliance', amount: 3 }
+    reputationReward: { faction: 'settlerAlliance', amount: 3 },
+    requiredSkills: [{ skillId: 'willpower', minLevel: 1 }],
+    skillXpRewards: [{ skillId: 'willpower', amount: 10 }]
   },
   {
     id: 'social_tribal_council',
@@ -611,12 +699,15 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 120, xp: 70 },
-    reputationReward: { faction: 'nahiCoalition', amount: 20 }
+    reputationReward: { faction: 'nahiCoalition', amount: 20 },
+    requiredSkills: [{ skillId: 'persuasion', minLevel: 10 }, { skillId: 'leadership', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'persuasion', amount: 35 }, { skillId: 'leadership', amount: 30 }]
   }
 ];
 
 /**
  * Delivery Contracts (10 templates)
+ * Primary skills: Riding, Survival, Animal Handling
  */
 export const DELIVERY_CONTRACTS: ContractTemplate[] = [
   {
@@ -628,7 +719,9 @@ export const DELIVERY_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 50, xp: 30 }
+    baseRewards: { gold: 50, xp: 30 },
+    requiredSkills: [{ skillId: 'riding', minLevel: 1 }],
+    skillXpRewards: [{ skillId: 'riding', amount: 15 }]
   },
   {
     id: 'delivery_urgent_medicine',
@@ -640,7 +733,9 @@ export const DELIVERY_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 100, xp: 55 },
-    reputationReward: { faction: 'settlerAlliance', amount: 8 }
+    reputationReward: { faction: 'settlerAlliance', amount: 8 },
+    requiredSkills: [{ skillId: 'riding', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'riding', amount: 30 }]
   },
   {
     id: 'delivery_multiple_stops',
@@ -651,7 +746,9 @@ export const DELIVERY_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 3,
     levelScaling: false,
-    baseRewards: { gold: 90, xp: 50 }
+    baseRewards: { gold: 90, xp: 50 },
+    requiredSkills: [{ skillId: 'riding', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'riding', amount: 25 }]
   },
   {
     id: 'delivery_secret_message',
@@ -662,7 +759,9 @@ export const DELIVERY_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 80, xp: 45 }
+    baseRewards: { gold: 80, xp: 45 },
+    requiredSkills: [{ skillId: 'stealth', minLevel: 5 }, { skillId: 'riding', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'stealth', amount: 20 }, { skillId: 'riding', amount: 15 }]
   },
   {
     id: 'delivery_valuable_cargo',
@@ -673,7 +772,9 @@ export const DELIVERY_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 180, xp: 90 }
+    baseRewards: { gold: 180, xp: 90 },
+    requiredSkills: [{ skillId: 'riding', minLevel: 10 }, { skillId: 'firearms', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'riding', amount: 40 }, { skillId: 'firearms', amount: 20 }]
   },
   {
     id: 'delivery_supplies_to_camp',
@@ -684,7 +785,9 @@ export const DELIVERY_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 60, xp: 35 }
+    baseRewards: { gold: 60, xp: 35 },
+    requiredSkills: [{ skillId: 'survival', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'survival', amount: 15 }]
   },
   {
     id: 'delivery_mail_run',
@@ -695,7 +798,9 @@ export const DELIVERY_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 4,
     levelScaling: false,
-    baseRewards: { gold: 110, xp: 60 }
+    baseRewards: { gold: 110, xp: 60 },
+    requiredSkills: [{ skillId: 'riding', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'riding', amount: 35 }]
   },
   {
     id: 'delivery_escort_wagon',
@@ -706,7 +811,9 @@ export const DELIVERY_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 150, xp: 80 }
+    baseRewards: { gold: 150, xp: 80 },
+    requiredSkills: [{ skillId: 'riding', minLevel: 10 }, { skillId: 'firearms', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'riding', amount: 35 }, { skillId: 'firearms', amount: 25 }]
   },
   {
     id: 'delivery_trade_goods',
@@ -718,7 +825,9 @@ export const DELIVERY_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 95, xp: 55 },
-    reputationReward: { faction: 'variable', amount: 10 }
+    reputationReward: { faction: 'variable', amount: 10 },
+    requiredSkills: [{ skillId: 'riding', minLevel: 5 }, { skillId: 'persuasion', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'riding', amount: 25 }, { skillId: 'persuasion', amount: 15 }]
   },
   {
     id: 'delivery_dangerous_cargo',
@@ -729,12 +838,15 @@ export const DELIVERY_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 200, xp: 100 }
+    baseRewards: { gold: 200, xp: 100 },
+    requiredSkills: [{ skillId: 'riding', minLevel: 8 }, { skillId: 'explosives', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'riding', amount: 35 }, { skillId: 'explosives', amount: 30 }]
   }
 ];
 
 /**
  * Investigation Contracts (10 templates)
+ * Primary skills: Perception, Reconnaissance, Stealth
  */
 export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
   {
@@ -746,7 +858,9 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 3,
     levelScaling: false,
-    baseRewards: { gold: 100, xp: 60 }
+    baseRewards: { gold: 100, xp: 60 },
+    requiredSkills: [{ skillId: 'perception', minLevel: 5 }, { skillId: 'reconnaissance', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'perception', amount: 25 }, { skillId: 'reconnaissance', amount: 20 }]
   },
   {
     id: 'investigate_location',
@@ -757,7 +871,9 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 85, xp: 50 }
+    baseRewards: { gold: 85, xp: 50 },
+    requiredSkills: [{ skillId: 'perception', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'perception', amount: 25 }]
   },
   {
     id: 'investigate_missing_person',
@@ -768,7 +884,9 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 4,
     levelScaling: false,
-    baseRewards: { gold: 150, xp: 85 }
+    baseRewards: { gold: 150, xp: 85 },
+    requiredSkills: [{ skillId: 'perception', minLevel: 10 }, { skillId: 'reconnaissance', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'perception', amount: 40 }, { skillId: 'reconnaissance', amount: 35 }]
   },
   {
     id: 'investigate_crime_scene',
@@ -779,7 +897,9 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 3,
     levelScaling: false,
-    baseRewards: { gold: 70, xp: 40 }
+    baseRewards: { gold: 70, xp: 40 },
+    requiredSkills: [{ skillId: 'perception', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'perception', amount: 15 }]
   },
   {
     id: 'investigate_smuggling_route',
@@ -790,7 +910,9 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 3,
     levelScaling: false,
-    baseRewards: { gold: 175, xp: 95 }
+    baseRewards: { gold: 175, xp: 95 },
+    requiredSkills: [{ skillId: 'reconnaissance', minLevel: 10 }, { skillId: 'stealth', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'reconnaissance', amount: 40 }, { skillId: 'stealth', amount: 30 }]
   },
   {
     id: 'investigate_spy',
@@ -801,7 +923,9 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 5,
     levelScaling: false,
-    baseRewards: { gold: 200, xp: 110 }
+    baseRewards: { gold: 200, xp: 110 },
+    requiredSkills: [{ skillId: 'perception', minLevel: 12 }, { skillId: 'deception', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'perception', amount: 45 }, { skillId: 'deception', amount: 30 }]
   },
   {
     id: 'investigate_counterfeit',
@@ -812,7 +936,9 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 3,
     levelScaling: false,
-    baseRewards: { gold: 120, xp: 65 }
+    baseRewards: { gold: 120, xp: 65 },
+    requiredSkills: [{ skillId: 'perception', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'perception', amount: 25 }]
   },
   {
     id: 'investigate_haunted_site',
@@ -823,7 +949,9 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 65, xp: 35 }
+    baseRewards: { gold: 65, xp: 35 },
+    requiredSkills: [{ skillId: 'willpower', minLevel: 5 }, { skillId: 'perception', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'willpower', amount: 20 }, { skillId: 'perception', amount: 15 }]
   },
   {
     id: 'investigate_rival_gang',
@@ -835,7 +963,9 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 3,
     levelScaling: false,
     baseRewards: { gold: 110, xp: 60 },
-    reputationReward: { faction: 'frontera', amount: 8 }
+    reputationReward: { faction: 'frontera', amount: 8 },
+    requiredSkills: [{ skillId: 'reconnaissance', minLevel: 8 }, { skillId: 'stealth', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'reconnaissance', amount: 30 }, { skillId: 'stealth', amount: 20 }]
   },
   {
     id: 'investigate_treasure_map',
@@ -847,12 +977,15 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 5,
     levelScaling: false,
     baseRewards: { gold: 250, xp: 125 },
-    itemReward: 'gold_nugget'
+    itemReward: 'gold_nugget',
+    requiredSkills: [{ skillId: 'perception', minLevel: 12 }, { skillId: 'survival', minLevel: 10 }],
+    skillXpRewards: [{ skillId: 'perception', amount: 50 }, { skillId: 'survival', amount: 40 }]
   }
 ];
 
 /**
  * Crafting Contracts (5 templates)
+ * Primary skills: Blacksmithing, Leatherworking, Gunsmithing, Cooking, Medicine, Herbalism
  */
 export const CRAFTING_CONTRACTS: ContractTemplate[] = [
   {
@@ -864,7 +997,9 @@ export const CRAFTING_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 3,
     levelScaling: true,
-    baseRewards: { gold: 70, xp: 40 }
+    baseRewards: { gold: 70, xp: 40 },
+    requiredSkills: [{ skillId: 'blacksmithing', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'blacksmithing', amount: 20 }]
   },
   {
     id: 'craft_sell_items',
@@ -875,7 +1010,9 @@ export const CRAFTING_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 5,
     levelScaling: true,
-    baseRewards: { gold: 50, xp: 45 }
+    baseRewards: { gold: 50, xp: 45 },
+    requiredSkills: [{ skillId: 'leatherworking', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'leatherworking', amount: 25 }]
   },
   {
     id: 'craft_special_order',
@@ -886,7 +1023,9 @@ export const CRAFTING_CONTRACTS: ContractTemplate[] = [
     difficulty: 'hard',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 150, xp: 80 }
+    baseRewards: { gold: 150, xp: 80 },
+    requiredSkills: [{ skillId: 'gunsmithing', minLevel: 10 }],
+    skillXpRewards: [{ skillId: 'gunsmithing', amount: 40 }]
   },
   {
     id: 'craft_gather_materials',
@@ -897,7 +1036,9 @@ export const CRAFTING_CONTRACTS: ContractTemplate[] = [
     difficulty: 'easy',
     baseProgressMax: 5,
     levelScaling: true,
-    baseRewards: { gold: 40, xp: 30 }
+    baseRewards: { gold: 40, xp: 30 },
+    requiredSkills: [{ skillId: 'herbalism', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'herbalism', amount: 15 }]
   },
   {
     id: 'craft_master_recipe',
@@ -908,7 +1049,9 @@ export const CRAFTING_CONTRACTS: ContractTemplate[] = [
     difficulty: 'medium',
     baseProgressMax: 1,
     levelScaling: false,
-    baseRewards: { gold: 100, xp: 70 }
+    baseRewards: { gold: 100, xp: 70 },
+    requiredSkills: [{ skillId: 'medicine', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'medicine', amount: 35 }]
   }
 ];
 

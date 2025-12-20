@@ -442,4 +442,222 @@ export class SkillService {
     const remaining = training.trainingCompletes.getTime() - Date.now();
     return Math.max(0, remaining);
   }
+
+  /**
+   * Award XP directly to a skill (from contracts, quests, activities)
+   * This bypasses training time and grants XP immediately
+   * Handles level-ups automatically
+   */
+  static async awardSkillXP(
+    characterId: string,
+    skillId: string,
+    xpAmount: number,
+    session?: mongoose.ClientSession
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    result?: {
+      skillId: string;
+      xpAwarded: number;
+      oldLevel: number;
+      newLevel: number;
+      currentXP: number;
+      xpToNextLevel: number;
+      leveledUp: boolean;
+      levelsGained: number;
+    };
+  }> {
+    const useExternalSession = !!session;
+    if (!session) {
+      session = await mongoose.startSession();
+      session.startTransaction();
+    }
+
+    try {
+      const character = await Character.findById(characterId).session(session);
+
+      if (!character) {
+        if (!useExternalSession) {
+          await session.abortTransaction();
+          session.endSession();
+        }
+        return { success: false, error: 'Character not found' };
+      }
+
+      // Validate skill exists
+      const skillDef = this.getSkillDefinition(skillId);
+      if (!skillDef) {
+        if (!useExternalSession) {
+          await session.abortTransaction();
+          session.endSession();
+        }
+        return { success: false, error: `Invalid skill: ${skillId}` };
+      }
+
+      // Find or create skill record
+      let characterSkill = character.skills.find(s => s.skillId === skillDef.id);
+      if (!characterSkill) {
+        characterSkill = {
+          skillId: skillDef.id,
+          level: SKILL_PROGRESSION.STARTING_LEVEL,
+          experience: 0,
+          trainingStarted: undefined,
+          trainingCompletes: undefined
+        };
+        character.skills.push(characterSkill);
+      }
+
+      const oldLevel = characterSkill.level;
+
+      // Check if skill is already at max level
+      if (characterSkill.level >= skillDef.maxLevel) {
+        if (!useExternalSession) {
+          await session.abortTransaction();
+          session.endSession();
+        }
+        return {
+          success: true,
+          result: {
+            skillId: skillDef.id,
+            xpAwarded: 0,
+            oldLevel,
+            newLevel: oldLevel,
+            currentXP: characterSkill.experience,
+            xpToNextLevel: 0,
+            leveledUp: false,
+            levelsGained: 0
+          }
+        };
+      }
+
+      // Add XP and handle level-ups
+      characterSkill.experience += xpAmount;
+      let levelsGained = 0;
+
+      // Keep leveling up while we have enough XP
+      while (characterSkill.level < skillDef.maxLevel) {
+        const xpNeeded = this.calculateXPForNextLevel(characterSkill.level);
+        if (characterSkill.experience >= xpNeeded) {
+          characterSkill.experience -= xpNeeded;
+          characterSkill.level += 1;
+          levelsGained += 1;
+        } else {
+          break;
+        }
+      }
+
+      // Cap experience at current level threshold if at max
+      if (characterSkill.level >= skillDef.maxLevel) {
+        characterSkill.experience = 0;
+      }
+
+      await character.save({ session });
+
+      if (!useExternalSession) {
+        await session.commitTransaction();
+        session.endSession();
+      }
+
+      // Trigger quest progress and notifications for level ups
+      if (levelsGained > 0) {
+        try {
+          await QuestService.onSkillLevelUp(characterId, characterSkill.skillId, characterSkill.level);
+        } catch (questError) {
+          logger.error('Failed to update quest progress for skill XP award:', questError);
+        }
+
+        try {
+          const suitNames: Record<string, string> = {
+            [DestinySuit.SPADES]: 'Spades',
+            [DestinySuit.HEARTS]: 'Hearts',
+            [DestinySuit.CLUBS]: 'Clubs',
+            [DestinySuit.DIAMONDS]: 'Diamonds'
+          };
+          const suitName = skillDef.suit ? suitNames[skillDef.suit] || skillDef.suit : 'cards';
+
+          await NotificationService.createNotification(
+            characterId,
+            NotificationType.SKILL_TRAINED,
+            `${skillDef.name} Leveled Up!`,
+            levelsGained > 1
+              ? `${skillDef.name} gained ${levelsGained} levels! Now level ${characterSkill.level}. +${characterSkill.level} to ${suitName}`
+              : `${skillDef.name} is now level ${characterSkill.level}! +${characterSkill.level} to ${suitName}`,
+            '/skills'
+          );
+        } catch (notifError) {
+          logger.error('Failed to create skill XP award notification:', {
+            error: notifError,
+            characterId,
+            skillId: characterSkill.skillId,
+            newLevel: characterSkill.level
+          });
+        }
+      }
+
+      logger.info(
+        `Character ${characterId} awarded ${xpAmount} XP to ${skillDef.name}. ` +
+        `Level: ${oldLevel} -> ${characterSkill.level}, XP: ${characterSkill.experience}`
+      );
+
+      return {
+        success: true,
+        result: {
+          skillId: characterSkill.skillId,
+          xpAwarded: xpAmount,
+          oldLevel,
+          newLevel: characterSkill.level,
+          currentXP: characterSkill.experience,
+          xpToNextLevel: this.calculateXPForNextLevel(characterSkill.level),
+          leveledUp: levelsGained > 0,
+          levelsGained
+        }
+      };
+    } catch (error) {
+      if (!useExternalSession) {
+        await session.abortTransaction();
+        session.endSession();
+      }
+      logger.error('Error awarding skill XP:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Award XP to multiple skills at once (batch operation)
+   * Used by contracts, jobs, and activities that grant multiple skill XP
+   */
+  static async awardMultipleSkillXP(
+    characterId: string,
+    skillXpRewards: Array<{ skillId: string; amount: number }>,
+    session?: mongoose.ClientSession
+  ): Promise<{
+    success: boolean;
+    results: Array<{
+      skillId: string;
+      xpAwarded: number;
+      leveledUp: boolean;
+      newLevel: number;
+    }>;
+  }> {
+    const results: Array<{
+      skillId: string;
+      xpAwarded: number;
+      leveledUp: boolean;
+      newLevel: number;
+    }> = [];
+
+    for (const reward of skillXpRewards) {
+      const result = await this.awardSkillXP(characterId, reward.skillId, reward.amount, session);
+      if (result.success && result.result) {
+        results.push({
+          skillId: result.result.skillId,
+          xpAwarded: result.result.xpAwarded,
+          leveledUp: result.result.leveledUp,
+          newLevel: result.result.newLevel
+        });
+      }
+    }
+
+    return { success: true, results };
+  }
 }

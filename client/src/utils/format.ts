@@ -120,6 +120,31 @@ export function formatNumber(num: number): string {
 }
 
 /**
+ * Format number with locale-based thousand separators (commas)
+ * Best for XP, experience points, and precise numerical displays
+ * @param num - Number to format
+ * @returns Formatted string like "1,234" or "100,000"
+ */
+export function formatWithCommas(num: number): string {
+  return num.toLocaleString();
+}
+
+/**
+ * Format XP/experience points - uses commas for readability
+ * Provides cleaner display for skill and character progression
+ * @param current - Current XP amount
+ * @param max - Maximum XP to next level (optional)
+ * @returns Formatted string like "1,234" or "1,234 / 10,000"
+ */
+export function formatXP(current: number, max?: number): string {
+  const formattedCurrent = current.toLocaleString();
+  if (max !== undefined) {
+    return `${formattedCurrent} / ${max.toLocaleString()}`;
+  }
+  return formattedCurrent;
+}
+
+/**
  * Format percentage
  * @param value - Decimal value (0-1)
  * @param decimals - Number of decimal places

@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { formatWithCommas } from '@/utils/format';
 
 interface SkillProgressBarProps {
   current: number;
@@ -60,7 +61,7 @@ export const SkillProgressBar: React.FC<SkillProgressBarProps> = ({
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-semibold text-desert-sand">{label}</span>
         <span className={`text-sm font-bold ${styles.text}`}>
-          {current} / {max}
+          {formatWithCommas(current)} / {formatWithCommas(max)}
           {showPercentage && ` (${Math.round(percentage)}%)`}
         </span>
       </div>

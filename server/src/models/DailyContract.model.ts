@@ -33,14 +33,31 @@ export interface ContractTarget {
 }
 
 /**
+ * Skill requirement for contracts
+ */
+export interface SkillRequirement {
+  skillId: string;    // Skill ID (e.g., 'lockpicking', 'firearms')
+  minLevel: number;   // Minimum level required
+}
+
+/**
  * Contract requirements
  */
 export interface ContractRequirements {
   amount?: number;    // Quantity needed
   item?: string;      // Item ID if applicable
   npc?: string;       // NPC ID if applicable
-  skillLevel?: number; // Minimum skill level required
+  skillLevel?: number; // Minimum skill level required (deprecated, use skills)
   location?: string;  // Location to visit
+  skills?: SkillRequirement[];  // Skills required to attempt contract
+}
+
+/**
+ * Skill XP reward
+ */
+export interface SkillXpReward {
+  skillId: string;    // Skill to grant XP to
+  amount: number;     // Amount of skill XP to grant
 }
 
 /**
@@ -51,6 +68,7 @@ export interface ContractRewards {
   xp: number;
   items?: string[];   // Item IDs
   reputation?: Record<string, number>; // Faction reputation changes
+  skillXp?: SkillXpReward[];  // Skill XP rewards
 }
 
 /**
@@ -153,7 +171,11 @@ const ContractSchema = new Schema<IContract>(
       item: String,
       npc: String,
       skillLevel: Number,
-      location: String
+      location: String,
+      skills: [{
+        skillId: { type: String, required: true },
+        minLevel: { type: Number, required: true, min: 1 }
+      }]
     },
     rewards: {
       gold: {
@@ -170,7 +192,11 @@ const ContractSchema = new Schema<IContract>(
       reputation: {
         type: Map,
         of: Number
-      }
+      },
+      skillXp: [{
+        skillId: { type: String, required: true },
+        amount: { type: Number, required: true, min: 1 }
+      }]
     },
     difficulty: {
       type: String,
