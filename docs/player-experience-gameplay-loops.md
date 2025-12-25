@@ -581,13 +581,13 @@ This framework defines the **actual player experience** of Desperados Destiny - 
 
 **Free Player Energy**:
 - Base: 150 energy
-- Regen: 5/hour (120/day passive)
-- Potential: 150 + 120 = 270 energy per day (if spent efficiently)
+- Regen: 30/hour (full in 5 hours, 720/day passive)
+- Potential: Multiple full refills per day if actively managed
 
 **Premium Player Energy**:
 - Base: 250 energy
-- Regen: 8/hour (192/day passive)
-- Potential: 250 + 192 = 442 energy per day
+- Regen: 31.25/hour (full in 8 hours, 750/day passive)
+- Potential: Larger pool allows longer uninterrupted sessions
 
 **The Strategic Question**: "What's the highest-value use of my energy today?"
 
@@ -620,8 +620,8 @@ This framework defines the **actual player experience** of Desperados Destiny - 
 ### Energy Optimization Tips
 
 **Tip 1: Login Multiple Times**
-- Energy regenerates constantly (5/hour)
-- Best: Login morning (spend 150), login evening (spend 120 regen)
+- Energy regenerates constantly (30/hour, full in 5 hours)
+- Best: Login morning (spend 150), login 5+ hours later (full again)
 - Worst: Login once, leave energy capped (wasted regen)
 
 **Tip 2: Queue Skills Before Logout**

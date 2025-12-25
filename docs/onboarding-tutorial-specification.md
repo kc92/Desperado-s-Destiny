@@ -608,8 +608,8 @@ Screen Layout:
 │    - Crimes: 10-25 energy                           │
 │    - Combat: 10-20 energy                           │
 │    - Quests: Variable                               │
-│  • Energy regenerates 5 per hour (even offline!)    │
-│  • Premium players get 250 energy, 8/hour regen     │
+│  • Energy regenerates 30 per hour (full in 5 hours) │
+│  • Premium players get 250 energy (full in 8 hours) │
 │                                                     │
 │  Tip: Spend energy wisely - you can't do everything │
 │  in one day. Plan your actions!                     │
@@ -1070,7 +1070,7 @@ Completion: [Tomorrow at 2:15 PM]
 - "Learn more" link (to help docs)
 
 **Example Tooltips**:
-- **Energy Bar**: "Energy is spent on actions. Regenerates 5/hour. Premium: 8/hour."
+- **Energy Bar**: "Energy is spent on actions. Full in 5 hours (30/hr). Premium: 250 pool, full in 8 hours."
 - **Skill Training**: "One skill trains at a time, even offline. Queue early!"
 - **Faction Rep**: "Reputation affects NPC dialog and quest availability."
 

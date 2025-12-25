@@ -47,12 +47,14 @@ const ENERGY_POOLS = {
   FREE_TIER: {
     base: 150,
     maxWithSkills: 175,  // +25 from skill improvements
-    regenerationRate: 5  // per hour
+    regenTimeHours: 5,   // Full regen in 5 hours
+    regenerationRate: 30 // 150 / 5 = 30 per hour
   },
   PREMIUM_TIER: {
     base: 250,
     maxWithSkills: 275,  // +25 from skill improvements
-    regenerationRate: 8  // per hour
+    regenTimeHours: 8,   // Full regen in 8 hours
+    regenerationRate: 31.25 // 250 / 8 = 31.25 per hour
   }
 }
 ```
@@ -65,7 +67,7 @@ const ENERGY_POOLS = {
   max: Number,            // Maximum energy capacity
   baseMax: Number,        // Base max (150 or 250)
   skillBonus: Number,     // Bonus from skills (0 to 25)
-  baseRegen: Number,      // Base regen rate (5 or 8 per hour)
+  baseRegen: Number,      // Base regen rate (30 or 31.25 per hour)
   fatigueLevel: Number,   // Fatigue accumulation (0 to 100)
   fatigueModifier: Number, // Regen rate multiplier (0.5 to 1.0)
   lastRegen: Date,        // Last regeneration tick timestamp
@@ -123,14 +125,18 @@ function calculateEnergySkillBonus(skills) {
 
 ### Regeneration Rate
 
-Energy regenerates at a **fixed rate per hour**:
+Energy regenerates at a **fixed rate per hour** designed for full pool regen in reasonable time:
 
 ```javascript
 const REGEN_RATES = {
-  FREE: 5,      // 5 energy per hour
-  PREMIUM: 8    // 8 energy per hour
+  FREE: 30,       // 30 energy per hour (150 pool / 5 hours = 30/hr)
+  PREMIUM: 31.25  // 31.25 energy per hour (250 pool / 8 hours = 31.25/hr)
 }
 ```
+
+**Key Design Point:** Both tiers reach full energy from empty in comparable times:
+- Free: 150 energy in 5 hours = comfortable daily play session
+- Premium: 250 energy in 8 hours = extended sessions, not faster regen
 
 ### Regeneration Tick Frequency
 
@@ -140,8 +146,8 @@ const REGEN_RATES = {
 const REGEN_INTERVAL_MS = 12 * 60 * 1000  // 12 minutes in milliseconds
 
 const ENERGY_PER_TICK = {
-  FREE: 1,      // 5 per hour ÷ 5 ticks = 1 per tick
-  PREMIUM: 1.6  // 8 per hour ÷ 5 ticks = 1.6 per tick
+  FREE: 6,       // 30 per hour ÷ 5 ticks = 6 per tick
+  PREMIUM: 6.25  // 31.25 per hour ÷ 5 ticks = 6.25 per tick
 }
 ```
 
@@ -149,12 +155,12 @@ const ENERGY_PER_TICK = {
 
 ```javascript
 // Premium player regeneration over 5 ticks
-// Tick 1: 1.6 → display 1, store 0.6 remainder
-// Tick 2: 1.6 + 0.6 = 2.2 → display 2, store 0.2 remainder
-// Tick 3: 1.6 + 0.2 = 1.8 → display 1, store 0.8 remainder
-// Tick 4: 1.6 + 0.8 = 2.4 → display 2, store 0.4 remainder
-// Tick 5: 1.6 + 0.4 = 2.0 → display 2, store 0.0 remainder
-// Total: 8 energy regenerated over 1 hour ✓
+// Tick 1: 6.25 → display 6, store 0.25 remainder
+// Tick 2: 6.25 + 0.25 = 6.5 → display 6, store 0.5 remainder
+// Tick 3: 6.25 + 0.5 = 6.75 → display 6, store 0.75 remainder
+// Tick 4: 6.25 + 0.75 = 7.0 → display 7, store 0.0 remainder
+// Tick 5: 6.25 → display 6, store 0.25 remainder
+// Total: ~31 energy regenerated over 1 hour (remainder carries to next hour)
 ```
 
 ### Regeneration Algorithm
@@ -434,9 +440,10 @@ Items can provide energy cost reductions:
 |-----------------------------|--------------------|---------------------|-------------------|
 | **Base Energy Pool**        | 150                | 250                 | +100 (66% more)   |
 | **Max with Skills**         | 175                | 275                 | +100 (57% more)   |
-| **Regen Rate (per hour)**   | 5                  | 8                   | +3 (60% faster)   |
-| **Regen Rate (per day)**    | 120                | 192                 | +72 (60% more)    |
-| **Actions per day (avg)**   | ~8-10              | ~12-15              | +50%              |
+| **Full Regen Time**         | 5 hours            | 8 hours             | Larger pool       |
+| **Regen Rate (per hour)**   | 30                 | 31.25               | Similar rate      |
+| **Regen Rate (per day)**    | 720                | 750                 | +30 (4% more)     |
+| **Actions per day (avg)**   | ~30-40             | ~50-60              | +50-66%           |
 | **Fatigue accumulation**    | Same               | Same                | None              |
 | **Skill-based improvements**| Same               | Same                | None              |
 | **Energy cost reductions**  | Same               | Same                | None              |
@@ -532,8 +539,8 @@ function handleLogin(character) {
 **Example:**
 - Player logs off with 50 energy, max 150
 - 24 hours pass
-- Free player: 50 + (24 × 5) = 50 + 120 = **150** (capped at max)
-- Premium player: 50 + (24 × 8) = 50 + 192 = **150** (capped at max for this character's max)
+- Free player: 50 + (24 × 30) = 50 + 720 = **150** (capped at max after ~3.3 hours)
+- Premium player: 50 + (24 × 31.25) = 50 + 750 = **250** (capped at max after ~6.4 hours)
 
 ### Energy Overflow (Premium Upgrade)
 
@@ -673,7 +680,7 @@ if (!result.value) {
     max: { type: Number, required: true },
     baseMax: { type: Number, required: true },  // 150 or 250
     skillBonus: { type: Number, default: 0 },
-    baseRegen: { type: Number, required: true },  // 5 or 8
+    baseRegen: { type: Number, required: true },  // 30 or 31.25 per hour
     fatigueLevel: { type: Number, default: 0, min: 0, max: 100 },
     lastRegen: { type: Date, required: true },
     lastFatigueUpdate: { type: Date, required: true },
@@ -702,12 +709,12 @@ db.characters.createIndex({ 'energy.lastRegen': 1 })
   "data": {
     "current": 125,
     "max": 175,
-    "regenRate": 5,
+    "regenRate": 30,
     "fatigueLevel": 35,
     "fatigueMultiplier": 0.825,
-    "effectiveRegenRate": 4.125,
+    "effectiveRegenRate": 24.75,
     "nextRegen": "2025-11-15T11:12:00.000Z",
-    "timeToFull": "10 hours 24 minutes"
+    "timeToFull": "2 hours 1 minute"
   }
 }
 ```

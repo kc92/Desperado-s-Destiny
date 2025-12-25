@@ -138,8 +138,8 @@ This creates:
 - Free players can compete through skill optimization
 
 **Mechanics:**
-- Free: 150 energy, 5/hour regen, can improve to ~175 via skills
-- Premium: 250 energy, 8/hour regen
+- Free: 150 energy, full in 5 hours (30/hr), can improve to ~175 via skills
+- Premium: 250 energy, full in 8 hours (31.25/hr)
 
 **Decided By:** User
 **Status:** ✅ Locked

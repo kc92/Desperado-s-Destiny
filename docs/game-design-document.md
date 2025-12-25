@@ -45,8 +45,8 @@
 5. **Fair Free-to-Play** - Energy system balanced for non-paying players
 
 ### Monetization Model
-- **Free Tier**: 150 base energy, 5/hour regen, can improve through skills
-- **Premium Tier**: 250 base energy, 8/hour regen, cosmetic options
+- **Free Tier**: 150 base energy, full regen in 5 hours (30/hr), can improve through skills
+- **Premium Tier**: 250 base energy, full regen in 8 hours (31.25/hr), cosmetic options
 - **Philosophy**: Fatigue limits no-lifing, premium offers convenience not power
 
 ### Target Audience
@@ -549,210 +549,177 @@ Each faction tracks separate reputation scores from -100 to +100:
 ## SKILL SYSTEM
 
 ### Overview
-Desperados Destiny features 25+ skills that take months or years to master, similar to Torn's progression system. Skills directly impact the Destiny Deck by providing suit bonuses, making long-term investment meaningful.
+Desperados Destiny features **29 skills** across 4 categories that take months to master, similar to Torn's progression system. Skills directly impact the Destiny Deck by providing suit bonuses, making long-term investment meaningful.
+
+**Implementation Note (Updated December 2024):**
+- Total Skills: 29 (5 Combat + 9 Cunning + 6 Spirit + 9 Craft)
+- Max Level: 50 (Master tier)
+- Estimated time to max one skill: ~283 hours (2-4 months casual play)
+- Training: One skill at a time, continues offline
 
 ### Skill Categories
 
-#### COMBAT SKILLS (Boost ♣ Clubs)
+> **Note:** Skills are organized into 4 categories matching the Destiny Deck suits. Each skill has a max level of 50 with 5 tiers: Novice (1-10), Apprentice (11-25), Journeyman (26-40), Expert (41-49), Master (50).
 
-**1. Gun Fighting**
-- **Description:** Accuracy and effectiveness with pistols, rifles, and shotguns
-- **Primary Actions:** All firearm combat, duels, gang wars
-- **Clubs Bonus:** +0.25/level (1-25), +0.5/level (26-50), +1/level (51-75), +2/level (76-100)
-- **Training:** Time-based + combat experience
-- **Max Level:** 100
+#### COMBAT SKILLS (Boost ♣ Clubs) — 5 Skills
 
-**2. Quick Draw**
-- **Description:** Speed and initiative in drawing weapons
-- **Primary Actions:** Duel initiative, ambush defense, first-shot advantage
-- **Clubs Bonus:** Same scaling as Gun Fighting
-- **Training:** Duel participation, specific training at Gun Range
-- **Special:** Determines who shoots first in duels
-- **Max Level:** 100
+**1. Melee Combat** 🗡️
+- **Description:** Hand-to-hand fighting with fists, knives, and close weapons
+- **Primary Actions:** Brawls, close-quarters combat, disarmed fighting
+- **Max Level:** 50
 
-**3. Brawling**
-- **Description:** Unarmed combat and melee fighting
-- **Primary Actions:** Tavern brawls, unarmed duels, backup when disarmed
-- **Clubs Bonus:** Same scaling
-- **Training:** Brawling activities, specific training
-- **Max Level:** 100
+**2. Ranged Combat** 🔫
+- **Description:** Accuracy with rifles, pistols, and bows
+- **Primary Actions:** Firearm combat, duels, gang wars
+- **Max Level:** 50
 
-**4. Mounted Combat**
-- **Description:** Fighting effectiveness while on horseback
+**3. Defensive Tactics** 🛡️
+- **Description:** Blocking, dodging, and defensive maneuvers
+- **Primary Actions:** Damage mitigation, combat defense
+- **Max Level:** 50
+
+**4. Mounted Combat** 🏇
+- **Description:** Fighting on horseback
 - **Primary Actions:** Cavalry charges, chase combat, raids
-- **Clubs Bonus:** Same scaling (applies only when mounted)
-- **Training:** Combat while mounted, specific training
-- **Requires:** Horse Riding skill 25+
-- **Max Level:** 100
+- **Max Level:** 50
 
-**5. Intimidation**
-- **Description:** Using fear and presence to avoid or win fights
-- **Primary Actions:** Avoid combat through threats, reduce enemy effectiveness
-- **Clubs Bonus:** Same scaling (defensive bonus)
-- **Training:** Successful intimidation attempts, specific training
-- **Max Level:** 100
+**5. Explosives** 💣
+- **Description:** Using and defusing dynamite and explosives
+- **Primary Actions:** Mining blasts, demolition, trap-making
+- **Max Level:** 50
 
 ---
 
-#### CUNNING SKILLS (Boost ♠ Spades)
+#### CUNNING SKILLS (Boost ♠ Spades) — 9 Skills
 
-**6. Stealth**
+**6. Lockpicking** 🔓
+- **Description:** Opening locks without keys
+- **Primary Actions:** Breaking & entering, safe cracking, treasure hunting
+- **Max Level:** 50
+
+**7. Stealth** 👤
 - **Description:** Moving unseen and unheard
 - **Primary Actions:** Avoid detection, ambush, sneak attacks
-- **Spades Bonus:** Same scaling as combat skills
-- **Training:** Time-based + successful stealth actions
-- **Max Level:** 100
+- **Max Level:** 50
 
-**7. Lockpicking**
-- **Description:** Breaking into buildings, safes, and secured areas
-- **Primary Actions:** Bank robberies, breaking & entering, treasure hunting
-- **Spades Bonus:** Same scaling
-- **Training:** Lockpicking attempts (success or failure grants XP)
-- **Max Level:** 100
+**8. Pickpocket** 💰
+- **Description:** Stealing from others without detection
+- **Primary Actions:** Steal cash from players/NPCs, petty theft
+- **Max Level:** 50
 
-**8. Pickpocketing**
-- **Description:** Stealing from players and NPCs without detection
-- **Primary Actions:** Steal cash from other players, NPC theft
-- **Spades Bonus:** Same scaling
-- **Training:** Pickpocket attempts
-- **Risk:** Can be caught and jailed
-- **Max Level:** 100
-
-**9. Tracking**
-- **Description:** Following trails, finding hidden players/resources
+**9. Tracking** 👣
+- **Description:** Following trails and finding hidden things
 - **Primary Actions:** Hunt players, find resource nodes, investigate
-- **Spades Bonus:** Same scaling
-- **Training:** Tracking activities in wilderness
-- **Max Level:** 100
+- **Max Level:** 50
 
-**10. Sleight of Hand**
-- **Description:** Manipulation and misdirection
-- **Primary Actions:** Cheat at gambling, plant evidence, magic tricks
-- **Spades Bonus:** Same scaling
-- **Training:** Gambling, specific training
-- **Max Level:** 100
+**10. Deception** 🎭
+- **Description:** Lying, disguises, and trickery
+- **Primary Actions:** Con schemes, false identities, misdirection
+- **Max Level:** 50
+
+**11. Gambling** 🎲
+- **Description:** Card games, dice, and games of chance
+- **Primary Actions:** Casino games, betting, risk assessment
+- **Max Level:** 50
+
+**12. Perception** 👁️
+- **Description:** Reading opponents and detecting tells in duels
+- **Primary Actions:** Opponent analysis, duel advantages
+- **Duel Unlocks:** L5 Read Confidence, L20 Hand Range Sense, L35 Active Read, L45 Partial Reveal
+- **Max Level:** 50
+
+**13. Sleight of Hand** 🃏
+- **Description:** Card manipulation and subtle cheating techniques
+- **Primary Actions:** Cheat at gambling, card tricks
+- **Max Level:** 50
+
+**14. Poker Face** 😐
+- **Description:** Hiding tells and blocking opponent reads
+- **Primary Actions:** Counter opponent perception, bluff protection
+- **Max Level:** 50
 
 ---
 
-#### SOCIAL SKILLS (Boost ♥ Hearts)
+#### SPIRIT SKILLS (Boost ♥ Hearts) — 6 Skills
 
-**11. Persuasion**
-- **Description:** Convincing others through words and charm
-- **Primary Actions:** Negotiations, avoid conflict, recruit members, quest outcomes
-- **Hearts Bonus:** Same scaling
-- **Training:** Social encounters, successful persuasion attempts
-- **Max Level:** 100
+**15. Medicine** 💊
+- **Description:** Healing wounds and curing ailments
+- **Primary Actions:** Heal self and others, craft medicine, reduce recovery time
+- **Max Level:** 50
 
-**12. Leadership**
+**16. Persuasion** 💬
+- **Description:** Convincing others through words
+- **Primary Actions:** Negotiations, avoid conflict, quest outcomes
+- **Max Level:** 50
+
+**17. Animal Handling** 🐴
+- **Description:** Training and calming animals
+- **Primary Actions:** Taming mounts, bonding with horses, spirit animals
+- **Max Level:** 50
+
+**18. Leadership** ⭐
 - **Description:** Inspiring and commanding others
 - **Primary Actions:** Gang bonuses, recruit followers, faction influence
-- **Hearts Bonus:** Same scaling
-- **Special:** Provides bonuses to gang members in wars
-- **Training:** Leading gang activities, specific training
-- **Max Level:** 100
+- **Max Level:** 50
 
-**13. Healing**
-- **Description:** Medical knowledge and care
-- **Primary Actions:** Heal self and others, craft medicine, reduce recovery time
-- **Hearts Bonus:** Same scaling
-- **Training:** Healing actions, studying medicine
-- **Max Level:** 100
-
-**14. Spirit Walking**
-- **Description:** Connection to the supernatural world
+**19. Ritual Knowledge** 🔮
+- **Description:** Understanding supernatural rituals and traditions
 - **Primary Actions:** Vision quests, supernatural encounters, mythic content
-- **Hearts Bonus:** Same scaling
-- **Special:** Unlocks supernatural content, spirit companions (post-MVP)
-- **Training:** Time-based meditation, spiritual quests
-- **Note:** Easier for Nahi faction but available to all
-- **Max Level:** 100
+- **Max Level:** 50
 
-**15. Animal Handling**
-- **Description:** Working with animals, especially horses
-- **Primary Actions:** Taming mounts, bonding with horses, spirit animals
-- **Hearts Bonus:** Same scaling
-- **Training:** Interacting with animals, specific training
-- **Max Level:** 100
+**20. Performance** 🎵
+- **Description:** Music, storytelling, and entertainment
+- **Primary Actions:** Entertain for money, boost morale, social influence
+- **Max Level:** 50
 
 ---
 
-#### MATERIAL SKILLS (Boost ♦ Diamonds)
+#### CRAFT SKILLS (Boost ♦ Diamonds) — 9 Skills
 
-**16. Prospecting**
-- **Description:** Finding valuable minerals and resources
-- **Primary Actions:** Gold panning, mining, resource discovery
-- **Diamonds Bonus:** Same scaling
-- **Training:** Prospecting activities in Sangre Canyon
-- **Max Level:** 100
+**21. Blacksmithing** ⚒️
+- **Description:** Forging metal tools and weapons
+- **Primary Actions:** Create weapons, armor, horseshoes
+- **Max Level:** 50
 
-**17. Gunsmithing**
-- **Description:** Crafting and modifying firearms
-- **Primary Actions:** Create weapons, modify guns for bonuses, repair
-- **Diamonds Bonus:** Same scaling
-- **Training:** Crafting weapons, studying schematics
-- **Unlocks:** Custom weapon modifications (post-MVP)
-- **Max Level:** 100
-
-**18. Leatherworking**
-- **Description:** Crafting armor, clothing, and leather goods
+**22. Leatherworking** 🧳
+- **Description:** Crafting leather goods and armor
 - **Primary Actions:** Create protective gear, saddles, clothing
-- **Diamonds Bonus:** Same scaling
-- **Training:** Crafting leather items
-- **Max Level:** 100
+- **Max Level:** 50
 
-**19. Herbalism**
-- **Description:** Knowledge of plants, poisons, and remedies
-- **Primary Actions:** Create healing items, buffs, poisons
-- **Diamonds Bonus:** Same scaling
-- **Training:** Gathering herbs, crafting medicines
-- **Max Level:** 100
-
-**20. Trading**
-- **Description:** Business acumen and market knowledge
-- **Primary Actions:** Buy low/sell high, better prices, market manipulation
-- **Diamonds Bonus:** Same scaling
-- **Special:** Unlocks better NPC prices, player market features
-- **Training:** Trading activities, specific training
-- **Max Level:** 100
-
-**21. Appraisal**
-- **Description:** Identifying value and authenticity of items
-- **Primary Actions:** Identify rare items, avoid scams, find hidden value
-- **Diamonds Bonus:** Same scaling
-- **Training:** Examining items, successful appraisals
-- **Max Level:** 100
-
----
-
-#### SURVIVAL SKILLS (Multi-Suit Bonuses)
-
-**22. Horse Riding**
-- **Description:** Skill in riding and controlling mounts
-- **Primary Actions:** Travel speed, mounted combat bonus, horse bonding
-- **Multi-Bonus:** Small bonus to Clubs (mounted combat) and speed modifier
-- **Training:** Travel while mounted, specific training
-- **Max Level:** 100
-
-**23. Wilderness Survival**
-- **Description:** Thriving in harsh frontier conditions
-- **Primary Actions:** Reduce wilderness danger, find resources, weather resistance
-- **Multi-Bonus:** Small bonus to all suits in wilderness environments
-- **Training:** Time spent in wilderness, surviving encounters
-- **Max Level:** 100
-
-**24. Cooking**
-- **Description:** Preparing food and provisions
+**23. Cooking** 🍖
+- **Description:** Preparing food and tonics
 - **Primary Actions:** Create food items that provide buffs
-- **Diamonds Bonus:** Minor
-- **Training:** Cooking food items
-- **Max Level:** 100
+- **Max Level:** 50
 
-**25. First Aid**
-- **Description:** Quick emergency medical treatment
-- **Primary Actions:** Rapid health recovery in the field
-- **Hearts Bonus:** Minor
-- **Training:** Using first aid in combat situations
-- **Max Level:** 100
+**24. Alchemy** 🧪
+- **Description:** Brewing potions and elixirs
+- **Primary Actions:** Create buffs, healing items, poisons
+- **Max Level:** 50
+
+**25. Engineering** ⚙️
+- **Description:** Building traps, mechanisms, and devices
+- **Primary Actions:** Create traps, gadgets, property upgrades
+- **Max Level:** 50
+
+**26. Mining** ⛏️
+- **Description:** Extracting ore and gems from the earth
+- **Primary Actions:** Mine resources, operate claims
+- **Max Level:** 50
+
+**27. Prospecting** 🔍
+- **Description:** Finding and assessing ore deposits, illegal claim operations, and deep mining
+- **Primary Actions:** Gold panning, claim discovery, resource assessment
+- **Max Level:** 50
+
+**28. Herbalism** 🌿
+- **Description:** Gathering and identifying plants
+- **Primary Actions:** Collect herbs for cooking/alchemy
+- **Max Level:** 50
+
+**29. Carpentry** 🪵
+- **Description:** Woodworking and furniture crafting
+- **Primary Actions:** Build structures, furniture, property improvements
+- **Max Level:** 50
 
 ---
 
@@ -772,12 +739,18 @@ Desperados Destiny features 25+ skills that take months or years to master, simi
 - Training continues even when logged out (passive progression)
 - Can cancel training early, but lose progress and gold investment
 
-**Training Time Formula:**
+**Training Time Formula (Updated Phase 19):**
 ```
-Base Time = Level² × 2 minutes
-Example: Level 1→2 = 2 minutes
-         Level 50→51 = 5,000 minutes (83 hours)
-         Level 99→100 = 19,602 minutes (327 hours / 13.6 days)
+XP per Level = Level^2.0 × 50
+Training Time = baseTime × (1 + √level × 0.15)
+
+Level progression examples:
+- Level 1→2: ~50 XP (~1 hour base)
+- Level 10→11: ~5,000 XP
+- Level 25→26: ~31,250 XP
+- Level 49→50: ~125,000 XP
+
+Total to max one skill: ~283,000 XP (~283 hours)
 ```
 
 **2. Use-Based Training (Secondary)**
@@ -787,10 +760,10 @@ Example: Level 1→2 = 2 minutes
 - Encourages active gameplay
 
 **Example:**
-- Training Gun Fighting 45→46 (base time: 4,050 minutes)
+- Training Ranged Combat 45→46
 - Win 10 duels during training period
 - Each duel grants 0.5% reduction
-- Final time: 3,645 minutes (10% faster)
+- Final time: 10% faster
 
 **3. Mentor Training (Post-MVP)**
 - Higher-level players can mentor lower-level players
@@ -814,14 +787,14 @@ Example: Level 1→2 = 2 minutes
 
 **Skill Benefits Beyond Destiny Deck:**
 - **Unlock New Content:** Certain activities require minimum skill levels
-  - Example: Advanced heists require Lockpicking 50+
-  - Example: Spirit quests require Spirit Walking 30+
+  - Example: Bank robbery requires Lockpicking 40+
+  - Example: Vision quests require Ritual Knowledge 30+
 - **Passive Bonuses:** Some skills provide always-on benefits
-  - Example: Horse Riding increases travel speed
-  - Example: Wilderness Survival reduces random encounter danger
+  - Example: Animal Handling improves horse bonding
+  - Example: Cooking creates buff items
 - **Economic Advantages:** Crafting skills enable profit
-  - High Gunsmithing = valuable custom weapons
-  - High Trading = market arbitrage opportunities
+  - High Blacksmithing = valuable custom weapons
+  - High Prospecting = better mining claim returns
 
 ---
 
@@ -870,7 +843,7 @@ Example: Level 1→2 = 2 minutes
 
 **In-Game Notifications:**
 - Skill level-up celebrations
-- Major milestones (Level 25, 50, 75, 100)
+- Major tier milestones (Apprentice L11, Journeyman L26, Expert L41, Master L50)
 - Unlocked abilities at certain thresholds
 
 ---
@@ -1002,6 +975,51 @@ Combat in Desperados Destiny uses the Destiny Deck system with Clubs-focused res
 6. Hand strength + bonuses determine outcome
 7. Damage calculated based on success margin
 8. Results narrated with thematic flavor
+
+---
+
+### Combat Abilities (Updated December 2024)
+
+Combat uses a **Hold/Discard poker mechanic** where players receive 5 cards, choose which to hold, then draw replacement cards for discarded ones. Special abilities unlock at higher combat skill levels.
+
+#### Available Abilities
+
+| Ability | Unlock Requirement | Effect |
+|---------|-------------------|--------|
+| **Reroll** | Combat Skill 30+ | Replace a held card with a new draw. +1 reroll per 30 skill levels |
+| **Peek** | Combat Skill 50 | See the next card before making hold/discard decision |
+| **Quick Draw** | Combat Skill 60+ | Draw 6 cards instead of 5 (more hand options) |
+| **Deadly Aim** | Combat Skill 75+ | Critical hits deal 1.5× damage |
+
+> **Note:** Quick Draw and Deadly Aim thresholds may require combined combat skill levels across multiple skills or future skill cap increases.
+
+#### Combat Resolution Phases
+
+1. **DRAW** - Player receives 5 cards (6 with Quick Draw)
+2. **DECISION** - Player marks cards to hold, may use Peek ability
+3. **DISCARD** - Unmarked cards replaced with new draws, may use Reroll
+4. **EVALUATION** - Final hand evaluated using poker rankings
+5. **DAMAGE** - Winner deals damage based on hand strength margin
+
+#### Hand Rankings (Highest to Lowest)
+
+| Rank | Hand | Example |
+|------|------|---------|
+| 1 | Royal Flush | A♣ K♣ Q♣ J♣ 10♣ |
+| 2 | Straight Flush | 7♠ 6♠ 5♠ 4♠ 3♠ |
+| 3 | Four of a Kind | 9♥ 9♦ 9♣ 9♠ K♣ |
+| 4 | Full House | J♥ J♦ J♣ 4♠ 4♥ |
+| 5 | Flush | A♦ J♦ 8♦ 5♦ 2♦ |
+| 6 | Straight | 10♣ 9♥ 8♦ 7♠ 6♣ |
+| 7 | Three of a Kind | Q♠ Q♥ Q♦ 7♣ 2♥ |
+| 8 | Two Pair | K♥ K♣ 5♦ 5♠ 9♣ |
+| 9 | Pair | A♠ A♦ J♣ 8♥ 3♠ |
+| 10 | High Card | K♥ J♦ 9♣ 6♠ 3♥ |
+
+#### Special Hand: Dead Man's Hand
+- **Aces & Eights** (two pairs: Aces and Eights)
+- Triggers special random events - blessing or curse
+- Named after Wild Bill Hickok's death hand
 
 ### Combat Types
 
@@ -1740,14 +1758,16 @@ The economy in Desperados Destiny balances player-driven trade with NPC stabilit
 
 ### Currencies
 
-**Design Decision:** Single in-game currency for simplicity and ease of balance.
+**Design Update (December 2024):** Triple currency system with Dollars as primary and Gold/Silver as tradeable resources.
 
-**Gold Dollars ($)** - The Only In-Game Currency
+#### **Dollars ($)** - Primary Currency
 - **Universal:** Used for all in-game transactions, items, and services
+- **Starting Amount:** $100 for new characters
+- **Maximum:** $2,147,483,647 (safe 32-bit integer)
 - **Earned through:**
   - Criminal activities (robberies, heists, pickpocketing)
   - Territory control (passive income from controlled areas)
-  - Prospecting and mining
+  - Selling Gold/Silver resources
   - Bounty hunting
   - Crafting and selling items
   - Trading goods between locations
@@ -1756,36 +1776,63 @@ The economy in Desperados Destiny balances player-driven trade with NPC stabilit
   - Equipment (weapons, armor, accessories)
   - Consumables (medicine, food, ammunition)
   - Services (healing, training acceleration, fast travel)
-  - Gang expenses (creation, upgrades, wars)
-  - Property purchases (post-MVP: saloons, ranches, businesses)
+  - Gang expenses (creation $5,000, upgrades, wars)
+  - Property purchases (saloons, ranches, businesses)
+  - Buying Gold/Silver resources
   - Bribes and fees (reduce jail/hospital time, faction favors)
 - **Banking System:**
   - **Banked:** Safe in your account, cannot be lost
-  - **Carried:** Cash on hand, lost partially on death (10-30%)
+  - **Carried:** Cash on hand, lost partially on death (25-40%)
   - **Strategy:** Bank often to protect wealth
-- **Economy Controls:**
-  - Taxes in some faction-controlled areas (5-10%)
-  - Money sinks prevent inflation (equipment degradation, service costs)
-  - Faucets and sinks balanced to maintain stable economy
 
-**Premium Subscription** - Real Money (Not In-Game Currency)
+#### **Gold (g)** - Valuable Resource
+- **Description:** Precious metal obtained through prospecting and mining
+- **Maximum:** 100,000 units per character
+- **Base Exchange Rate:** 1 Gold = $100
+- **Dynamic Pricing:** $50-$200 range with ±20% volatility from world events
+- **Obtained through:**
+  - Prospecting in mining claims
+  - Deep mining operations
+  - Heist rewards
+  - Trading/marketplace
+- **Used for:**
+  - High-end crafting recipes
+  - Premium item purchases
+  - Trading for Dollars at fluctuating rates
+
+#### **Silver (s)** - Common Resource
+- **Description:** Common metal for general crafting and trade
+- **Maximum:** 1,000,000 units per character
+- **Base Exchange Rate:** 1 Silver = $10
+- **Dynamic Pricing:** $5-$25 range with ±15% volatility from world events
+- **Obtained through:**
+  - Standard mining
+  - Common loot drops
+  - Breaking down items
+  - Trading/marketplace
+- **Used for:**
+  - Basic crafting recipes
+  - Ammunition crafting
+  - Trading for Dollars at fluctuating rates
+
+#### **Economy Controls**
+- **Wealth Tax:** Progressive 0-1.2% daily on balances >$100K
+- **Income Caps:** Properties capped at $5,000-$25,000/day
+- **Newcomer Stake:** +50% gold bonus for first 2 hours of play
+- **Gambling Limits:** 10 bets/day, $50K max daily wager
+
+#### **Premium Subscription** - Real Money (Not In-Game Currency)
 - **Payment:** Monthly subscription ($5-10/month) via Stripe
 - **Benefits Unlocked:**
-  - Increased energy pool (250 vs 150)
-  - Faster energy regeneration (8/hour vs 5/hour)
+  - Increased energy pool (250 vs 150) - 66% more actions per session
+  - Larger energy capacity means longer play sessions (8 hours to full vs 5 hours)
   - Reduced hospital time (pay with dollars for early release at 50% discount)
   - Increased vault/inventory space (+50% storage)
-  - Exclusive properties (post-MVP: certain buildings require premium)
+  - Exclusive properties (certain buildings require premium)
   - Cosmetic options (profile themes, titles, badges)
   - Priority customer support
-- **NOT Pay-to-Win:** Cannot buy gold dollars, cannot buy skill levels, cannot buy power
+- **NOT Pay-to-Win:** Cannot buy dollars, cannot buy skill levels, cannot buy power
 - **Philosophy:** Convenience and quality-of-life, never competitive advantage
-
-**No Secondary Currencies in MVP:**
-- Spirit Essence, Contraband, Faction Tokens → Post-MVP consideration only
-- Keeps economy simple and understandable
-- Easier to balance single currency
-- May introduce specialized currencies in future updates if needed
 
 ---
 
@@ -2185,11 +2232,18 @@ REWARD: Thunderbird Feather (Legendary Item)
 
 #### ✅ **CHARACTER SYSTEMS**
 - [x] Faction selection (Settler/Nahi/Frontera)
-- [x] Skill training system (20-25 core skills)
+- [x] Skill training system (29 core skills across 4 categories)
 - [x] Player profiles (bio, stats, trophy case)
 - [x] Reputation system (faction rep -100 to +100)
 - [x] Level and XP progression
 - [x] Inventory system
+
+#### ✅ **TUTORIAL & ONBOARDING**
+- [x] Hawk companion (Ezra "Hawk" Hawthorne) guides new players
+- [x] 10-phase tutorial progression
+- [x] 9 milestone achievements (1,025 XP + 1,100 gold total)
+- [x] Contextual dialogue with 10 expressions and 5 moods
+- [x] Graduation ceremony with Hawk's Feather reward item
 
 #### ✅ **COMBAT & ACTIONS**
 - [x] Duel system (PvP and PvE)
