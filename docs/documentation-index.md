@@ -44,7 +44,16 @@ docs/
 │
 ├── admin-handbook.md                # Server operations
 ├── deployment-checklist.md          # DevOps procedures
-└── ui-design-improvement-plan.md    # UI roadmap
+├── ui-design-improvement-plan.md    # UI roadmap
+│
+└── archive/                         # Historical documentation (339 files)
+    ├── audits/                      # System audits (Dec 2024)
+    ├── implementation-reports/      # Feature implementation logs
+    ├── planning/                    # Sprint and phase plans
+    ├── quick-references/            # Old quick reference cards
+    ├── lore/                        # World lore and culture docs
+    ├── specifications/              # Superseded technical specs
+    └── old-guides/                  # Deprecated guides
 ```
 
 ---
@@ -166,7 +175,7 @@ docs/
 8. Weather (exists, effects not documented)
 
 ### Undocumented (25+ systems)
-See Phase 2 review in [plan file](../SESSION_HANDOFF.md) for full list including:
+Systems awaiting documentation:
 - Mining (claims, deep mining, illegal)
 - Cattle Drives
 - Horse Racing & Breeding
@@ -177,6 +186,8 @@ See Phase 2 review in [plan file](../SESSION_HANDOFF.md) for full list including
 - NPC Memory & Relationships
 - Incidents & Protection
 - Business Ownership
+- Prestige/Legacy System
+- Crafting & Workshops
 - And more...
 
 ---
@@ -224,6 +235,24 @@ See Phase 2 review in [plan file](../SESSION_HANDOFF.md) for full list including
 - Database Schema (new, 148 models)
 - Architecture Overview (new)
 - Balance Constants (new)
+
+---
+
+## Archived Documentation
+
+Historical documentation has been moved to `docs/archive/` for reference. These documents are no longer actively maintained but may contain useful historical context.
+
+| Archive Folder | Files | Contents |
+|----------------|-------|----------|
+| `audits/` | 40+ | System audits from Dec 2024 |
+| `implementation-reports/` | 21 | Feature implementation logs |
+| `planning/` | 3 | Sprint and phase planning docs |
+| `quick-references/` | 11 | Old quick reference cards |
+| `lore/` | 10 | World lore, culture, NPC database |
+| `specifications/` | 12 | Superseded technical specs |
+| `old-guides/` | 50+ | Deprecated guides and documentation |
+
+**Total archived**: 339 files
 
 ---
 
