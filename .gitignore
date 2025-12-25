@@ -168,3 +168,21 @@ docs/build/
 client/.vite
 client/dist
 vite.config.ts.timestamp-*
+
+# Working/Planning documents (session artifacts)
+SESSION_HANDOFF.md
+MASTER_REFACTOR_PLAN.md
+PHASE_*_IMPLEMENTATION_SUMMARY.md
+PROJECT_REVIEW.md
+GAME_COMPARISON.md
+THERIAN_SAGA_RESEARCH.md
+UI_COMPARISON_*.md
+
+# Test screenshots (automation artifacts)
+*.png
+!client/public/**/*.png
+!server/public/**/*.png
+!docs/**/*.png
+
+# Utility test scripts
+scripts/
