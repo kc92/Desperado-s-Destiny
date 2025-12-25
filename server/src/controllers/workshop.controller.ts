@@ -6,8 +6,10 @@
 import { Response } from 'express';
 import { CharacterRequest } from '../middleware/characterOwnership.middleware';
 import { Character } from '../models/Character.model';
+import { TransactionSource } from '../models/GoldTransaction.model';
 import * as WorkshopService from '../services/workshop.service';
 import { MasterworkService } from '../services/masterwork.service';
+import { DollarService } from '../services/dollar.service';
 import { CraftedItem } from '../models/CraftedItem.model';
 import logger from '../utils/logger';
 
@@ -203,8 +205,12 @@ export async function requestAccess(req: CharacterRequest, res: Response): Promi
 
     if (response.accessGranted && response.cost && response.cost > 0) {
       // Deduct gold if access was granted and has a cost
-      character.gold -= response.cost;
-      await character.save();
+      await DollarService.deductDollars(
+        characterId,
+        response.cost,
+        TransactionSource.WORKSHOP_ACCESS,
+        { workshopId }
+      );
       logger.info(`Character ${characterId} gained access to workshop ${workshopId} for ${response.cost} gold`);
     }
 
@@ -578,10 +584,11 @@ export async function repairItem(req: CharacterRequest, res: Response): Promise<
     const repairCost = MasterworkService.calculateRepairCost(item, percentage);
 
     // Check gold
-    if (character.gold < repairCost.gold) {
+    const currentBalance = character.dollars ?? character.gold ?? 0;
+    if (currentBalance < repairCost.gold) {
       res.status(400).json({
         success: false,
-        error: `Insufficient gold. Need ${repairCost.gold}, have ${character.gold}`
+        error: `Insufficient gold. Need ${repairCost.gold}, have ${currentBalance}`
       });
       return;
     }
@@ -598,8 +605,17 @@ export async function repairItem(req: CharacterRequest, res: Response): Promise<
       }
     }
 
-    // Deduct gold and materials
-    character.gold -= repairCost.gold;
+    // Deduct gold using DollarService
+    if (repairCost.gold > 0) {
+      await DollarService.deductDollars(
+        characterId,
+        repairCost.gold,
+        TransactionSource.ITEM_REPAIR,
+        { itemId }
+      );
+    }
+
+    // Deduct materials
     for (const material of repairCost.materials) {
       const invItem = character.inventory.find(i => i.itemId === material.itemId);
       if (invItem) {

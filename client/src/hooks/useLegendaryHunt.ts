@@ -83,8 +83,8 @@ export interface LegendaryHuntRecord {
   totalClues: number;
   rumorsHeard: number;
   encountersAttempted: number;
-  victories: number;
-  defeats: number;
+  wins: number;
+  losses: number;
   bestTime?: number;
   lastEncounterAt?: string;
   firstDiscoveredAt?: string;
@@ -181,7 +181,7 @@ export interface HuntLeaderboardEntry {
   characterId: string;
   characterName: string;
   bestTime: number;
-  victories: number;
+  wins: number;
   trophiesCollected: number;
   achievedAt: string;
 }

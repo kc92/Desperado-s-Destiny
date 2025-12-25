@@ -10,6 +10,7 @@ import { DayNightOverlay } from '@/components/ui';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { PlayerSidebar } from './PlayerSidebar';
+import { WorldEventBanner } from '@/components/game/WorldEventBanner';
 import { DivineMessagePopup, KarmaNotificationToast } from '@/components/karma';
 import { useKarma } from '@/hooks/useKarma';
 import { logger } from '@/services/logger.service';
@@ -68,6 +69,9 @@ export const GameLayout: React.FC = () => {
       </a>
 
       <Header />
+
+      {/* World Event Banner - Shows active global events */}
+      <WorldEventBanner />
 
       <div className="flex-1 flex overflow-hidden">
         {/* Player Sidebar */}

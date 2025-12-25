@@ -29,6 +29,7 @@ import { ALL_NPC_GANGS, getNPCGangById } from '../data/npcGangs';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
+import { RaidService } from './raid.service';
 
 export class NPCGangConflictService {
   /**
@@ -514,6 +515,22 @@ export class NPCGangConflictService {
         await randomZone.save({ session });
         influenceLost = lossAmount;
       }
+
+      // Record the attack as a Raid document for unified tracking
+      await RaidService.recordNPCAttack(
+        npcGangId,
+        npcGang.name,
+        playerGangId,
+        gang.name,
+        attackType,
+        {
+          goldLost,
+          influenceLost,
+          membersInjured: 0,
+        },
+        zones.length > 0 ? zones[0].id : undefined,
+        session
+      );
 
       await session.commitTransaction();
 

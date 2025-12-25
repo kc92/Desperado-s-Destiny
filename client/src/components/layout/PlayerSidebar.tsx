@@ -118,6 +118,23 @@ export const PlayerSidebar: React.FC = () => {
           <span className="text-desert-sand text-sm">
             Level {currentCharacter.level}
           </span>
+          {/* Prestige Badge */}
+          {(currentCharacter as any).prestige?.currentRank > 0 && (
+            <Link
+              to="/game/prestige"
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-gold-dark/30 hover:bg-gold-dark/50 transition-colors"
+              title={`Prestige Rank ${(currentCharacter as any).prestige.currentRank}`}
+            >
+              <span>
+                {(currentCharacter as any).prestige.currentRank === 1 && '🔫'}
+                {(currentCharacter as any).prestige.currentRank === 2 && '🎯'}
+                {(currentCharacter as any).prestige.currentRank === 3 && '⚔️'}
+                {(currentCharacter as any).prestige.currentRank === 4 && '👑'}
+                {(currentCharacter as any).prestige.currentRank >= 5 && '✨'}
+              </span>
+              <span className="text-gold-light font-bold">P{(currentCharacter as any).prestige.currentRank}</span>
+            </Link>
+          )}
         </div>
       </div>
 

@@ -33,6 +33,7 @@ import { WAY_STATIONS } from '../data/wayStations';
 import logger from '../utils/logger';
 import { stagecoachStateManager } from './base/StateManager';
 import { SecureRNG } from './base/SecureRNG';
+import { WorldEventService } from './worldEvent.service';
 
 /**
  * Stagecoach Service
@@ -259,8 +260,28 @@ export class StagecoachService {
         }
       }
 
-      // Calculate arrival time
-      const travelHours = route.baseDuration;
+      // Calculate arrival time with world event modifiers
+      let travelHours = route.baseDuration;
+
+      // Apply world event travel_time modifiers
+      try {
+        const activeEvents = await WorldEventService.getActiveEventsForLocation(request.departureLocationId);
+        for (const event of activeEvents) {
+          const travelMod = event.worldEffects.find(e => e.type === 'travel_time');
+          if (travelMod && (travelMod.target === 'all' || travelMod.target === request.departureLocationId)) {
+            const oldTravelHours = travelHours;
+            travelHours = Math.ceil(travelHours * travelMod.value);
+            logger.info(
+              `World event "${event.name}" modified travel time from ${oldTravelHours}h to ${travelHours}h ` +
+              `(${travelMod.value}x modifier: ${travelMod.description})`
+            );
+          }
+        }
+      } catch (eventError) {
+        // Don't fail booking if event check fails
+        logger.error('Failed to check world events for travel time modifiers:', eventError);
+      }
+
       const estimatedArrival = new Date(departureTime.getTime() + travelHours * 60 * 60 * 1000);
 
       // Check seat availability

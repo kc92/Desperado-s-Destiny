@@ -29,6 +29,10 @@ export interface ILocation extends Document {
   // Zone system fields
   zone?: WorldZoneType;
   isZoneHub?: boolean;
+  // NEW: Geography hierarchy foreign keys (Phase R1)
+  continentId?: mongoose.Types.ObjectId;
+  regionId?: mongoose.Types.ObjectId;
+  zoneId?: mongoose.Types.ObjectId;
   // Building system fields
   tier?: TownTier;
   dominantFaction?: 'settler' | 'nahi' | 'frontera' | 'neutral';
@@ -337,6 +341,24 @@ const LocationSchema = new Schema<ILocation>(
     isZoneHub: {
       type: Boolean,
       default: false,
+    },
+
+    // NEW: Geography hierarchy foreign keys (Phase R1)
+    // These reference the new Continent, Region, WorldZone models
+    continentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Continent',
+      index: true,
+    },
+    regionId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Region',
+      index: true,
+    },
+    zoneId: {
+      type: Schema.Types.ObjectId,
+      ref: 'WorldZone',
+      index: true,
     },
 
     // Building system fields

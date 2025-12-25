@@ -9,6 +9,11 @@ import { Faction } from '../types/character.types';
 /**
  * Energy system constants
  * BALANCE FIX: Added level-scaled energy costs to prevent premium advantage compounding
+ *
+ * Premium users get 1.5x faster regeneration via energyRegenBonus in premium.utils.ts
+ * This means:
+ * - Free: 150 energy / 5 hours = 30 energy/hour
+ * - Premium: 250 energy / 3.33 hours = 75 energy/hour (2.5x faster rate!)
  */
 export const ENERGY = {
   /** Maximum energy for free players */
@@ -16,14 +21,22 @@ export const ENERGY = {
   /** Time in hours for free energy to fully regenerate */
   FREE_REGEN_TIME_HOURS: 5,
   /** Energy regenerated per hour for free players */
-  FREE_REGEN_PER_HOUR: 150 / 5,
+  FREE_REGEN_PER_HOUR: 30, // 150 / 5
 
   /** Maximum energy for premium players */
   PREMIUM_MAX: 250,
-  /** Time in hours for premium energy to fully regenerate */
-  PREMIUM_REGEN_TIME_HOURS: 8,
-  /** Energy regenerated per hour for premium players */
-  PREMIUM_REGEN_PER_HOUR: 250 / 8,
+  /**
+   * Effective time in hours for premium energy to fully regenerate
+   * Calculation: FREE_REGEN_TIME_HOURS / energyRegenBonus = 5 / 1.5 = 3.33 hours
+   * Premium fills FASTER than free despite having more capacity!
+   */
+  PREMIUM_REGEN_TIME_HOURS: 5 / 1.5, // ~3.33 hours (faster than free!)
+  /**
+   * Energy regenerated per hour for premium players
+   * Calculation: PREMIUM_MAX / PREMIUM_REGEN_TIME_HOURS = 250 / 3.33 = 75/hour
+   * This is 2.5x faster than free users!
+   */
+  PREMIUM_REGEN_PER_HOUR: 75, // 2.5x faster than free (30/hour)
 
   /** Energy cost for basic actions */
   BASIC_ACTION_COST: 5,
@@ -570,31 +583,58 @@ export const COSMIC_CONSTANTS = {
  * - Encourages spending/investing rather than hoarding
  * - Creates a gold sink that scales with wealth
  * - Keeps economy healthier for new players
+ *
+ * PHASE 19: Added Tycoon Tax Tiers ($50M+, $100M+)
+ * Master tier players can earn $2-3M/day, causing inflation
+ * Higher tiers discourage extreme hoarding without punishing active play
  */
 export const WEALTH_TAX = {
   /** Gold amounts below this are not taxed (protects new players) */
   EXEMPT_THRESHOLD: 100_000,
 
-  /** Tax tiers - applied progressively like real income tax brackets */
+  /**
+   * Tax tiers - applied progressively like real income tax brackets
+   *
+   * PHASE 19: Added tycoon tiers for $50M+ and $100M+ wealth
+   * Philosophy: We want wealthy players to SPEND, not HOARD
+   */
   TIERS: [
-    /** 0-100K: No tax (exempt) */
+    /** 0-100K: No tax (exempt) - protects newcomers */
     { min: 0, max: 100_000, rate: 0 },
-    /** 100K-1M: 0.1% daily (1K taxed per day at 1M) */
+    /** 100K-1M: 0.1% daily ($1K taxed/day at $1M) */
     { min: 100_000, max: 1_000_000, rate: 0.001 },
-    /** 1M-10M: 0.25% daily (25K taxed per day at 10M) */
+    /** 1M-10M: 0.25% daily ($25K taxed/day at $10M) */
     { min: 1_000_000, max: 10_000_000, rate: 0.0025 },
-    /** 10M+: 0.5% daily (50K+ taxed per day at 10M+) */
-    { min: 10_000_000, max: Infinity, rate: 0.005 }
+    /** 10M-50M: 0.5% daily ($250K taxed/day at $50M) */
+    { min: 10_000_000, max: 50_000_000, rate: 0.005 },
+    /** PHASE 19: 50M-100M: 0.8% daily - TYCOON TIER 1 */
+    { min: 50_000_000, max: 100_000_000, rate: 0.008 },
+    /** PHASE 19: 100M+: 1.2% daily - TYCOON TIER 2 (encourages luxury spending) */
+    { min: 100_000_000, max: Infinity, rate: 0.012 }
   ] as const,
 
   /** Minimum tax amount to collect (don't bother with < 1 gold) */
   MIN_COLLECTION_AMOUNT: 1,
 
-  /** Maximum tax per collection (absolute cap to prevent catastrophic loss) */
-  MAX_DAILY_TAX: 500_000,
+  /**
+   * Maximum tax per collection (absolute cap to prevent catastrophic loss)
+   * PHASE 19: Increased from 500K to 1.2M to accommodate tycoon tiers
+   */
+  MAX_DAILY_TAX: 1_200_000,
 
   /** Grace period after character creation (days) - don't tax new players */
-  NEW_PLAYER_GRACE_DAYS: 7
+  NEW_PLAYER_GRACE_DAYS: 7,
+
+  /**
+   * PHASE 19: Luxury Sinks - expensive items that provide prestige/convenience
+   * These give tycoons something to spend on instead of hoarding
+   */
+  LUXURY_SINK_IDS: [
+    'golden_revolver',      // $500K - cosmetic weapon skin
+    'private_railcar',      // $2M - instant fast travel
+    'ranch_estate',         // $10M - 10 extra worker slots
+    'bank_ownership_stake'  // $50M - +1% interest on deposits
+  ] as const
 } as const;
 
 /**
@@ -625,6 +665,40 @@ export const PROPERTY_CONSTANTS = {
     /** Maximum daily income regardless of level/properties */
     ABSOLUTE_MAX_DAILY: 25000
   }
+} as const;
+
+/**
+ * PHASE 19: Newcomer Stake System
+ *
+ * Gives new players a +50% gold bonus during their first few hours of play.
+ * This helps newcomers get established without making the early game feel punishing.
+ *
+ * Philosophy: "Everyone deserves a fair stake to start their journey in the West"
+ */
+export const NEWCOMER_STAKE = {
+  /** Duration of the newcomer bonus (milliseconds) - 2 hours */
+  DURATION_MS: 2 * 60 * 60 * 1000,
+
+  /** Gold multiplier during newcomer period (1.5 = +50%) */
+  GOLD_MULTIPLIER: 1.5,
+
+  /** XP multiplier during newcomer period (no bonus, just gold) */
+  XP_MULTIPLIER: 1.0,
+
+  /** Message shown to newcomers */
+  ACTIVE_MESSAGE: "Newcomer's Luck! +50% gold for your first 2 hours.",
+
+  /** Message when stake expires */
+  EXPIRED_MESSAGE: "Your newcomer's luck has run out. Time to earn your fortune the hard way!",
+
+  /** Whether to show a notification when stake expires */
+  NOTIFY_ON_EXPIRE: true,
+
+  /** Minimum play time to be considered for stake (prevents abuse via new accounts) */
+  MIN_PLAYTIME_FOR_STAKE_MS: 0, // Start immediately
+
+  /** Whether premium players also get the stake (yes - it stacks) */
+  APPLIES_TO_PREMIUM: true
 } as const;
 
 /**

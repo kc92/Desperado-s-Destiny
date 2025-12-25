@@ -19,6 +19,9 @@ export interface QuestObjective {
   target: string; // e.g., 'npc:bandit' or 'location:saloon' or 'skill:gunslinging'
   required: number;
   current: number;
+  // Phase 19.5: Optional objectives (e.g., gathering faction allies)
+  optional?: boolean;              // If true, objective is not required for completion
+  optionalBenefit?: string;        // Description of benefit if completed
 }
 
 /**
@@ -46,6 +49,9 @@ export interface IQuestDefinition extends Document {
   timeLimit?: number; // Minutes, for timed quests
   repeatable: boolean;
   isActive: boolean;
+  dialogueIntro?: string;
+  dialogueComplete?: string;
+  specialFlags?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -109,7 +115,9 @@ const QuestDefinitionSchema = new Schema<IQuestDefinition>(
         enum: ['kill', 'collect', 'visit', 'crime', 'skill', 'gold', 'level', 'deliver']
       },
       target: { type: String, required: true },
-      required: { type: Number, required: true }
+      required: { type: Number, required: true },
+      optional: { type: Boolean, default: false },
+      optionalBenefit: { type: String }
     }],
     rewards: [{
       type: {
@@ -129,6 +137,15 @@ const QuestDefinitionSchema = new Schema<IQuestDefinition>(
     isActive: {
       type: Boolean,
       default: true
+    },
+    dialogueIntro: {
+      type: String
+    },
+    dialogueComplete: {
+      type: String
+    },
+    specialFlags: {
+      type: Schema.Types.Mixed
     }
   },
   {

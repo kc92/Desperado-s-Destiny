@@ -31,6 +31,10 @@ export default defineConfig({
     },
   },
   build: {
+    commonjsOptions: {
+      include: [/shared/, /node_modules/],
+      transformMixedEsModules: true,
+    },
     rollupOptions: {
       output: {
         manualChunks: {

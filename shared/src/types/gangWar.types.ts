@@ -19,6 +19,7 @@ export enum GangWarType {
 export enum GangWarStatus {
   DECLARED = 'declared',      // War has been declared, not yet active
   PREPARATION = 'preparation', // 24-hour preparation period
+  SCHEDULED = 'scheduled',    // Awaiting resolution window (Phase 2.1)
   ACTIVE = 'active',          // War is ongoing
   RESOLVED = 'resolved',      // War has ended
   CANCELLED = 'cancelled',    // War was cancelled before starting
@@ -366,3 +367,49 @@ export const WAR_COOLDOWN_DAYS = 7;
  * War chest split on victory
  */
 export const WAR_SPOILS_PERCENTAGE = 0.5; // Winner gets 50% of loser's war chest
+
+// =============================================================================
+// PHASE 2.1: WEEKLY WAR SCHEDULE CONSTANTS
+// =============================================================================
+
+/**
+ * War schedule window configuration
+ * Declaration: Mon-Thu, Resolution: Fri-Sun
+ */
+export const WAR_SCHEDULE = {
+  // Day of week (0 = Sunday)
+  DECLARATION_START_DAY: 1,     // Monday
+  DECLARATION_END_DAY: 4,       // Thursday
+  RESOLUTION_START_DAY: 5,      // Friday
+  RESOLUTION_END_DAY: 0,        // Sunday
+
+  // UTC hours for window boundaries
+  WINDOW_START_HOUR: 0,         // 00:00 UTC
+  WINDOW_END_HOUR: 23,          // 23:59 UTC
+
+  // Cooldown period after war
+  COOLDOWN_DAYS: 7,
+
+  // Maximum wars per gang per week
+  MAX_WARS_PER_WEEK: 2,
+
+  // Auto-tournament bracket generation time (Thu 23:30 UTC)
+  BRACKET_GENERATION_HOUR: 23,
+  BRACKET_GENERATION_MINUTE: 30,
+  BRACKET_GENERATION_DAY: 4,    // Thursday
+} as const;
+
+/**
+ * Tier matching rules
+ * Gangs can only fight opponents within tier range
+ */
+export const TIER_MATCHING = {
+  // Allow matching with adjacent tiers (+/- 1)
+  ADJACENT_TIER_MATCHING: true,
+
+  // Power rating difference cap for matchmaking (percentage)
+  MAX_POWER_DIFFERENCE: 0.5,    // 50% max difference
+
+  // Minimum wars needed for accurate tier placement
+  MIN_WARS_FOR_TIER: 3,
+} as const;

@@ -18,7 +18,10 @@ import {
   StorageInventory,
   LoanTracker,
   UpgradePanel,
+  CollectionPanel,
+  IncomeSummary,
 } from '@/components/properties';
+import { propertyService, type PropertyWithIncome } from '@/services/property.service';
 import { formatDollars } from '@/utils/format';
 import { WorkerType, type Property, type PropertyType } from '@desperados/shared';
 
@@ -41,7 +44,7 @@ function getAvailableWorkerTypes(propertyType: PropertyType): WorkerType[] {
 /**
  * View modes
  */
-type ViewMode = 'grid' | 'details' | 'workers' | 'storage' | 'upgrades' | 'loans';
+type ViewMode = 'grid' | 'details' | 'workers' | 'storage' | 'upgrades' | 'loans' | 'collection';
 
 /**
  * MyPropertiesPage component
@@ -78,6 +81,12 @@ export const MyPropertiesPage: React.FC = () => {
   const [transferPrice, setTransferPrice] = useState(0);
   const [isTransferring, setIsTransferring] = useState(false);
 
+  // Income collection state
+  const [propertiesWithIncome, setPropertiesWithIncome] = useState<PropertyWithIncome[]>([]);
+  const [totalPendingIncome, setTotalPendingIncome] = useState(0);
+  const [maxAccumulationHours] = useState(168); // 7 days
+  const [isLoadingIncome, setIsLoadingIncome] = useState(false);
+
   // Fetch properties on mount
   useEffect(() => {
     fetchMyProperties();
@@ -90,6 +99,28 @@ export const MyPropertiesPage: React.FC = () => {
       fetchInventory();
     }
   }, [viewMode, fetchInventory]);
+
+  // Fetch income data periodically
+  useEffect(() => {
+    const fetchIncomeData = async () => {
+      if (myProperties.length === 0) return;
+      setIsLoadingIncome(true);
+      try {
+        const data = await propertyService.getIncomeOverview();
+        setPropertiesWithIncome(data.properties);
+        setTotalPendingIncome(data.totalPendingIncome);
+      } catch (err) {
+        console.error('Failed to fetch income data:', err);
+      } finally {
+        setIsLoadingIncome(false);
+      }
+    };
+
+    fetchIncomeData();
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchIncomeData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [myProperties.length]);
 
   // Fetch property details when a property is selected
   useEffect(() => {
@@ -206,6 +237,46 @@ export const MyPropertiesPage: React.FC = () => {
     }
 
     setIsTransferring(false);
+  };
+
+  // Income collection handlers
+  const handleCollectIncome = async (propertyId: string) => {
+    try {
+      const result = await propertyService.collectIncome(propertyId);
+      if (result.success) {
+        success('Income Collected!', `Collected ${formatDollars(result.collected)}`);
+        // Refresh income data
+        const data = await propertyService.getIncomeOverview();
+        setPropertiesWithIncome(data.properties);
+        setTotalPendingIncome(data.totalPendingIncome);
+      }
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to collect income';
+      showError('Collection Failed', message);
+      return { success: false, collected: 0, message };
+    }
+  };
+
+  const handleCollectAllIncome = async () => {
+    try {
+      const result = await propertyService.collectAllIncomeAtLocation();
+      if (result.success) {
+        success(
+          'Income Collected!',
+          `Collected ${formatDollars(result.totalCollected)} from ${result.propertiesCollected} properties`
+        );
+        // Refresh income data
+        const data = await propertyService.getIncomeOverview();
+        setPropertiesWithIncome(data.properties);
+        setTotalPendingIncome(data.totalPendingIncome);
+      }
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to collect income';
+      showError('Collection Failed', message);
+      return { success: false, totalCollected: 0, propertiesCollected: 0, message };
+    }
   };
 
   // Convert inventory to format expected by StorageInventory
@@ -331,6 +402,20 @@ export const MyPropertiesPage: React.FC = () => {
             </Card>
           </div>
 
+          {/* Income Summary */}
+          {myProperties.length > 0 && totalPendingIncome > 0 && (
+            <div className="mb-6">
+              <IncomeSummary
+                properties={propertiesWithIncome}
+                totalPendingIncome={totalPendingIncome}
+                maxAccumulationHours={maxAccumulationHours}
+                currentLocation={currentCharacter.currentLocation || ''}
+                onViewDetails={() => setViewMode('collection')}
+                compact={false}
+              />
+            </div>
+          )}
+
           {/* Quick access to loans */}
           {loans.filter((l) => l.isActive).length > 0 && (
             <div className="mb-6">
@@ -448,6 +533,22 @@ export const MyPropertiesPage: React.FC = () => {
             onMakePayment={handleMakePayment}
             onClose={() => setViewMode('grid')}
             characterGold={currentCharacter.gold}
+          />
+        </div>
+      )}
+
+      {/* Collection view */}
+      {viewMode === 'collection' && (
+        <div className="max-w-3xl mx-auto">
+          <CollectionPanel
+            properties={propertiesWithIncome}
+            totalPendingIncome={totalPendingIncome}
+            maxAccumulationHours={maxAccumulationHours}
+            currentLocation={currentCharacter.currentLocation || ''}
+            onCollect={handleCollectIncome}
+            onCollectAll={handleCollectAllIncome}
+            onClose={() => setViewMode('grid')}
+            isLoading={isLoadingIncome}
           />
         </div>
       )}

@@ -19,6 +19,10 @@ import {
   getMyLoans,
   makeLoanPayment,
   transferProperty,
+  getPendingIncome,
+  collectIncome,
+  getIncomeOverview,
+  collectAllIncome,
 } from '../controllers/property.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
@@ -130,6 +134,28 @@ router.post(
   requireCsrfTokenWithRotation,
   checkGoldDuplication(),
   asyncHandler(transferProperty)
+);
+
+// Income routes (Phase 7)
+router.get('/income/pending', asyncHandler(getPendingIncome));
+
+// Income overview - summary of all property income
+router.get('/income/overview', asyncHandler(getIncomeOverview));
+
+// Collect all income from all properties (or by location)
+router.post(
+  '/income/collect-all',
+  requireCsrfToken,
+  rateLimitGoldTransactions(50),
+  asyncHandler(collectAllIncome)
+);
+
+router.post(
+  '/:propertyId/collect',
+  requireCsrfToken,
+  validateObjectId('propertyId'),
+  rateLimitGoldTransactions(20),
+  asyncHandler(collectIncome)
 );
 
 export default router;

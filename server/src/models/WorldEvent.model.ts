@@ -43,6 +43,11 @@ export enum WorldEventType {
   METEOR_SHOWER = 'METEOR_SHOWER',
   ECLIPSE = 'ECLIPSE',
   LEGENDARY_BOUNTY = 'LEGENDARY_BOUNTY',
+
+  // Cosmic/Supernatural Events
+  BLOOD_MOON = 'BLOOD_MOON',
+  RIFT_OPENING = 'RIFT_OPENING',
+  PROPHET_ARRIVAL = 'PROPHET_ARRIVAL',
 }
 
 /**

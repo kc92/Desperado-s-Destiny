@@ -180,6 +180,46 @@ export interface WorldWeatherResponse {
   };
 }
 
+// ===== World Events Types =====
+
+export interface WorldEventEffect {
+  type: 'price_modifier' | 'danger_modifier' | 'reputation_modifier' | 'spawn_rate' | 'travel_time' | 'energy_cost';
+  target: string;
+  value: number;
+  description: string;
+}
+
+export interface WorldEventReward {
+  type: 'dollars' | 'xp' | 'item' | 'reputation' | 'achievement';
+  amount: number;
+}
+
+export interface WorldEventData {
+  _id: string;
+  name: string;
+  description: string;
+  type: string;
+  isGlobal: boolean;
+  locationId?: string;
+  region?: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  worldEffects: WorldEventEffect[];
+  participationRewards: WorldEventReward[];
+  newsHeadline?: string;
+  participantCount: number;
+}
+
+export interface WorldEventsResponse {
+  success: boolean;
+  data: {
+    activeEvents: WorldEventData[];
+    upcomingEvents: WorldEventData[];
+    activeCount: number;
+    upcomingCount: number;
+  };
+}
+
 // ===== World Service =====
 
 export const worldService = {
@@ -230,6 +270,39 @@ export const worldService = {
     }>;
   }> {
     const response = await api.get<WorldWeatherResponse>('/world/weather');
+    return response.data.data;
+  },
+
+  /**
+   * Get active and upcoming world events
+   */
+  async getWorldEvents(): Promise<{
+    activeEvents: WorldEventData[];
+    upcomingEvents: WorldEventData[];
+    activeCount: number;
+    upcomingCount: number;
+  }> {
+    const response = await api.get<WorldEventsResponse>('/world/events');
+    return response.data.data;
+  },
+
+  /**
+   * Join an active world event
+   */
+  async joinEvent(eventId: string, characterId: string): Promise<{
+    eventId: string;
+    eventName: string;
+    participantCount: number;
+  }> {
+    const response = await api.post<{
+      success: boolean;
+      message: string;
+      data: {
+        eventId: string;
+        eventName: string;
+        participantCount: number;
+      };
+    }>(`/world/events/${eventId}/join`, { characterId });
     return response.data.data;
   },
 

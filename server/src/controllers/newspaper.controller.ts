@@ -263,7 +263,7 @@ export const newspaperController = {
    */
   createArticle: async (req: Request, res: Response): Promise<void> => {
     try {
-      // TODO: Add admin check
+      // Admin authorization enforced at route level via requireAdmin middleware
       const params: ArticleGenerationParams = req.body;
       const article = await newspaperService.createArticle(params);
 
@@ -280,7 +280,7 @@ export const newspaperController = {
    */
   publishNewspaper: async (req: Request, res: Response): Promise<void> => {
     try {
-      // TODO: Add admin check
+      // Admin authorization enforced at route level via requireAdmin middleware
       const { newspaperId } = req.body;
       const edition = await newspaperService.publishEdition(newspaperId);
 

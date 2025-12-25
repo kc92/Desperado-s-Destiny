@@ -11,7 +11,9 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import {
   getAchievements,
   getAchievementSummary,
-  claimAchievementReward
+  getUnclaimedAchievements,
+  claimAchievementReward,
+  claimAllAchievementRewards
 } from '../controllers/achievement.controller';
 
 const router = Router();
@@ -31,6 +33,18 @@ router.get('/', asyncHandler(getAchievements));
  * Get achievement progress summary
  */
 router.get('/summary', asyncHandler(getAchievementSummary));
+
+/**
+ * GET /api/achievements/unclaimed
+ * Get completed but unclaimed achievements
+ */
+router.get('/unclaimed', asyncHandler(getUnclaimedAchievements));
+
+/**
+ * POST /api/achievements/claim-all
+ * Claim all unclaimed achievement rewards
+ */
+router.post('/claim-all', requireCsrfToken, asyncHandler(claimAllAchievementRewards));
 
 /**
  * POST /api/achievements/:achievementId/claim

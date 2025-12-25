@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useShop, InventoryItemWithDetails, ItemRarity, Equipment } from '@/hooks/useShop';
 import { Card, Button, Modal } from '@/components/ui';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { StateView } from '@/components/ui/StateView';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import { useTutorialStore } from '@/store/useTutorialStore';
 import { completeTutorialAction } from '@/utils/tutorialActionHandlers';
@@ -153,13 +153,6 @@ export const Inventory: React.FC = () => {
         </div>
       )}
 
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-900/50 border border-red-500/50 rounded-lg p-4 mb-6 text-center">
-          <p className="text-red-300">{error}</p>
-        </div>
-      )}
-
       {/* Inventory Stats */}
       <Card variant="leather" className="mb-6">
         <div className="p-6">
@@ -223,27 +216,26 @@ export const Inventory: React.FC = () => {
         </div>
       </Card>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div aria-busy="true" aria-live="polite">
-          <CardGridSkeleton count={9} columns={3} />
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!isLoading && inventory.length === 0 && (
-        <EmptyState
-          icon="🎒"
-          title="Empty Saddlebags"
-          description="Visit the General Store to stock up on supplies, or defeat enemies in combat to collect loot."
-          actionText="Visit Shop"
-          onAction={() => navigate('/game/shop')}
-          size="lg"
-        />
-      )}
-
       {/* Inventory Grid */}
-      {!isLoading && inventory.length > 0 && (
+      <StateView
+        isLoading={isLoading}
+        loadingComponent={
+          <div aria-busy="true" aria-live="polite">
+            <CardGridSkeleton count={9} columns={3} />
+          </div>
+        }
+        error={error}
+        onRetry={() => fetchInventory()}
+        isEmpty={inventory.length === 0}
+        emptyProps={{
+          icon: '🎒',
+          title: 'Empty Saddlebags',
+          description: 'Visit the General Store to stock up on supplies, or defeat enemies in combat to collect loot.',
+          actionText: 'Visit Shop',
+          onAction: () => navigate('/game/shop')
+        }}
+        size="lg"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {inventory.map((invItem, index) => {
             const { item, quantity, acquiredAt: _acquiredAt } = invItem;
@@ -338,7 +330,7 @@ export const Inventory: React.FC = () => {
             );
           })}
         </div>
-      )}
+      </StateView>
 
       {/* Item Detail Modal */}
       {selectedItem && (

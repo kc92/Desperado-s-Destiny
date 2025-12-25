@@ -49,6 +49,20 @@ export const QUEUE_NAMES = {
   DIVINE_MESSAGE: 'divine-message',
   KARMA_EFFECTS: 'karma-effects',
   DEITY_TICK: 'deity-tick',
+  COMBAT_TIMEOUT: 'combat-timeout',
+  WAR_SCHEDULE: 'war-schedule',
+  AUTO_TOURNAMENT: 'auto-tournament',
+  POWER_RATING: 'power-rating',
+  RAID_EXECUTION: 'raid-execution',
+  INVESTMENT_MATURITY: 'investment-maturity',
+  WORKER_TASK_PROCESSING: 'worker-task-processing',
+  CUSTOMER_TRAFFIC: 'customer-traffic',
+  MINING_INSPECTION: 'mining-inspection',
+  ASSET_DECAY: 'asset-decay', // Phase 14: Risk Simulation
+  INCIDENT_SPAWNER: 'incident-spawner', // Phase 14.2: Incident System
+  COMPETITION_UPDATE: 'competition-update', // Phase 14.3: Competition System
+  PROTECTION_PAYMENT: 'protection-payment', // Phase 15: Gang Businesses
+  ECONOMY_TICK: 'economy-tick', // Phase R2: Economy Foundation
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -131,6 +145,63 @@ export const JOB_TYPES = {
   // Deity Tick (Phase 5 - Deity AI Engine)
   DEITY_TICK: 'deity-tick',
   DEITY_ATTENTION_CLEANUP: 'deity-attention-cleanup',
+
+  // Combat Timeout (Phase 1 - Tech Debt Fix)
+  COMBAT_TIMEOUT_CHECK: 'combat-timeout-check',
+  COMBAT_TIMEOUT_WARNING: 'combat-timeout-warning',
+
+  // War Schedule (Phase 2.1 - Weekly War Schedule)
+  WAR_PHASE_TRANSITION: 'war-phase-transition',
+  WAR_SEASON_CHECK: 'war-season-check',
+
+  // Auto Tournament (Phase 2.1 - Weekly War Schedule)
+  BRACKET_GENERATION: 'bracket-generation',
+
+  // Power Rating (Phase 2.1 - Weekly War Schedule)
+  POWER_RATING_REFRESH: 'power-rating-refresh',
+  POWER_RATING_INITIALIZE: 'power-rating-initialize',
+
+  // Raid Execution (Phase 2.3 - Full Raid System)
+  RAID_EXECUTE: 'raid-execute',
+  RAID_SCHEDULE_CHECK: 'raid-schedule-check',
+  RAID_CLEANUP: 'raid-cleanup',
+
+  // Investment Maturity (Phase 10 - Banking System)
+  INVESTMENT_MATURITY: 'investment-maturity',
+
+  // Worker Task Processing (Phase 11 - Full Worker Tasks)
+  WORKER_TASK_PROCESS: 'worker-task-process',
+  WORKER_STAMINA_REGEN: 'worker-stamina-regen',
+
+  // Customer Traffic (Phase 12 - Business Ownership)
+  CUSTOMER_TRAFFIC_PROCESS: 'customer-traffic-process',
+  REPUTATION_DECAY: 'reputation-decay',
+  DAILY_TRAFFIC_RESET: 'daily-traffic-reset',
+  WEEKLY_TRAFFIC_RESET: 'weekly-traffic-reset',
+  MONTHLY_TRAFFIC_RESET: 'monthly-traffic-reset',
+
+  // Mining Inspection (Phase 13 - Deep Mining)
+  INSPECTOR_PATROL: 'inspector-patrol',
+  SUSPICION_DECAY: 'suspicion-decay',
+  GANG_PROTECTION_PROCESS: 'gang-protection-process',
+
+  // Incident Spawner (Phase 14.2 - Incident System)
+  INCIDENT_SPAWN_CHECK: 'incident-spawn-check',
+  INCIDENT_EXPIRE_CHECK: 'incident-expire-check',
+  INCIDENT_REMINDER: 'incident-reminder',
+
+  // Competition Update (Phase 14.3 - Competition System)
+  COMPETITION_UPDATE_CYCLE: 'competition-update-cycle',
+  NPC_BEHAVIOR_PROCESS: 'npc-behavior-process',
+  RESOURCE_REGENERATION: 'resource-regeneration',
+  NPC_REVENUE_SIMULATION: 'npc-revenue-simulation',
+
+  // Protection Payment (Phase 15 - Gang Businesses)
+  WEEKLY_PROTECTION_PAYMENT: 'weekly-protection-payment',
+
+  // Economy Tick (Phase R2 - Economy Foundation)
+  ECONOMY_TICK: 'economy-tick',
+  ECONOMY_CLEANUP: 'economy-cleanup',
 } as const;
 
 /**
@@ -171,11 +242,21 @@ function getOrCreateQueue(name: QueueName): Queue {
     });
 
     queue.on('failed', (job, error) => {
+      // PHASE 5 FIX: Enhanced job failure logging with full context
       logger.error(`Job ${job.id} in queue ${name} failed:`, {
         jobId: job.id,
         jobName: job.name,
+        queueName: name,
         error: error.message,
+        stack: error.stack,
         attempts: job.attemptsMade,
+        maxAttempts: job.opts.attempts || 1,
+        inputData: job.data,
+        processedOn: job.processedOn,
+        finishedOn: job.finishedOn,
+        failedReason: job.failedReason,
+        returnvalue: job.returnvalue,
+        timestamp: new Date(job.timestamp).toISOString(),
       });
     });
 
@@ -261,14 +342,64 @@ export const Queues = {
   get deityTick() {
     return getOrCreateQueue(QUEUE_NAMES.DEITY_TICK);
   },
+  get combatTimeout() {
+    return getOrCreateQueue(QUEUE_NAMES.COMBAT_TIMEOUT);
+  },
+  get warSchedule() {
+    return getOrCreateQueue(QUEUE_NAMES.WAR_SCHEDULE);
+  },
+  get autoTournament() {
+    return getOrCreateQueue(QUEUE_NAMES.AUTO_TOURNAMENT);
+  },
+  get powerRating() {
+    return getOrCreateQueue(QUEUE_NAMES.POWER_RATING);
+  },
+  get raidExecution() {
+    return getOrCreateQueue(QUEUE_NAMES.RAID_EXECUTION);
+  },
+  get investmentMaturity() {
+    return getOrCreateQueue(QUEUE_NAMES.INVESTMENT_MATURITY);
+  },
+  get workerTaskProcessing() {
+    return getOrCreateQueue(QUEUE_NAMES.WORKER_TASK_PROCESSING);
+  },
+  get customerTraffic() {
+    return getOrCreateQueue(QUEUE_NAMES.CUSTOMER_TRAFFIC);
+  },
+  get miningInspection() {
+    return getOrCreateQueue(QUEUE_NAMES.MINING_INSPECTION);
+  },
+  // Phase 14: Risk Simulation - Asset Decay
+  get assetDecay() {
+    return getOrCreateQueue(QUEUE_NAMES.ASSET_DECAY);
+  },
+  // Phase 14.2: Incident System
+  get incidentSpawner() {
+    return getOrCreateQueue(QUEUE_NAMES.INCIDENT_SPAWNER);
+  },
+  // Phase 14.3: Competition System
+  get competitionUpdate() {
+    return getOrCreateQueue(QUEUE_NAMES.COMPETITION_UPDATE);
+  },
+  // Phase 15: Gang Businesses - Protection Payment
+  get protectionPayment() {
+    return getOrCreateQueue(QUEUE_NAMES.PROTECTION_PAYMENT);
+  },
+  // Phase R2: Economy Foundation - Economy Tick
+  get economyTick() {
+    return getOrCreateQueue(QUEUE_NAMES.ECONOMY_TICK);
+  },
 };
 
 /**
  * Helper to wrap job execution with timing and error handling
+ *
+ * PHASE 5 FIX: Enhanced error logging with full context
  */
 export async function executeJob<T>(
   jobName: string,
-  executor: () => Promise<T>
+  executor: () => Promise<T>,
+  context?: Record<string, unknown>
 ): Promise<JobResult> {
   const startTime = Date.now();
 
@@ -287,14 +418,20 @@ export async function executeJob<T>(
   } catch (error) {
     const duration = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
 
-    logger.error(`Job ${jobName} failed after ${duration}ms:`, error);
-
-    return {
-      success: false,
-      message: `${jobName} failed: ${errorMessage}`,
+    // Enhanced error logging with full context
+    logger.error(`Job ${jobName} failed after ${duration}ms:`, {
+      jobName,
       duration,
-    };
+      error: errorMessage,
+      stack: errorStack,
+      context: context || {},
+      timestamp: new Date().toISOString(),
+    });
+
+    // Re-throw to let Bull handle retry logic
+    throw error;
   }
 }
 
@@ -351,17 +488,15 @@ export async function registerProcessors(): Promise<void> {
       const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const recentHistories = await PriceHistory.find({
         lastSaleAt: { $gte: cutoff }
-      }).select('itemId');
+      }).select('itemId').lean();
 
-      let updated = 0;
-      for (const history of recentHistories) {
-        try {
-          await (PriceHistory as any).updateStats(history.itemId);
-          updated++;
-        } catch (error) {
-          logger.error(`Error updating price history for ${history.itemId}:`, error);
-        }
+      if (recentHistories.length === 0) {
+        return { itemsUpdated: 0 };
       }
+
+      // Use batch update to avoid N+1 query issue
+      const itemIds = recentHistories.map(h => h.itemId);
+      const updated = await PriceHistory.batchUpdateStats(itemIds);
       return { itemsUpdated: updated };
     });
   });
@@ -464,39 +599,55 @@ export async function registerProcessors(): Promise<void> {
     const { SecureRNG } = await import('../services/base/SecureRNG');
 
     return executeJob('NPC Gang Attacks', async () => {
-      const playerGangs = await Gang.find({ isActive: true });
-      let attackCount = 0;
-
-      for (const playerGang of playerGangs) {
-        // Cast to any to avoid ObjectId type mismatch issues
-        const gangId = playerGang._id as any;
-        const relationships = await NPCGangRelationship.findByPlayerGang(gangId);
-
-        for (const relationship of relationships) {
-          if (
-            relationship.attitude === RelationshipAttitude.HOSTILE ||
-            relationship.activeConflict
-          ) {
-            if (SecureRNG.chance(0.7)) {
-              const npcGang = ALL_NPC_GANGS.find((g) => g.id === relationship.npcGangId);
-              if (!npcGang) continue;
-
-              const attackPattern = SecureRNG.select(npcGang.attackPatterns);
-
-              try {
-                await NPCGangConflictService.processNPCAttack(
-                  gangId,
-                  npcGang.id,
-                  attackPattern.type
-                );
-                attackCount++;
-              } catch (error) {
-                logger.error(`Error processing attack from ${npcGang.name}:`, error);
-              }
-            }
-          }
-        }
+      // Get all active gang IDs first
+      const playerGangs = await Gang.find({ isActive: true }).select('_id').lean();
+      if (playerGangs.length === 0) {
+        return { attacksProcessed: 0 };
       }
+
+      const gangIds = playerGangs.map(g => g._id);
+
+      // Batch fetch ALL hostile/conflict relationships in one query
+      const hostileRelationships = await NPCGangRelationship.find({
+        playerGangId: { $in: gangIds },
+        $or: [
+          { attitude: RelationshipAttitude.HOSTILE },
+          { activeConflict: true }
+        ]
+      }).lean();
+
+      if (hostileRelationships.length === 0) {
+        return { attacksProcessed: 0 };
+      }
+
+      // Build NPC gang lookup map for efficiency
+      const npcGangMap = new Map(ALL_NPC_GANGS.map(g => [g.id, g]));
+
+      // Process attacks
+      let attackCount = 0;
+      const attackPromises: Promise<void>[] = [];
+
+      for (const relationship of hostileRelationships) {
+        if (!SecureRNG.chance(0.7)) continue;
+
+        const npcGang = npcGangMap.get(relationship.npcGangId);
+        if (!npcGang) continue;
+
+        const attackPattern = SecureRNG.select(npcGang.attackPatterns);
+        const gangId = relationship.playerGangId;
+
+        // Queue attack processing (limited concurrency via Promise.allSettled)
+        attackPromises.push(
+          NPCGangConflictService.processNPCAttack(gangId, npcGang.id, attackPattern.type)
+            .then(() => { attackCount++; })
+            .catch(error => {
+              logger.error(`Error processing attack from ${npcGang.name}:`, error);
+            })
+        );
+      }
+
+      // Process all attacks with controlled concurrency
+      await Promise.allSettled(attackPromises);
 
       return { attacksProcessed: attackCount };
     });
@@ -520,18 +671,14 @@ export async function registerProcessors(): Promise<void> {
     const { NPCGangRelationship } = await import('../models/NPCGangRelationship.model');
     return executeJob('Expire Challenges', async () => {
       const now = new Date();
-      const relationships = await NPCGangRelationship.find({
-        'challengeProgress.expiresAt': { $lt: now },
-      });
 
-      for (const relationship of relationships) {
-        if (relationship.challengeProgress) {
-          relationship.challengeProgress = undefined;
-          await relationship.save();
-        }
-      }
+      // Use updateMany with $unset for efficient batch update
+      const result = await NPCGangRelationship.updateMany(
+        { 'challengeProgress.expiresAt': { $lt: now } },
+        { $unset: { challengeProgress: 1 } }
+      );
 
-      return { expiredCount: relationships.length };
+      return { expiredCount: result.modifiedCount };
     });
   });
 
@@ -587,6 +734,215 @@ export async function registerProcessors(): Promise<void> {
   Queues.deityTick.process(JOB_TYPES.DEITY_ATTENTION_CLEANUP, async () => {
     const { cleanupStaleAttention } = await import('./deityTick.job');
     return executeJob('Deity Attention Cleanup', () => cleanupStaleAttention());
+  });
+
+  // Combat Timeout Check - Every 30 seconds (Phase 1 Tech Debt)
+  Queues.combatTimeout.process(JOB_TYPES.COMBAT_TIMEOUT_CHECK, async () => {
+    const { processTimedOutEncounters } = await import('./combatTimeout.job');
+    return executeJob('Combat Timeout Check', () => processTimedOutEncounters());
+  });
+
+  // Combat Timeout Warning - Every 10 seconds (Phase 1 Tech Debt)
+  Queues.combatTimeout.process(JOB_TYPES.COMBAT_TIMEOUT_WARNING, async () => {
+    const { sendTimeoutWarnings } = await import('./combatTimeout.job');
+    return executeJob('Combat Timeout Warning', () => sendTimeoutWarnings(30));
+  });
+
+  // War Schedule Phase Transition - Hourly (Phase 2.1 Weekly War Schedule)
+  Queues.warSchedule.process(JOB_TYPES.WAR_PHASE_TRANSITION, async () => {
+    const { processPhaseTransition } = await import('./warSchedulePhase.job');
+    return executeJob('War Phase Transition', () => processPhaseTransition());
+  });
+
+  // War Season Check - Weekly (Phase 2.1 Weekly War Schedule)
+  Queues.warSchedule.process(JOB_TYPES.WAR_SEASON_CHECK, async () => {
+    const { checkSeasonTransition } = await import('./warSchedulePhase.job');
+    return executeJob('War Season Check', () => checkSeasonTransition());
+  });
+
+  // Auto Tournament Bracket Generation - Thursday 23:30 UTC (Phase 2.1)
+  Queues.autoTournament.process(JOB_TYPES.BRACKET_GENERATION, async () => {
+    const { generateTournamentBrackets } = await import('./warSchedulePhase.job');
+    return executeJob('Tournament Bracket Generation', () => generateTournamentBrackets());
+  });
+
+  // Power Rating Refresh - Every 4 hours (Phase 2.1)
+  Queues.powerRating.process(JOB_TYPES.POWER_RATING_REFRESH, async () => {
+    const { refreshStalePowerRatings } = await import('./warSchedulePhase.job');
+    return executeJob('Power Rating Refresh', () => refreshStalePowerRatings());
+  });
+
+  // Power Rating Initialize - On startup (Phase 2.1)
+  Queues.powerRating.process(JOB_TYPES.POWER_RATING_INITIALIZE, async () => {
+    const { WarTierService } = await import('../services/warTier.service');
+    return executeJob('Power Rating Initialize', () => WarTierService.initializeRatings());
+  });
+
+  // Raid Execution - Execute scheduled raids (Phase 2.3)
+  Queues.raidExecution.process(JOB_TYPES.RAID_EXECUTE, async (job) => {
+    const { RaidService } = await import('../services/raid.service');
+    const { raidId } = job.data;
+    return executeJob('Raid Execute', async () => {
+      if (raidId) {
+        // Execute specific raid
+        const result = await RaidService.executeRaid(raidId);
+        return { raidId: raidId.toString(), result };
+      }
+      return { skipped: true, reason: 'No raidId provided' };
+    });
+  });
+
+  // Raid Schedule Check - Check for scheduled raids to execute (Phase 2.3)
+  Queues.raidExecution.process(JOB_TYPES.RAID_SCHEDULE_CHECK, async () => {
+    const { Raid } = await import('../models/Raid.model');
+    const { RaidService } = await import('../services/raid.service');
+    return executeJob('Raid Schedule Check', async () => {
+      const readyRaids = await (Raid as any).findReadyForExecution();
+      let executed = 0;
+
+      for (const raid of readyRaids) {
+        try {
+          await RaidService.executeRaid(raid._id);
+          executed++;
+        } catch (error) {
+          logger.error(`Failed to execute raid ${raid._id}:`, error);
+        }
+      }
+
+      return { raidsExecuted: executed };
+    });
+  });
+
+  // Raid Cleanup - Clean old cancelled/planning raids (Phase 2.3)
+  Queues.raidExecution.process(JOB_TYPES.RAID_CLEANUP, async () => {
+    const { Raid } = await import('../models/Raid.model');
+    const { RaidStatus } = await import('@desperados/shared');
+    return executeJob('Raid Cleanup', async () => {
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+      // Delete old cancelled raids
+      const cancelledResult = await Raid.deleteMany({
+        status: RaidStatus.CANCELLED,
+        updatedAt: { $lt: weekAgo },
+      });
+
+      // Auto-cancel stale planning raids (older than 24h)
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const staleResult = await Raid.updateMany(
+        {
+          status: RaidStatus.PLANNING,
+          plannedAt: { $lt: dayAgo },
+        },
+        {
+          status: RaidStatus.CANCELLED,
+          completedAt: new Date(),
+        }
+      );
+
+      return {
+        deletedCancelled: cancelledResult.deletedCount || 0,
+        autoCancelled: staleResult.modifiedCount || 0,
+      };
+    });
+  });
+
+  // Investment Maturity - Daily (Phase 10 - Banking System)
+  Queues.investmentMaturity.process(JOB_TYPES.INVESTMENT_MATURITY, async () => {
+    const { processMaturedInvestments } = await import('./investmentMaturity.job');
+    return executeJob('Investment Maturity', () => processMaturedInvestments());
+  });
+
+  // Worker Task Processing (Phase 11 - Full Worker Tasks)
+  Queues.workerTaskProcessing.process(JOB_TYPES.WORKER_TASK_PROCESS, async () => {
+    const { processWorkerTasks } = await import('./workerTaskProcessor.job');
+    return executeJob('Worker Task Processing', () => processWorkerTasks());
+  });
+
+  Queues.workerTaskProcessing.process(JOB_TYPES.WORKER_STAMINA_REGEN, async () => {
+    const { regenerateWorkerStamina } = await import('./workerTaskProcessor.job');
+    return executeJob('Worker Stamina Regeneration', () => regenerateWorkerStamina());
+  });
+
+  // Customer Traffic Processing (Phase 12 - Business Ownership)
+  Queues.customerTraffic.process(JOB_TYPES.CUSTOMER_TRAFFIC_PROCESS, async () => {
+    const { processCustomerTraffic } = await import('./customerTraffic.job');
+    return executeJob('Customer Traffic Processing', () => processCustomerTraffic());
+  });
+
+  Queues.customerTraffic.process(JOB_TYPES.REPUTATION_DECAY, async () => {
+    const { processReputationDecay } = await import('./customerTraffic.job');
+    return executeJob('Business Reputation Decay', () => processReputationDecay());
+  });
+
+  Queues.customerTraffic.process(JOB_TYPES.DAILY_TRAFFIC_RESET, async () => {
+    const { resetDailyTrafficStats } = await import('./customerTraffic.job');
+    return executeJob('Daily Traffic Stats Reset', () => resetDailyTrafficStats());
+  });
+
+  Queues.customerTraffic.process(JOB_TYPES.WEEKLY_TRAFFIC_RESET, async () => {
+    const { resetWeeklyTrafficStats } = await import('./customerTraffic.job');
+    return executeJob('Weekly Traffic Stats Reset', () => resetWeeklyTrafficStats());
+  });
+
+  Queues.customerTraffic.process(JOB_TYPES.MONTHLY_TRAFFIC_RESET, async () => {
+    const { resetMonthlyTrafficStats } = await import('./customerTraffic.job');
+    return executeJob('Monthly Traffic Stats Reset', () => resetMonthlyTrafficStats());
+  });
+
+  // Mining Inspection (Phase 13 - Deep Mining)
+  Queues.miningInspection.process(JOB_TYPES.INSPECTOR_PATROL, async () => {
+    const { runInspectorPatrol } = await import('./miningInspection.job');
+    return executeJob('Mining Inspector Patrol', () => runInspectorPatrol());
+  });
+
+  Queues.miningInspection.process(JOB_TYPES.SUSPICION_DECAY, async () => {
+    const { runSuspicionDecay } = await import('./miningInspection.job');
+    return executeJob('Suspicion Decay', () => runSuspicionDecay());
+  });
+
+  Queues.miningInspection.process(JOB_TYPES.GANG_PROTECTION_PROCESS, async () => {
+    const { runGangProtectionProcessing } = await import('./miningInspection.job');
+    return executeJob('Gang Protection Processing', () => runGangProtectionProcessing());
+  });
+
+  // Asset Decay (Phase 14 - Risk Simulation)
+  Queues.assetDecay.process(JOB_TYPES.DAILY_DECAY, async () => {
+    const { runDecayProcessor } = await import('./decayProcessor.job');
+    return executeJob('Asset Decay Processing', () => runDecayProcessor());
+  });
+
+  // Incident Spawner (Phase 14.2 - Incident System)
+  Queues.incidentSpawner.process(JOB_TYPES.INCIDENT_SPAWN_CHECK, async () => {
+    const { runIncidentSpawner } = await import('./incidentSpawner.job');
+    return executeJob('Incident Spawn Check', () => runIncidentSpawner());
+  });
+
+  // Competition Update (Phase 14.3 - Competition System)
+  Queues.competitionUpdate.process(JOB_TYPES.COMPETITION_UPDATE_CYCLE, async () => {
+    const { runCompetitionUpdate } = await import('./competitionUpdate.job');
+    return executeJob('Competition Update Cycle', () => runCompetitionUpdate());
+  });
+
+  Queues.competitionUpdate.process(JOB_TYPES.NPC_REVENUE_SIMULATION, async () => {
+    const { runNPCRevenueSimulation } = await import('./competitionUpdate.job');
+    return executeJob('NPC Revenue Simulation', () => runNPCRevenueSimulation());
+  });
+
+  // Protection Payment (Phase 15 - Gang Businesses)
+  Queues.protectionPayment.process(JOB_TYPES.WEEKLY_PROTECTION_PAYMENT, async () => {
+    const { runWeeklyProtectionPayments } = await import('./protectionPayment.job');
+    return executeJob('Weekly Protection Payments', () => runWeeklyProtectionPayments());
+  });
+
+  // Economy Tick (Phase R2 - Economy Foundation)
+  Queues.economyTick.process(JOB_TYPES.ECONOMY_TICK, async () => {
+    const { processEconomyTick } = await import('./economyTick.job');
+    return executeJob('Economy Tick', () => processEconomyTick());
+  });
+
+  Queues.economyTick.process(JOB_TYPES.ECONOMY_CLEANUP, async () => {
+    const { cleanupStaleEconomyData } = await import('./economyTick.job');
+    return executeJob('Economy Cleanup', () => cleanupStaleEconomyData());
   });
 
   logger.info('All Bull queue processors registered');
@@ -981,6 +1337,293 @@ export async function scheduleRecurringJobs(): Promise<void> {
     }
   );
 
+  // Combat Timeout Check - Every 30 seconds (Phase 1 Tech Debt)
+  // Using every: 30000 for sub-minute scheduling
+  await Queues.combatTimeout.add(
+    JOB_TYPES.COMBAT_TIMEOUT_CHECK,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { every: 30000 }, // Every 30 seconds
+      jobId: 'combat-timeout-check-recurring',
+    }
+  );
+
+  // Combat Timeout Warning - Every 10 seconds (Phase 1 Tech Debt)
+  await Queues.combatTimeout.add(
+    JOB_TYPES.COMBAT_TIMEOUT_WARNING,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { every: 10000 }, // Every 10 seconds
+      jobId: 'combat-timeout-warning-recurring',
+    }
+  );
+
+  // War Schedule Phase Transition - Hourly (Phase 2.1)
+  await Queues.warSchedule.add(
+    JOB_TYPES.WAR_PHASE_TRANSITION,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 * * * *' }, // Every hour at minute 0
+      jobId: 'war-phase-transition-recurring',
+    }
+  );
+
+  // War Season Check - Weekly on Sunday at 23:55 UTC (Phase 2.1)
+  await Queues.warSchedule.add(
+    JOB_TYPES.WAR_SEASON_CHECK,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '55 23 * * 0', tz: 'UTC' }, // Sunday at 23:55 UTC
+      jobId: 'war-season-check-recurring',
+    }
+  );
+
+  // Auto Tournament Bracket Generation - Thursday at 23:30 UTC (Phase 2.1)
+  await Queues.autoTournament.add(
+    JOB_TYPES.BRACKET_GENERATION,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '30 23 * * 4', tz: 'UTC' }, // Thursday at 23:30 UTC
+      jobId: 'bracket-generation-recurring',
+    }
+  );
+
+  // Power Rating Refresh - Every 4 hours (Phase 2.1)
+  await Queues.powerRating.add(
+    JOB_TYPES.POWER_RATING_REFRESH,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 */4 * * *' }, // Every 4 hours
+      jobId: 'power-rating-refresh-recurring',
+    }
+  );
+
+  // Raid Schedule Check - Every 5 minutes (Phase 2.3)
+  await Queues.raidExecution.add(
+    JOB_TYPES.RAID_SCHEDULE_CHECK,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '*/5 * * * *' }, // Every 5 minutes
+      jobId: 'raid-schedule-check-recurring',
+    }
+  );
+
+  // Raid Cleanup - Daily at 4 AM UTC (Phase 2.3)
+  await Queues.raidExecution.add(
+    JOB_TYPES.RAID_CLEANUP,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 4 * * *', tz: 'UTC' }, // Daily at 4 AM UTC
+      jobId: 'raid-cleanup-recurring',
+    }
+  );
+
+  // Investment Maturity - Daily at 2 AM UTC (Phase 10 - Banking System)
+  await Queues.investmentMaturity.add(
+    JOB_TYPES.INVESTMENT_MATURITY,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 2 * * *', tz: 'UTC' }, // Daily at 2 AM UTC
+      jobId: 'investment-maturity-recurring',
+    }
+  );
+
+  // Worker Task Processing - Every 5 minutes (Phase 11 - Full Worker Tasks)
+  await Queues.workerTaskProcessing.add(
+    JOB_TYPES.WORKER_TASK_PROCESS,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '*/5 * * * *', tz: 'UTC' }, // Every 5 minutes
+      jobId: 'worker-task-process-recurring',
+    }
+  );
+
+  // Worker Stamina Regeneration - Hourly (Phase 11 - Full Worker Tasks)
+  await Queues.workerTaskProcessing.add(
+    JOB_TYPES.WORKER_STAMINA_REGEN,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 * * * *', tz: 'UTC' }, // Every hour at minute 0
+      jobId: 'worker-stamina-regen-recurring',
+    }
+  );
+
+  // Customer Traffic Processing - Every 5 minutes (Phase 12 - Business Ownership)
+  await Queues.customerTraffic.add(
+    JOB_TYPES.CUSTOMER_TRAFFIC_PROCESS,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '*/5 * * * *', tz: 'UTC' }, // Every 5 minutes
+      jobId: 'customer-traffic-process-recurring',
+    }
+  );
+
+  // Business Reputation Decay - Daily at midnight UTC (Phase 12)
+  await Queues.customerTraffic.add(
+    JOB_TYPES.REPUTATION_DECAY,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 0 * * *', tz: 'UTC' }, // Daily at midnight
+      jobId: 'reputation-decay-recurring',
+    }
+  );
+
+  // Daily Traffic Stats Reset - Daily at midnight UTC (Phase 12)
+  await Queues.customerTraffic.add(
+    JOB_TYPES.DAILY_TRAFFIC_RESET,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '5 0 * * *', tz: 'UTC' }, // Daily at 00:05 (after reputation decay)
+      jobId: 'daily-traffic-reset-recurring',
+    }
+  );
+
+  // Weekly Traffic Stats Reset - Monday at midnight UTC (Phase 12)
+  await Queues.customerTraffic.add(
+    JOB_TYPES.WEEKLY_TRAFFIC_RESET,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '10 0 * * 1', tz: 'UTC' }, // Monday at 00:10
+      jobId: 'weekly-traffic-reset-recurring',
+    }
+  );
+
+  // Monthly Traffic Stats Reset - 1st of each month at midnight UTC (Phase 12)
+  await Queues.customerTraffic.add(
+    JOB_TYPES.MONTHLY_TRAFFIC_RESET,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '15 0 1 * *', tz: 'UTC' }, // 1st of month at 00:15
+      jobId: 'monthly-traffic-reset-recurring',
+    }
+  );
+
+  // Mining Inspector Patrol - Every 2 hours (Phase 13 - Deep Mining)
+  await Queues.miningInspection.add(
+    JOB_TYPES.INSPECTOR_PATROL,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 */2 * * *', tz: 'UTC' }, // Every 2 hours
+      jobId: 'inspector-patrol-recurring',
+    }
+  );
+
+  // Suspicion Decay - Daily at 5 AM UTC (Phase 13 - Deep Mining)
+  await Queues.miningInspection.add(
+    JOB_TYPES.SUSPICION_DECAY,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 5 * * *', tz: 'UTC' }, // Daily at 5 AM UTC
+      jobId: 'suspicion-decay-recurring',
+    }
+  );
+
+  // Gang Protection Processing - Daily at 6 AM UTC (Phase 13 - Deep Mining)
+  await Queues.miningInspection.add(
+    JOB_TYPES.GANG_PROTECTION_PROCESS,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 6 * * *', tz: 'UTC' }, // Daily at 6 AM UTC
+      jobId: 'gang-protection-process-recurring',
+    }
+  );
+
+  // Asset Decay - Daily at 4 AM UTC (Phase 14 - Risk Simulation)
+  await Queues.assetDecay.add(
+    JOB_TYPES.DAILY_DECAY,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 4 * * *', tz: 'UTC' }, // Daily at 4 AM UTC
+      jobId: 'asset-decay-recurring',
+    }
+  );
+
+  // Incident Spawner (Phase 14.2) - Every 30 minutes
+  await Queues.incidentSpawner.add(
+    JOB_TYPES.INCIDENT_SPAWN_CHECK,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '*/30 * * * *', tz: 'UTC' }, // Every 30 minutes
+      jobId: 'incident-spawner-recurring',
+    }
+  );
+
+  // Competition Update (Phase 14.3) - Every hour for NPC behavior
+  await Queues.competitionUpdate.add(
+    JOB_TYPES.COMPETITION_UPDATE_CYCLE,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 * * * *', tz: 'UTC' }, // Every hour at minute 0
+      jobId: 'competition-update-recurring',
+    }
+  );
+
+  // NPC Revenue Simulation (Phase 14.3) - Weekly on Sundays at midnight
+  await Queues.competitionUpdate.add(
+    JOB_TYPES.NPC_REVENUE_SIMULATION,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 0 * * 0', tz: 'UTC' }, // Every Sunday at midnight
+      jobId: 'npc-revenue-simulation-recurring',
+    }
+  );
+
+  // Protection Payment (Phase 15) - Weekly on Sundays at noon UTC
+  await Queues.protectionPayment.add(
+    JOB_TYPES.WEEKLY_PROTECTION_PAYMENT,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 12 * * 0', tz: 'UTC' }, // Every Sunday at noon UTC
+      jobId: 'weekly-protection-payment-recurring',
+    }
+  );
+
+  // Economy Tick (Phase R2) - Hourly at minute 0
+  await Queues.economyTick.add(
+    JOB_TYPES.ECONOMY_TICK,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 * * * *', tz: 'UTC' }, // Every hour at minute 0
+      jobId: 'economy-tick-recurring',
+    }
+  );
+
+  // Economy Cleanup (Phase R2) - Daily at 5:30 AM UTC
+  await Queues.economyTick.add(
+    JOB_TYPES.ECONOMY_CLEANUP,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '30 5 * * *', tz: 'UTC' }, // Daily at 5:30 AM UTC
+      jobId: 'economy-cleanup-recurring',
+    }
+  );
+
   logger.info('All recurring Bull jobs scheduled');
 }
 
@@ -1027,21 +1670,70 @@ export async function initializeJobSystem(): Promise<void> {
 /**
  * Graceful shutdown of all queues
  * Call this during server shutdown
+ *
+ * PHASE 5 FIX: Added queue pause, wait for active jobs, and timeout protection
  */
 export async function shutdownJobSystem(): Promise<void> {
   logger.info('Shutting down Bull job system...');
 
+  const SHUTDOWN_TIMEOUT = 30000; // 30 seconds max wait per queue
+
+  // Step 1: Pause all queues to stop accepting new jobs
+  logger.info('Pausing all queues...');
+  const pausePromises: Promise<void>[] = [];
+  for (const [name, queue] of queues) {
+    pausePromises.push(
+      queue.pause(true).then(() => {
+        logger.debug(`Queue ${name} paused`);
+      }).catch(err => {
+        logger.warn(`Failed to pause queue ${name}:`, err);
+      })
+    );
+  }
+  await Promise.allSettled(pausePromises);
+
+  // Step 2: Wait for active jobs to complete (with timeout)
+  logger.info('Waiting for active jobs to complete...');
+  const waitPromises: Promise<void>[] = [];
+  for (const [name, queue] of queues) {
+    waitPromises.push(
+      (async () => {
+        const startTime = Date.now();
+        while (Date.now() - startTime < SHUTDOWN_TIMEOUT) {
+          const counts = await queue.getJobCounts();
+          if (counts.active === 0) {
+            logger.debug(`Queue ${name} has no active jobs`);
+            return;
+          }
+          logger.debug(`Queue ${name} has ${counts.active} active jobs, waiting...`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        logger.warn(`Queue ${name} still has active jobs after timeout, forcing close`);
+      })()
+    );
+  }
+  await Promise.allSettled(waitPromises);
+
+  // Step 3: Close all queues with timeout protection
+  logger.info('Closing all queues...');
   const closePromises: Promise<void>[] = [];
 
   for (const [name, queue] of queues) {
     closePromises.push(
-      queue.close().then(() => {
-        logger.debug(`Queue ${name} closed`);
+      Promise.race([
+        queue.close().then(() => {
+          logger.debug(`Queue ${name} closed`);
+        }),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error(`Timeout closing queue ${name}`)), SHUTDOWN_TIMEOUT)
+        )
+      ]).catch(err => {
+        logger.warn(`Failed to close queue ${name}:`, err);
       })
     );
   }
 
-  await Promise.all(closePromises);
+  await Promise.allSettled(closePromises);
   queues.clear();
 
   logger.info('Bull job system shut down complete');

@@ -1,6 +1,8 @@
 /**
  * Tutorial Store - AAA Tutorial System
  * Manages tutorial/onboarding state with Hawk mentor character
+ *
+ * Phase 16: Enhanced with Hawk mentorship system integration
  */
 
 import { create } from 'zustand';
@@ -9,6 +11,13 @@ import { persist } from 'zustand/middleware';
 import type { MentorExpression as _MentorExpression } from '@/data/tutorial/mentorDialogues';
 import { FACTION_INTROS, SHARED_CORE_PATH, INTRO_SETTLER } from '@/data/tutorial/onboardingSteps';
 import { tutorialService } from '@/services/tutorial.service';
+import type {
+  TutorialPhase,
+  HawkExpression,
+  HawkMood,
+  HawkDialogue,
+  TutorialStatus,
+} from '@/services/tutorial.service';
 import { logger } from '@/services/logger.service';
 import { useCharacterStore } from './useCharacterStore';
 import { useSkillStore } from './useSkillStore';
@@ -71,6 +80,37 @@ export interface TutorialAnalytics {
   sectionStartTimes: Record<string, number>;
 }
 
+// ============================================================================
+// PHASE 16: HAWK COMPANION STATE
+// ============================================================================
+
+export interface HawkCompanionState {
+  isActive: boolean;
+  expression: HawkExpression;
+  mood: HawkMood;
+  currentDialogue: HawkDialogue | null;
+  lastInteractionAt: string | null;
+}
+
+export interface Phase16TutorialState {
+  // Server-synced tutorial status
+  serverStatus: TutorialStatus | null;
+  // Hawk companion state
+  hawk: HawkCompanionState;
+  // Current tutorial phase (from Phase 16 system)
+  phase16Phase: TutorialPhase | null;
+  // Milestones earned
+  milestonesEarned: string[];
+  // Mechanics learned
+  mechanicsLearned: string[];
+  // Whether showing graduation ceremony
+  showGraduation: boolean;
+  // Whether Phase 16 tutorial is graduated
+  isGraduated: boolean;
+  // Whether tutorial was skipped
+  wasSkipped: boolean;
+}
+
 // Tutorial progress state
 export interface TutorialProgress {
   tutorialCompleted: boolean; // True if the core tutorial is completed
@@ -94,6 +134,8 @@ export interface TutorialProgress {
   unlockedDeepDives: string[];
   // Track which character this tutorial state belongs to
   characterId: string | null;
+  // Phase 16: Hawk mentorship system state
+  phase16: Phase16TutorialState;
 }
 
 // Full tutorial state interface
@@ -148,6 +190,35 @@ interface TutorialState extends TutorialProgress {
   canSkipTutorial: () => boolean; // Returns true if mandatory steps completed
   getAvailableDeepDives: () => TutorialSection[];
   getUnlockedDeepDives: () => TutorialSection[];
+
+  // ============================================================================
+  // PHASE 16: HAWK MENTORSHIP ACTIONS
+  // ============================================================================
+
+  // Sync with server tutorial status
+  syncPhase16Status: () => Promise<void>;
+  // Initialize Phase 16 tutorial for new character
+  initializePhase16: () => Promise<void>;
+  // Advance to next step in Phase 16
+  advancePhase16Step: (objectiveCompleted?: string) => Promise<void>;
+  // Complete current Phase 16 phase
+  completePhase16Phase: () => Promise<void>;
+  // Skip Phase 16 tutorial
+  skipPhase16: (reason?: 'user_request' | 'overlevel' | 'returning_player') => Promise<void>;
+  // Resume Phase 16 tutorial
+  resumePhase16: () => Promise<void>;
+  // Complete graduation ceremony
+  completePhase16Graduation: () => Promise<void>;
+  // Show/hide graduation modal
+  setShowGraduation: (show: boolean) => void;
+  // Update Hawk dialogue
+  setHawkDialogue: (dialogue: HawkDialogue | null) => void;
+  // Update Hawk expression
+  setHawkExpression: (expression: HawkExpression) => void;
+  // Check if Phase 16 is active
+  isPhase16Active: () => boolean;
+  // Get current Phase 16 phase name
+  getPhase16PhaseName: () => string;
 }
 
 // --- AAA Tutorial Content ---
@@ -222,6 +293,27 @@ export const TUTORIAL_SECTIONS = [...CORE_TUTORIAL_SECTIONS, ...DEEP_DIVE_TUTORI
 // This covers the essential onboarding: Destiny Deck basics, Energy, Stats, First Action
 export const MANDATORY_STEPS = 5;
 
+// Initial Phase 16 Hawk companion state
+const initialHawkState: HawkCompanionState = {
+  isActive: false,
+  expression: 'neutral',
+  mood: 'friendly',
+  currentDialogue: null,
+  lastInteractionAt: null,
+};
+
+// Initial Phase 16 tutorial state
+const initialPhase16State: Phase16TutorialState = {
+  serverStatus: null,
+  hawk: initialHawkState,
+  phase16Phase: null,
+  milestonesEarned: [],
+  mechanicsLearned: [],
+  showGraduation: false,
+  isGraduated: false,
+  wasSkipped: false,
+};
+
 // Initial progress state
 const initialProgress: TutorialProgress = {
   tutorialCompleted: false,
@@ -246,6 +338,7 @@ const initialProgress: TutorialProgress = {
   completedActions: [],
   unlockedDeepDives: [],
   characterId: null,
+  phase16: initialPhase16State,
 };
 
 export const useTutorialStore = create<TutorialState>()(
@@ -916,6 +1009,288 @@ export const useTutorialStore = create<TutorialState>()(
           return DEEP_DIVE_TUTORIALS.filter(dd => state.unlockedDeepDives.includes(dd.id));
       },
 
+      // ============================================================================
+      // PHASE 16: HAWK MENTORSHIP SYSTEM ACTIONS
+      // ============================================================================
+
+      // Sync with server tutorial status
+      syncPhase16Status: async () => {
+        const characterId = useCharacterStore.getState().currentCharacter?._id;
+        if (!characterId) return;
+
+        try {
+          const response = await tutorialService.getStatus(characterId);
+          if (response.success && response.data) {
+            const status = response.data;
+            set(state => ({
+              phase16: {
+                ...state.phase16,
+                serverStatus: status,
+                phase16Phase: status.currentPhase,
+                milestonesEarned: status.milestonesEarned,
+                mechanicsLearned: status.mechanicsLearned,
+                isGraduated: status.isGraduated,
+                wasSkipped: status.wasSkipped,
+                hawk: {
+                  ...state.phase16.hawk,
+                  isActive: status.hawk?.isActive ?? false,
+                  expression: status.hawk?.expression ?? 'neutral',
+                  mood: status.hawk?.mood ?? 'friendly',
+                },
+              },
+            }));
+          }
+        } catch (error) {
+          logger.error('[Phase16] Failed to sync status', error as Error, {
+            context: 'useTutorialStore.syncPhase16Status',
+            characterId,
+          });
+        }
+      },
+
+      // Initialize Phase 16 tutorial for new character
+      initializePhase16: async () => {
+        const characterId = useCharacterStore.getState().currentCharacter?._id;
+        if (!characterId) return;
+
+        try {
+          const response = await tutorialService.initialize(characterId);
+          if (response.success && response.data) {
+            const result = response.data;
+            set(state => ({
+              phase16: {
+                ...state.phase16,
+                phase16Phase: result.phase,
+                hawk: {
+                  ...state.phase16.hawk,
+                  isActive: true,
+                  currentDialogue: result.hawkDialogue,
+                },
+              },
+            }));
+            // Sync full status after initialization
+            await get().syncPhase16Status();
+          }
+        } catch (error) {
+          logger.error('[Phase16] Failed to initialize', error as Error, {
+            context: 'useTutorialStore.initializePhase16',
+            characterId,
+          });
+        }
+      },
+
+      // Advance to next step in Phase 16
+      advancePhase16Step: async (objectiveCompleted?: string) => {
+        const characterId = useCharacterStore.getState().currentCharacter?._id;
+        if (!characterId) return;
+
+        try {
+          const response = await tutorialService.advanceStep(characterId, objectiveCompleted);
+          if (response.success && response.data) {
+            const result = response.data;
+            if (result.hawkDialogue) {
+              set(state => ({
+                phase16: {
+                  ...state.phase16,
+                  hawk: {
+                    ...state.phase16.hawk,
+                    currentDialogue: result.hawkDialogue ?? null,
+                    expression: result.hawkDialogue?.expression ?? state.phase16.hawk.expression,
+                  },
+                },
+              }));
+            }
+            // Check if phase is complete
+            if (result.phaseComplete) {
+              await get().completePhase16Phase();
+            } else {
+              // Sync status to update step counter
+              await get().syncPhase16Status();
+            }
+          }
+        } catch (error) {
+          logger.error('[Phase16] Failed to advance step', error as Error, {
+            context: 'useTutorialStore.advancePhase16Step',
+            characterId,
+          });
+        }
+      },
+
+      // Complete current Phase 16 phase
+      completePhase16Phase: async () => {
+        const characterId = useCharacterStore.getState().currentCharacter?._id;
+        if (!characterId) return;
+
+        try {
+          const response = await tutorialService.completePhase(characterId);
+          if (response.success && response.data) {
+            const result = response.data;
+            set(state => ({
+              phase16: {
+                ...state.phase16,
+                phase16Phase: result.newPhase,
+                hawk: {
+                  ...state.phase16.hawk,
+                  currentDialogue: result.hawkDialogue,
+                  expression: result.hawkDialogue?.expression ?? state.phase16.hawk.expression,
+                },
+                showGraduation: result.isGraduation,
+              },
+            }));
+            // Sync full status
+            await get().syncPhase16Status();
+          }
+        } catch (error) {
+          logger.error('[Phase16] Failed to complete phase', error as Error, {
+            context: 'useTutorialStore.completePhase16Phase',
+            characterId,
+          });
+        }
+      },
+
+      // Skip Phase 16 tutorial
+      skipPhase16: async (reason = 'user_request') => {
+        const characterId = useCharacterStore.getState().currentCharacter?._id;
+        if (!characterId) return;
+
+        try {
+          const response = await tutorialService.skip(characterId, reason);
+          if (response.success) {
+            set(state => ({
+              phase16: {
+                ...state.phase16,
+                phase16Phase: 'skipped',
+                wasSkipped: true,
+                hawk: {
+                  ...state.phase16.hawk,
+                  isActive: false,
+                },
+              },
+            }));
+          }
+        } catch (error) {
+          logger.error('[Phase16] Failed to skip tutorial', error as Error, {
+            context: 'useTutorialStore.skipPhase16',
+            characterId,
+          });
+        }
+      },
+
+      // Resume Phase 16 tutorial
+      resumePhase16: async () => {
+        const characterId = useCharacterStore.getState().currentCharacter?._id;
+        if (!characterId) return;
+
+        try {
+          const response = await tutorialService.resume(characterId);
+          if (response.success && response.data) {
+            const result = response.data;
+            set(state => ({
+              phase16: {
+                ...state.phase16,
+                phase16Phase: result.currentPhase,
+                hawk: {
+                  ...state.phase16.hawk,
+                  isActive: true,
+                  currentDialogue: result.hawkDialogue,
+                },
+              },
+            }));
+          }
+        } catch (error) {
+          logger.error('[Phase16] Failed to resume tutorial', error as Error, {
+            context: 'useTutorialStore.resumePhase16',
+            characterId,
+          });
+        }
+      },
+
+      // Complete graduation ceremony
+      completePhase16Graduation: async () => {
+        const characterId = useCharacterStore.getState().currentCharacter?._id;
+        if (!characterId) return;
+
+        try {
+          const response = await tutorialService.completeGraduation(characterId);
+          if (response.success && response.data) {
+            set(state => ({
+              phase16: {
+                ...state.phase16,
+                phase16Phase: 'completed',
+                isGraduated: true,
+                showGraduation: false,
+                hawk: {
+                  ...state.phase16.hawk,
+                  isActive: false,
+                },
+              },
+            }));
+            logger.info('[Phase16] Graduation completed', {
+              context: 'useTutorialStore.completePhase16Graduation',
+              rewards: response.data.rewards,
+            });
+          }
+        } catch (error) {
+          logger.error('[Phase16] Failed to complete graduation', error as Error, {
+            context: 'useTutorialStore.completePhase16Graduation',
+            characterId,
+          });
+        }
+      },
+
+      // Show/hide graduation modal
+      setShowGraduation: (show: boolean) => {
+        set(state => ({
+          phase16: {
+            ...state.phase16,
+            showGraduation: show,
+          },
+        }));
+      },
+
+      // Update Hawk dialogue
+      setHawkDialogue: (dialogue: HawkDialogue | null) => {
+        set(state => ({
+          phase16: {
+            ...state.phase16,
+            hawk: {
+              ...state.phase16.hawk,
+              currentDialogue: dialogue,
+              expression: dialogue?.expression ?? state.phase16.hawk.expression,
+              lastInteractionAt: new Date().toISOString(),
+            },
+          },
+        }));
+      },
+
+      // Update Hawk expression
+      setHawkExpression: (expression: HawkExpression) => {
+        set(state => ({
+          phase16: {
+            ...state.phase16,
+            hawk: {
+              ...state.phase16.hawk,
+              expression,
+            },
+          },
+        }));
+      },
+
+      // Check if Phase 16 is active
+      isPhase16Active: () => {
+        const { phase16 } = get();
+        return phase16.hawk.isActive &&
+          phase16.phase16Phase !== null &&
+          phase16.phase16Phase !== 'completed' &&
+          phase16.phase16Phase !== 'skipped';
+      },
+
+      // Get current Phase 16 phase name
+      getPhase16PhaseName: () => {
+        const { phase16 } = get();
+        return phase16.serverStatus?.phaseName ?? 'Unknown';
+      },
+
     }),
     {
       name: 'tutorial-storage',
@@ -938,6 +1313,19 @@ export const useTutorialStore = create<TutorialState>()(
         completedActions: state.completedActions, // Persist completed tutorial actions
         unlockedDeepDives: state.unlockedDeepDives, // Persist new field
         characterId: state.characterId, // Persist character ID for per-character tutorial state
+        // Phase 16: Persist Hawk mentorship state
+        phase16: {
+          phase16Phase: state.phase16.phase16Phase,
+          milestonesEarned: state.phase16.milestonesEarned,
+          mechanicsLearned: state.phase16.mechanicsLearned,
+          isGraduated: state.phase16.isGraduated,
+          wasSkipped: state.phase16.wasSkipped,
+          hawk: {
+            isActive: state.phase16.hawk.isActive,
+            expression: state.phase16.hawk.expression,
+            mood: state.phase16.hawk.mood,
+          },
+        },
       }),
       onRehydrateStorage: () => (state) => {
         // Get the current character ID (may be null on initial load)
@@ -960,6 +1348,28 @@ export const useTutorialStore = create<TutorialState>()(
             state.isPaused = false;
             state.characterId = null;
           }
+        }
+
+        // Phase 16: Initialize missing Phase 16 state if not present
+        if (state && !state.phase16) {
+          state.phase16 = initialPhase16State;
+        } else if (state?.phase16) {
+          // Ensure all Phase 16 fields exist with defaults
+          state.phase16 = {
+            ...initialPhase16State,
+            ...state.phase16,
+            hawk: {
+              ...initialHawkState,
+              ...state.phase16.hawk,
+              // Don't persist dialogue - fetch fresh from server
+              currentDialogue: null,
+              lastInteractionAt: null,
+            },
+            // Don't persist server status - fetch fresh
+            serverStatus: null,
+            // Don't persist showGraduation - reset on load
+            showGraduation: false,
+          };
         }
       },
     }

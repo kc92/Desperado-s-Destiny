@@ -1,7 +1,8 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import crypto from 'crypto';
-import logger from '../utils/logger';
+// Note: Cannot import logger here due to circular dependency
+// logger imports config, so config cannot import logger
 
 // Load environment variables from project root
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
@@ -174,9 +175,9 @@ function validateEnv(): void {
     }
   }
 
-  // Print warnings
+  // Print warnings (using console.warn to avoid circular dependency with logger)
   for (const warning of warnings) {
-    logger.warn(`[CONFIG ${warning.level.toUpperCase()}] ${warning.message}`);
+    console.warn(`[CONFIG ${warning.level.toUpperCase()}] ${warning.message}`);
   }
 }
 
@@ -198,7 +199,7 @@ function getSessionSecret(): string {
 
   // Generate a random secret for development
   const generated = generateSecureSecret();
-  logger.warn(
+  console.warn(
     '[CONFIG WARNING] SESSION_SECRET not set. Generated temporary secret for development. ' +
     'Set SESSION_SECRET in .env for persistent sessions.'
   );

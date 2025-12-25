@@ -6,9 +6,11 @@
 import mongoose from 'mongoose';
 import { LegendaryProgress, ILegendaryProgress } from '../models/LegendaryProgress.model';
 import { Character, ICharacter } from '../models/Character.model';
+import { CharacterQuest, QuestDefinition } from '../models/Quest.model';
 import { CharacterProgressionService } from './characterProgression.service';
 import { InventoryService } from './inventory.service';
 import { DollarService } from './dollar.service';
+import { ReputationService } from './reputation.service';
 import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import logger from '../utils/logger';
 import type {
@@ -74,15 +76,28 @@ export class LegendaryQuestService {
     const progress = await this.getOrCreateProgress(characterId);
 
     // Build player data for prerequisite checking
+    // Query completed quests from CharacterQuest model
+    const completedQuestDocs = await CharacterQuest.find({
+      characterId,
+      status: 'completed',
+    }).select('questId').lean();
+    const completedQuests = completedQuestDocs.map((q: any) => q.questId);
+
+    // Transform inventory array to map
+    const inventory = (character.inventory || []).reduce((map: Record<string, number>, item: any) => {
+      map[item.itemId] = item.quantity;
+      return map;
+    }, {} as Record<string, number>);
+
     const playerData = {
       level: character.level,
-      completedQuests: [], // TODO: Link to regular quest system
+      completedQuests,
       factionRep: {
         outlaws: character.reputation?.outlaws || 0,
         nahi_coalition: character.reputation?.coalition || 0,
         settlers: character.reputation?.settlers || 0,
       },
-      inventory: {}, // TODO: Link to inventory system
+      inventory,
     };
 
     const responses: GetChainResponse[] = [];
@@ -591,34 +606,108 @@ export class LegendaryQuestService {
   }
 
   /**
-   * Apply world effects
+   * Apply world effects from legendary quest completion
    */
   private static async applyWorldEffects(
     character: any,
     effects: LegendaryQuestWorldEffect[]
   ): Promise<void> {
+    const characterId = character._id.toString();
+
     for (const effect of effects) {
-      switch (effect.type) {
-        case 'faction_reputation':
-          // TODO: Implement faction reputation system
-          break;
+      try {
+        switch (effect.type) {
+          case 'faction_reputation':
+            // Apply faction reputation change
+            if (effect.faction && effect.change !== undefined) {
+              await ReputationService.modifyReputation(
+                characterId,
+                effect.faction as any,
+                effect.change,
+                `Legendary quest effect: ${effect.reason || 'Quest reward'}`
+              );
+              logger.info(
+                `[LegendaryQuest] Applied faction reputation: ${effect.faction} ${effect.change > 0 ? '+' : ''}${effect.change}`
+              );
+            }
+            break;
 
-        case 'npc_relationship':
-          // TODO: Implement NPC relationship system
-          break;
+          case 'npc_relationship':
+            // Store NPC relationship in character's npcRelationships map
+            if (effect.npcId && effect.change !== undefined) {
+              if (!character.npcRelationships) {
+                character.npcRelationships = new Map();
+              }
+              const currentRel = character.npcRelationships.get(effect.npcId) || 0;
+              character.npcRelationships.set(effect.npcId, currentRel + effect.change);
+              await character.save();
+              logger.info(
+                `[LegendaryQuest] Applied NPC relationship: ${effect.npcId} ${effect.change > 0 ? '+' : ''}${effect.change}`
+              );
+            }
+            break;
 
-        case 'location_unlock':
-          // TODO: Implement location unlock system
-          break;
+          case 'location_unlock':
+            // Add location to character's unlocked locations
+            if (effect.locationId) {
+              if (!character.unlockedLocations) {
+                character.unlockedLocations = [];
+              }
+              if (!character.unlockedLocations.includes(effect.locationId)) {
+                character.unlockedLocations.push(effect.locationId);
+                await character.save();
+                logger.info(
+                  `[LegendaryQuest] Unlocked location: ${effect.locationId}`
+                );
+              }
+            }
+            break;
 
-        case 'world_state':
-          // TODO: Implement world state system
-          break;
+          case 'world_state':
+            // World state changes are typically handled by WorldEventService
+            // Log the effect for now - specific implementations depend on the game state system
+            logger.info(
+              `[LegendaryQuest] World state effect: ${effect.stateKey} = ${effect.newValue} (${effect.description})`
+            );
+            break;
 
-        case 'quest_unlock':
-        case 'quest_lock':
-          // TODO: Implement quest availability system
-          break;
+          case 'quest_unlock':
+            // Make a quest available
+            if (effect.questId) {
+              await QuestDefinition.updateOne(
+                { questId: effect.questId },
+                { isActive: true }
+              );
+              logger.info(
+                `[LegendaryQuest] Unlocked quest: ${effect.questId}`
+              );
+            }
+            break;
+
+          case 'quest_lock':
+            // Make a quest unavailable
+            if (effect.questId) {
+              await QuestDefinition.updateOne(
+                { questId: effect.questId },
+                { isActive: false }
+              );
+              logger.info(
+                `[LegendaryQuest] Locked quest: ${effect.questId}`
+              );
+            }
+            break;
+
+          default:
+            logger.warn(
+              `[LegendaryQuest] Unknown world effect type: ${(effect as any).type}`
+            );
+        }
+      } catch (error) {
+        // Don't fail the entire quest completion if one effect fails
+        logger.error(
+          `[LegendaryQuest] Failed to apply world effect:`,
+          { effect, error }
+        );
       }
     }
   }

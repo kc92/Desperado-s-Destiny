@@ -19,24 +19,58 @@ const router = Router();
  * Public routes (no auth required)
  */
 router.get('/', asyncHandler(GangController.list));
+
+/**
+ * Authenticated routes - MUST be before /:id to prevent path conflicts
+ */
+
+// Get current user's gang
+router.get('/current', requireAuth, asyncHandler(GangController.getCurrentGang));
+
+// Check name/tag availability
+router.get('/check-name', requireAuth, asyncHandler(GangController.checkNameAvailability));
+router.get('/check-tag', requireAuth, asyncHandler(GangController.checkTagAvailability));
+
+// Search characters for invitation
+router.get('/search-characters', requireAuth, asyncHandler(GangController.searchCharacters));
+
+// Leave current gang (without gangId in URL)
+router.post('/leave', requireAuth, requireCsrfToken, asyncHandler(GangController.leaveCurrentGang));
+
+// Get pending invitations for current user
+router.get('/invitations/pending', requireAuth, asyncHandler(GangController.getPendingInvitations));
+
+/**
+ * Public routes with ID parameter
+ */
 router.get('/:id', asyncHandler(GangController.getById));
 router.get('/:id/stats', asyncHandler(GangController.getStats));
 
 /**
  * Authenticated routes
  */
+// Create gang - support both POST / and POST /create for compatibility
+router.post('/', requireAuth, requireCsrfToken, validate(GangSchemas.create), asyncHandler(GangController.create));
 router.post('/create', requireAuth, requireCsrfToken, validate(GangSchemas.create), asyncHandler(GangController.create));
 
 router.post('/:id/join', requireAuth, requireCsrfToken, asyncHandler(GangController.join));
 router.post('/:id/leave', requireAuth, requireCsrfToken, asyncHandler(GangController.leave));
 
+// Original member management routes (URL params)
 router.delete('/:id/members/:characterId', requireAuth, requireCsrfToken, asyncHandler(GangController.kick));
 router.patch('/:id/members/:characterId/promote', requireAuth, requireCsrfToken, asyncHandler(GangController.promote));
+
+// Alternative member management routes (body params - client compatibility)
+router.post('/:id/kick', requireAuth, requireCsrfToken, asyncHandler(GangController.kickAlt));
+router.post('/:id/promote', requireAuth, requireCsrfToken, asyncHandler(GangController.promoteAlt));
 
 router.post('/:id/bank/deposit', requireAuth, requireCsrfToken, validate(GangSchemas.deposit), rateLimitGoldTransactions(20), asyncHandler(GangController.depositBank));
 router.post('/:id/bank/withdraw', requireAuth, requireCsrfTokenWithRotation, validate(GangSchemas.withdraw), rateLimitGoldTransactions(10), checkGoldDuplication(), asyncHandler(GangController.withdrawBank));
 
+// Original upgrade route (URL param)
 router.post('/:id/upgrades/:upgradeType', requireAuth, requireCsrfToken, checkGoldDuplication(), asyncHandler(GangController.purchaseUpgrade));
+// Alternative upgrade route (body param - client compatibility)
+router.post('/:id/upgrades/purchase', requireAuth, requireCsrfToken, checkGoldDuplication(), asyncHandler(GangController.purchaseUpgradeAlt));
 
 router.delete('/:id', requireAuth, requireCsrfTokenWithRotation, asyncHandler(GangController.disband));
 

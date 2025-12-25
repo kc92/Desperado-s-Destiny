@@ -12,7 +12,7 @@ import { materials } from './materials';
 import { diasporaWeapons } from './diaspora_weapons';
 import { diasporaArmor } from './diaspora_armor';
 import { diasporaConsumables } from './diaspora_consumables';
-import { frontierGear } from './frontier_gear';
+import { frontierGear, ALL_FRONTIER_JUSTICE_ITEMS } from './frontier_gear';
 import { huntingGear } from './hunting_gear';
 import { fishingGear } from './fishing_gear';
 import { craftingGear } from './crafting_gear';
@@ -28,6 +28,11 @@ import { refinedMaterials } from './refined_materials';
 import { components } from './components';
 import { craftingTools } from './crafting_tools';
 import { tieredGear } from './tiered_gear';
+import { milestoneItems } from './milestone_items';
+import { goldSinkItems } from './gold_sink_items';
+import { greenhornGear } from './greenhorn_gear';
+import { heartOfTerritoryGear } from './heart_of_territory_gear';
+import { legendsGear } from './legends_gear';
 
 /**
  * All items in the game
@@ -56,7 +61,13 @@ export const allItems: Partial<IItem>[] = [
   ...refinedMaterials,
   ...components,
   ...craftingTools,
-  ...tieredGear
+  ...tieredGear,
+  ...milestoneItems,  // Sprint 7: Level milestone reward items
+  ...goldSinkItems,   // Sprint 7: Early/mid-game gold sink items
+  ...greenhornGear,   // Phase 19.2: Greenhorn's Trail items (L1-15)
+  ...ALL_FRONTIER_JUSTICE_ITEMS,  // Phase 19.3: Frontier Justice items (L16-25)
+  ...heartOfTerritoryGear,  // Phase 19.4: Heart of the Territory items (L26-35)
+  ...legendsGear,     // Phase 19.5: Legends of the West items (L36-45)
 ];
 
 /**
@@ -88,7 +99,7 @@ export function getItemById(itemId: string): Partial<IItem> | undefined {
 }
 
 // Export individual categories
-export { weapons, armor, consumables, materials, diasporaWeapons, diasporaArmor, diasporaConsumables, frontierGear, huntingGear, fishingGear, craftingGear, nativeGear, contestedLandsGear, defenderGear, supportGear, debufferGear, gamblingGear, horseRacingGear, gatheringMaterials, refinedMaterials, components, craftingTools, tieredGear };
+export { weapons, armor, consumables, materials, diasporaWeapons, diasporaArmor, diasporaConsumables, frontierGear, ALL_FRONTIER_JUSTICE_ITEMS, huntingGear, fishingGear, craftingGear, nativeGear, contestedLandsGear, defenderGear, supportGear, debufferGear, gamblingGear, horseRacingGear, gatheringMaterials, refinedMaterials, components, craftingTools, tieredGear, milestoneItems, goldSinkItems, greenhornGear, heartOfTerritoryGear, legendsGear };
 
 // Export count for validation
 export const itemCounts = {

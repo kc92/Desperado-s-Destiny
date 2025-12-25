@@ -4,9 +4,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { CombatEncounter, HandRank } from '@desperados/shared';
+import { CombatEncounter, HandRank, CombatRoundState, PlayerTurnPhase } from '@desperados/shared';
 import { HPBar } from './HPBar';
 import { CardHand } from './CardHand';
+import { PlayingCard } from './PlayingCard';
 import { DamageNumber } from './DamageNumber';
 import { Button } from '@/components/ui';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
@@ -14,14 +15,27 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 interface CombatArenaProps {
   /** Active combat encounter */
   encounter: CombatEncounter;
-  /** Callback to play a turn (draw cards) */
-  onPlayTurn: () => void;
   /** Callback to flee from combat */
   onFlee: () => void;
   /** Whether a turn is being processed */
   isProcessingTurn?: boolean;
   /** Additional CSS classes */
   className?: string;
+  // Sprint 2: Hold/Discard props
+  /** Current round state from the new combat system */
+  roundState?: CombatRoundState | null;
+  /** Indices of cards being held */
+  heldCardIndices?: number[];
+  /** Callback to start a new turn (draw cards) */
+  onStartTurn?: () => void;
+  /** Callback to toggle a card's held state */
+  onToggleCard?: (index: number) => void;
+  /** Callback to confirm held cards and proceed */
+  onConfirmHold?: () => void;
+  /** Callback to reroll a specific card */
+  onRerollCard?: (index: number) => void;
+  /** Callback to peek at the next card */
+  onPeekNextCard?: () => void;
 }
 
 /**
@@ -29,10 +43,17 @@ interface CombatArenaProps {
  */
 export const CombatArena: React.FC<CombatArenaProps> = ({
   encounter,
-  onPlayTurn,
   onFlee,
   isProcessingTurn = false,
   className = '',
+  // Sprint 2 Hold/Discard props
+  roundState,
+  heldCardIndices = [],
+  onStartTurn,
+  onToggleCard,
+  onConfirmHold,
+  onRerollCard,
+  onPeekNextCard,
 }) => {
   const [showPlayerDamage, setShowPlayerDamage] = useState(false);
   const [showNPCDamage, setShowNPCDamage] = useState(false);
@@ -40,8 +61,15 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
   const { playSound } = useSoundEffects();
 
   const currentRound = encounter.rounds[encounter.rounds.length - 1];
-  const isPlayerTurn = !currentRound || currentRound.npcDamage > 0;
   const canFlee = encounter.rounds.length <= 3;
+
+  // Sprint 2: Phase detection
+  const isHoldPhase = roundState?.phase === PlayerTurnPhase.HOLD;
+  const hasAbilities = roundState?.abilities;
+  const canReroll = hasAbilities && (hasAbilities.rerollsAvailable - hasAbilities.rerollsUsed) > 0;
+  const canPeek = hasAbilities && !hasAbilities.peekedCard && (hasAbilities.peeksAvailable - hasAbilities.peeksUsed) > 0;
+  const needsToStartTurn = !roundState;
+  const isPlayerTurn = needsToStartTurn || isHoldPhase || (!currentRound || currentRound.npcDamage > 0);
 
   // Show damage numbers when a new round is completed
   useEffect(() => {
@@ -245,31 +273,114 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
               showDamage={true}
             />
 
-            {/* Player Cards */}
-            {currentRound && (
+            {/* Player Cards - Sprint 2: Use roundState when available */}
+            {(roundState?.playerHand || currentRound) && (
               <div className="py-4">
                 <CardHand
-                  cards={currentRound.playerHand || currentRound.playerCards}
-                  isRevealing={isRevealing}
+                  cards={roundState?.playerHand || currentRound?.playerHand || currentRound?.playerCards || []}
+                  isRevealing={!isHoldPhase && isRevealing}
+                  selectedIndices={heldCardIndices}
+                  onToggleCard={onToggleCard}
+                  isSelectable={isHoldPhase}
                   size="md"
                   className="mb-4"
                 />
+
+                {/* Hold Phase Instructions */}
+                {isHoldPhase && (
+                  <div className="text-center text-sm text-desert-sand mb-4">
+                    {heldCardIndices.length === 0 ? (
+                      <span>Click cards to HOLD them. Unselected cards will be replaced.</span>
+                    ) : (
+                      <span>Holding {heldCardIndices.length} card(s), replacing {(roundState?.playerHand?.length || 5) - heldCardIndices.length}</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Peeked Card Display */}
+                {hasAbilities?.peekedCard && (
+                  <div className="mt-4 text-center">
+                    <span className="text-sm text-desert-sand block mb-2">Next card in deck:</span>
+                    <div className="inline-block">
+                      <PlayingCard
+                        card={hasAbilities.peekedCard}
+                        isFlipped={true}
+                        size="sm"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-4 justify-center">
-              <Button
-                onClick={onPlayTurn}
-                disabled={!isPlayerTurn || isProcessingTurn}
-                variant="primary"
-                className="font-western px-8 py-3 text-lg"
-                aria-label={isProcessingTurn ? 'Drawing cards, please wait' : 'Draw cards to play your turn'}
-              >
-                <span aria-hidden="true">🎴 </span>
-                {isProcessingTurn ? 'Drawing Cards...' : 'Draw Cards'}
-              </Button>
+            <div className="flex gap-4 justify-center flex-wrap">
+              {/* Draw Cards / Start Turn Button */}
+              {needsToStartTurn && (
+                <Button
+                  onClick={onStartTurn}
+                  disabled={isProcessingTurn}
+                  variant="primary"
+                  className="font-western px-8 py-3 text-lg"
+                  aria-label={isProcessingTurn ? 'Drawing cards, please wait' : 'Draw cards to start your turn'}
+                >
+                  <span aria-hidden="true">🎴 </span>
+                  {isProcessingTurn ? 'Drawing Cards...' : 'Draw Cards'}
+                </Button>
+              )}
 
+              {/* Confirm Hold Button (during hold phase) */}
+              {isHoldPhase && (
+                <Button
+                  onClick={onConfirmHold}
+                  disabled={isProcessingTurn}
+                  variant="primary"
+                  className="font-western px-8 py-3 text-lg"
+                  aria-label={`Confirm hold - keeping ${heldCardIndices.length} cards`}
+                >
+                  <span aria-hidden="true">✅ </span>
+                  {isProcessingTurn ? 'Processing...' : `Confirm Hold (${heldCardIndices.length})`}
+                </Button>
+              )}
+
+              {/* Ability Buttons (during hold phase) */}
+              {isHoldPhase && hasAbilities && (
+                <>
+                  {canReroll && (
+                    <Button
+                      onClick={() => {
+                        // Reroll first non-held card
+                        const nonHeldIndex = [0, 1, 2, 3, 4].find(i => !heldCardIndices.includes(i));
+                        if (nonHeldIndex !== undefined && onRerollCard) {
+                          onRerollCard(nonHeldIndex);
+                        }
+                      }}
+                      disabled={isProcessingTurn}
+                      variant="secondary"
+                      className="font-western px-6 py-2 text-sm"
+                      aria-label={`Reroll a card (${hasAbilities.rerollsAvailable - hasAbilities.rerollsUsed} remaining)`}
+                    >
+                      <span aria-hidden="true">🔄 </span>
+                      Reroll ({hasAbilities.rerollsAvailable - hasAbilities.rerollsUsed})
+                    </Button>
+                  )}
+
+                  {canPeek && (
+                    <Button
+                      onClick={onPeekNextCard}
+                      disabled={isProcessingTurn}
+                      variant="secondary"
+                      className="font-western px-6 py-2 text-sm"
+                      aria-label="Peek at the next card in the deck"
+                    >
+                      <span aria-hidden="true">👁️ </span>
+                      Peek
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {/* Flee Button (always available in first 3 rounds) */}
               {canFlee && (
                 <Button
                   onClick={onFlee}
@@ -288,6 +399,14 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
               <p className="text-center text-xs text-desert-sand font-serif italic">
                 Too late to flee! Fight to the finish!
               </p>
+            )}
+
+            {/* Skill Abilities Info */}
+            {isHoldPhase && hasAbilities && (
+              <div className="text-center text-xs text-desert-dust mt-2">
+                {hasAbilities.quickDrawUnlocked && <span className="mr-3">Quick Draw active (+1 card)</span>}
+                {hasAbilities.deadlyAimUnlocked && <span>Deadly Aim active (1.5x crits)</span>}
+              </div>
             )}
           </div>
 

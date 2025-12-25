@@ -426,6 +426,40 @@ export class WorldEventService {
 
     await state.save();
   }
+
+  /**
+   * Get active events affecting a specific location
+   * Used to apply world event modifiers to game mechanics
+   */
+  static async getActiveEventsForLocation(locationId: string): Promise<IWorldEvent[]> {
+    const now = new Date();
+    return WorldEvent.find({
+      status: EventStatus.ACTIVE,
+      $or: [
+        { locationId: new mongoose.Types.ObjectId(locationId) },
+        { isGlobal: true }
+      ],
+      scheduledStart: { $lte: now },
+      scheduledEnd: { $gte: now }
+    });
+  }
+
+  /**
+   * Get active events affecting a specific region
+   * Used when location ID is not available but region is
+   */
+  static async getActiveEventsForRegion(region: string): Promise<IWorldEvent[]> {
+    const now = new Date();
+    return WorldEvent.find({
+      status: EventStatus.ACTIVE,
+      $or: [
+        { region },
+        { isGlobal: true }
+      ],
+      scheduledStart: { $lte: now },
+      scheduledEnd: { $gte: now }
+    });
+  }
 }
 
 export default WorldEventService;

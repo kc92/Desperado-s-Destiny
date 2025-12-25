@@ -17,6 +17,8 @@ import { SecureRNG } from './base/SecureRNG';
 import { withLock } from '../utils/distributedLock';
 import karmaService from './karma.service';
 import karmaEffectsService from './karmaEffects.service';
+import { safeAchievementUpdate, safeAchievementSet } from '../utils/achievementUtils';
+import { TerritoryBonusService } from './territoryBonus.service';
 
 /**
  * Crime resolution result
@@ -174,6 +176,24 @@ export class CrimeService {
       logger.warn('Failed to apply karma effects to crime detection:', karmaError);
     }
 
+    // TERRITORY BONUS: Apply gang territory crime bonuses (Phase 2.2)
+    let territoryJailReduction = 1.0; // Store for later use with jail time
+    try {
+      const crimeBonuses = await TerritoryBonusService.getCrimeBonuses(
+        character._id as mongoose.Types.ObjectId
+      );
+      if (crimeBonuses.hasBonuses) {
+        // Apply detection reduction (lower is better for criminal)
+        effectiveWitnessChance *= crimeBonuses.bonuses.detection;
+        territoryJailReduction = crimeBonuses.bonuses.jail;
+        logger.debug(
+          `Territory crime bonuses: detection ${crimeBonuses.bonuses.detection}x, jail ${crimeBonuses.bonuses.jail}x`
+        );
+      }
+    } catch (territoryError) {
+      logger.warn('Failed to apply territory crime bonus:', territoryError);
+    }
+
     // Check if crime is available at current time
     const crimeAvailability = TimeService.checkCrimeAvailability(
       action.name,
@@ -192,9 +212,9 @@ export class CrimeService {
     if (wasWitnessed || !actionSuccess) {
       // Use distributed lock to prevent race conditions when updating wanted level
       await withLock(`lock:wanted:${character._id}`, async () => {
-        // Jail the character
+        // Jail the character (with territory jail reduction bonus - Phase 2.2)
         if (props.jailTimeOnFailure && props.jailTimeOnFailure > 0) {
-          jailTimeMinutes = props.jailTimeOnFailure;
+          jailTimeMinutes = Math.max(1, Math.floor(props.jailTimeOnFailure * territoryJailReduction));
           // Pass bailCost from action if available
           const bailCost = props.bailCost || undefined;
           character.sendToJail(jailTimeMinutes, bailCost);
@@ -205,6 +225,9 @@ export class CrimeService {
         if (props.wantedLevelIncrease && props.wantedLevelIncrease > 0) {
           wantedLevelIncreased = props.wantedLevelIncrease;
           character.increaseWantedLevel(wantedLevelIncreased);
+
+          // Achievement tracking: Track wanted level for "Most Wanted"
+          safeAchievementSet(character._id.toString(), 'bounty_legend', character.wantedLevel, 'crime:wantedLevel');
         }
 
         // Add bounty when crime is witnessed
@@ -282,6 +305,12 @@ export class CrimeService {
       } catch (karmaError) {
         logger.warn('Failed to record karma for crime:', karmaError);
       }
+
+      // Achievement tracking: Crime achievements
+      safeAchievementUpdate(character._id.toString(), 'petty_thief', 1, 'crime:success');
+      safeAchievementUpdate(character._id.toString(), 'criminal_10', 1, 'crime:success');
+      safeAchievementUpdate(character._id.toString(), 'criminal_50', 1, 'crime:success');
+      safeAchievementUpdate(character._id.toString(), 'criminal_100', 1, 'crime:success');
 
       // Update quest progress for successful crime
       const crimeType = action.name.toLowerCase().replace(/\s+/g, '_');

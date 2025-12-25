@@ -30,10 +30,13 @@ import {
   SKILLS
 } from '@desperados/shared';
 import { UnlockEnforcementService } from './unlockEnforcement.service';
+import { DollarService } from './dollar.service';
 import CraftingProfile, { ICraftingProfile } from '../models/CraftingProfile.model';
 import { Character } from '../models/Character.model';
+import { TransactionSource } from '../models/GoldTransaction.model';
 import { getProfession, SKILL_TIERS } from '../data/professionDefinitions';
 import { SecureRNG } from './base/SecureRNG';
+import { safeAchievementUpdate } from '../utils/achievementUtils';
 
 // ============================================================================
 // CRAFTING SERVICE CLASS
@@ -185,8 +188,24 @@ export class CraftingService {
         validation.canCraft = false;
       }
 
-      // Check materials (simplified - would check inventory in real implementation)
-      validation.requirements.hasMaterials = true; // Assume true for now
+      // PHASE 4 FIX: Actually check materials in inventory (was hardcoded to true)
+      const missingMaterials: string[] = [];
+      for (const material of recipe.materials) {
+        const totalNeeded = material.quantity * quantity;
+        const inventoryItem = character.inventory.find(i => i.itemId === material.materialId);
+        if (!inventoryItem || inventoryItem.quantity < totalNeeded) {
+          missingMaterials.push(
+            `${material.materialName || material.materialId}: need ${totalNeeded}, have ${inventoryItem?.quantity || 0}`
+          );
+        }
+      }
+
+      if (missingMaterials.length > 0) {
+        validation.errors.push(`Missing materials: ${missingMaterials.join('; ')}`);
+        validation.canCraft = false;
+      } else {
+        validation.requirements.hasMaterials = true;
+      }
 
       // Check facility requirements
       if (recipe.requirements.facility && !recipe.requirements.facility.optional) {
@@ -208,11 +227,35 @@ export class CraftingService {
         validation.requirements.hasFacility = true;
       }
 
-      // Check energy (simplified)
+      // PHASE 4 FIX: Energy check - crafting doesn't have energy cost in recipe schema
+      // Mark as true since it's not a crafting requirement
       validation.requirements.hasEnergy = true;
 
-      // Check inventory space (simplified)
-      validation.requirements.hasInventorySpace = true;
+      // PHASE 4 FIX: Check inventory space for output items
+      const outputQuantity = (recipe.output?.baseQuantity || 1) * quantity;
+      const existingItem = character.inventory.find(i => i.itemId === recipe.output?.itemId);
+      const MAX_STACK_SIZE = 999; // Maximum stack size per item
+      const MAX_INVENTORY_SLOTS = 100; // Maximum inventory slots
+
+      if (existingItem) {
+        // Check if adding to existing stack would exceed max
+        if (existingItem.quantity + outputQuantity > MAX_STACK_SIZE) {
+          validation.errors.push(
+            `Not enough inventory space: ${recipe.output.itemName || recipe.output.itemId} stack would exceed ${MAX_STACK_SIZE}`
+          );
+          validation.canCraft = false;
+        } else {
+          validation.requirements.hasInventorySpace = true;
+        }
+      } else {
+        // Check if we have room for a new slot
+        if (character.inventory.length >= MAX_INVENTORY_SLOTS) {
+          validation.errors.push('Inventory is full - no room for new item');
+          validation.canCraft = false;
+        } else {
+          validation.requirements.hasInventorySpace = true;
+        }
+      }
 
       // Warnings
       if (profession && profession.level > recipe.difficulty + 20) {
@@ -478,6 +521,19 @@ export class CraftingService {
 
       await profile.save();
 
+      // Achievement tracking: Crafting achievements
+      const characterIdStr = charId.toString();
+      safeAchievementUpdate(characterIdStr, 'first_craft', request.quantity, 'crafting:craft');
+      safeAchievementUpdate(characterIdStr, 'crafter_10', request.quantity, 'crafting:craft');
+      safeAchievementUpdate(characterIdStr, 'crafter_50', request.quantity, 'crafting:craft');
+      safeAchievementUpdate(characterIdStr, 'crafter_100', request.quantity, 'crafting:craft');
+
+      // Track high-quality crafts (masterwork or legendary)
+      if (qualityCalc.resultingQuality === CraftingQuality.MASTERWORK ||
+          qualityCalc.resultingQuality === CraftingQuality.LEGENDARY) {
+        safeAchievementUpdate(characterIdStr, 'quality_crafter', request.quantity, 'crafting:quality');
+      }
+
       // Calculate time
       const baseTime = craftingRecipe.baseCraftTime;
       const toolMultiplier = this.getToolSpeedMultiplier(request.toolQuality || CraftingToolQuality.BASIC);
@@ -543,16 +599,44 @@ export class CraftingService {
         return response;
       }
 
-      // Check cost (simplified - would deduct gold in real implementation)
+      // PHASE 4 FIX: Deduct learning cost if applicable
       if (recipe.learningCost && recipe.learningCost > 0) {
-        // Would check and deduct gold here
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+          await DollarService.deductDollars(
+            characterId.toString(),
+            recipe.learningCost,
+            TransactionSource.RECIPE_LEARNING,
+            {
+              recipeId: recipe.id,
+              recipeName: recipe.name,
+              professionId: recipe.professionId
+            },
+            session
+          );
+
+          // Learn the recipe only after successful payment
+          await profile.learnRecipe(recipe.id);
+          await session.commitTransaction();
+
+          response.success = true;
+          response.message = `You have learned how to craft ${recipe.name}`;
+        } catch (costError) {
+          await session.abortTransaction();
+          response.message = `Insufficient funds to learn this recipe (costs $${recipe.learningCost})`;
+          return response;
+        } finally {
+          session.endSession();
+        }
+      } else {
+        // Free recipe - no cost
+        await profile.learnRecipe(recipe.id);
+
+        response.success = true;
+        response.message = `You have learned how to craft ${recipe.name}`;
       }
-
-      // Learn the recipe
-      await profile.learnRecipe(recipe.id);
-
-      response.success = true;
-      response.message = `You have learned how to craft ${recipe.name}`;
 
     } catch (error) {
       response.message = `Failed to learn recipe: ${error}`;
@@ -921,8 +1005,43 @@ export class CraftingService {
       };
     }
 
-    // TODO: Check materials in inventory
-    // For now, assume materials are available
+    // PHASE 4 FIX: Actually check materials in inventory (was hardcoded to true)
+    const missingMaterials: Array<{ ingredientId: string; needed: number; have: number }> = [];
+
+    if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
+      for (const ingredient of recipe.ingredients) {
+        const ingredientId = ingredient.itemId || ingredient.ingredientId;
+        const quantityNeeded = ingredient.quantity || 1;
+
+        const inventoryItem = character.inventory.find(
+          (i: any) => i.itemId === ingredientId
+        );
+        const quantityHave = inventoryItem?.quantity || 0;
+
+        if (quantityHave < quantityNeeded) {
+          missingMaterials.push({
+            ingredientId,
+            needed: quantityNeeded,
+            have: quantityHave
+          });
+        }
+      }
+    }
+
+    if (missingMaterials.length > 0) {
+      return {
+        canCraft: false,
+        reason: 'Missing materials',
+        missingMaterials,
+        recipe: {
+          recipeId: recipe.recipeId,
+          name: recipe.name,
+          ingredients: recipe.ingredients,
+          output: recipe.output,
+          craftTime: recipe.craftTime
+        }
+      };
+    }
 
     return {
       canCraft: true,
@@ -945,6 +1064,9 @@ export class CraftingService {
   ): boolean {
     if (!recipe.discoveryChance) return false;
 
+    // Already know this recipe
+    if (profile.hasRecipe(recipe.id)) return false;
+
     const profession = profile.professions.get(recipe.professionId);
     if (!profession) return false;
 
@@ -955,14 +1077,102 @@ export class CraftingService {
 
   /**
    * Attempt to discover a recipe through crafting
+   * AAA BALANCE: Actually implements recipe discovery instead of returning null
    */
   static async attemptRecipeDiscovery(
     profile: ICraftingProfile,
     professionId: ProfessionId
   ): Promise<RecipeDiscovery | null> {
-    // This would check for discoverable recipes and roll for discovery
-    // Placeholder implementation
-    return null;
+    const profession = profile.professions.get(professionId);
+    if (!profession) return null;
+
+    // Get all discoverable recipes for this profession from the database
+    const Recipe = (await import('../models/Recipe.model')).Recipe;
+
+    // Find recipes that:
+    // 1. Match this profession (via category or skill requirement)
+    // 2. Have discovery enabled (not already unlocked by default)
+    // 3. Player doesn't already know
+    // 4. Within level range
+    const allRecipes = await Recipe.find({
+      isUnlocked: false, // Recipes that must be discovered
+      'skillRequired.level': {
+        $gte: Math.max(1, profession.level - 10),
+        $lte: profession.level + 10
+      }
+    });
+
+    // Filter to ones not already known
+    const unknownRecipes = allRecipes.filter(recipe =>
+      !profile.hasRecipe(recipe.recipeId)
+    );
+
+    if (unknownRecipes.length === 0) {
+      return null;
+    }
+
+    // Roll for discovery - base 5% chance, increases with level
+    const discoveryChance = 0.05 + (profession.level * 0.002); // 5% + 0.2% per level
+    const roll = SecureRNG.float(0, 1);
+
+    if (roll > discoveryChance) {
+      return null; // No discovery this time
+    }
+
+    // Pick a random recipe from discoverable ones
+    const discoveredRecipe = SecureRNG.select(unknownRecipes);
+    if (!discoveredRecipe) return null;
+
+    // Mark the recipe as learned for this player
+    await profile.learnRecipe(discoveredRecipe.recipeId);
+    await profile.save();
+
+    // Log the discovery
+    const logger = (await import('../utils/logger')).default;
+    logger.info(
+      `Recipe discovered: Character learned ${discoveredRecipe.name} through experimentation`
+    );
+
+    // Return discovery result
+    return {
+      recipeId: discoveredRecipe.recipeId,
+      recipeName: discoveredRecipe.name,
+      discoveredBy: profile.characterId,
+      discoveryDate: new Date(),
+      discoveryMethod: 'experimentation',
+      firstDiscovery: false, // Would need to track server-wide first discoveries
+      rewardBonus: {
+        gold: 50, // Bonus gold for discovering a recipe
+        reputation: 10
+      }
+    };
+  }
+
+  /**
+   * Get all discoverable recipes for a profession
+   * Returns recipes that the player can potentially discover
+   */
+  static async getDiscoverableRecipes(
+    profile: ICraftingProfile,
+    professionId: ProfessionId
+  ): Promise<any[]> {
+    const profession = profile.professions.get(professionId);
+    if (!profession) return [];
+
+    const Recipe = (await import('../models/Recipe.model')).Recipe;
+
+    const discoverableRecipes = await Recipe.find({
+      isUnlocked: false,
+      'skillRequired.level': {
+        $gte: Math.max(1, profession.level - 5),
+        $lte: profession.level + 10
+      }
+    });
+
+    // Filter out already known recipes
+    return discoverableRecipes.filter(recipe =>
+      !profile.hasRecipe(recipe.recipeId)
+    );
   }
 }
 

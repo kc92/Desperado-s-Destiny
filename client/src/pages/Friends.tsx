@@ -9,7 +9,8 @@ import { useCharacterStore } from '@/store/useCharacterStore';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { StateView } from '@/components/ui/StateView';
+import { TabNavigation } from '@/components/ui/TabNavigation';
 import { ListItemSkeleton } from '@/components/ui/Skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { logger } from '@/services/logger.service';
@@ -25,8 +26,7 @@ export const Friends: React.FC = () => {
     sendRequest,
     acceptRequest,
     rejectRequest,
-    removeFriend,
-    clearError
+    removeFriend
   } = useFriendStore();
 
   const { currentCharacter } = useCharacterStore();
@@ -107,77 +107,49 @@ export const Friends: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <div className="bg-brown-800 border-2 border-brown-600 rounded-lg p-6">
+      <div className="bg-wood-dark border-2 border-wood-grain rounded-lg p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gold-400">Friends</h1>
+          <h1 className="text-3xl font-bold text-gold-light">Friends</h1>
           <Button onClick={() => setShowAddFriendModal(true)}>
             Add Friend
           </Button>
         </div>
 
-        {error && (
-          <div className="bg-red-800 text-white p-3 rounded mb-4">
-            {error}
-            <button onClick={clearError} className="ml-4 underline">
-              Dismiss
-            </button>
-          </div>
-        )}
+        <TabNavigation
+          tabs={[
+            { id: 'friends', label: 'Friends', count: friends.length },
+            { id: 'requests', label: 'Requests', count: requests.length }
+          ]}
+          activeTab={activeTab}
+          onTabChange={(tabId) => setActiveTab(tabId as 'friends' | 'requests')}
+          className="mb-6"
+        />
 
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={() => setActiveTab('friends')}
-            className={`px-4 py-2 rounded ${
-              activeTab === 'friends'
-                ? 'bg-gold-600 text-brown-900'
-                : 'bg-brown-700 text-gray-300'
-            }`}
+        {activeTab === 'friends' && (
+          <StateView
+            isLoading={isLoading}
+            loadingComponent={
+              <div aria-busy="true" aria-live="polite">
+                <ListItemSkeleton count={5} />
+              </div>
+            }
+            error={error}
+            onRetry={() => fetchFriends()}
+            isEmpty={friends.length === 0}
+            emptyProps={{
+              icon: '🤝',
+              title: 'Lone Rider',
+              description: "You're riding solo. Find allies in the Town Square to survive these harsh lands.",
+              actionText: 'Add Friend',
+              onAction: () => setShowAddFriendModal(true)
+            }}
+            size="md"
           >
-            Friends ({friends.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('requests')}
-            className={`px-4 py-2 rounded ${
-              activeTab === 'requests'
-                ? 'bg-gold-600 text-brown-900'
-                : 'bg-brown-700 text-gray-300'
-            }`}
-          >
-            Requests ({requests.length})
-          </button>
-        </div>
-
-        {isLoading ? (
-          <div aria-busy="true" aria-live="polite">
-            <ListItemSkeleton count={5} />
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {activeTab === 'friends' && friends.length === 0 && (
-              <EmptyState
-                icon="🤝"
-                title="Lone Rider"
-                description="You're riding solo. Find allies in the Town Square to survive these harsh lands."
-                actionText="Add Friend"
-                onAction={() => setShowAddFriendModal(true)}
-                size="md"
-              />
-            )}
-
-            {activeTab === 'requests' && requests.length === 0 && (
-              <EmptyState
-                icon="🤝"
-                title="No Pending Requests"
-                description="No partner requests waiting. Your reputation must precede you!"
-                size="sm"
-              />
-            )}
-
-            {activeTab === 'friends' &&
-              friends.map((friend) => (
+            <div className="space-y-2">
+              {friends.map((friend) => (
                 <div
                   key={friend._id}
-                  className="p-4 rounded border bg-brown-900 border-brown-700 flex justify-between items-center"
+                  className="p-4 rounded border bg-wood-darker border-wood-medium flex justify-between items-center"
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -187,7 +159,7 @@ export const Friends: React.FC = () => {
                       title={friend.online ? 'Online' : 'Offline'}
                     />
                     <div>
-                      <div className="font-semibold text-gold-400">
+                      <div className="font-semibold text-gold-light">
                         {friend.friendName}
                       </div>
                       <div className="text-sm text-gray-500">
@@ -207,15 +179,36 @@ export const Friends: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </StateView>
+        )}
 
-            {activeTab === 'requests' &&
-              requests.map((request) => (
+        {activeTab === 'requests' && (
+          <StateView
+            isLoading={isLoading}
+            loadingComponent={
+              <div aria-busy="true" aria-live="polite">
+                <ListItemSkeleton count={5} />
+              </div>
+            }
+            error={error}
+            onRetry={() => fetchRequests()}
+            isEmpty={requests.length === 0}
+            emptyProps={{
+              icon: '🤝',
+              title: 'No Pending Requests',
+              description: 'No partner requests waiting. Your reputation must precede you!'
+            }}
+            size="sm"
+          >
+            <div className="space-y-2">
+              {requests.map((request) => (
                 <div
                   key={request._id}
-                  className="p-4 rounded border bg-brown-900 border-gold-600 flex justify-between items-center"
+                  className="p-4 rounded border bg-wood-darker border-gold-medium flex justify-between items-center"
                 >
                   <div>
-                    <div className="font-semibold text-gold-400">
+                    <div className="font-semibold text-gold-light">
                       {request.requesterName}
                     </div>
                     <div className="text-sm text-gray-500">
@@ -242,7 +235,8 @@ export const Friends: React.FC = () => {
                   </div>
                 </div>
               ))}
-          </div>
+            </div>
+          </StateView>
         )}
       </div>
 
@@ -260,7 +254,7 @@ export const Friends: React.FC = () => {
               type="text"
               value={friendName}
               onChange={(e) => setFriendName(e.target.value)}
-              className="w-full px-3 py-2 bg-brown-900 border border-brown-600 rounded"
+              className="w-full px-3 py-2 bg-wood-darker border border-wood-grain rounded"
               placeholder="Enter character name"
             />
           </div>

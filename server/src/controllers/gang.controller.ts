@@ -784,4 +784,392 @@ export class GangController {
       });
     }
   }
+
+  // ==========================================
+  // NEW ENDPOINTS FOR CLIENT COMPATIBILITY
+  // ==========================================
+
+  /**
+   * GET /api/gangs/current
+   * Get the current user's gang
+   */
+  static async getCurrentGang(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
+      // Get user's active character
+      const character = await Character.findOne({ userId, isActive: true });
+      if (!character) {
+        res.status(404).json({ success: false, error: 'No active character found' });
+        return;
+      }
+
+      if (!character.gangId) {
+        res.status(200).json({
+          success: true,
+          data: null,
+          message: 'Character is not in a gang',
+        });
+        return;
+      }
+
+      const gang = await Gang.findById(character.gangId).populate('members.characterId', 'name level');
+      if (!gang) {
+        res.status(404).json({ success: false, error: 'Gang not found' });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: gang.toSafeObject(),
+      });
+    } catch (error) {
+      logger.error('Error getting current gang:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get current gang',
+      });
+    }
+  }
+
+  /**
+   * GET /api/gangs/check-name
+   * Check if a gang name is available
+   */
+  static async checkNameAvailability(req: Request, res: Response): Promise<void> {
+    try {
+      const { name } = req.query;
+
+      if (!name || typeof name !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'Name query parameter is required',
+        });
+        return;
+      }
+
+      const exists = await Gang.exists({ name: { $regex: new RegExp(`^${name}$`, 'i') }, isActive: true });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          name,
+          available: !exists,
+        },
+      });
+    } catch (error) {
+      logger.error('Error checking name availability:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to check name availability',
+      });
+    }
+  }
+
+  /**
+   * GET /api/gangs/check-tag
+   * Check if a gang tag is available
+   */
+  static async checkTagAvailability(req: Request, res: Response): Promise<void> {
+    try {
+      const { tag } = req.query;
+
+      if (!tag || typeof tag !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: 'Tag query parameter is required',
+        });
+        return;
+      }
+
+      const exists = await Gang.exists({ tag: { $regex: new RegExp(`^${tag}$`, 'i') }, isActive: true });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          tag,
+          available: !exists,
+        },
+      });
+    } catch (error) {
+      logger.error('Error checking tag availability:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to check tag availability',
+      });
+    }
+  }
+
+  /**
+   * GET /api/gangs/search-characters
+   * Search for characters to invite to gang
+   */
+  static async searchCharacters(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { q } = req.query;
+
+      if (!q || typeof q !== 'string' || q.length < 2) {
+        res.status(400).json({
+          success: false,
+          error: 'Search query must be at least 2 characters',
+        });
+        return;
+      }
+
+      // Find characters without a gang that match the search
+      const characters = await Character.find({
+        name: { $regex: q, $options: 'i' },
+        gangId: { $exists: false },
+        isActive: true,
+      })
+        .select('name level faction')
+        .limit(20)
+        .lean();
+
+      res.status(200).json({
+        success: true,
+        data: characters,
+      });
+    } catch (error) {
+      logger.error('Error searching characters:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to search characters',
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/leave
+   * Leave current gang (without specifying gangId in URL)
+   */
+  static async leaveCurrentGang(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
+      // Get user's active character
+      const character = await Character.findOne({ userId, isActive: true });
+      if (!character) {
+        res.status(404).json({ success: false, error: 'No active character found' });
+        return;
+      }
+
+      if (!character.gangId) {
+        res.status(400).json({
+          success: false,
+          error: 'Character is not in a gang',
+        });
+        return;
+      }
+
+      await GangService.leaveGang(character.gangId.toString(), character._id.toString());
+
+      res.status(200).json({
+        success: true,
+        message: 'Successfully left gang',
+      });
+    } catch (error) {
+      logger.error('Error leaving gang:', error);
+      res.status(400).json({
+        success: false,
+        error: sanitizeErrorMessage(error),
+      });
+    }
+  }
+
+  /**
+   * GET /api/gangs/invitations/pending
+   * Get pending invitations for the current user's character
+   */
+  static async getPendingInvitations(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
+      // Get user's active character
+      const character = await Character.findOne({ userId, isActive: true });
+      if (!character) {
+        res.status(404).json({ success: false, error: 'No active character found' });
+        return;
+      }
+
+      const invitations = await GangInvitation.findPendingByRecipient(character._id as mongoose.Types.ObjectId);
+
+      res.status(200).json({
+        success: true,
+        data: invitations,
+      });
+    } catch (error) {
+      logger.error('Error getting pending invitations:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get pending invitations',
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/:id/kick
+   * Alternative kick endpoint that accepts characterId in body (for client compatibility)
+   */
+  static async kickAlt(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
+      const { id: gangId } = req.params;
+      const { characterId: targetId } = req.body;
+
+      if (!targetId) {
+        res.status(400).json({
+          success: false,
+          error: 'characterId is required in body',
+        });
+        return;
+      }
+
+      // Get user's active character as the kicker
+      const character = await Character.findOne({ userId, isActive: true });
+      if (!character) {
+        res.status(404).json({ success: false, error: 'No active character found' });
+        return;
+      }
+
+      const gang = await GangService.kickMember(gangId, character._id.toString(), targetId);
+
+      res.status(200).json({
+        success: true,
+        data: gang.toSafeObject(),
+        message: 'Member kicked successfully',
+      });
+    } catch (error) {
+      logger.error('Error kicking member:', error);
+      res.status(400).json({
+        success: false,
+        error: sanitizeErrorMessage(error),
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/:id/promote
+   * Alternative promote endpoint that accepts characterId in body (for client compatibility)
+   */
+  static async promoteAlt(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
+      const { id: gangId } = req.params;
+      const { characterId: targetId, role: newRole } = req.body;
+
+      if (!targetId || !newRole) {
+        res.status(400).json({
+          success: false,
+          error: 'characterId and role are required in body',
+        });
+        return;
+      }
+
+      // Get user's active character as the promoter
+      const character = await Character.findOne({ userId, isActive: true });
+      if (!character) {
+        res.status(404).json({ success: false, error: 'No active character found' });
+        return;
+      }
+
+      if (!Object.values(GangRole).includes(newRole)) {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid role',
+        });
+        return;
+      }
+
+      const gang = await GangService.promoteMember(gangId, character._id.toString(), targetId, newRole);
+
+      res.status(200).json({
+        success: true,
+        data: gang.toSafeObject(),
+        message: 'Member role updated successfully',
+      });
+    } catch (error) {
+      logger.error('Error promoting member:', error);
+      res.status(400).json({
+        success: false,
+        error: sanitizeErrorMessage(error),
+      });
+    }
+  }
+
+  /**
+   * POST /api/gangs/:id/upgrades/purchase
+   * Alternative upgrade purchase endpoint that accepts upgradeType in body
+   */
+  static async purchaseUpgradeAlt(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?._id;
+      if (!userId) {
+        res.status(401).json({ success: false, error: 'Not authenticated' });
+        return;
+      }
+
+      const { id: gangId } = req.params;
+      const { upgradeType } = req.body;
+
+      if (!upgradeType) {
+        res.status(400).json({
+          success: false,
+          error: 'upgradeType is required in body',
+        });
+        return;
+      }
+
+      // Get user's active character
+      const character = await Character.findOne({ userId, isActive: true });
+      if (!character) {
+        res.status(404).json({ success: false, error: 'No active character found' });
+        return;
+      }
+
+      if (!isValidUpgradeType(upgradeType)) {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid upgrade type',
+        });
+        return;
+      }
+
+      const gang = await GangService.purchaseUpgrade(gangId, character._id.toString(), upgradeType);
+
+      res.status(200).json({
+        success: true,
+        data: gang.toSafeObject(),
+        message: 'Upgrade purchased successfully',
+      });
+    } catch (error) {
+      logger.error('Error purchasing upgrade:', error);
+      res.status(400).json({
+        success: false,
+        error: sanitizeErrorMessage(error),
+      });
+    }
+  }
 }

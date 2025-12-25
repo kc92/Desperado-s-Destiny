@@ -2,6 +2,11 @@
  * Skill Service
  *
  * Handles skill training, progression, and bonus calculations
+ *
+ * PHASE 19: Added Specialization System
+ * - Category mastery bonuses (+5% per tier up to +25%)
+ * - Four specialization paths: Combat, Cunning, Spirit, Craft
+ * - Encourages specialization over generalization
  */
 
 import mongoose from 'mongoose';
@@ -12,11 +17,79 @@ import {
   calculateXPForLevel,
   calculateTrainingTime,
   DestinySuit,
-  NotificationType
+  NotificationType,
+  SkillCategory
 } from '@desperados/shared';
 import logger from '../utils/logger';
 import { QuestService } from './quest.service';
 import { NotificationService } from './notification.service';
+
+/**
+ * PHASE 19: Specialization System Configuration
+ *
+ * Players gain bonuses for mastering skill categories.
+ * Each category has thresholds at levels 25, 35, 45, 50.
+ * Reaching each threshold with your LOWEST skill in the category grants +5%.
+ * Maximum bonus: +25% for having all skills in a category at 50.
+ *
+ * This encourages deep specialization rather than spreading thin.
+ */
+export const SPECIALIZATION_CONFIG = {
+  /** Skill level thresholds that unlock bonuses */
+  categoryMasteryThresholds: [25, 35, 45, 50] as const,
+
+  /** Bonus multiplier per threshold reached (5% = 0.05) */
+  bonusPerTier: 0.05,
+
+  /** Maximum total bonus for a category (25% = 0.25) */
+  maxCategoryBonus: 0.25,
+
+  /**
+   * Skill categories for specialization
+   * Maps category name to skill IDs that belong to it
+   */
+  categories: {
+    combat: [
+      'melee_combat',
+      'ranged_combat',
+      'defensive_tactics',
+      'mounted_combat',
+      'explosives'
+    ],
+    cunning: [
+      'lockpicking',
+      'stealth',
+      'pickpocket',
+      'tracking',
+      'deception',
+      'gambling',
+      'perception',
+      'sleight_of_hand',
+      'poker_face'
+    ],
+    spirit: [
+      'medicine',
+      'persuasion',
+      'animal_handling',
+      'leadership',
+      'ritual_knowledge',
+      'performance'
+    ],
+    craft: [
+      'blacksmithing',
+      'leatherworking',
+      'cooking',
+      'alchemy',
+      'engineering',
+      'mining',
+      'prospecting',
+      'herbalism',
+      'carpentry'
+    ]
+  } as const
+} as const;
+
+export type SpecializationCategory = keyof typeof SPECIALIZATION_CONFIG.categories;
 
 export class SkillService {
   /**
@@ -659,5 +732,173 @@ export class SkillService {
     }
 
     return { success: true, results };
+  }
+
+  // ============================================
+  // PHASE 19: Specialization System Methods
+  // ============================================
+
+  /**
+   * Get the minimum skill level in a specialization category
+   * Used to determine category mastery (you're only as strong as your weakest skill)
+   */
+  static getCategoryMinLevel(
+    character: ICharacter,
+    category: SpecializationCategory
+  ): number {
+    const skillIds = SPECIALIZATION_CONFIG.categories[category];
+    let minLevel: number = SKILL_PROGRESSION.MAX_LEVEL;
+
+    for (const skillId of skillIds) {
+      const characterSkill = character.skills.find(s => s.skillId === skillId);
+      const level = characterSkill?.level ?? SKILL_PROGRESSION.STARTING_LEVEL;
+      if (level < minLevel) {
+        minLevel = level;
+      }
+    }
+
+    return minLevel;
+  }
+
+  /**
+   * Calculate specialization bonus for a category
+   * Returns multiplier (1.0 = no bonus, 1.25 = 25% bonus)
+   *
+   * Bonus is based on the MINIMUM skill level in the category.
+   * This encourages leveling all skills in a category, not just one.
+   *
+   * Example: If you have Combat skills at levels [45, 40, 35, 30, 25],
+   * your min is 25, so you get 1 threshold (25) = 5% bonus.
+   */
+  static calculateCategoryBonus(
+    character: ICharacter,
+    category: SpecializationCategory
+  ): number {
+    const minLevel = this.getCategoryMinLevel(character, category);
+    const thresholds = SPECIALIZATION_CONFIG.categoryMasteryThresholds;
+
+    let tiersUnlocked = 0;
+    for (const threshold of thresholds) {
+      if (minLevel >= threshold) {
+        tiersUnlocked++;
+      }
+    }
+
+    const bonus = tiersUnlocked * SPECIALIZATION_CONFIG.bonusPerTier;
+    return 1.0 + Math.min(bonus, SPECIALIZATION_CONFIG.maxCategoryBonus);
+  }
+
+  /**
+   * Get all specialization bonuses for a character
+   * Returns object with bonus multiplier for each category
+   */
+  static getAllSpecializationBonuses(character: ICharacter): Record<SpecializationCategory, number> {
+    return {
+      combat: this.calculateCategoryBonus(character, 'combat'),
+      cunning: this.calculateCategoryBonus(character, 'cunning'),
+      spirit: this.calculateCategoryBonus(character, 'spirit'),
+      craft: this.calculateCategoryBonus(character, 'craft')
+    };
+  }
+
+  /**
+   * Get detailed specialization progress for UI display
+   */
+  static getSpecializationProgress(character: ICharacter): Array<{
+    category: SpecializationCategory;
+    displayName: string;
+    minLevel: number;
+    currentBonus: number;
+    nextThreshold: number | null;
+    thresholdsUnlocked: number;
+    totalThresholds: number;
+    skillLevels: Array<{ skillId: string; level: number }>;
+  }> {
+    const thresholds = SPECIALIZATION_CONFIG.categoryMasteryThresholds;
+    const categoryDisplayNames: Record<SpecializationCategory, string> = {
+      combat: 'Combat Mastery',
+      cunning: 'Cunning Mastery',
+      spirit: 'Spirit Mastery',
+      craft: 'Craft Mastery'
+    };
+
+    const result: Array<{
+      category: SpecializationCategory;
+      displayName: string;
+      minLevel: number;
+      currentBonus: number;
+      nextThreshold: number | null;
+      thresholdsUnlocked: number;
+      totalThresholds: number;
+      skillLevels: Array<{ skillId: string; level: number }>;
+    }> = [];
+
+    for (const category of Object.keys(SPECIALIZATION_CONFIG.categories) as SpecializationCategory[]) {
+      const minLevel = this.getCategoryMinLevel(character, category);
+      const bonus = this.calculateCategoryBonus(character, category);
+
+      // Count unlocked thresholds
+      let thresholdsUnlocked = 0;
+      for (const threshold of thresholds) {
+        if (minLevel >= threshold) {
+          thresholdsUnlocked++;
+        }
+      }
+
+      // Find next threshold
+      let nextThreshold: number | null = null;
+      for (const threshold of thresholds) {
+        if (minLevel < threshold) {
+          nextThreshold = threshold;
+          break;
+        }
+      }
+
+      // Get skill levels for this category
+      const skillIds = SPECIALIZATION_CONFIG.categories[category];
+      const skillLevels = skillIds.map(skillId => {
+        const characterSkill = character.skills.find(s => s.skillId === skillId);
+        return {
+          skillId,
+          level: characterSkill?.level ?? SKILL_PROGRESSION.STARTING_LEVEL
+        };
+      });
+
+      result.push({
+        category,
+        displayName: categoryDisplayNames[category],
+        minLevel,
+        currentBonus: bonus,
+        nextThreshold,
+        thresholdsUnlocked,
+        totalThresholds: thresholds.length,
+        skillLevels
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Get the primary specialization for a character
+   * Returns the category with the highest min level (deepest specialization)
+   */
+  static getPrimarySpecialization(character: ICharacter): {
+    category: SpecializationCategory;
+    minLevel: number;
+    bonus: number;
+  } | null {
+    let best: { category: SpecializationCategory; minLevel: number; bonus: number } | null = null;
+
+    for (const category of Object.keys(SPECIALIZATION_CONFIG.categories) as SpecializationCategory[]) {
+      const minLevel = this.getCategoryMinLevel(character, category);
+      const bonus = this.calculateCategoryBonus(character, category);
+
+      if (!best || minLevel > best.minLevel) {
+        best = { category, minLevel, bonus };
+      }
+    }
+
+    return best;
   }
 }

@@ -5,7 +5,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, LoadingSpinner, ProgressBar } from '@/components/ui';
+import { Button, Card, ProgressBar } from '@/components/ui';
+import { StateView } from '@/components/ui/StateView';
 import {
   huntingService,
   HuntAvailability,
@@ -209,7 +210,7 @@ export function Hunting() {
 
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-amber-400">Select Hunting Ground</h2>
+        <h2 className="text-xl font-bold text-gold-light">Select Hunting Ground</h2>
         {grounds.length === 0 ? (
           <Card className="p-6 text-center">
             <p className="text-gray-400">No hunting grounds available. Please try again later.</p>
@@ -221,7 +222,7 @@ export function Hunting() {
             return (
               <Card
                 key={ground.locationId}
-                className="p-4 cursor-pointer hover:border-amber-500 transition-colors"
+                className="p-4 cursor-pointer hover:border-gold-medium transition-colors"
                 onClick={() => handleSelectGround(ground)}
               >
                 <div className="flex items-start justify-between mb-2">
@@ -279,7 +280,7 @@ export function Hunting() {
 
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-amber-400">Select Weapon</h2>
+        <h2 className="text-xl font-bold text-gold-light">Select Weapon</h2>
         {selectedGround && (
           <p className="text-gray-400">Hunting at: <span className="text-white">{selectedGround.name}</span></p>
         )}
@@ -288,7 +289,7 @@ export function Hunting() {
             <Card
               key={weapon}
               className={`p-4 cursor-pointer transition-colors ${
-                selectedWeapon === weapon ? 'border-amber-500 bg-amber-900/20' : 'hover:border-gray-600'
+                selectedWeapon === weapon ? 'border-gold-medium bg-gold-dark/20' : 'hover:border-gray-600'
               }`}
               onClick={() => setSelectedWeapon(weapon)}
             >
@@ -311,7 +312,7 @@ export function Hunting() {
 
   const renderTracking = () => (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-amber-400">Tracking...</h2>
+      <h2 className="text-xl font-bold text-gold-light">Tracking...</h2>
       {selectedGround && (
         <p className="text-gray-400">Location: <span className="text-white">{selectedGround.name}</span></p>
       )}
@@ -320,7 +321,7 @@ export function Hunting() {
         <div className="mb-4">
           <div className="flex justify-between mb-2">
             <span className="text-gray-400">Tracking Progress</span>
-            <span className="text-amber-400">{trackingProgress}%</span>
+            <span className="text-gold-light">{trackingProgress}%</span>
           </div>
           <ProgressBar value={trackingProgress} max={100} color="amber" />
         </div>
@@ -354,7 +355,7 @@ export function Hunting() {
 
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-bold text-amber-400">Animal Spotted!</h2>
+        <h2 className="text-xl font-bold text-gold-light">Animal Spotted!</h2>
 
         <Card className="p-6 text-center">
           <div className="text-4xl mb-2">
@@ -374,7 +375,7 @@ export function Hunting() {
         </Card>
 
         <div className="space-y-2">
-          <h3 className="font-bold text-amber-400">Choose Your Shot</h3>
+          <h3 className="font-bold text-gold-light">Choose Your Shot</h3>
           <div className="grid gap-3 md:grid-cols-2">
             {shots.map(({ placement, name, difficulty, reward }) => (
               <Button
@@ -471,7 +472,7 @@ export function Hunting() {
 
     return (
       <Card className="p-4">
-        <h3 className="font-bold text-amber-400 mb-3">Your Hunting Stats</h3>
+        <h3 className="font-bold text-gold-light mb-3">Your Hunting Stats</h3>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <span className="text-gray-500">Total Hunts:</span>
@@ -504,24 +505,17 @@ export function Hunting() {
   };
 
   // ===== Main Render =====
-  if (isLoading && phase === 'idle') {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-amber-400 mb-2">Hunting</h1>
+        <h1 className="text-3xl font-bold text-gold-light mb-2">Hunting</h1>
         <p className="text-gray-400">
           Track and hunt wild animals across the frontier for gold and resources.
         </p>
       </div>
 
-      {error && (
+      {/* Show error during other phases */}
+      {error && phase !== 'idle' && (
         <div className="bg-red-900/30 border border-red-500 rounded-lg p-4 mb-4">
           <p className="text-red-400">{error}</p>
           <Button
@@ -535,15 +529,23 @@ export function Hunting() {
         </div>
       )}
 
-      {!availability?.canHunt && availability?.reason && phase === 'idle' && (
-        <Card className="p-4 mb-4 border-yellow-500">
-          <p className="text-yellow-400">{availability.reason}</p>
-        </Card>
-      )}
-
       {phase === 'idle' && (
-        <div className="space-y-6">
-          <Card className="p-6 text-center">
+        <StateView
+          isLoading={isLoading}
+          loadingText="Loading hunting data..."
+          error={error}
+          onRetry={loadData}
+          isEmpty={false}
+          size="lg"
+        >
+          <div className="space-y-6">
+            {!availability?.canHunt && availability?.reason && (
+              <Card className="p-4 mb-4 border-gold-medium">
+                <p className="text-gold-light">{availability.reason}</p>
+              </Card>
+            )}
+
+            <Card className="p-6 text-center">
             <div className="text-6xl mb-4">🎯</div>
             <h2 className="text-xl font-bold mb-2">Ready to Hunt?</h2>
             <p className="text-gray-400 mb-4">
@@ -562,7 +564,7 @@ export function Hunting() {
           {/* Equipment Status */}
           {availability?.equipment && (
             <Card className="p-4">
-              <h3 className="font-bold text-amber-400 mb-3">Your Equipment</h3>
+              <h3 className="font-bold text-gold-light mb-3">Your Equipment</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                 <div className="flex items-center gap-2">
                   <span className={availability.equipment.weapon !== HuntingWeapon.PISTOL ? 'text-green-400' : 'text-gray-500'}>
@@ -600,6 +602,7 @@ export function Hunting() {
 
           {renderStatistics()}
         </div>
+        </StateView>
       )}
 
       {phase === 'select-ground' && renderGroundSelection()}

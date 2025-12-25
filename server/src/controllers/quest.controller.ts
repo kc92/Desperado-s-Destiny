@@ -145,3 +145,41 @@ export const getQuestDetails = asyncHandler(
     });
   }
 );
+
+/**
+ * Complete a quest and claim rewards (for quests with all required objectives done)
+ * POST /api/quests/complete
+ */
+export const completeQuest = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const characterId = req.character!._id.toString();
+    const { questId } = req.body;
+
+    if (!questId) {
+      return res.status(400).json({
+        success: false,
+        error: 'questId is required'
+      });
+    }
+
+    const { quest, rewards } = await QuestService.completeQuest(characterId, questId);
+    const definition = await QuestDefinition.findOne({ questId });
+
+    // Calculate optional objectives status
+    const optionalObjectives = quest.objectives.filter(obj => obj.optional);
+    const completedOptional = optionalObjectives.filter(obj => obj.current >= obj.required);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: `Quest completed: ${definition?.name}`,
+        quest,
+        rewards,
+        optionalStatus: {
+          total: optionalObjectives.length,
+          completed: completedOptional.length
+        }
+      }
+    });
+  }
+);

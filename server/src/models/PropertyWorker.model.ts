@@ -9,6 +9,53 @@ import { WorkerSpecialization, WorkerTrait } from '@desperados/shared';
 import { SecureRNG } from '../services/base/SecureRNG';
 
 /**
+ * Worker Quality Tiers (BDO-style 5-tier system)
+ */
+export enum WorkerQuality {
+  GREENHORN = 'greenhorn',     // 15% spawn rate, 0.6x efficiency
+  REGULAR = 'regular',         // 55% spawn rate, 1.0x efficiency
+  EXPERIENCED = 'experienced', // 20% spawn rate, 1.3x efficiency
+  VETERAN = 'veteran',         // 8% spawn rate, 1.6x efficiency
+  LEGENDARY = 'legendary',     // 2% spawn rate, 2.0x efficiency
+}
+
+/**
+ * Worker Quality Stats
+ */
+export const WORKER_QUALITY_STATS = {
+  [WorkerQuality.GREENHORN]: {
+    efficiency: 0.6,
+    stamina: 80,
+    hireCost: 50,
+    spawnRate: 0.15,
+  },
+  [WorkerQuality.REGULAR]: {
+    efficiency: 1.0,
+    stamina: 100,
+    hireCost: 200,
+    spawnRate: 0.55,
+  },
+  [WorkerQuality.EXPERIENCED]: {
+    efficiency: 1.3,
+    stamina: 120,
+    hireCost: 500,
+    spawnRate: 0.20,
+  },
+  [WorkerQuality.VETERAN]: {
+    efficiency: 1.6,
+    stamina: 150,
+    hireCost: 1500,
+    spawnRate: 0.08,
+  },
+  [WorkerQuality.LEGENDARY]: {
+    efficiency: 2.0,
+    stamina: 200,
+    hireCost: 5000,
+    spawnRate: 0.02,
+  },
+};
+
+/**
  * Property Worker document interface
  */
 export interface IPropertyWorker extends Document {
@@ -26,6 +73,13 @@ export interface IPropertyWorker extends Document {
   loyalty: number; // 0-100
   efficiency: number; // 0.5 - 2.0 multiplier
   morale: number; // 0-100
+
+  // Quality & Stamina (BDO-style system)
+  quality: WorkerQuality; // Worker quality tier
+  stamina: number; // Current stamina (0-maxStamina)
+  maxStamina: number; // Max stamina from quality
+  lastFed: Date; // Last feeding time
+  feedingCost: number; // Daily feeding cost
 
   // Employment
   weeklyWage: number;
@@ -167,6 +221,34 @@ const PropertyWorkerSchema = new Schema<IPropertyWorker>(
       max: 100,
     },
 
+    // Quality & Stamina (BDO-style system)
+    quality: {
+      type: String,
+      enum: Object.values(WorkerQuality),
+      default: WorkerQuality.REGULAR,
+    },
+    stamina: {
+      type: Number,
+      required: true,
+      default: 100,
+      min: 0,
+    },
+    maxStamina: {
+      type: Number,
+      required: true,
+      default: 100,
+    },
+    lastFed: {
+      type: Date,
+      default: Date.now,
+    },
+    feedingCost: {
+      type: Number,
+      required: true,
+      default: 20,
+      min: 0,
+    },
+
     // Employment
     weeklyWage: {
       type: Number,
@@ -265,6 +347,11 @@ PropertyWorkerSchema.methods.canWork = function (this: IPropertyWorker): boolean
 
   // Check morale (workers won't work if morale is too low)
   if (this.morale < 20) {
+    return false;
+  }
+
+  // Check stamina (workers with 0 stamina cannot work)
+  if (this.stamina <= 0) {
     return false;
   }
 

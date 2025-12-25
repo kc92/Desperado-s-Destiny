@@ -7,7 +7,7 @@ import api from './api';
 
 // ===== Types =====
 
-export type AchievementCategory = 'combat' | 'crime' | 'social' | 'economy' | 'exploration' | 'special';
+export type AchievementCategory = 'combat' | 'crime' | 'social' | 'economy' | 'exploration' | 'special' | 'crafting' | 'gambling' | 'progression';
 export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'legendary';
 
 export interface Achievement {
@@ -61,6 +61,9 @@ export interface AchievementsByCategory {
   economy: Achievement[];
   exploration: Achievement[];
   special: Achievement[];
+  crafting: Achievement[];
+  gambling: Achievement[];
+  progression: Achievement[];
 }
 
 // ===== Request/Response Types =====
@@ -257,13 +260,16 @@ export const achievementService = {
    * Get achievement category icon
    */
   getCategoryIcon(category: AchievementCategory): string {
-    const icons = {
+    const icons: Record<AchievementCategory, string> = {
       combat: '⚔️',
       crime: '💰',
       social: '👥',
       economy: '💵',
       exploration: '🗺️',
       special: '⭐',
+      crafting: '🔨',
+      gambling: '🎰',
+      progression: '📈',
     };
     return icons[category];
   },

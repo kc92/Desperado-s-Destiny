@@ -4,7 +4,15 @@
  */
 
 import { create } from 'zustand';
-import type { NPC, CombatEncounter, CombatResult, CombatStats } from '@desperados/shared';
+import type {
+  NPC,
+  CombatEncounter,
+  CombatResult,
+  CombatStats,
+  CombatRoundState,
+  CombatAction,
+  LootAwarded,
+} from '@desperados/shared';
 import { combatService } from '@/services/combat.service';
 import { logger } from '@/services/logger.service';
 import { dispatchCombatStarted } from '@/utils/tutorialEvents';
@@ -20,16 +28,32 @@ interface CombatStore {
   isLoading: boolean;
   error: string | null;
 
+  // Sprint 2: Hold/Discard state
+  roundState: CombatRoundState | null;
+  heldCardIndices: number[];
+  combatEnded: boolean;
+  lootAwarded: LootAwarded | null;
+  deathPenalty: { goldLost: number; respawned: boolean } | null;
+
   // Actions
   fetchNPCs: (locationId?: string) => Promise<void>;
   startCombat: (npcId: string, characterId: string) => Promise<void>;
-  playTurn: () => Promise<void>;
   fleeCombat: () => Promise<void>;
   endCombat: () => void;
   fetchCombatHistory: () => Promise<void>;
   fetchCombatStats: () => Promise<void>;
   checkActiveCombat: () => Promise<void>;
   clearCombatState: () => void;
+
+  // Sprint 2: Hold/Discard actions
+  startTurn: () => Promise<void>;
+  setHeldCards: (indices: number[]) => void;
+  toggleHeldCard: (index: number) => void;
+  confirmHold: () => Promise<void>;
+  rerollCard: (cardIndex: number) => Promise<void>;
+  peekNextCard: () => Promise<void>;
+  processAction: (action: CombatAction) => Promise<void>;
+  clearRoundState: () => void;
 }
 
 export const useCombatStore = create<CombatStore>((set, get) => ({
@@ -42,6 +66,13 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
   isProcessingCombat: false,
   isLoading: false,
   error: null,
+
+  // Sprint 2: Hold/Discard initial state
+  roundState: null,
+  heldCardIndices: [],
+  combatEnded: false,
+  lootAwarded: null,
+  deathPenalty: null,
 
   fetchNPCs: async (locationId?: string) => {
     set({ isLoading: true, error: null });
@@ -102,43 +133,6 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
       set({
         isProcessingCombat: false,
         error: error.message || 'Failed to start combat',
-      });
-      throw error;
-    }
-  },
-
-  playTurn: async () => {
-    const { activeCombat } = get();
-
-    if (!activeCombat) {
-      set({ error: 'No active combat' });
-      return;
-    }
-
-    if (!activeCombat._id) {
-      set({ error: 'Combat session has no ID' });
-      return;
-    }
-
-    set({ isProcessingCombat: true, error: null });
-
-    try {
-      const response = await combatService.playTurn(activeCombat._id);
-
-      if (response.success && response.data) {
-        set({
-          activeCombat: response.data.result.encounter,
-          isProcessingCombat: false,
-          error: null,
-        });
-      } else {
-        throw new Error(response.error || 'Failed to play turn');
-      }
-    } catch (error: any) {
-      logger.error('Failed to play turn', error, { combatId: activeCombat._id });
-      set({
-        isProcessingCombat: false,
-        error: error.message || 'Failed to play turn',
       });
       throw error;
     }
@@ -243,8 +237,232 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
       isProcessingCombat: false,
       isLoading: false,
       error: null,
+      // Sprint 2 state
+      roundState: null,
+      heldCardIndices: [],
+      combatEnded: false,
+      lootAwarded: null,
+      deathPenalty: null,
     });
   },
+
+  // ==========================================================================
+  // SPRINT 2: HOLD/DISCARD COMBAT SYSTEM ACTIONS
+  // ==========================================================================
+
+  startTurn: async () => {
+    const { activeCombat } = get();
+
+    if (!activeCombat?._id) {
+      set({ error: 'No active combat' });
+      return;
+    }
+
+    set({ isProcessingCombat: true, error: null, combatEnded: false, lootAwarded: null, deathPenalty: null });
+
+    try {
+      const response = await combatService.startTurn(activeCombat._id);
+
+      if (response.success && response.data) {
+        set({
+          roundState: response.data.roundState,
+          heldCardIndices: response.data.roundState?.heldCardIndices || [],
+          activeCombat: response.data.encounter,
+          isProcessingCombat: false,
+          error: null,
+        });
+      } else {
+        throw new Error(response.error || 'Failed to start turn');
+      }
+    } catch (error: any) {
+      logger.error('Failed to start turn', error);
+      set({
+        isProcessingCombat: false,
+        error: error.message || 'Failed to start turn',
+      });
+    }
+  },
+
+  setHeldCards: (indices: number[]) => {
+    set({ heldCardIndices: indices });
+  },
+
+  toggleHeldCard: (index: number) => {
+    const { heldCardIndices } = get();
+    const newIndices = heldCardIndices.includes(index)
+      ? heldCardIndices.filter(i => i !== index)
+      : [...heldCardIndices, index];
+    set({ heldCardIndices: newIndices });
+  },
+
+  confirmHold: async () => {
+    const { activeCombat, heldCardIndices } = get();
+
+    if (!activeCombat?._id) {
+      set({ error: 'No active combat' });
+      return;
+    }
+
+    set({ isProcessingCombat: true, error: null });
+
+    try {
+      // First send the hold action to set held cards
+      const holdResponse = await combatService.processAction(activeCombat._id, {
+        type: 'hold',
+        cardIndices: heldCardIndices,
+      });
+
+      if (!holdResponse.success) {
+        throw new Error(holdResponse.error || 'Failed to set held cards');
+      }
+
+      // Then confirm the hold
+      const confirmResponse = await combatService.processAction(activeCombat._id, {
+        type: 'confirm_hold',
+      });
+
+      if (confirmResponse.success && confirmResponse.data) {
+        const result = confirmResponse.data;
+        set({
+          roundState: result.roundState as CombatRoundState | null,
+          activeCombat: result.encounter as CombatEncounter | null,
+          combatEnded: result.combatEnded || false,
+          lootAwarded: result.lootAwarded || null,
+          deathPenalty: result.deathPenalty || null,
+          heldCardIndices: [],
+          isProcessingCombat: false,
+          error: null,
+          inCombat: !result.combatEnded,
+        });
+      } else {
+        throw new Error(confirmResponse.error || 'Failed to confirm hold');
+      }
+    } catch (error: any) {
+      logger.error('Failed to confirm hold', error);
+      set({
+        isProcessingCombat: false,
+        error: error.message || 'Failed to confirm hold',
+      });
+    }
+  },
+
+  rerollCard: async (cardIndex: number) => {
+    const { activeCombat } = get();
+
+    if (!activeCombat?._id) {
+      set({ error: 'No active combat' });
+      return;
+    }
+
+    set({ isProcessingCombat: true, error: null });
+
+    try {
+      const response = await combatService.processAction(activeCombat._id, {
+        type: 'reroll',
+        cardIndex,
+      });
+
+      if (response.success && response.data) {
+        set({
+          roundState: response.data.roundState as CombatRoundState | null,
+          isProcessingCombat: false,
+          error: null,
+        });
+      } else {
+        throw new Error(response.error || 'Failed to reroll card');
+      }
+    } catch (error: any) {
+      logger.error('Failed to reroll card', error);
+      set({
+        isProcessingCombat: false,
+        error: error.message || 'Failed to reroll card',
+      });
+    }
+  },
+
+  peekNextCard: async () => {
+    const { activeCombat } = get();
+
+    if (!activeCombat?._id) {
+      set({ error: 'No active combat' });
+      return;
+    }
+
+    set({ isProcessingCombat: true, error: null });
+
+    try {
+      const response = await combatService.processAction(activeCombat._id, {
+        type: 'peek',
+      });
+
+      if (response.success && response.data) {
+        set({
+          roundState: response.data.roundState as CombatRoundState | null,
+          isProcessingCombat: false,
+          error: null,
+        });
+      } else {
+        throw new Error(response.error || 'Failed to peek');
+      }
+    } catch (error: any) {
+      logger.error('Failed to peek', error);
+      set({
+        isProcessingCombat: false,
+        error: error.message || 'Failed to peek',
+      });
+    }
+  },
+
+  processAction: async (action: CombatAction) => {
+    const { activeCombat } = get();
+
+    if (!activeCombat?._id) {
+      set({ error: 'No active combat' });
+      return;
+    }
+
+    set({ isProcessingCombat: true, error: null });
+
+    try {
+      const response = await combatService.processAction(activeCombat._id, action);
+
+      if (response.success && response.data) {
+        const result = response.data;
+        set({
+          roundState: result.roundState as CombatRoundState | null,
+          activeCombat: result.encounter as CombatEncounter | null,
+          combatEnded: result.combatEnded || false,
+          lootAwarded: result.lootAwarded || null,
+          deathPenalty: result.deathPenalty || null,
+          isProcessingCombat: false,
+          error: null,
+          inCombat: !result.combatEnded,
+        });
+      } else {
+        throw new Error(response.error || 'Failed to process action');
+      }
+    } catch (error: any) {
+      logger.error('Failed to process action', error, { action });
+      set({
+        isProcessingCombat: false,
+        error: error.message || 'Failed to process action',
+      });
+    }
+  },
+
+  clearRoundState: () => {
+    set({
+      roundState: null,
+      heldCardIndices: [],
+      combatEnded: false,
+      lootAwarded: null,
+      deathPenalty: null,
+    });
+  },
+
+  // ==========================================================================
+  // END SPRINT 2: HOLD/DISCARD COMBAT SYSTEM ACTIONS
+  // ==========================================================================
 }));
 
 export default useCombatStore;

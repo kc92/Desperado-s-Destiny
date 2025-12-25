@@ -7,6 +7,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { requireCsrfToken } from '../middleware/csrf.middleware';
+import { requireAuth } from '../middleware/auth.middleware';
 import {
   getCurrentTime,
   getTimeEffects,
@@ -41,15 +42,15 @@ router.get('/building/:buildingType/status', asyncHandler(getBuildingStatus));
 /**
  * @route   POST /api/time/crime/check
  * @desc    Check crime availability at current time
- * @access  Public
+ * @access  Private
  */
-router.post('/crime/check', requireCsrfToken, asyncHandler(checkCrimeAvailability));
+router.post('/crime/check', requireAuth, requireCsrfToken, asyncHandler(checkCrimeAvailability));
 
 /**
  * @route   POST /api/time/location/description
  * @desc    Get time-based location description
- * @access  Public
+ * @access  Private
  */
-router.post('/location/description', requireCsrfToken, asyncHandler(getLocationDescription));
+router.post('/location/description', requireAuth, requireCsrfToken, asyncHandler(getLocationDescription));
 
 export default router;

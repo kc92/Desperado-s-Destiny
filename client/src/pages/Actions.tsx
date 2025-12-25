@@ -21,6 +21,7 @@ import { api } from '@/services/api';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { logger } from '@/services/logger.service';
 import { dispatchJobCompleted } from '@/utils/tutorialEvents';
+import { tutorialService } from '@/services/tutorial.service';
 
 interface ActionCategory {
   type: ActionType;
@@ -210,6 +211,19 @@ export const Actions: React.FC = () => {
     // Dispatch tutorial event for action completion
     if (result.gameResult.success && selectedAction?.id) {
       dispatchJobCompleted(selectedAction.id);
+
+      // Notify server to advance tutorial (if in tutorial)
+      if (currentCharacter?._id) {
+        tutorialService.advanceStep(currentCharacter._id, `complete-job-${selectedAction.id}`)
+          .then((res) => {
+            if (res.success) {
+              logger.info('[Actions] Tutorial advanced after job completion', { jobId: selectedAction.id });
+            }
+          })
+          .catch((err) => {
+            logger.warn('[Actions] Failed to advance tutorial', { error: err });
+          });
+      }
     }
 
     // Play appropriate sound
@@ -638,31 +652,39 @@ export const Actions: React.FC = () => {
             </Card>
           )}
 
-          {/* Quick Stats */}
+          {/* Action Type Breakdown */}
           <Card variant="leather">
             <div className="p-6">
               <h3 className="text-lg font-western text-desert-sand mb-3">
-                Action Statistics
+                Actions by Type
               </h3>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-desert-stone">Actions Available:</span>
-                  <span className="text-desert-sand">
+                <div className="flex justify-between border-b border-wood-grain/30 pb-2 mb-2">
+                  <span className="text-desert-stone font-semibold">Total Available:</span>
+                  <span className="text-gold-light font-bold">
                     {actions?.length || 0}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-desert-stone">Actions Today:</span>
-                  <span className="text-desert-sand">12</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-desert-stone">Success Rate:</span>
-                  <span className="text-green-500">68%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-desert-stone">Gold Earned:</span>
-                  <span className="text-gold-light">$2,450</span>
-                </div>
+                {categories.map((cat) => {
+                  const count = actions?.filter(a => a.type === cat.type).length || 0;
+                  const unlockedCount = actions?.filter(a => a.type === cat.type && isActionUnlocked(a)).length || 0;
+                  return (
+                    <div key={cat.type} className="flex justify-between items-center">
+                      <span className="text-desert-stone flex items-center gap-2">
+                        <span>{cat.icon}</span>
+                        <span>{cat.name}:</span>
+                      </span>
+                      <span className="text-desert-sand">
+                        {unlockedCount}/{count}
+                        {unlockedCount < count && (
+                          <span className="text-desert-stone ml-1 text-xs">
+                            ({count - unlockedCount} locked)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </Card>

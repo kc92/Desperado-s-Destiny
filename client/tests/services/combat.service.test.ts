@@ -245,8 +245,8 @@ describe('CombatService', () => {
           data: {
             stats: {
               totalCombats: 10,
-              victories: 7,
-              defeats: 3,
+              wins: 7,
+              losses: 3,
               flees: 0,
               winRate: 70,
               totalDamageDealt: 500,

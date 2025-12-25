@@ -37,8 +37,8 @@ export class EncounterService {
     toLocationId: string
   ): Promise<IActiveEncounter | null> {
     try {
-      // Get character for wanted level
-      const character = await Character.findById(characterId);
+      // Get character for wanted level (read-only - use lean for performance)
+      const character = await Character.findById(characterId).lean();
       if (!character) {
         throw new Error('Character not found');
       }
@@ -49,8 +49,8 @@ export class EncounterService {
         return existingEncounter; // Return existing encounter instead of creating new
       }
 
-      // Get destination location for danger level and region
-      const toLocation = await Location.findById(toLocationId);
+      // Get destination location for danger level and region (read-only - use lean)
+      const toLocation = await Location.findById(toLocationId).lean();
       if (!toLocation) {
         throw new Error('Destination location not found');
       }
@@ -75,15 +75,19 @@ export class EncounterService {
             { region: toLocation.region },
             { isGlobal: true }
           ]
-        });
+        }).lean();
 
         for (const event of activeEvents) {
           for (const effect of event.worldEffects) {
-            // BANDIT_ACTIVITY: increase encounter chance
-            // LAWMAN_PATROL: decrease encounter chance
+            // danger_modifier: affects base danger calculation (already applied above)
             if (effect.type === 'danger_modifier' && (effect.target === 'all' || effect.target === toLocation.region)) {
               encounterModifier *= effect.value;
               logger.info(`World event "${event.name}" modified encounter chance by ${effect.value}x (${effect.description})`);
+            }
+            // spawn_rate: directly affects encounter spawn chance
+            if (effect.type === 'spawn_rate' && (effect.target === 'all' || effect.target === 'encounter' || effect.target === toLocation.region)) {
+              encounterModifier *= effect.value;
+              logger.info(`World event "${event.name}" modified spawn rate by ${effect.value}x (${effect.description})`);
             }
           }
         }
@@ -92,7 +96,7 @@ export class EncounterService {
         encounterChance = Math.min(100, encounterChance * encounterModifier);
       } catch (eventError) {
         // Don't fail encounter roll if event check fails
-        logger.error('Failed to check world events for danger modifiers:', eventError);
+        logger.error('Failed to check world events for encounter modifiers:', eventError);
       }
 
       // Roll for encounter

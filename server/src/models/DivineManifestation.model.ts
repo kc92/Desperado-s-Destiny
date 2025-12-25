@@ -17,6 +17,7 @@
  */
 
 import { Schema, model, Document, Types, Model, Query } from 'mongoose';
+import logger from '../utils/logger';
 
 export type ManifestationType =
   | 'DREAM'
@@ -254,7 +255,7 @@ DivineManifestationSchema.methods.getEffectData = function(): Record<string, unk
   } catch (error) {
     // ERR-1 FIX: Log JSON parsing errors instead of silently failing
     // This helps debug malformed effect data in manifestations
-    console.error(`Failed to parse effect data for manifestation ${this._id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    logger.error(`Failed to parse effect data for manifestation ${this._id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return null;
   }
 };

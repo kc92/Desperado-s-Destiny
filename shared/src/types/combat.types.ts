@@ -174,11 +174,11 @@ export interface CombatEncounter {
 export interface CombatStats {
   /** Total wins */
   wins: number;
-  /** Victories (alias) */
+  /** @deprecated Use wins instead */
   victories?: number;
   /** Total losses */
   losses: number;
-  /** Defeats (alias) */
+  /** @deprecated Use losses instead */
   defeats?: number;
   /** Total damage dealt */
   totalDamage: number;
@@ -345,3 +345,178 @@ export interface CombatResult {
   /** Combat date */
   date: Date;
 }
+
+// =============================================================================
+// SPRINT 2: HOLD/DISCARD COMBAT SYSTEM
+// =============================================================================
+
+/**
+ * Player turn phases in hold/discard combat
+ * Players now make decisions during the HOLD phase
+ * Named PlayerTurnPhase to avoid collision with boss CombatPhase in legendary.types
+ */
+export enum PlayerTurnPhase {
+  /** Initial draw - player sees 5 cards */
+  DRAW = 'draw',
+  /** Player selects cards to hold (main decision point) */
+  HOLD = 'hold',
+  /** Non-held cards discarded, replacements drawn */
+  DISCARD = 'discard',
+  /** Final hand revealed and evaluated */
+  REVEAL = 'reveal',
+  /** Damage calculated and applied */
+  DAMAGE = 'damage',
+  /** NPC takes their turn (auto-play) */
+  NPC_TURN = 'npc_turn',
+  /** Round complete, check for victory/defeat */
+  COMPLETE = 'complete'
+}
+
+/**
+ * Special abilities unlocked by combat skills
+ * Mirrors the Poker Hold/Draw game abilities from deckGames.ts
+ */
+export interface CombatAbilities {
+  /** Rerolls available (1 per 30 combat skill levels) */
+  rerollsAvailable: number;
+  /** Peeks available (skill 50+ unlocks peek) */
+  peeksAvailable: number;
+  /** Rerolls used this combat */
+  rerollsUsed: number;
+  /** Peeks used this combat */
+  peeksUsed: number;
+  /** Card seen via peek (if any) */
+  peekedCard?: Card;
+  /** Quick draw unlocked (skill 60+, draw 6 cards instead of 5) */
+  quickDrawUnlocked: boolean;
+  /** Deadly aim unlocked (skill 75+, critical hits deal 1.5x) */
+  deadlyAimUnlocked: boolean;
+}
+
+/**
+ * Current round state for hold/discard combat
+ * Stored in encounter.currentRound during active combat
+ */
+export interface CombatRoundState {
+  /** Current phase of this round */
+  phase: PlayerTurnPhase;
+  /** Deck remaining cards (for drawing replacements) */
+  deck: Card[];
+  /** Player's current hand (5 cards, or 6 with quick draw) */
+  playerHand: Card[];
+  /** Indices of cards player has selected to hold */
+  heldCardIndices: number[];
+  /** Final hand after discard/draw (set in REVEAL phase) */
+  finalHand?: Card[];
+  /** Player's final hand rank */
+  handRank?: HandRank;
+  /** Damage player will deal */
+  playerDamage?: number;
+  /** NPC's hand (shown after NPC turn) */
+  npcHand?: Card[];
+  /** NPC's hand rank */
+  npcHandRank?: HandRank;
+  /** Damage NPC deals */
+  npcDamage?: number;
+  /** Player's special abilities for this combat */
+  abilities: CombatAbilities;
+  /** When this phase started */
+  phaseStartedAt: Date;
+  /** When the decision times out (auto-hold all) */
+  timeoutAt: Date;
+  /** Discarded cards (for animation/display) */
+  discardedCards?: Card[];
+}
+
+/**
+ * Player actions during combat
+ * These are the decisions players can make
+ */
+export type CombatAction =
+  | CombatActionHold
+  | CombatActionConfirmHold
+  | CombatActionReroll
+  | CombatActionPeek
+  | CombatActionFlee;
+
+/** Toggle cards to hold (can be called multiple times before confirm) */
+export interface CombatActionHold {
+  type: 'hold';
+  /** Indices of cards to hold (0-4, or 0-5 with quick draw) */
+  cardIndices: number[];
+}
+
+/** Confirm hold selection and proceed to discard/draw phase */
+export interface CombatActionConfirmHold {
+  type: 'confirm_hold';
+}
+
+/** Use a reroll to replace a specific card (requires skill 30+) */
+export interface CombatActionReroll {
+  type: 'reroll';
+  /** Index of card to reroll */
+  cardIndex: number;
+}
+
+/** Use peek to see next card before deciding (requires skill 50+) */
+export interface CombatActionPeek {
+  type: 'peek';
+}
+
+/** Attempt to flee combat (only available rounds 1-3) */
+export interface CombatActionFlee {
+  type: 'flee';
+}
+
+/**
+ * Result of processing a combat action
+ */
+export interface CombatActionResult {
+  /** Whether the action was successful */
+  success: boolean;
+  /** Error message if failed */
+  error?: string;
+  /** Updated round state */
+  roundState?: CombatRoundState;
+  /** Updated encounter (if combat ended or HP changed) */
+  encounter?: CombatEncounter;
+  /** Combat ended flag */
+  combatEnded?: boolean;
+  /** Loot if victory */
+  lootAwarded?: LootAwarded;
+  /** Death penalty if defeat */
+  deathPenalty?: {
+    goldLost: number;
+    respawned: boolean;
+  };
+}
+
+/**
+ * Constants for combat timing
+ */
+export const COMBAT_TIMING = {
+  /** Seconds to make a decision before auto-hold */
+  HOLD_TIMEOUT_SECONDS: 30,
+  /** Milliseconds for card animations */
+  CARD_ANIMATION_MS: 300,
+  /** Milliseconds to show hand evaluation */
+  REVEAL_DURATION_MS: 1500,
+  /** Milliseconds for damage animation */
+  DAMAGE_ANIMATION_MS: 500
+} as const;
+
+/**
+ * Combat skill level thresholds for ability unlocks
+ */
+export const COMBAT_SKILL_THRESHOLDS = {
+  /** Skill level needed for first reroll */
+  REROLL_UNLOCK: 30,
+  /** Additional reroll every N levels */
+  REROLL_INTERVAL: 30,
+  /** Skill level needed for peek ability */
+  PEEK_UNLOCK: 50,
+  /** Skill level needed for quick draw (6 cards) */
+  QUICK_DRAW_UNLOCK: 60,
+  /** Skill level needed for deadly aim (1.5x crits) */
+  DEADLY_AIM_UNLOCK: 75
+} as const;

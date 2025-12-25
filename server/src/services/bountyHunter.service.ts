@@ -28,6 +28,7 @@ import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model
 import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
 import karmaService from './karma.service';
+import { safeAchievementUpdate } from '../utils/achievementUtils';
 
 /**
  * Mongoose model for hunter encounters
@@ -550,6 +551,11 @@ export class BountyHunterService {
       encounter.status = result;
       encounter.resolvedAt = new Date();
       await encounter.save();
+
+      // Track achievement: bounty_hunter_survivor (survive bounty hunter encounters)
+      if (result === 'hunter_defeated' || result === 'escaped') {
+        safeAchievementUpdate(encounter.targetId.toString(), 'bounty_hunter_survivor', 1, 'bountyHunter:survived');
+      }
 
       logger.info(
         `Hunter encounter resolved: ${encounter.hunterName} vs ${encounter.targetName} - ${result}`

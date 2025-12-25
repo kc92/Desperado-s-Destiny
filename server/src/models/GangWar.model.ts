@@ -20,7 +20,7 @@ import {
   WarAlliance,
   WarChest,
   WAR_REQUIREMENTS,
-  WarStatus,
+  WarLeagueTier,
 } from '@desperados/shared';
 
 /**
@@ -153,6 +153,12 @@ export interface IGangWar extends Document {
 
   outcome?: WarOutcome;
 
+  // Phase 2.1: Weekly War Schedule fields
+  weekScheduleId?: mongoose.Types.ObjectId;
+  seasonId?: mongoose.Types.ObjectId;
+  tier?: WarLeagueTier;
+  isAutoTournament: boolean;
+
   // Territory-specific fields (for old territory war system)
   territoryId?: string;
   capturePoints?: number;
@@ -273,6 +279,26 @@ const GangWarSchema = new Schema<IGangWar>(
       enum: Object.values(WarOutcome),
     },
 
+    // Phase 2.1: Weekly War Schedule fields
+    weekScheduleId: {
+      type: Schema.Types.ObjectId,
+      ref: 'WarWeekSchedule',
+      index: true,
+    },
+    seasonId: {
+      type: Schema.Types.ObjectId,
+      ref: 'WarSeason',
+      index: true,
+    },
+    tier: {
+      type: String,
+      enum: Object.values(WarLeagueTier),
+    },
+    isAutoTournament: {
+      type: Boolean,
+      default: false,
+    },
+
     // Territory-specific fields (for old territory war system)
     territoryId: { type: String },
     capturePoints: { type: Number },
@@ -308,6 +334,28 @@ GangWarSchema.index({ attackerGangId: 1, status: 1 });
 GangWarSchema.index({ defenderGangId: 1, status: 1 });
 GangWarSchema.index({ status: 1, startsAt: 1 });
 GangWarSchema.index({ status: 1, endsAt: 1 });
+
+/**
+ * Pre-save hook: Sync capturePoints with attackerScore/defenderScore
+ * This bridges the Phase 2.0 (capturePoints) and Phase 2.1 (score) systems
+ */
+GangWarSchema.pre('save', function (next) {
+  // Sync: capturePoints (0-200, 100=neutral) → scores
+  // capturePoints > 100 means attacker advantage
+  // capturePoints < 100 means defender advantage
+  if (this.capturePoints !== undefined) {
+    // Map capturePoints to scores for consistency
+    // capturePoints of 150 → attacker has 50 point lead
+    // capturePoints of 50 → defender has 50 point lead
+    const deviation = this.capturePoints - 100;
+    if (deviation > 0) {
+      this.attackerScore = Math.max(this.attackerScore, deviation * 10);
+    } else if (deviation < 0) {
+      this.defenderScore = Math.max(this.defenderScore, Math.abs(deviation) * 10);
+    }
+  }
+  next();
+});
 
 /**
  * Instance method: Check if war is in preparation phase
@@ -564,15 +612,27 @@ GangWarSchema.methods.contribute = function (
 };
 
 /**
- * Instance method: Resolve war and determine winner (for old territory war system)
+ * Instance method: Resolve war and determine winner
+ * Bridges both Phase 2.0 (capturePoints) and Phase 2.1 (scores) systems
  */
 GangWarSchema.methods.resolve = async function (
   this: IGangWar
 ): Promise<{ winner: 'attacker' | 'defender'; capturePoints: number }> {
-  const capturePoints = this.capturePoints || 50;
-  const winner = capturePoints >= 50 ? 'attacker' : 'defender';
+  // Determine winner using both systems for compatibility
+  let winner: 'attacker' | 'defender';
+  const capturePoints = this.capturePoints ?? 100;
 
-  this.status = winner === 'attacker' ? GangWarStatus.RESOLVED : GangWarStatus.RESOLVED;
+  // Use score-based winner if scores are meaningful, otherwise fall back to capturePoints
+  if (this.attackerScore > 0 || this.defenderScore > 0) {
+    winner = this.attackerScore > this.defenderScore ? 'attacker' : 'defender';
+  } else {
+    winner = capturePoints >= 100 ? 'attacker' : 'defender';
+  }
+
+  // Set outcome using the proper enum
+  this.outcome = winner === 'attacker' ? WarOutcome.ATTACKER_VICTORY : WarOutcome.DEFENDER_VICTORY;
+  this.status = GangWarStatus.RESOLVED;
+  this.endsAt = new Date();
   this.resolvedAt = new Date();
 
   if (this.warLog) {
@@ -582,6 +642,8 @@ GangWarSchema.methods.resolve = async function (
       data: {
         winner,
         capturePoints,
+        attackerScore: this.attackerScore,
+        defenderScore: this.defenderScore,
         attackerFunding: this.attackerFunding,
         defenderFunding: this.defenderFunding,
       },
@@ -598,8 +660,3 @@ export const GangWar = mongoose.model<IGangWar, IGangWarModel>(
   'GangWar',
   GangWarSchema
 );
-
-/**
- * Re-export types for convenience
- */
-export { WarStatus };

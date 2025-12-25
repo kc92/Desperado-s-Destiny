@@ -10,7 +10,8 @@ import {
   getCompletedQuests,
   acceptQuest,
   abandonQuest,
-  getQuestDetails
+  getQuestDetails,
+  completeQuest
 } from '../controllers/quest.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
@@ -30,6 +31,7 @@ router.get('/active', asyncHandler(getActiveQuests));
 router.get('/completed', asyncHandler(getCompletedQuests));
 router.post('/accept', requireCsrfToken, validate(QuestSchemas.accept), detectSuspiciousEarning(), asyncHandler(acceptQuest));
 router.post('/abandon', requireCsrfToken, validate(QuestSchemas.abandon), asyncHandler(abandonQuest));
+router.post('/complete', requireCsrfToken, validate(QuestSchemas.complete), detectSuspiciousEarning(), asyncHandler(completeQuest));
 router.get('/:questId', asyncHandler(getQuestDetails));
 
 export default router;

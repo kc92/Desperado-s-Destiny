@@ -8,10 +8,12 @@ import type { ApiResponse } from '@desperados/shared';
 import type {
   NPC,
   CombatEncounter,
-  TurnResult,
   FleeResult,
   CombatResult,
   CombatStats,
+  CombatRoundState,
+  CombatAction,
+  CombatActionResult,
 } from '@desperados/shared';
 
 /**
@@ -71,23 +73,6 @@ export const combatService = {
       return {
         success: false,
         error: error.message || 'Failed to start combat',
-      };
-    }
-  },
-
-  /**
-   * Play a turn in active combat
-   */
-  async playTurn(encounterId: string): Promise<ApiResponse<{ result: TurnResult }>> {
-    try {
-      const response = await apiClient.post<ApiResponse<{ result: TurnResult }>>(
-        `/combat/turn/${encounterId}`
-      );
-      return response.data;
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || 'Failed to play turn',
       };
     }
   },
@@ -161,6 +146,71 @@ export const combatService = {
       };
     }
   },
+
+  // ==========================================================================
+  // SPRINT 2: HOLD/DISCARD COMBAT SYSTEM
+  // ==========================================================================
+
+  /**
+   * Start a new turn in combat (Sprint 2)
+   * Draws cards and enters hold phase
+   */
+  async startTurn(encounterId: string): Promise<ApiResponse<{ roundState: CombatRoundState; encounter: CombatEncounter }>> {
+    try {
+      const response = await apiClient.post<ApiResponse<{ roundState: CombatRoundState; encounter: CombatEncounter }>>(
+        `/combat/${encounterId}/start-turn`
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to start turn',
+      };
+    }
+  },
+
+  /**
+   * Process a player action during combat (Sprint 2)
+   * Actions: hold, confirm_hold, reroll, peek, flee
+   */
+  async processAction(
+    encounterId: string,
+    action: CombatAction
+  ): Promise<ApiResponse<CombatActionResult>> {
+    try {
+      const response = await apiClient.post<ApiResponse<CombatActionResult>>(
+        `/combat/${encounterId}/action`,
+        action
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to process action',
+      };
+    }
+  },
+
+  /**
+   * Get current round state for an encounter (Sprint 2)
+   */
+  async getRoundState(encounterId: string): Promise<ApiResponse<{ roundState: CombatRoundState | null; encounter: CombatEncounter }>> {
+    try {
+      const response = await apiClient.get<ApiResponse<{ roundState: CombatRoundState | null; encounter: CombatEncounter }>>(
+        `/combat/${encounterId}/state`
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to get round state',
+      };
+    }
+  },
+
+  // ==========================================================================
+  // END SPRINT 2: HOLD/DISCARD COMBAT SYSTEM
+  // ==========================================================================
 };
 
 export default combatService;

@@ -33,6 +33,7 @@ import {
   PayrollSettingsRequest,
 } from '@desperados/shared';
 import logger from '../utils/logger';
+import { withLock } from '../utils/distributedLock';
 
 export class GangEconomyService {
   /**
@@ -578,98 +579,125 @@ export class GangEconomyService {
    * SECURITY: Supports external session parameter for proper transaction rollback
    * when called from batch processing jobs. If external session is provided,
    * this method will NOT manage transaction lifecycle (no commit/abort/end).
+   *
+   * PHASE 4 FIX: Uses distributed lock and atomic deduction to prevent
+   * race condition double-spend when processing payroll concurrently.
    */
   static async processPayroll(
     gangId: string,
     externalSession?: mongoose.ClientSession
   ): Promise<number> {
-    // Use external session if provided, otherwise create our own
-    const useExternalSession = !!externalSession;
-    const session = externalSession || await mongoose.startSession();
+    // PHASE 4 FIX: Use distributed lock to prevent concurrent payroll processing
+    const lockKey = `lock:gang:payroll:${gangId}`;
 
-    try {
-      // Only start transaction if we're managing our own session
-      if (!useExternalSession) {
-        await session.startTransaction();
-      }
+    return withLock(lockKey, async () => {
+      // Use external session if provided, otherwise create our own
+      const useExternalSession = !!externalSession;
+      const session = externalSession || await mongoose.startSession();
 
-      const economy = await GangEconomy.findOne({ gangId: new mongoose.Types.ObjectId(gangId) }).session(session);
-      if (!economy) {
-        throw new Error('Gang economy not found');
-      }
-
-      const totalPayroll = economy.payroll.totalWeekly;
-
-      if (totalPayroll === 0) {
-        // No payroll set
+      try {
+        // Only start transaction if we're managing our own session
         if (!useExternalSession) {
-          await session.commitTransaction();
+          await session.startTransaction();
         }
-        return 0;
-      }
 
-      if (!economy.canAfford(GangBankAccountType.OPERATING_FUND, totalPayroll)) {
-        logger.warn(`Gang ${gangId} cannot afford payroll of ${totalPayroll}`);
-        // Don't fail, just skip payroll this week
-        if (!useExternalSession) {
-          await session.commitTransaction();
+        // First, get economy to check payroll amount
+        const economyCheck = await GangEconomy.findOne({ gangId: new mongoose.Types.ObjectId(gangId) }).session(session);
+        if (!economyCheck) {
+          throw new Error('Gang economy not found');
         }
-        return 0;
-      }
 
-      // Deduct from operating fund
-      economy.deductFromAccount(GangBankAccountType.OPERATING_FUND, totalPayroll);
+        const totalPayroll = economyCheck.payroll.totalWeekly;
 
-      // Pay each member
-      const { DollarService } = await import('./dollar.service');
-      for (const wage of economy.payroll.weeklyWages) {
-        await DollarService.addDollars(
-          wage.memberId,
-          wage.amount,
-          'gang_payroll' as any,
-          { gangId },
-          session
+        if (totalPayroll === 0) {
+          // No payroll set
+          if (!useExternalSession) {
+            await session.commitTransaction();
+          }
+          return 0;
+        }
+
+        // PHASE 4 FIX: Atomically check balance AND deduct in single operation
+        // This prevents race condition where two requests both pass canAfford before either deducts
+        const economy = await GangEconomy.findOneAndUpdate(
+          {
+            gangId: new mongoose.Types.ObjectId(gangId),
+            'bank.operatingFund': { $gte: totalPayroll }  // Atomic balance check
+          },
+          {
+            $inc: {
+              'bank.operatingFund': -totalPayroll,
+              'bank.totalBalance': -totalPayroll
+            },
+            $set: {
+              'payroll.lastPaid': new Date(),
+              'payroll.nextPayday': this.calculateNextPayday()
+            }
+          },
+          { new: true, session }
         );
-      }
 
-      for (const bonus of economy.payroll.officerBonuses) {
-        if (bonus.bonuses && bonus.bonuses > 0) {
-          await DollarService.addDollars(
-            bonus.memberId,
-            bonus.bonuses,
-            'gang_payroll' as any,
-            { gangId, type: 'bonus' },
-            session
-          );
+        if (!economy) {
+          // Either gang not found or insufficient funds
+          const existing = await GangEconomy.findOne({ gangId: new mongoose.Types.ObjectId(gangId) }).session(session);
+          if (!existing) {
+            throw new Error('Gang economy not found');
+          }
+          // Insufficient funds - skip payroll this week
+          logger.warn(`Gang ${gangId} cannot afford payroll of ${totalPayroll}, have ${existing.bank.operatingFund}`);
+          if (!useExternalSession) {
+            await session.commitTransaction();
+          }
+          return 0;
+        }
+
+        // Funds atomically deducted - now safely pay each member
+        const { DollarService } = await import('./dollar.service');
+        for (const wage of economy.payroll.weeklyWages) {
+          if (wage.amount > 0) {
+            await DollarService.addDollars(
+              wage.memberId,
+              wage.amount,
+              'gang_payroll' as any,
+              { gangId },
+              session
+            );
+          }
+        }
+
+        for (const bonus of economy.payroll.officerBonuses) {
+          if (bonus.bonuses && bonus.bonuses > 0) {
+            await DollarService.addDollars(
+              bonus.memberId,
+              bonus.bonuses,
+              'gang_payroll' as any,
+              { gangId, type: 'bonus' },
+              session
+            );
+          }
+        }
+
+        // Only commit if we're managing our own session
+        if (!useExternalSession) {
+          await session.commitTransaction();
+        }
+
+        logger.info(`Processed payroll for gang ${gangId}: ${totalPayroll} dollars`);
+
+        return totalPayroll;
+      } catch (error) {
+        // Only abort if we're managing our own session
+        if (!useExternalSession) {
+          await session.abortTransaction();
+        }
+        logger.error('Error processing payroll:', error);
+        throw error;
+      } finally {
+        // Only end session if we created it
+        if (!useExternalSession) {
+          session.endSession();
         }
       }
-
-      // Update payroll dates
-      economy.payroll.lastPaid = new Date();
-      economy.payroll.nextPayday = this.calculateNextPayday();
-
-      await economy.save({ session });
-
-      // Only commit if we're managing our own session
-      if (!useExternalSession) {
-        await session.commitTransaction();
-      }
-
-      logger.info(`Processed payroll for gang ${gangId}: ${totalPayroll} dollars`);
-
-      return totalPayroll;
-    } catch (error) {
-      // Only abort if we're managing our own session
-      if (!useExternalSession) {
-        await session.abortTransaction();
-      }
-      logger.error('Error processing payroll:', error);
-      throw error;
-    } finally {
-      // Only end session if we created it
-      if (!useExternalSession) {
-        session.endSession();
-      }
-    }
+    }, { ttl: 60, retries: 3 });
   }
 }

@@ -15,6 +15,8 @@ import {
 import { Character } from '../models/Character.model';
 import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import { DollarService } from './dollar.service';
+import { CharacterProgressionService } from './characterProgression.service';
+import { InventoryService } from './inventory.service';
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
 import { withLock } from '../utils/distributedLock';
@@ -154,7 +156,8 @@ export class QuestService {
    * Get all available quests for a character
    */
   static async getAvailableQuests(characterId: string): Promise<IQuestDefinition[]> {
-    const character = await Character.findById(characterId);
+    // Read-only query - use lean for performance
+    const character = await Character.findById(characterId).lean();
     if (!character) {
       throw new AppError('Character not found', 404);
     }
@@ -217,7 +220,8 @@ export class QuestService {
     characterId: string,
     questId: string
   ): Promise<ICharacterQuest> {
-    const character = await Character.findById(characterId);
+    // Read-only query for level check - use lean for performance
+    const character = await Character.findById(characterId).lean();
     if (!character) {
       throw new AppError('Character not found', 404);
     }
@@ -309,9 +313,11 @@ export class QuestService {
           await quest.save();
           updatedQuests.push(quest);
 
-          // Check if all objectives complete
-          const allComplete = quest.objectives.every(obj => obj.current >= obj.required);
-          if (allComplete) {
+          // Check if all REQUIRED objectives are complete (optional objectives don't block completion)
+          const allRequiredComplete = quest.objectives
+            .filter(obj => !obj.optional)
+            .every(obj => obj.current >= obj.required);
+          if (allRequiredComplete) {
             await this.completeQuest(characterId, quest.questId);
           }
         }
@@ -323,6 +329,7 @@ export class QuestService {
 
   /**
    * Complete a quest and grant rewards
+   * PHASE 4 FIX: Use atomic status update to prevent race condition double-completion
    */
   static async completeQuest(
     characterId: string,
@@ -332,20 +339,44 @@ export class QuestService {
     session.startTransaction();
 
     try {
-      const characterQuest = await CharacterQuest.findOne({
-        characterId,
-        questId,
-        status: 'active'
-      }).session(session);
+      // PHASE 4 FIX: Atomically update status from 'active' to 'completing' to prevent race condition
+      // Two parallel requests cannot both find status='active' after one has claimed it
+      const characterQuest = await CharacterQuest.findOneAndUpdate(
+        {
+          characterId,
+          questId,
+          status: 'active'  // Only match if still active
+        },
+        {
+          $set: { status: 'completing' }  // Intermediate state prevents double-completion
+        },
+        {
+          new: true,
+          session
+        }
+      );
 
       if (!characterQuest) {
-        throw new AppError('Quest not found or not active', 404);
+        // Check if already completed or doesn't exist
+        const existing = await CharacterQuest.findOne({ characterId, questId }).session(session);
+        if (!existing) {
+          throw new AppError('Quest not found', 404);
+        }
+        if (existing.status === 'completed' || existing.status === 'completing') {
+          throw new AppError('Quest already completed', 400);
+        }
+        throw new AppError('Quest not active', 400);
       }
 
-      // Verify all objectives complete
-      const allComplete = characterQuest.objectives.every(obj => obj.current >= obj.required);
-      if (!allComplete) {
-        throw new AppError('Not all objectives completed', 400);
+      // Verify all REQUIRED objectives are complete (optional objectives don't block)
+      const allRequiredComplete = characterQuest.objectives
+        .filter(obj => !obj.optional)
+        .every(obj => obj.current >= obj.required);
+      if (!allRequiredComplete) {
+        // Revert status back to active if objectives not complete
+        characterQuest.status = 'active';
+        await characterQuest.save({ session });
+        throw new AppError('Not all required objectives completed', 400);
       }
 
       // Get quest definition for rewards
@@ -376,21 +407,24 @@ export class QuestService {
             break;
           case 'xp':
             if (reward.amount) {
-              await character.addExperience(reward.amount);
+              // Use CharacterProgressionService for atomic XP handling with session
+              await CharacterProgressionService.addExperience(
+                characterId,
+                reward.amount,
+                'QUEST_REWARD',
+                session
+              );
             }
             break;
           case 'item':
             if (reward.itemId) {
-              const existing = character.inventory.find(inv => inv.itemId === reward.itemId);
-              if (existing) {
-                existing.quantity += 1;
-              } else {
-                character.inventory.push({
-                  itemId: reward.itemId,
-                  quantity: 1,
-                  acquiredAt: new Date()
-                });
-              }
+              // Use InventoryService for atomic item handling with session
+              await InventoryService.addItems(
+                characterId,
+                [{ itemId: reward.itemId, quantity: 1 }],
+                { type: 'quest', id: questId, name: questDef.name },
+                session
+              );
             }
             break;
           case 'reputation':
@@ -418,7 +452,8 @@ export class QuestService {
       characterQuest.status = 'completed';
       characterQuest.completedAt = new Date();
 
-      await character.save({ session });
+      // Note: character.save() removed - all reward modifications (dollars, XP, items)
+      // are now handled atomically by their respective services with the session
       await characterQuest.save({ session });
       await session.commitTransaction();
 

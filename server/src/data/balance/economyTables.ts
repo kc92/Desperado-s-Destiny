@@ -181,28 +181,42 @@ export const JOB_REWARDS = {
 /**
  * Crime rewards vs risk calculations
  * Format: [baseReward, successRate, jailTime, bailCost, wantedIncrease]
+ *
+ * PHASE 19 BALANCE: Early game crime rebalanced for POSITIVE expected value
+ *
+ * Old NOVICE petty: reward=15, success=0.70, bail=100
+ *   EV: (15 × 0.70) - (100 × 0.30) = 10.50 - 30 = -$19.50 (TERRIBLE!)
+ *
+ * New NOVICE petty: reward=25, success=0.75, bail=50
+ *   EV: (25 × 0.75) - (50 × 0.25) = 18.75 - 12.50 = +$6.25 (FAIR!)
+ *
+ * Philosophy: Early game should teach mechanics without punishing players.
+ * Risk vs reward increases at higher tiers, not lower ones.
  */
 export const CRIME_BALANCE = {
   // Petty crimes (high success, low reward)
   petty: {
-    [LevelTier.NOVICE]: [15, 0.70, 5, 100, 1],
-    [LevelTier.JOURNEYMAN]: [60, 0.65, 8, 200, 1],
+    // PHASE 19: Buffed NOVICE - reward up, success up, jail down, bail down
+    [LevelTier.NOVICE]: [25, 0.75, 3, 50, 1],      // Was [15, 0.70, 5, 100, 1]
+    [LevelTier.JOURNEYMAN]: [80, 0.70, 6, 150, 1], // Was [60, 0.65, 8, 200, 1]
     [LevelTier.VETERAN]: [250, 0.60, 12, 400, 1],
     [LevelTier.EXPERT]: [1000, 0.55, 15, 800, 1],
     [LevelTier.MASTER]: [4000, 0.50, 20, 1500, 1]
   },
   // Medium crimes (moderate success, moderate reward)
   medium: {
-    [LevelTier.NOVICE]: [50, 0.50, 15, 250, 2],
-    [LevelTier.JOURNEYMAN]: [200, 0.45, 25, 500, 2],
+    // PHASE 19: Buffed NOVICE for positive EV
+    [LevelTier.NOVICE]: [75, 0.55, 12, 150, 2],    // Was [50, 0.50, 15, 250, 2]
+    [LevelTier.JOURNEYMAN]: [250, 0.50, 20, 400, 2], // Was [200, 0.45, 25, 500, 2]
     [LevelTier.VETERAN]: [800, 0.40, 40, 1000, 2],
     [LevelTier.EXPERT]: [3200, 0.35, 60, 2000, 2],
     [LevelTier.MASTER]: [12500, 0.30, 90, 4000, 2]
   },
   // Major crimes (low success, high reward)
   major: {
-    [LevelTier.NOVICE]: [150, 0.30, 45, 600, 3],
-    [LevelTier.JOURNEYMAN]: [600, 0.28, 75, 1200, 3],
+    // PHASE 19: Slightly buffed NOVICE (still risky but not punishing)
+    [LevelTier.NOVICE]: [200, 0.35, 40, 400, 3],   // Was [150, 0.30, 45, 600, 3]
+    [LevelTier.JOURNEYMAN]: [700, 0.32, 60, 1000, 3], // Was [600, 0.28, 75, 1200, 3]
     [LevelTier.VETERAN]: [2500, 0.25, 120, 2500, 3],
     [LevelTier.EXPERT]: [10000, 0.22, 180, 5000, 3],
     [LevelTier.MASTER]: [40000, 0.20, 240, 10000, 3]

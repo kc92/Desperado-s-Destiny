@@ -5,12 +5,17 @@
  */
 
 import mongoose from 'mongoose';
-import { PropertyWorker, IPropertyWorker } from '../models/PropertyWorker.model';
+import { PropertyWorker, IPropertyWorker, WorkerQuality, WORKER_QUALITY_STATS } from '../models/PropertyWorker.model';
 import { Character } from '../models/Character.model';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import { WorkerSpecialization, WorkerTrait, WorkerListing } from '@desperados/shared';
 import { SecureRNG } from './base/SecureRNG';
 import { v4 as uuidv4 } from 'uuid';
+import { DollarService } from './dollar.service';
+import { TaskType, TASK_STAMINA_COSTS } from '../models/WorkerTask.model';
+import { Property } from '../models/Property.model';
+import { TerritoryBonusService } from './territoryBonus.service';
+import logger from '../utils/logger';
 
 /**
  * Worker name pool for generation
@@ -212,7 +217,7 @@ export class WorkerManagementService {
   }
 
   /**
-   * Hire a worker
+   * Hire a worker with quality-based system
    */
   static async hireWorker(
     propertyId: string,
@@ -229,8 +234,27 @@ export class WorkerManagementService {
         throw new Error('Character not found');
       }
 
-      // Check if can afford
-      const hiringCost = listing.weeklyWage; // First week upfront
+      // Roll for worker quality based on spawn rates
+      const roll = SecureRNG.float(0, 100);
+      let quality: WorkerQuality;
+      let cumulativeRate = 0;
+
+      if (roll < (cumulativeRate += WORKER_QUALITY_STATS[WorkerQuality.LEGENDARY].spawnRate * 100)) {
+        quality = WorkerQuality.LEGENDARY;
+      } else if (roll < (cumulativeRate += WORKER_QUALITY_STATS[WorkerQuality.VETERAN].spawnRate * 100)) {
+        quality = WorkerQuality.VETERAN;
+      } else if (roll < (cumulativeRate += WORKER_QUALITY_STATS[WorkerQuality.EXPERIENCED].spawnRate * 100)) {
+        quality = WorkerQuality.EXPERIENCED;
+      } else if (roll < (cumulativeRate += WORKER_QUALITY_STATS[WorkerQuality.REGULAR].spawnRate * 100)) {
+        quality = WorkerQuality.REGULAR;
+      } else {
+        quality = WorkerQuality.GREENHORN;
+      }
+
+      const qualityStats = WORKER_QUALITY_STATS[quality];
+
+      // Check if can afford (hire cost based on quality)
+      const hiringCost = qualityStats.hireCost;
       if (!character.hasDollars(hiringCost)) {
         throw new Error(`Insufficient dollars (need ${hiringCost})`);
       }
@@ -239,6 +263,7 @@ export class WorkerManagementService {
       await character.deductDollars(hiringCost, TransactionSource.WORKER_HIRE, {
         workerName: listing.name,
         specialization: listing.specialization,
+        quality: quality,
         currencyType: 'DOLLAR',
       });
 
@@ -251,7 +276,7 @@ export class WorkerManagementService {
         }
       }
 
-      // Create worker
+      // Create worker with quality-based stats
       const worker = new PropertyWorker({
         workerId: uuidv4(),
         propertyId: new mongoose.Types.ObjectId(propertyId),
@@ -260,18 +285,26 @@ export class WorkerManagementService {
         specialization: listing.specialization,
         skillLevel: listing.skillLevel,
         loyalty: listing.loyalty,
-        efficiency: listing.efficiency,
+        efficiency: qualityStats.efficiency, // Use quality-based efficiency
         morale: Math.max(0, Math.min(100, morale)),
         weeklyWage: listing.weeklyWage,
         hiredDate: new Date(),
         lastPaidDate: new Date(),
         traits: listing.traits,
+        // Quality & Stamina fields
+        quality: quality,
+        stamina: qualityStats.stamina,
+        maxStamina: qualityStats.stamina,
+        lastFed: new Date(),
+        feedingCost: Math.floor(qualityStats.hireCost / 10), // 10% of hire cost daily
       });
 
       await worker.save({ session });
       await character.save({ session });
 
       await session.commitTransaction();
+
+      logger.info(`Hired ${quality} worker "${listing.name}" for property ${propertyId}`);
 
       return worker;
     } catch (error) {
@@ -605,5 +638,240 @@ export class WorkerManagementService {
     } finally {
       session.endSession();
     }
+  }
+
+  // =============================================================================
+  // STAMINA SYSTEM METHODS
+  // =============================================================================
+
+  /**
+   * Deplete worker stamina after task completion
+   *
+   * @param workerId - Worker ID
+   * @param amount - Amount of stamina to deplete
+   */
+  static async depleteStamina(workerId: string, amount: number): Promise<void> {
+    const worker = await PropertyWorker.findOne({ workerId });
+    if (!worker) {
+      throw new Error('Worker not found');
+    }
+
+    worker.stamina = Math.max(0, worker.stamina - amount);
+    await worker.save();
+
+    logger.debug(`Worker ${worker.name} stamina depleted by ${amount}. Current: ${worker.stamina}/${worker.maxStamina}`);
+  }
+
+  /**
+   * Regenerate stamina for idle workers
+   * Regenerates 1 stamina per hour when not working
+   *
+   * @param workerId - Worker ID
+   */
+  static async regenerateIdleStamina(workerId: string): Promise<void> {
+    const worker = await PropertyWorker.findOne({ workerId });
+    if (!worker) {
+      throw new Error('Worker not found');
+    }
+
+    // Only regenerate if worker is idle
+    if (worker.isAssigned) {
+      return;
+    }
+
+    // Calculate hours since last update (using lastFed as last update time)
+    const now = new Date();
+    const hoursSinceUpdate = (now.getTime() - worker.lastFed.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceUpdate >= 1) {
+      const staminaToRegenerate = Math.floor(hoursSinceUpdate);
+      worker.stamina = Math.min(worker.maxStamina, worker.stamina + staminaToRegenerate);
+      worker.lastFed = now; // Update last update time
+      await worker.save();
+
+      logger.debug(`Worker ${worker.name} regenerated ${staminaToRegenerate} stamina. Current: ${worker.stamina}/${worker.maxStamina}`);
+    }
+  }
+
+  /**
+   * Feed worker to restore stamina
+   * Restores 50% of max stamina
+   *
+   * @param characterId - Character feeding the worker
+   * @param workerId - Worker to feed
+   * @returns Stamina restored and cost
+   */
+  static async feedWorker(
+    characterId: string,
+    workerId: string
+  ): Promise<{ staminaRestored: number; cost: number }> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const worker = await PropertyWorker.findOne({ workerId }).session(session);
+      if (!worker) {
+        throw new Error('Worker not found');
+      }
+
+      if (worker.characterId.toString() !== characterId) {
+        throw new Error('You do not own this worker');
+      }
+
+      // Check if already at max stamina
+      if (worker.stamina >= worker.maxStamina) {
+        throw new Error('Worker already at max stamina');
+      }
+
+      const character = await Character.findById(characterId).session(session);
+      if (!character) {
+        throw new Error('Character not found');
+      }
+
+      const feedCost = worker.feedingCost;
+
+      if (!character.hasDollars(feedCost)) {
+        throw new Error(`Insufficient dollars (need ${feedCost})`);
+      }
+
+      // Deduct feeding cost
+      await character.deductDollars(feedCost, TransactionSource.WORKER_FEED, {
+        workerName: worker.name,
+        workerId: worker.workerId,
+        currencyType: 'DOLLAR',
+      });
+
+      // Restore 50% of max stamina
+      const staminaToRestore = Math.floor(worker.maxStamina * 0.5);
+      const oldStamina = worker.stamina;
+      worker.stamina = Math.min(worker.maxStamina, worker.stamina + staminaToRestore);
+      worker.lastFed = new Date();
+
+      // Feeding slightly improves morale
+      worker.updateMorale(5);
+
+      const actualRestored = worker.stamina - oldStamina;
+
+      await worker.save({ session });
+      await character.save({ session });
+
+      await session.commitTransaction();
+
+      logger.info(`Fed worker ${worker.name}, restored ${actualRestored} stamina (cost: ${feedCost})`);
+
+      return {
+        staminaRestored: actualRestored,
+        cost: feedCost,
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  /**
+   * Check if worker can perform a task (has enough stamina)
+   *
+   * @param workerId - Worker ID
+   * @param taskType - Type of task to perform
+   * @returns Whether worker can perform the task
+   */
+  static async canPerformTask(workerId: string, taskType?: TaskType): Promise<boolean> {
+    const worker = await PropertyWorker.findOne({ workerId });
+    if (!worker) {
+      return false;
+    }
+
+    // Use canWork() which checks stamina, morale, etc.
+    if (!worker.canWork()) {
+      return false;
+    }
+
+    // If specific task type provided, check stamina requirement
+    if (taskType) {
+      const staminaCost = TASK_STAMINA_COSTS[taskType];
+      if (worker.stamina < staminaCost) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Get effective worker efficiency with territory bonuses applied
+   *
+   * @param workerId - Worker ID
+   * @returns Effective efficiency multiplier
+   */
+  static async getEffectiveEfficiency(workerId: string): Promise<number> {
+    const worker = await PropertyWorker.findOne({ workerId });
+    if (!worker) {
+      throw new Error('Worker not found');
+    }
+
+    // Get base efficiency from worker
+    let efficiency = worker.calculateEfficiency();
+
+    try {
+      // Get property to find location and gang
+      const property = await Property.findById(worker.propertyId);
+      if (property && property.ownerId) {
+        const character = await Character.findById(property.ownerId).select('gangId');
+
+        if (character && character.gangId) {
+          // Get territory bonuses for the property location
+          const territoryBonuses = await TerritoryBonusService.getPropertyBonuses(
+            property.locationId,
+            character.gangId
+          );
+
+          if (territoryBonuses.hasBonuses) {
+            // Apply worker efficiency bonus from territory
+            efficiency *= territoryBonuses.bonuses.workerEfficiency;
+
+            logger.debug(
+              `Territory bonus applied to worker ${worker.name}: ` +
+              `${territoryBonuses.bonuses.workerEfficiency}x efficiency`
+            );
+          }
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to apply territory bonuses to worker efficiency:', error);
+      // Continue with base efficiency if territory bonus fails
+    }
+
+    return efficiency;
+  }
+
+  /**
+   * Get worker stamina info
+   *
+   * @param workerId - Worker ID
+   */
+  static async getWorkerStaminaInfo(workerId: string): Promise<{
+    current: number;
+    max: number;
+    percentage: number;
+    canWork: boolean;
+    feedingCost: number;
+    quality: WorkerQuality;
+  }> {
+    const worker = await PropertyWorker.findOne({ workerId });
+    if (!worker) {
+      throw new Error('Worker not found');
+    }
+
+    return {
+      current: worker.stamina,
+      max: worker.maxStamina,
+      percentage: (worker.stamina / worker.maxStamina) * 100,
+      canWork: worker.canWork(),
+      feedingCost: worker.feedingCost,
+      quality: worker.quality,
+    };
   }
 }

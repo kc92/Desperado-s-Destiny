@@ -12,6 +12,10 @@ import { InventoryService } from './inventory.service';
 import { PROGRESSION } from '@desperados/shared';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import logger from '../utils/logger';
+import { safeAchievementSet } from '../utils/achievementUtils';
+import { ProgressionService } from './progression.service';
+import { MilestoneRewardService } from './milestoneReward.service';
+import * as UnlockTriggerService from './unlockTrigger.service';
 
 // =============================================================================
 // TYPES
@@ -101,8 +105,24 @@ export class CharacterProgressionService {
       const character = await Character.findById(characterId).session(session);
       if (!character) throw new Error('Character not found');
 
+      // Apply prestige XP multiplier if character has prestige bonuses
+      let adjustedAmount = amount;
+      const prestige = (character as any).prestige;
+      if (prestige?.permanentBonuses && prestige.permanentBonuses.length > 0) {
+        adjustedAmount = ProgressionService.applyPrestigeBonuses(
+          amount,
+          'xp_multiplier',
+          prestige
+        );
+        if (adjustedAmount !== amount) {
+          logger.debug(
+            `Prestige XP bonus applied: ${amount} → ${adjustedAmount} for character ${characterId}`
+          );
+        }
+      }
+
       const oldLevel = character.level;
-      character.experience += amount;
+      character.experience += adjustedAmount;
 
       // Level up logic
       let levelsGained = 0;
@@ -138,6 +158,15 @@ export class CharacterProgressionService {
         this.triggerLevelUpHooks(characterId.toString(), character.level).catch((err) =>
           logger.error('Level-up hooks failed', err)
         );
+
+        // Achievement tracking: Level progression achievements
+        const charIdStr = characterId.toString();
+        const newLevel = character.level;
+
+        // Set progress based on current level (not increment)
+        safeAchievementSet(charIdStr, 'level_10', newLevel, 'progression:levelUp');
+        safeAchievementSet(charIdStr, 'level_25', newLevel, 'progression:levelUp');
+        safeAchievementSet(charIdStr, 'level_50', newLevel, 'progression:levelUp');
       }
 
       const result: ExperienceResult = {
@@ -149,7 +178,7 @@ export class CharacterProgressionService {
       };
 
       logger.debug(
-        `Added ${amount} XP to character ${characterId} from ${source}. Level: ${oldLevel} → ${result.newLevel}`
+        `Added ${adjustedAmount} XP to character ${characterId} from ${source}. Level: ${oldLevel} → ${result.newLevel}`
       );
 
       return result;
@@ -295,7 +324,7 @@ export class CharacterProgressionService {
   }
 
   /**
-   * Trigger level-up hooks (quest progression, etc.)
+   * Trigger level-up hooks (milestone rewards, cosmetic unlocks, etc.)
    * Fire-and-forget, errors are logged but don't fail the transaction
    */
   private static async triggerLevelUpHooks(
@@ -303,11 +332,36 @@ export class CharacterProgressionService {
     newLevel: number
   ): Promise<void> {
     try {
-      // TODO: Import QuestService when available
-      // await QuestService.onLevelUp(characterId, newLevel);
-      logger.debug(`Level-up hooks triggered for character ${characterId}, level ${newLevel}`);
+      // Get character to find userId for unlock triggers
+      const character = await Character.findById(characterId);
+      if (!character) {
+        logger.warn('Character not found for level-up hooks', { characterId, newLevel });
+        return;
+      }
+
+      const userId = character.userId.toString();
+
+      // Award milestone gameplay rewards (items, gold, features, modifiers)
+      // Sprint 7: This is the primary hook for milestone rewards
+      const milestoneResult = await MilestoneRewardService.checkAndAwardRewards(characterId, newLevel);
+      if (milestoneResult && !milestoneResult.alreadyClaimed) {
+        logger.info('Milestone rewards granted', {
+          characterId,
+          characterName: character.name,
+          level: newLevel,
+          title: milestoneResult.title,
+          goldAwarded: milestoneResult.goldAwarded,
+          feature: milestoneResult.featureUnlocked,
+        });
+      }
+
+      // Process cosmetic unlocks (unlockTrigger.service handles cosmetics)
+      await UnlockTriggerService.processLevelMilestone(userId, newLevel);
+
+      logger.debug(`Level-up hooks completed for character ${characterId}, level ${newLevel}`);
     } catch (error) {
       logger.error('Error in level-up hooks:', error);
+      // Don't throw - level-up hooks should not fail the main transaction
     }
   }
 

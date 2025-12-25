@@ -1772,18 +1772,48 @@ export const SILENT_WU: ChineseNPC = {
   ],
 };
 
-// Export all NPCs
+// Re-export NPCs from continued and final files for backwards compatibility
+export {
+  WONG_SHU,
+  HU_FENG,
+  MASTER_FANG,
+  JADE_FLOWER,
+  CHEN_BO,
+} from './npcs-continued';
+
+export {
+  DRAGON_LEE,
+  AUNTIE_ZHAO,
+  RAILROAD_CHEN,
+  DR_HUANG,
+} from './npcs-final';
+
+// Import all NPCs for the combined array
+import { CHINESE_NPCS_CONTINUED } from './npcs-continued';
+import { CHINESE_NPCS_FINAL } from './npcs-final';
+
+// Export all NPCs (combined)
 export const CHINESE_NPCS: ChineseNPC[] = [
   // Red Gulch (3)
   CHEN_WEI,
   MEI_LIN,
   OLD_ZHANG,
-  // Goldfinger\'s Mine (3)
+  // Goldfinger's Mine (3)
   LI_JIAN,
   CHEN_TAO,
   SILENT_WU,
+  // Fort Ashford & Whiskey Bend (5)
+  ...CHINESE_NPCS_CONTINUED,
+  // The Frontera & Dusty Trail (4)
+  ...CHINESE_NPCS_FINAL,
 ];
 
-// Note: Due to character limit, the remaining 9-13 NPCs (Fort Ashford, Whiskey Bend,
-// The Frontera, Dusty Trail) should be added in a separate file following the same
-// pattern. Each location needs 2-3 NPCs as specified in the design document.
+// Complete metadata for all 16 NPCs
+export const ALL_CHINESE_NPCS = {
+  redGulch: ['chen-wei', 'mei-lin', 'old-zhang'],
+  goldfingerMine: ['li-jian', 'chen-tao', 'silent-wu'],
+  fortAshford: ['wong-shu', 'hu-feng'],
+  whiskeyBend: ['master-fang', 'jade-flower', 'chen-bo'],
+  frontera: ['dragon-lee', 'auntie-zhao'],
+  dustyTrail: ['railroad-chen', 'dr-huang'],
+};

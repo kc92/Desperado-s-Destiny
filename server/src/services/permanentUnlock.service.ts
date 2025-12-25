@@ -462,7 +462,10 @@ export async function applyUnlockEffectsToCharacter(
   }
 
   if (totalStartingGold > 0) {
-    characterData.gold = (characterData.gold || 0) + totalStartingGold;
+    // Set both dollars (new) and gold (legacy) for compatibility
+    const currentBalance = characterData.dollars ?? characterData.gold ?? 0;
+    characterData.dollars = currentBalance + totalStartingGold;
+    characterData.gold = characterData.dollars;
   }
 
   // Apply starting stats

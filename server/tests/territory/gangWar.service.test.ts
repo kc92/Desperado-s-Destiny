@@ -10,10 +10,11 @@ import { Territory } from '../../src/models/Territory.model';
 import { Gang } from '../../src/models/Gang.model';
 import { Character } from '../../src/models/Character.model';
 import { User } from '../../src/models/User.model';
-import { GangWar, WarStatus } from '../../src/models/GangWar.model';
+import { GangWar } from '../../src/models/GangWar.model';
 import { GangWarService } from '../../src/services/gangWar.service';
 import { TerritoryService } from '../../src/services/territory.service';
 import { clearDatabase } from '../helpers/db.helpers';
+import { GangWarStatus, WarOutcome } from '@desperados/shared';
 
 describe('Gang War Service', () => {
   let testUser: typeof User.prototype;
@@ -65,7 +66,7 @@ describe('Gang War Service', () => {
       );
 
       expect(war).toBeDefined();
-      expect(war.status).toBe(WarStatus.ACTIVE);
+      expect(war.status).toBe(GangWarStatus.ACTIVE);
       expect(war.attackerGangId.toString()).toBe(testGang._id.toString());
       expect(war.attackerFunding).toBe(5000);
       expect(war.capturePoints).toBe(100);
@@ -263,7 +264,7 @@ describe('Gang War Service', () => {
     });
 
     it('should reject contribution to inactive war', async () => {
-      war.status = WarStatus.ATTACKER_WON;
+      war.status = GangWarStatus.RESOLVED;
       await war.save();
 
       await expect(
@@ -358,7 +359,7 @@ describe('Gang War Service', () => {
         defenderGangId: new mongoose.Types.ObjectId(),
         defenderGangName: 'Defender',
         territoryId: 'red-gulch',
-        status: WarStatus.ACTIVE,
+        status: GangWarStatus.ACTIVE,
         declaredAt: new Date(),
         resolveAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         attackerFunding: 5000,
@@ -380,7 +381,7 @@ describe('Gang War Service', () => {
         defenderGangId: new mongoose.Types.ObjectId(),
         defenderGangName: 'Defender',
         territoryId: 'red-gulch',
-        status: WarStatus.ACTIVE,
+        status: GangWarStatus.ACTIVE,
         declaredAt: new Date(),
         resolveAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         attackerFunding: 7500,
@@ -402,7 +403,7 @@ describe('Gang War Service', () => {
         defenderGangId: new mongoose.Types.ObjectId(),
         defenderGangName: 'Defender',
         territoryId: 'red-gulch',
-        status: WarStatus.ACTIVE,
+        status: GangWarStatus.ACTIVE,
         declaredAt: new Date(),
         resolveAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         attackerFunding: 6666,
@@ -429,7 +430,8 @@ describe('Gang War Service', () => {
 
       const { war: resolvedWar, territory } = await GangWarService.resolveWar(war._id);
 
-      expect(resolvedWar.status).toBe(WarStatus.ATTACKER_WON);
+      expect(resolvedWar.status).toBe(GangWarStatus.RESOLVED);
+      expect(resolvedWar.outcome).toBe(WarOutcome.ATTACKER_VICTORY);
       expect(territory.controllingGangId?.toString()).toBe(testGang._id.toString());
       expect(territory.capturePoints).toBe(100);
     });
@@ -483,7 +485,8 @@ describe('Gang War Service', () => {
       const { war: resolvedWar, territory: updatedTerritory } =
         await GangWarService.resolveWar(war._id);
 
-      expect(resolvedWar.status).toBe(WarStatus.DEFENDER_WON);
+      expect(resolvedWar.status).toBe(GangWarStatus.RESOLVED);
+      expect(resolvedWar.outcome).toBe(WarOutcome.DEFENDER_VICTORY);
       expect(updatedTerritory.controllingGangId?.toString()).toBe(defenderGang._id.toString());
     });
 
@@ -617,7 +620,7 @@ describe('Gang War Service', () => {
       expect(resolved).toBe(1);
 
       const updatedWar = await GangWar.findById(war._id);
-      expect(updatedWar?.status).not.toBe(WarStatus.ACTIVE);
+      expect(updatedWar?.status).not.toBe(GangWarStatus.ACTIVE);
     });
 
     it('should not resolve non-expired wars', async () => {

@@ -48,6 +48,12 @@ interface CardHandProps {
   size?: 'sm' | 'md' | 'lg';
   /** Additional CSS classes */
   className?: string;
+  /** Indices of cards that are selected (held) */
+  selectedIndices?: number[];
+  /** Callback when a card is toggled for selection */
+  onToggleCard?: (index: number) => void;
+  /** Whether cards are selectable (hold phase) */
+  isSelectable?: boolean;
 }
 
 /**
@@ -60,6 +66,9 @@ export const CardHand: React.FC<CardHandProps> = ({
   highlightedIndices = [],
   size = 'md',
   className = '',
+  selectedIndices = [],
+  onToggleCard,
+  isSelectable = false,
 }) => {
   const [flippedCards, setFlippedCards] = useState<boolean[]>([false, false, false, false, false]);
   const [revealComplete, setRevealComplete] = useState(false);
@@ -218,6 +227,9 @@ export const CardHand: React.FC<CardHandProps> = ({
             card={card}
             isFlipped={flippedCards[index]}
             isHighlighted={highlightedIndices.includes(index)}
+            isSelected={selectedIndices.includes(index)}
+            isSelectable={isSelectable && flippedCards[index]}
+            onClick={() => onToggleCard?.(index)}
             size={size}
             onFlipComplete={() => {
               // Individual card flip complete

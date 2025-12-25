@@ -195,29 +195,29 @@ export const JAIL_SENTENCES: JailSentenceConfig = {
  */
 export const DEATH_PENALTIES = {
   [DeathType.COMBAT]: {
-    goldLoss: 0.10, // 10%
-    xpLoss: 0.02, // 2%
-    itemDropChance: 0.05 // 5% per item
+    goldLoss: 0.25, // 25% - INCREASED from 10% to make death meaningful
+    xpLoss: 0.05, // 5% - INCREASED from 2%
+    itemDropChance: 0.10 // 10% per item - INCREASED from 5%
   },
   [DeathType.ENVIRONMENTAL]: {
-    goldLoss: 0.05, // 5%
-    xpLoss: 0.01, // 1%
-    itemDropChance: 0.02 // 2% per item
+    goldLoss: 0.15, // 15% - INCREASED from 5%
+    xpLoss: 0.03, // 3% - INCREASED from 1%
+    itemDropChance: 0.05 // 5% per item - INCREASED from 2%
   },
   [DeathType.EXECUTION]: {
-    goldLoss: 0.25, // 25%
-    xpLoss: 0.05, // 5%
-    itemDropChance: 0.10 // 10% per item
+    goldLoss: 0.40, // 40% - INCREASED from 25% (execution is severe)
+    xpLoss: 0.10, // 10% - INCREASED from 5%
+    itemDropChance: 0.20 // 20% per item - INCREASED from 10%
   },
   [DeathType.DUEL]: {
-    goldLoss: 0.15, // 15%
-    xpLoss: 0.03, // 3%
-    itemDropChance: 0.08 // 8% per item
+    goldLoss: 0.25, // 25% - INCREASED from 15%
+    xpLoss: 0.05, // 5% - INCREASED from 3%
+    itemDropChance: 0.12 // 12% per item - INCREASED from 8%
   },
   [DeathType.PVP]: {
-    goldLoss: 0.12, // 12%
-    xpLoss: 0.03, // 3%
-    itemDropChance: 0.07 // 7% per item
+    goldLoss: 0.25, // 25% - INCREASED from 12%
+    xpLoss: 0.05, // 5% - INCREASED from 3%
+    itemDropChance: 0.12 // 12% per item - INCREASED from 7%
   }
 };
 
@@ -237,14 +237,15 @@ export const RESPAWN_DELAYS = {
  */
 export const JAIL_ACTIVITIES = {
   [JailActivity.PRISON_LABOR]: {
-    goldReward: { min: 5, max: 15 },
-    xpReward: { min: 10, max: 25 },
+    goldReward: { min: 2, max: 4 },  // NERFED: Was 5-15, jail should be punishment not profitable
+    xpReward: { min: 5, max: 10 },   // NERFED: Was 10-25
     cooldown: 30 // Minutes between labor jobs
   },
   [JailActivity.ESCAPE_ATTEMPT]: {
-    baseSuccessChance: 0.15, // 15% base chance
-    failurePenalty: 30, // +30 minutes on failure
-    cooldown: 60 // Can only try once per hour
+    baseSuccessChance: 0.10, // 10% base chance - REDUCED from 15% to make escape harder
+    failurePenalty: 45, // +45 minutes on failure - INCREASED from 30
+    cooldown: 120, // Can only try once per 2 hours - INCREASED from 60
+    maxChance: 0.50 // Cap at 50% even with skills - REDUCED from 75%
   },
   [JailActivity.BRIBE_GUARD]: {
     baseAcceptChance: 0.30, // 30% base chance guard accepts

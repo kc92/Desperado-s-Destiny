@@ -22,6 +22,8 @@ import {
   PlayerAction
 } from './deckGames';
 import { EnergyService } from './energy.service';
+import { WarContributionService } from './warContribution.service';
+import { WarContributionType } from '@desperados/shared';
 import logger from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { getSocketIO } from '../config/socket';
@@ -222,6 +224,24 @@ async function resolveRaid(
     war.capturePoints = Math.min(200, war.capturePoints + pointsEarned);
   } else {
     war.capturePoints = Math.max(0, war.capturePoints - pointsEarned);
+  }
+
+  // Get gang ID for the character
+  const gang = await Gang.findByMember(session.characterId as mongoose.Types.ObjectId);
+  if (gang) {
+    // Record war contribution
+    const contributionType = result.success
+      ? WarContributionType.DECK_GAME_WIN
+      : WarContributionType.DECK_GAME_LOSS;
+
+    await WarContributionService.recordContribution(
+      session.warId as mongoose.Types.ObjectId,
+      gang._id as mongoose.Types.ObjectId,
+      session.characterId as mongoose.Types.ObjectId,
+      contributionType,
+      undefined,
+      { raidPoints: pointsEarned, side: session.side }
+    );
   }
 
   // Log the raid
@@ -477,17 +497,34 @@ async function resolveChampionDuel(session: any): Promise<{
   let winnerName: string;
   let winningSide: 'attacker' | 'defender';
 
+  let winnerGangId: mongoose.Types.ObjectId;
   if (session.attackerResult.score >= session.defenderResult.score) {
     winnerId = session.attackerChampionId.toString();
     winnerName = attacker.name;
     winningSide = 'attacker';
+    winnerGangId = war.attackerGangId;
     war.capturePoints = Math.min(200, war.capturePoints + CHAMPION_WIN_POINTS);
   } else {
     winnerId = session.defenderChampionId.toString();
     winnerName = defender.name;
     winningSide = 'defender';
+    winnerGangId = war.defenderGangId!;
     war.capturePoints = Math.max(0, war.capturePoints - CHAMPION_WIN_POINTS);
   }
+
+  // Record war contribution for champion duel winner
+  await WarContributionService.recordContribution(
+    session.warId,
+    winnerGangId,
+    new mongoose.Types.ObjectId(winnerId),
+    WarContributionType.CHAMPION_DUEL_WIN,
+    undefined,
+    {
+      attackerScore: session.attackerResult.score,
+      defenderScore: session.defenderResult.score,
+      pointsAwarded: CHAMPION_WIN_POINTS
+    }
+  );
 
   // Log
   war.warLog.push({
@@ -754,18 +791,36 @@ async function resolveLeaderShowdown(session: any): Promise<{
   let winnerId: string;
   let winnerGang: string;
   let warOutcome: 'attacker' | 'defender';
+  let winnerGangId: mongoose.Types.ObjectId;
 
   if (session.attackerResult.score >= session.defenderResult.score) {
     winnerId = session.attackerChampionId.toString();
     winnerGang = attackerGang.name;
     warOutcome = 'attacker';
+    winnerGangId = war.attackerGangId;
     war.capturePoints = Math.min(200, war.capturePoints + SHOWDOWN_WIN_POINTS);
   } else {
     winnerId = session.defenderChampionId.toString();
     winnerGang = defenderGang.name;
     warOutcome = 'defender';
+    winnerGangId = war.defenderGangId!;
     war.capturePoints = Math.max(0, war.capturePoints - SHOWDOWN_WIN_POINTS);
   }
+
+  // Record war contribution for leader showdown winner
+  await WarContributionService.recordContribution(
+    session.warId,
+    winnerGangId,
+    new mongoose.Types.ObjectId(winnerId),
+    WarContributionType.LEADER_SHOWDOWN_WIN,
+    undefined,
+    {
+      attackerScore: session.attackerResult.score,
+      defenderScore: session.defenderResult.score,
+      pointsAwarded: SHOWDOWN_WIN_POINTS,
+      warOutcome
+    }
+  );
 
   war.warLog.push({
     timestamp: new Date(),

@@ -7,11 +7,15 @@
 
 import mongoose from 'mongoose';
 import { GangWar, IGangWar } from '../models/GangWar.model';
-import { GangWarStatus as WarStatus } from '@desperados/shared';
+import { GangWarStatus as WarStatus, WarLeagueTier } from '@desperados/shared';
 import { Territory, ITerritory } from '../models/Territory.model';
 import { Gang, IGang } from '../models/Gang.model';
 import { Character } from '../models/Character.model';
 import { TransactionSource } from '../models/GoldTransaction.model';
+import { WarScheduleService } from './warSchedule.service';
+import { GangPowerRating } from '../models/GangPowerRating.model';
+import { WorldEventType, EventStatus } from '../models/WorldEvent.model';
+import { WorldEventService } from './worldEvent.service';
 import logger from '../utils/logger';
 import { getSocketIO } from '../config/socket';
 
@@ -34,6 +38,12 @@ export class GangWarService {
   ): Promise<IGangWar> {
     if (funding < 1000) {
       throw new Error('Minimum war funding is 1000 gold');
+    }
+
+    // Phase 2.1: Check declaration window eligibility
+    const eligibility = await WarScheduleService.canGangDeclareWar(gangId);
+    if (!eligibility.eligible) {
+      throw new Error(`Cannot declare war: ${eligibility.reasons.join(', ')}`);
     }
 
     const session = await mongoose.startSession();
@@ -61,6 +71,11 @@ export class GangWarService {
 
       if (gang.bank < funding) {
         throw new Error(`Insufficient gang bank balance. Have ${gang.bank}, need ${funding}`);
+      }
+
+      // Check war cooldown
+      if (gang.warCooldownUntil && gang.warCooldownUntil > new Date()) {
+        throw new Error(`Gang is on war cooldown until ${gang.warCooldownUntil.toISOString()}`);
       }
 
       const territory = await Territory.findOne({ id: territoryId }).session(session);
@@ -95,22 +110,44 @@ export class GangWarService {
       const declaredAt = new Date();
       const resolveAt = new Date(declaredAt.getTime() + 24 * 60 * 60 * 1000);
 
+      // Phase 2.1: Get schedule and season info
+      const schedule = await WarScheduleService.getCurrentWeekSchedule();
+      const season = await WarScheduleService.getOrCreateCurrentSeason();
+
+      // Get or calculate power rating for tier assignment
+      let powerRating = await GangPowerRating.findByGang(gangId);
+      if (!powerRating) {
+        powerRating = await GangPowerRating.calculateAndCache(gangId);
+      }
+
       const war = await GangWar.create([{
         attackerGangId: gang._id,
         attackerGangName: gang.name,
+        attackerGangTag: gang.tag || '',
         defenderGangId: territory.controllingGangId,
         defenderGangName: territory.controllingGangId ?
           (await Gang.findById(territory.controllingGangId).session(session))?.name || null :
           null,
+        defenderGangTag: territory.controllingGangId ?
+          (await Gang.findById(territory.controllingGangId).session(session))?.tag || '' :
+          '',
         territoryId,
-        status: WarStatus.ACTIVE,
+        status: WarStatus.DECLARED,
         declaredAt,
+        startsAt: schedule.resolutionWindowStart, // War starts when resolution window opens
         resolveAt,
         attackerFunding: funding,
         defenderFunding: 0,
         capturePoints: 100,
         attackerContributions: [],
         defenderContributions: [],
+
+        // Phase 2.1: Weekly War Schedule fields
+        weekScheduleId: schedule._id,
+        seasonId: season._id,
+        tier: powerRating.tier,
+        isAutoTournament: false,
+
         warLog: [{
           timestamp: declaredAt,
           event: 'WAR_DECLARED',
@@ -121,10 +158,18 @@ export class GangWarService {
               'Unclaimed',
             territory: territory.name,
             initialFunding: funding,
+            tier: powerRating.tier,
           },
         }],
         resolvedAt: null,
       }], { session });
+
+      // Register war with schedule
+      await WarScheduleService.registerWar(
+        war[0]._id as mongoose.Types.ObjectId,
+        gangId,
+        territory.controllingGangId as mongoose.Types.ObjectId
+      );
 
       await session.commitTransaction();
 
@@ -350,6 +395,70 @@ export class GangWarService {
       }
 
       await war.save({ session });
+
+      // Create gang war aftermath world event for decisive victories
+      const captureMargin = Math.abs(capturePoints - 50);
+      const wasDecisive = captureMargin >= 30; // 80+ or 20- capture points
+
+      if (wasDecisive) {
+        try {
+          const now = new Date();
+          const eventDuration = 24 * 60 * 60 * 1000; // 24 hours
+          const winnerGang = winner === 'attacker' ? attackerGang : defenderGang;
+          const loserGang = winner === 'attacker' ? defenderGang : attackerGang;
+
+          if (winnerGang) {
+            // Create aftermath event - increased danger and reduced reputation gains
+            await WorldEventService.createRandomEvent(territory.id);
+
+            // Log the event creation
+            logger.info(
+              `Gang war aftermath event would be created: ${winnerGang.name} dominated ${loserGang?.name || 'territory'} ` +
+              `in ${territory.name} (${capturePoints}% capture points)`
+            );
+
+            // Add to world state headlines and gossip
+            await WorldEventService.addNewsHeadline(
+              `${winnerGang.name.toUpperCase()} DOMINATES ${territory.name.toUpperCase()} - TERRITORY IN CHAOS`
+            );
+            await WorldEventService.addGossip(
+              `The war at ${territory.name} was brutal. ${winnerGang.name} showed no mercy.`,
+              territory.id
+            );
+            await WorldEventService.addGossip(
+              `Stay away from ${territory.name} for a while - too dangerous after the gang war.`,
+              territory.id
+            );
+          }
+        } catch (eventError) {
+          // Don't fail war resolution if event creation fails
+          logger.error('Failed to create gang war aftermath event:', eventError);
+        }
+      }
+
+      // Set 24-hour war cooldown for both gangs to prevent war spamming
+      const cooldownDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      const cooldownUntil = new Date(Date.now() + cooldownDuration);
+
+      // Update attacker gang cooldown (need to reload since we may have saved already)
+      await Gang.findByIdAndUpdate(
+        war.attackerGangId,
+        { warCooldownUntil: cooldownUntil },
+        { session }
+      );
+
+      // Update defender gang cooldown if exists
+      if (war.defenderGangId) {
+        await Gang.findByIdAndUpdate(
+          war.defenderGangId,
+          { warCooldownUntil: cooldownUntil },
+          { session }
+        );
+      }
+
+      logger.info(
+        `War cooldown set: Both gangs on cooldown until ${cooldownUntil.toISOString()}`
+      );
 
       await session.commitTransaction();
 

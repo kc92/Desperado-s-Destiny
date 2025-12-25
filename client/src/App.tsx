@@ -64,6 +64,7 @@ const DeckGuide = lazy(() => import('@/pages/DeckGuide').then(m => ({ default: m
 const QuestLog = lazy(() => import('@/pages/QuestLog').then(m => ({ default: m.QuestLog })));
 const Help = lazy(() => import('@/pages/Help').then(m => ({ default: m.Help })));
 const Achievements = lazy(() => import('@/pages/Achievements').then(m => ({ default: m.Achievements })));
+const Prestige = lazy(() => import('@/pages/Prestige').then(m => ({ default: m.Prestige })));
 const Tutorial = lazy(() => import('@/pages/Tutorial').then(m => ({ default: m.Tutorial })));
 const Merchants = lazy(() => import('@/pages/MerchantsPage').then(m => ({ default: m.MerchantsPage })));
 const Entertainers = lazy(() => import('@/pages/EntertainersPage').then(m => ({ default: m.EntertainersPage })));
@@ -90,9 +91,11 @@ const Train = lazy(() => import('@/pages/Train').then(m => ({ default: m.Train }
 const TrainRobbery = lazy(() => import('@/pages/TrainRobbery').then(m => ({ default: m.TrainRobbery })));
 const Stagecoach = lazy(() => import('@/pages/Stagecoach').then(m => ({ default: m.Stagecoach })));
 const StagecoachAmbush = lazy(() => import('@/pages/StagecoachAmbush').then(m => ({ default: m.StagecoachAmbush })));
+const WorldMap = lazy(() => import('@/pages/WorldMap').then(m => ({ default: m.WorldMap })));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const ArtAssetDashboard = lazy(() => import('@/pages/admin/ArtAssetDashboard').then(m => ({ default: m.ArtAssetDashboard })));
 const StatusDashboard = lazy(() => import('@/pages/StatusDashboard').then(m => ({ default: m.StatusDashboard })));
+const MapDemo = lazy(() => import('@/pages/MapDemo').then(m => ({ default: m.MapDemo })));
 const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })));
 
 // Global flag to track if we've checked auth (persists across React StrictMode remounts)
@@ -187,6 +190,7 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/status" element={<StatusDashboard />} />
+              <Route path="/map-demo" element={<MapDemo />} />
 
               {/* Admin Routes - Protected */}
               <Route
@@ -280,6 +284,7 @@ function App() {
                 <Route path="quests" element={<QuestLog />} />
                 <Route path="help" element={<Help />} />
                 <Route path="achievements" element={<Achievements />} />
+                <Route path="prestige" element={<Prestige />} />
                 <Route path="tutorial" element={<Tutorial />} />
                 <Route path="merchants" element={<Merchants />} />
                 <Route path="entertainers" element={<Entertainers />} />
@@ -318,6 +323,7 @@ function App() {
                 <Route path="train-robbery" element={<TrainRobbery />} />
                 <Route path="stagecoach" element={<Stagecoach />} />
                 <Route path="stagecoach-ambush" element={<StagecoachAmbush />} />
+                <Route path="world-map" element={<WorldMap />} />
               </Route>
 
               {/* Character Selection - Standalone Protected Route */}

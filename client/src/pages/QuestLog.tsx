@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Modal } from '@/components/ui';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { StateView } from '@/components/ui/StateView';
+import { TabNavigation } from '@/components/ui/TabNavigation';
 import { useQuestStore } from '@/store/useQuestStore';
 import type { Quest, QuestDefinition } from '@/services/quest.service';
 
@@ -170,60 +171,41 @@ export const QuestLog: React.FC = () => {
         </div>
       )}
 
-      {/* Error */}
-      {error && (
-        <div className="bg-red-900/50 border border-red-500/50 rounded-lg p-4 mb-6 text-center">
-          <p className="text-red-300">{error}</p>
-        </div>
-      )}
-
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
-        {[
+      <TabNavigation
+        tabs={[
           { id: 'active', label: 'Active', count: activeQuests.length },
           { id: 'available', label: 'Available', count: availableQuests.length },
           { id: 'completed', label: 'Completed', count: completedQuests.length }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as QuestTab)}
-            className={`px-4 py-2 rounded-lg font-serif transition-colors flex items-center gap-2 ${
-              activeTab === tab.id
-                ? 'bg-gold-light text-wood-dark'
-                : 'bg-wood-dark border border-wood-grain text-desert-sand hover:border-gold-light/50'
-            }`}
-          >
-            {tab.label}
-            <span className={`text-xs px-2 py-0.5 rounded-full ${
-              activeTab === tab.id ? 'bg-wood-dark text-gold-light' : 'bg-wood-grain/30'
-            }`}>
-              {tab.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Loading */}
-      {isLoading && (
-        <div aria-busy="true" aria-live="polite">
-          <CardGridSkeleton count={3} columns={2} />
-        </div>
-      )}
+        ]}
+        activeTab={activeTab}
+        onTabChange={(tabId) => setActiveTab(tabId as QuestTab)}
+        className="mb-6"
+      />
 
       {/* Active Quests */}
-      {!isLoading && activeTab === 'active' && (
-        <div className="space-y-4">
-          {activeQuests.length === 0 ? (
-            <EmptyState
-              icon="📜"
-              title="No Bounties"
-              description="You have no active missions, partner. Check the Quest Hall for available bounties!"
-              actionText="View Available"
-              onAction={() => setActiveTab('available')}
-              size="md"
-            />
-          ) : (
-            activeQuests.map((quest) => (
+      {activeTab === 'active' && (
+        <StateView
+          isLoading={isLoading}
+          loadingComponent={
+            <div aria-busy="true" aria-live="polite">
+              <CardGridSkeleton count={3} columns={2} />
+            </div>
+          }
+          error={error}
+          onRetry={() => fetchActiveQuests()}
+          isEmpty={activeQuests.length === 0}
+          emptyProps={{
+            icon: '📜',
+            title: 'No Bounties',
+            description: "You have no active missions, partner. Check the Quest Hall for available bounties!",
+            actionText: 'View Available',
+            onAction: () => setActiveTab('available')
+          }}
+          size="md"
+        >
+          <div className="space-y-4">
+            {activeQuests.map((quest) => (
               <Card
                 key={quest._id}
                 variant="leather"
@@ -272,23 +254,32 @@ export const QuestLog: React.FC = () => {
                   })}
                 </div>
               </Card>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        </StateView>
       )}
 
       {/* Available Quests */}
-      {!isLoading && activeTab === 'available' && (
-        <div className="space-y-4">
-          {availableQuests.length === 0 ? (
-            <EmptyState
-              icon="🗺️"
-              title="No Bounties Posted"
-              description="All bounties have been claimed. Check back at the Quest Hall later for new opportunities!"
-              size="sm"
-            />
-          ) : (
-            availableQuests.map((quest) => (
+      {activeTab === 'available' && (
+        <StateView
+          isLoading={isLoading}
+          loadingComponent={
+            <div aria-busy="true" aria-live="polite">
+              <CardGridSkeleton count={3} columns={2} />
+            </div>
+          }
+          error={error}
+          onRetry={() => fetchQuests()}
+          isEmpty={availableQuests.length === 0}
+          emptyProps={{
+            icon: '🗺️',
+            title: 'No Bounties Posted',
+            description: 'All bounties have been claimed. Check back at the Quest Hall later for new opportunities!'
+          }}
+          size="sm"
+        >
+          <div className="space-y-4">
+            {availableQuests.map((quest) => (
               <Card
                 key={quest.questId}
                 variant="wood"
@@ -315,23 +306,32 @@ export const QuestLog: React.FC = () => {
                   ))}
                 </div>
               </Card>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        </StateView>
       )}
 
       {/* Completed Quests */}
-      {!isLoading && activeTab === 'completed' && (
-        <div className="space-y-4">
-          {completedQuests.length === 0 ? (
-            <EmptyState
-              icon="✅"
-              title="No Bounties Collected"
-              description="Complete your first bounty to build your reputation in these parts!"
-              size="sm"
-            />
-          ) : (
-            completedQuests.map((quest) => (
+      {activeTab === 'completed' && (
+        <StateView
+          isLoading={isLoading}
+          loadingComponent={
+            <div aria-busy="true" aria-live="polite">
+              <CardGridSkeleton count={3} columns={2} />
+            </div>
+          }
+          error={error}
+          onRetry={() => fetchCompletedQuests()}
+          isEmpty={completedQuests.length === 0}
+          emptyProps={{
+            icon: '✅',
+            title: 'No Bounties Collected',
+            description: 'Complete your first bounty to build your reputation in these parts!'
+          }}
+          size="sm"
+        >
+          <div className="space-y-4">
+            {completedQuests.map((quest) => (
               <Card key={quest._id} variant="wood" className="p-4 opacity-75">
                 <div className="flex justify-between items-center">
                   <div>
@@ -347,9 +347,9 @@ export const QuestLog: React.FC = () => {
                   )}
                 </div>
               </Card>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        </StateView>
       )}
 
       {/* Quest Detail Modal */}

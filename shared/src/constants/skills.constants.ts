@@ -311,6 +311,16 @@ export const SKILLS: Record<string, SkillDefinition> = {
     baseTrainingTime: TIME.HOUR * 1.5,
     icon: '⛏️'
   },
+  PROSPECTING: {
+    id: 'prospecting',
+    name: 'Prospecting',
+    description: 'Finding and assessing ore deposits, illegal claim operations, and deep mining',
+    suit: DestinySuit.DIAMONDS,
+    category: SkillCategory.CRAFT,
+    maxLevel: 50,
+    baseTrainingTime: TIME.HOUR * 1.5,
+    icon: '🔍'
+  },
   HERBALISM: {
     id: 'herbalism',
     name: 'Herbalism',
@@ -568,38 +578,53 @@ export function getUnlockedBonusBreakdown(
 
 /**
  * Skill progression constants
+ *
+ * PHASE 19 BALANCE PASS: Adjusted for ~283 hours to max a skill
+ * Old formula: level^2.5 * 100 = 2,650 hours per skill (unsustainable)
+ * New formula: level^2.0 * 50 = ~283 hours per skill (2-4 months casual)
+ *
+ * Design Philosophy: RuneScape/EVE/Torn-style long-term progression
+ * - Max one skill every 2-4 months casually
+ * - Specialization should matter
+ * - Years of meaningful progression
  */
 export const SKILL_PROGRESSION = {
   /** Starting level for all skills */
   STARTING_LEVEL: 1,
   /** Maximum level for all skills */
   MAX_LEVEL: 50,
-  /** XP curve exponent (higher = steeper curve) */
-  XP_EXPONENT: 2.5,
-  /** XP curve base multiplier */
-  XP_BASE_MULTIPLIER: 100,
-  /** Training time scaling per level (10% increase per level) */
-  TRAINING_TIME_SCALE: 0.1,
+  /** XP curve exponent (higher = steeper curve) - REDUCED from 2.5 to 2.0 */
+  XP_EXPONENT: 2.0,
+  /** XP curve base multiplier - REDUCED from 100 to 50 */
+  XP_BASE_MULTIPLIER: 50,
+  /**
+   * Training time scaling coefficient for sqrt curve
+   * Formula: baseTime * (1 + sqrt(level) * TRAINING_TIME_SCALE)
+   * L1: 1.15x, L25: 1.75x, L50: 2.06x (gentle curve, not 6x!)
+   */
+  TRAINING_TIME_SCALE: 0.15,
   /** Only one skill can be trained at a time */
   MAX_CONCURRENT_TRAINING: 1,
   /** Base XP gained per hour of training */
   BASE_XP_PER_HOUR: 1000,
-  /** Approximate hours to max one skill */
-  ESTIMATED_HOURS_TO_MAX: 2650
+  /** Approximate hours to max one skill (~283 hours with new formula) */
+  ESTIMATED_HOURS_TO_MAX: 283
 } as const;
 
 /**
  * Calculate XP needed to reach a specific level (exponential curve)
- * Formula: floor(level^2.5 * 100)
+ * Formula: floor(level^2.0 * 50)
+ *
+ * PHASE 19 BALANCE: Reduced from level^2.5 * 100
  *
  * Level progression (XP to reach each level):
- * Level 1: 100 XP
- * Level 10: 3,162 XP
+ * Level 1: 50 XP
+ * Level 10: 5,000 XP
  * Level 25: 31,250 XP
- * Level 40: 101,193 XP
- * Level 50: 353,553 XP
+ * Level 40: 80,000 XP
+ * Level 50: 125,000 XP
  *
- * Total XP to max: ~2,650,000 XP (~2,650 hours)
+ * Total XP to max: ~283,000 XP (~283 hours)
  */
 export function calculateXPForLevel(level: number): number {
   if (level <= 0) return 0;
@@ -661,8 +686,17 @@ export function calculateHoursToLevel(targetLevel: number): number {
 
 /**
  * Calculate training time for a skill at a given level
- * Formula: baseTime * (1 + level * TRAINING_TIME_SCALE)
- * Gets 10% longer each level
+ *
+ * PHASE 19 BALANCE: Changed from linear to sqrt scaling
+ * Old formula: baseTime * (1 + level * 0.1) = 6x at L50
+ * New formula: baseTime * (1 + sqrt(level) * 0.15) = ~2x at L50
+ *
+ * This creates a gentler progression curve:
+ * L1:  1.15x base time
+ * L10: 1.47x base time
+ * L25: 1.75x base time
+ * L40: 1.95x base time
+ * L50: 2.06x base time
  */
 export function calculateTrainingTime(skillId: string, currentLevel: number): number {
   const skill = SKILLS[skillId.toUpperCase()];
@@ -671,7 +705,7 @@ export function calculateTrainingTime(skillId: string, currentLevel: number): nu
   }
 
   return Math.floor(
-    skill.baseTrainingTime * (1 + currentLevel * SKILL_PROGRESSION.TRAINING_TIME_SCALE)
+    skill.baseTrainingTime * (1 + Math.sqrt(currentLevel) * SKILL_PROGRESSION.TRAINING_TIME_SCALE)
   );
 }
 

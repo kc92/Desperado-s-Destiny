@@ -126,6 +126,27 @@ export const consumables: Partial<IItem>[] = [
 
   // ========== ENERGY ITEMS ==========
   {
+    itemId: 'travelers-coffee',
+    name: "Traveler's Coffee",
+    description: 'An extra-strong brew given to new arrivals by the Stagecoach Company. Guaranteed to get you on your feet for a full day of frontier adventure.',
+    type: 'consumable',
+    rarity: 'uncommon',
+    price: 0, // Tutorial reward, not for sale
+    sellPrice: 25,
+    inShop: false,
+    levelRequired: 1,
+    icon: '☕',
+    isEquippable: false,
+    isConsumable: true,
+    isStackable: true,
+    maxStack: 5,
+    effects: [
+      { type: 'energy', value: 150, description: 'Fully restores Energy (150)' }
+    ],
+    tutorialItem: true, // Given at tutorial completion
+    flavorText: 'The secret ingredient is the will to survive.'
+  },
+  {
     itemId: 'coffee',
     name: 'Coffee',
     description: 'Strong frontier coffee. Black as night, hot as hell.',

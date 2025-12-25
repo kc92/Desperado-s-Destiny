@@ -82,8 +82,11 @@ export default {
         'card-bounce': 'cardBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'card-glow': 'cardGlow 1.5s ease-in-out infinite',
         'fade-in': 'fadeIn 0.3s ease-in',
+        'fade-out': 'fadeOut 0.2s ease-out',
         'slide-up': 'slideUp 0.3s ease-out',
+        'slide-down': 'slideDown 0.2s ease-out',
         'slide-in': 'slideIn 0.3s ease-out',
+        'stripes': 'stripes 1s linear infinite',
         'pulse-gold': 'pulseGold 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'shimmer': 'shimmer 2s infinite',
         'damage-float': 'damageFloat 1s ease-out forwards',
@@ -107,6 +110,11 @@ export default {
         'particle': 'particle 1.5s ease-out forwards',
         'float-up': 'floatUp 1.5s ease-out forwards',
         'xp-popup': 'xpPopup 1.2s ease-out forwards',
+        // Phase 2: UX Polish animations
+        'bounce-in': 'bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55)',
+        'bounce-cards': 'bounceCards 0.8s ease-in-out infinite',
+        'tumble': 'tumble 2s linear infinite',
+        'count-up': 'countUp 0.3s ease-out',
       },
       keyframes: {
         cardDraw: {
@@ -117,13 +125,25 @@ export default {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
+        fadeOut: {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        },
         slideUp: {
           '0%': { transform: 'translateY(20px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
+        slideDown: {
+          '0%': { transform: 'translateY(0)', opacity: '1' },
+          '100%': { transform: 'translateY(20px)', opacity: '0' },
+        },
         slideIn: {
           '0%': { transform: 'translateX(100%)', opacity: '0' },
           '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        stripes: {
+          '0%': { backgroundPosition: '0 0' },
+          '100%': { backgroundPosition: '40px 0' },
         },
         pulseGold: {
           '0%, 100%': { opacity: '1' },
@@ -247,6 +267,26 @@ export default {
           '10%': { opacity: '1', transform: 'translateY(-10px) scale(1)' },
           '90%': { opacity: '1', transform: 'translateY(-30px) scale(1)' },
           '100%': { opacity: '0', transform: 'translateY(-50px) scale(0.9)' },
+        },
+        // Phase 2: UX Polish keyframes
+        bounceIn: {
+          '0%': { transform: 'scale(0.3)', opacity: '0' },
+          '50%': { transform: 'scale(1.05)' },
+          '70%': { transform: 'scale(0.9)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        bounceCards: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-15px)' },
+        },
+        tumble: {
+          '0%': { transform: 'rotate(0deg) translateX(0)' },
+          '50%': { transform: 'rotate(180deg) translateX(10px)' },
+          '100%': { transform: 'rotate(360deg) translateX(0)' },
+        },
+        countUp: {
+          '0%': { transform: 'scale(1.1)', opacity: '0.7' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
         },
       },
     },

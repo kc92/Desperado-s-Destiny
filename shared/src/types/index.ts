@@ -58,14 +58,20 @@ export * from './territory.types';
 // Territory Control types
 export * from './territoryControl.types';
 
-// Gang War types (territory wars)
-export * from './war.types';
+// Territory Bonus types (Phase 2.2)
+export * from './territoryBonus.types';
 
 // Gang War types (comprehensive warfare system)
 export * from './gangWar.types';
 
+// War Schedule types (Phase 2.1: Weekly War Schedule)
+export * from './warSchedule.types';
+
 // Location types
 export * from './location.types';
+
+// Geography types (Phase R1: Geography Foundation)
+export * from './geography.types';
 
 // Time types
 export * from './time.types';
@@ -218,3 +224,33 @@ export * from './legendaryQuest.types';
 
 // PvP Duel System types (Phase 16)
 export * from './duel.types';
+
+// Raid System types (Phase 2.3)
+export * from './raid.types';
+
+// War Contribution Tracking types (Phase 2.4)
+export * from './warContribution.types';
+
+// Contract types (Phase 3: Contract Expansion)
+export * from './contract.types';
+
+// Business types (Phase 12: Business Ownership)
+export * from './business.types';
+
+// Deep Mining types (Phase 13: Deep Mining)
+export * from './deepMining.types';
+
+// Incident types (Phase 14.2: Risk Simulation - Incidents)
+export * from './incident.types';
+
+// Competition types (Phase 14.3: Risk Simulation - Competition)
+export * from './competition.types';
+
+// Gang Business types (Phase 15: Gang Businesses)
+export * from './gangBusiness.types';
+
+// Moral Reputation types (Phase 19.3: Frontier Justice)
+export * from './moralReputation.types';
+
+// Economy types (Phase R2: Economy Foundation)
+export * from './economy.types';

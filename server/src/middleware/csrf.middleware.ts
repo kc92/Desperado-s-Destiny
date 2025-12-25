@@ -499,12 +499,14 @@ function cleanupExpiredTokens(): void {
  * Middleware to require CSRF token for state-changing requests
  * Enhanced with better logging and user binding validation
  * Uses async validation to check both memory and Redis
+ *
+ * NOTE: This is an async middleware that properly awaits validation
  */
-export function requireCsrfToken(
+export async function requireCsrfToken(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   // Only check on state-changing methods
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
@@ -523,38 +525,45 @@ export function requireCsrfToken(
 
   if (!token) {
     logger.warn(`CSRF token missing for user ${userId} on ${req.method} ${req.path}`);
-    throw new AppError(
-      'CSRF token required',
-      HttpStatus.FORBIDDEN
-    );
+    return next(new AppError('CSRF token required', HttpStatus.FORBIDDEN));
   }
 
-  // Use async validation to check both memory and Redis
-  csrfManager.validateAsync(token, userId)
-    .then(isValid => {
-      if (!isValid) {
-        logger.warn(`Invalid CSRF token for user ${userId} on ${req.method} ${req.path}`);
-        next(new AppError('Invalid or expired CSRF token', HttpStatus.FORBIDDEN));
-      } else {
-        next();
-      }
-    })
-    .catch(error => {
-      logger.error(`CSRF validation error for user ${userId}:`, error);
-      next(new AppError('CSRF validation failed', HttpStatus.INTERNAL_SERVER_ERROR));
+  try {
+    // Use async validation with timeout to prevent hanging
+    const validationTimeout = 5000; // 5 second timeout
+    const timeoutPromise = new Promise<boolean>((_, reject) => {
+      setTimeout(() => reject(new Error('CSRF validation timeout')), validationTimeout);
     });
+
+    const isValid = await Promise.race([
+      csrfManager.validateAsync(token, userId),
+      timeoutPromise
+    ]);
+
+    if (!isValid) {
+      logger.warn(`Invalid CSRF token for user ${userId} on ${req.method} ${req.path}`);
+      return next(new AppError('Invalid or expired CSRF token', HttpStatus.FORBIDDEN));
+    }
+
+    next();
+  } catch (error) {
+    logger.error(`CSRF validation error for user ${userId}:`, error);
+    return next(new AppError('CSRF validation failed', HttpStatus.INTERNAL_SERVER_ERROR));
+  }
 }
 
 /**
  * Middleware to require CSRF token AND rotate it after use
  * Use for sensitive operations like password changes, gold transfers, etc.
  * Uses async validation to check both memory and Redis
+ *
+ * NOTE: This is an async middleware that properly awaits validation
  */
-export function requireCsrfTokenWithRotation(
+export async function requireCsrfTokenWithRotation(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   // Only check on state-changing methods
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
@@ -573,28 +582,32 @@ export function requireCsrfTokenWithRotation(
 
   if (!token) {
     logger.warn(`CSRF token missing for sensitive operation: user ${userId} on ${req.method} ${req.path}`);
-    throw new AppError(
-      'CSRF token required',
-      HttpStatus.FORBIDDEN
-    );
+    return next(new AppError('CSRF token required', HttpStatus.FORBIDDEN));
   }
 
-  // Use async rotation to check both memory and Redis
-  csrfManager.rotateAsync(token, userId)
-    .then(newToken => {
-      // Attach new token to response header for client to update
-      res.setHeader('X-CSRF-Token', newToken);
-      logger.debug(`CSRF token rotated for sensitive operation: user ${userId} on ${req.path}`);
-      next();
-    })
-    .catch(error => {
-      if (error instanceof AppError) {
-        next(error);
-      } else {
-        logger.error(`CSRF token rotation failed for user ${userId}:`, error);
-        next(new AppError('Invalid or expired CSRF token', HttpStatus.FORBIDDEN));
-      }
+  try {
+    // Use async rotation with timeout to prevent hanging
+    const rotationTimeout = 5000; // 5 second timeout
+    const timeoutPromise = new Promise<string>((_, reject) => {
+      setTimeout(() => reject(new Error('CSRF rotation timeout')), rotationTimeout);
     });
+
+    const newToken = await Promise.race([
+      csrfManager.rotateAsync(token, userId),
+      timeoutPromise
+    ]);
+
+    // Attach new token to response header for client to update
+    res.setHeader('X-CSRF-Token', newToken);
+    logger.debug(`CSRF token rotated for sensitive operation: user ${userId} on ${req.path}`);
+    next();
+  } catch (error) {
+    if (error instanceof AppError) {
+      return next(error);
+    }
+    logger.error(`CSRF token rotation failed for user ${userId}:`, error);
+    return next(new AppError('Invalid or expired CSRF token', HttpStatus.FORBIDDEN));
+  }
 }
 
 /**

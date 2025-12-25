@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, Button, LoadingSpinner } from '@/components/ui';
+import { TabNavigation } from '@/components/ui/TabNavigation';
 import { useAchievementStore } from '@/store/useAchievementStore';
 import { logger } from '@/services/logger.service';
 import type { AchievementCategory } from '@/services/achievement.service';
@@ -161,27 +162,15 @@ export const Achievements: React.FC = () => {
       )}
 
       {/* Category Tabs */}
-      <div className="flex flex-wrap gap-2">
-        {categories.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setActiveCategory(cat.id)}
-            className={`
-              px-4 py-2 rounded font-serif transition-all
-              ${activeCategory === cat.id
-                ? 'bg-gold-light text-wood-dark'
-                : 'bg-wood-dark/50 text-desert-sand hover:bg-wood-dark/70'
-              }
-            `}
-          >
-            {getCategoryIcon(cat.id)} {cat.label}
-            <span className="ml-2 text-xs">
-              ({achievementsByCategory[cat.id]?.filter(a => a.completed).length || 0}/
-              {achievementsByCategory[cat.id]?.length || 0})
-            </span>
-          </button>
-        ))}
-      </div>
+      <TabNavigation
+        tabs={categories.map(cat => ({
+          id: cat.id,
+          label: `${cat.label} (${achievementsByCategory[cat.id]?.filter(a => a.completed).length || 0}/${achievementsByCategory[cat.id]?.length || 0})`,
+          icon: getCategoryIcon(cat.id)
+        }))}
+        activeTab={activeCategory}
+        onTabChange={(tabId) => setActiveCategory(tabId as AchievementCategory)}
+      />
 
       {/* Achievement List */}
       <Card variant="parchment">

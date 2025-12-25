@@ -21,10 +21,11 @@ import {
 import { Character } from '../models/Character.model';
 import { WorldEvent } from '../models/WorldEvent.model';
 import { Location } from '../models/Location.model';
-import { WEALTH_TAX, CURRENCY_CONSTANTS } from '@desperados/shared';
+import { WEALTH_TAX, CURRENCY_CONSTANTS, NEWCOMER_STAKE } from '@desperados/shared';
 import logger from '../utils/logger';
 import { QuestService } from './quest.service';
 import { logEconomyEvent, EconomyEvent } from './base';
+import { ProgressionService } from './progression.service';
 
 // Re-export for convenience
 export { TransactionSource, TransactionType, CurrencyType };
@@ -102,6 +103,34 @@ export class DollarService {
       } catch (eventError) {
         // Don't fail dollar transaction if event check fails
         logger.error('Failed to check world events for dollar modifiers:', eventError);
+      }
+
+      // Apply prestige gold multiplier if character has prestige bonuses
+      const prestige = (character as any).prestige;
+      if (prestige?.permanentBonuses && prestige.permanentBonuses.length > 0) {
+        const prestigeModifiedAmount = ProgressionService.applyPrestigeBonuses(
+          modifiedAmount,
+          'gold_multiplier',
+          prestige
+        );
+        if (prestigeModifiedAmount !== modifiedAmount) {
+          logger.debug(
+            `Prestige gold bonus applied: ${modifiedAmount} → ${prestigeModifiedAmount} for character ${characterId}`
+          );
+          modifiedAmount = prestigeModifiedAmount;
+        }
+      }
+
+      // PHASE 19: Apply newcomer stake bonus (+50% for first 2 hours)
+      if (character.createdAt) {
+        const newcomerBonus = this.applyNewcomerBonus(modifiedAmount, character.createdAt);
+        if (newcomerBonus.bonusApplied) {
+          logger.info(
+            `Newcomer stake bonus applied: ${modifiedAmount} → ${newcomerBonus.adjustedAmount} ` +
+            `(+${newcomerBonus.bonusAmount}) for character ${characterId}`
+          );
+          modifiedAmount = newcomerBonus.adjustedAmount;
+        }
       }
 
       // Use dollars field, fallback to gold for migration
@@ -883,7 +912,53 @@ export class DollarService {
       throw new Error(`Characters not found for refund: ${missingIds.map(r => r.characterId).join(', ')}`);
     }
 
-    const bulkOps = refunds.map(refund => ({
+    // PHASE 4 FIX: Validate each refund won't exceed MAX_DOLLARS cap
+    // Cap refunds that would exceed the maximum balance
+    const cappedRefunds = refunds.map(refund => {
+      const character = characterMap.get(refund.characterId)!;
+      const currentBalance = (character as any).dollars ?? (character as any).gold ?? 0;
+      const newBalance = currentBalance + refund.amount;
+
+      if (newBalance > MAX_DOLLARS) {
+        // Cap the refund to reach exactly MAX_DOLLARS
+        const cappedAmount = Math.max(0, MAX_DOLLARS - currentBalance);
+
+        if (cappedAmount < refund.amount) {
+          logger.warn('Batch refund capped to MAX_DOLLARS', {
+            characterId: refund.characterId,
+            characterName: (character as any).name,
+            originalAmount: refund.amount,
+            cappedAmount,
+            currentBalance,
+            maxDollars: MAX_DOLLARS
+          });
+        }
+
+        return {
+          characterId: refund.characterId,
+          amount: cappedAmount,
+          originalAmount: refund.amount,
+          wasCapped: cappedAmount < refund.amount
+        };
+      }
+
+      return {
+        characterId: refund.characterId,
+        amount: refund.amount,
+        originalAmount: refund.amount,
+        wasCapped: false
+      };
+    });
+
+    // Filter out zero-amount refunds (those already at cap)
+    const validRefunds = cappedRefunds.filter(r => r.amount > 0);
+
+    if (validRefunds.length === 0) {
+      logger.info('All batch refunds capped to zero - all characters at MAX_DOLLARS');
+      return;
+    }
+
+    const bulkOps = validRefunds.map(refund => ({
       updateOne: {
         filter: { _id: new mongoose.Types.ObjectId(refund.characterId) },
         update: { $inc: { dollars: refund.amount, gold: refund.amount } }
@@ -892,7 +967,8 @@ export class DollarService {
 
     await Character.bulkWrite(bulkOps, { session });
 
-    const transactionRecords = refunds.map(refund => {
+    // PHASE 4 FIX: Use capped refund amounts for transaction records
+    const transactionRecords = validRefunds.map(refund => {
       const character = characterMap.get(refund.characterId)!;
       const balanceBefore = (character as any).dollars ?? (character as any).gold ?? 0;
       const balanceAfter = balanceBefore + refund.amount;
@@ -908,16 +984,22 @@ export class DollarService {
         metadata: {
           ...metadata,
           refundType: 'batch_refund',
+          originalAmount: refund.originalAmount,
+          wasCapped: refund.wasCapped,
         },
         timestamp: new Date(),
       };
     });
 
-    await GoldTransaction.create(transactionRecords, { session });
+    if (transactionRecords.length > 0) {
+      await GoldTransaction.create(transactionRecords, { session });
+    }
 
+    const cappedCount = cappedRefunds.filter(r => r.wasCapped).length;
     logger.info(
-      `Batch dollar refund: ${refunds.length} characters refunded, ` +
-      `total: $${refunds.reduce((sum, r) => sum + r.amount, 0)}`
+      `Batch dollar refund: ${validRefunds.length} characters refunded, ` +
+      `total: $${validRefunds.reduce((sum, r) => sum + r.amount, 0)}` +
+      (cappedCount > 0 ? ` (${cappedCount} capped to MAX_DOLLARS)` : '')
     );
   }
 
@@ -1154,6 +1236,92 @@ export class DollarService {
       logger.error('[WealthTax] Batch collection failed:', error);
       throw error;
     }
+  }
+
+  // ============================================
+  // PHASE 19: NEWCOMER STAKE SYSTEM
+  // ============================================
+
+  /**
+   * Check if a character is eligible for the newcomer stake bonus
+   *
+   * @param createdAt - Character creation timestamp
+   * @param totalPlayTime - Optional: cumulative play time in ms (for future anti-abuse)
+   * @returns True if character is still in newcomer period
+   */
+  static isInNewcomerPeriod(createdAt: Date, totalPlayTime?: number): boolean {
+    const timeSinceCreation = Date.now() - createdAt.getTime();
+    return timeSinceCreation < NEWCOMER_STAKE.DURATION_MS;
+  }
+
+  /**
+   * Get the newcomer stake multiplier for a character
+   *
+   * @param createdAt - Character creation timestamp
+   * @returns Gold multiplier (1.5 for newcomers, 1.0 for veterans)
+   */
+  static getNewcomerMultiplier(createdAt: Date): number {
+    if (this.isInNewcomerPeriod(createdAt)) {
+      return NEWCOMER_STAKE.GOLD_MULTIPLIER;
+    }
+    return 1.0;
+  }
+
+  /**
+   * Get newcomer stake status for a character
+   * Returns details for UI display
+   */
+  static getNewcomerStakeStatus(createdAt: Date): {
+    isActive: boolean;
+    multiplier: number;
+    message: string;
+    timeRemainingMs: number;
+  } {
+    const timeSinceCreation = Date.now() - createdAt.getTime();
+    const isActive = timeSinceCreation < NEWCOMER_STAKE.DURATION_MS;
+
+    if (isActive) {
+      return {
+        isActive: true,
+        multiplier: NEWCOMER_STAKE.GOLD_MULTIPLIER,
+        message: NEWCOMER_STAKE.ACTIVE_MESSAGE,
+        timeRemainingMs: NEWCOMER_STAKE.DURATION_MS - timeSinceCreation
+      };
+    }
+
+    return {
+      isActive: false,
+      multiplier: 1.0,
+      message: NEWCOMER_STAKE.EXPIRED_MESSAGE,
+      timeRemainingMs: 0
+    };
+  }
+
+  /**
+   * Apply newcomer stake bonus to a dollar amount
+   * This is called internally by addDollars but can also be called directly
+   * for preview/calculation purposes
+   *
+   * @param amount - Base dollar amount
+   * @param createdAt - Character creation timestamp
+   * @returns Adjusted amount with newcomer bonus if applicable
+   */
+  static applyNewcomerBonus(amount: number, createdAt: Date): {
+    originalAmount: number;
+    adjustedAmount: number;
+    bonusApplied: boolean;
+    bonusAmount: number;
+  } {
+    const multiplier = this.getNewcomerMultiplier(createdAt);
+    const adjustedAmount = Math.floor(amount * multiplier);
+    const bonusAmount = adjustedAmount - amount;
+
+    return {
+      originalAmount: amount,
+      adjustedAmount,
+      bonusApplied: multiplier > 1.0,
+      bonusAmount
+    };
   }
 
   // ============================================

@@ -4,6 +4,11 @@
  */
 
 import { QuestSeedData } from '../../models/Quest.model';
+import { NEWCOMERS_TRAIL_QUESTS, getNewcomersTrailQuest, hasCompletedNewcomersTrail } from './newcomers-trail';
+import { ALL_GREENHORN_QUESTS } from './greenhorns-trail';
+import { FRONTIER_JUSTICE_QUESTS } from './frontier-justice';
+import { HEART_OF_TERRITORY_QUESTS } from './heart-of-territory';
+import { LEGENDS_OF_WEST_QUESTS } from './legends-of-west';
 
 /**
  * ========================================
@@ -587,7 +592,10 @@ export const DAILY_LAW_WORK: QuestSeedData = {
  * All starter quests
  */
 export const ALL_STARTER_QUESTS: QuestSeedData[] = [
-  // Tutorial
+  // Newcomer's Trail (L1-10) - Main storyline introducing all factions
+  ...NEWCOMERS_TRAIL_QUESTS,
+
+  // Legacy Tutorial quests (now optional side content)
   FIRST_STEPS,
   LEARNING_THE_ROPES,
 
@@ -608,8 +616,23 @@ export const ALL_STARTER_QUESTS: QuestSeedData[] = [
 
   // Daily quests
   DAILY_HUNTING,
-  DAILY_LAW_WORK
+  DAILY_LAW_WORK,
+
+  // Greenhorn's Trail (Phase 19.2) - Skill tutorials + Faction War Prologue
+  ...ALL_GREENHORN_QUESTS,
+
+  // Frontier Justice (Phase 19.3) - L16-25 Marshal/Outlaw + Faction War
+  ...FRONTIER_JUSTICE_QUESTS,
+
+  // Heart of the Territory (Phase 19.4) - L26-35 Territory Control + Silverado Strike
+  ...HEART_OF_TERRITORY_QUESTS,
+
+  // Legends of the West (Phase 19.5) - L36-45 Ghost Towns + Supernatural
+  ...LEGENDS_OF_WEST_QUESTS,
 ];
+
+// Re-export Newcomer's Trail utilities for convenience
+export { NEWCOMERS_TRAIL_QUESTS, getNewcomersTrailQuest, hasCompletedNewcomersTrail };
 
 /**
  * Get quests by type

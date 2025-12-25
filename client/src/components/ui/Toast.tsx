@@ -42,6 +42,13 @@ const variantStyles: Record<ToastVariant, {
     shadow: 'shadow-lg',
     iconBg: 'bg-faction-settler/20',
   },
+  reward: {
+    bg: 'bg-gradient-to-r from-gold-dark to-gold-medium',
+    border: 'border-gold-light',
+    icon: 'text-wood-dark',
+    shadow: 'shadow-gold',
+    iconBg: 'bg-gold-pale/30',
+  },
 };
 
 interface ToastItemProps {

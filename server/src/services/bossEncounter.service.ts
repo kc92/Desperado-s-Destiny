@@ -30,6 +30,8 @@ import {
   getCurrentPhase,
   checkSpawnConditions,
   ItemDrop,
+  SkillCategory,
+  SKILLS,
 } from '@desperados/shared';
 import { getBossById } from '../data/bosses';
 import { BossPhaseService } from './bossPhase.service';
@@ -630,7 +632,10 @@ export class BossEncounterService {
     const baseHP = 100;
     const levelBonus = character.level * 5;
     const combatSkillBonus = character.skills
-      .filter(s => s.skillId.toLowerCase().includes('combat'))
+      .filter(s => {
+        const skillDef = SKILLS[s.skillId.toUpperCase()];
+        return skillDef && skillDef.category === SkillCategory.COMBAT;
+      })
       .reduce((sum, s) => sum + s.level * 2, 0);
 
     return baseHP + levelBonus + combatSkillBonus;

@@ -6,7 +6,7 @@
 import React from 'react';
 import { Button } from './Button';
 
-type EmptyStateVariant = 'default' | 'search' | 'error' | 'success';
+type EmptyStateVariant = 'default' | 'search' | 'error' | 'success' | 'card';
 
 interface EmptyStateProps {
   /** Main title text */
@@ -33,7 +33,7 @@ interface EmptyStateProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-const variantStyles: Record<EmptyStateVariant, { iconBg: string; titleColor: string }> = {
+const variantStyles: Record<EmptyStateVariant, { iconBg: string; titleColor: string; containerClass?: string }> = {
   default: {
     iconBg: 'bg-wood-grain/20',
     titleColor: 'text-desert-sand',
@@ -49,6 +49,11 @@ const variantStyles: Record<EmptyStateVariant, { iconBg: string; titleColor: str
   success: {
     iconBg: 'bg-green-600/20',
     titleColor: 'text-green-400',
+  },
+  card: {
+    iconBg: 'bg-wood-grain/10',
+    titleColor: 'text-desert-sand',
+    containerClass: 'bg-wood-medium/30 rounded-lg border border-wood-grain/30 p-6',
   },
 };
 
@@ -102,6 +107,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       className={`
         flex flex-col items-center justify-center text-center
         ${sizes.container}
+        ${styles.containerClass || ''}
         ${className}
       `}
       role="status"

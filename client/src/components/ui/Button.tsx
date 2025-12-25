@@ -1,94 +1,202 @@
 /**
  * Button Component
- * Western-styled button with multiple variants and sizes
+ * Unified western-styled button with multiple variants and sizes
+ *
+ * Phase 17: UI Polish - Component Consolidation
+ * Merges Button + WesternButton into single component
  */
 
 import React, { forwardRef } from 'react';
+import { useMobile } from '@/hooks/useMobile';
 import type { ButtonVariant, ButtonSize } from '@/types';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+// =============================================================================
+// TYPES
+// =============================================================================
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Button visual style */
   variant?: ButtonVariant;
+  /** Button size */
   size?: ButtonSize;
+  /** Whether button should take full width */
   fullWidth?: boolean;
+  /** Whether button is in loading state */
   isLoading?: boolean;
+  /** Custom loading text (defaults to "Loading...") */
   loadingText?: string;
+  /** Icon to show before text */
+  icon?: React.ReactNode;
+  /** Icon to show after text */
+  iconAfter?: React.ReactNode;
+  /** Test ID for testing */
   'data-testid'?: string;
 }
 
-const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-leather-brown hover:bg-leather-saddle text-desert-sand border-wood-dark',
-  secondary: 'bg-gold-medium hover:bg-gold-dark text-wood-dark border-gold-dark',
-  danger: 'bg-blood-red hover:bg-blood-dark text-desert-sand border-blood-dark',
-  ghost: 'bg-transparent hover:bg-wood-light/20 text-wood-dark border-wood-medium',
+// =============================================================================
+// STYLE MAPPINGS
+// =============================================================================
+
+const variantClasses: Record<ButtonVariant, string> = {
+  primary: 'btn-primary',
+  secondary: 'btn-secondary',
+  danger: 'btn-danger',
+  ghost: 'btn-ghost',
 };
 
-const sizeStyles: Record<ButtonSize, string> = {
-  sm: 'py-2 px-4 text-sm',
-  md: 'py-3 px-6 text-base',
-  lg: 'py-4 px-8 text-lg',
+const sizeClasses: Record<ButtonSize, string> = {
+  sm: 'text-sm py-2 px-4',
+  md: 'text-base py-3 px-6',
+  lg: 'text-lg py-4 px-8',
 };
 
-// Loading spinner sizes
-const spinnerSizes: Record<ButtonSize, string> = {
-  sm: 'w-3 h-3',
-  md: 'w-4 h-4',
-  lg: 'w-5 h-5',
+const spinnerSizes: Record<ButtonSize, { width: number; height: number }> = {
+  sm: { width: 14, height: 14 },
+  md: { width: 18, height: 18 },
+  lg: { width: 22, height: 22 },
 };
 
-/**
- * Western-styled button component with variants and states
- * Supports loading state with spinner and custom loading text
- */
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
-  children,
-  variant = 'primary',
-  size = 'md',
-  fullWidth = false,
-  isLoading = false,
-  loadingText,
-  disabled = false,
-  className = '',
-  'data-testid': testId,
-  ...props
-}, ref) => {
-  const baseStyles = 'btn-western font-semibold uppercase tracking-wider transition-all duration-200';
-  const variantStyle = variantStyles[variant];
-  const sizeStyle = sizeStyles[size];
-  const widthStyle = fullWidth ? 'w-full' : '';
-  const disabledStyle = disabled || isLoading ? 'opacity-50 cursor-not-allowed' : '';
-  const spinnerSize = spinnerSizes[size];
+// =============================================================================
+// LOADING SPINNER COMPONENT
+// =============================================================================
 
-  const focusStyles = 'focus:outline-none focus-visible:ring-4 focus-visible:ring-offset-2';
-  const variantFocusStyle = variant === 'danger'
-    ? 'focus-visible:ring-blood-red'
-    : 'focus-visible:ring-gold-light';
+interface LoadingSpinnerProps {
+  size: ButtonSize;
+}
+
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size }) => {
+  const { width, height } = spinnerSizes[size];
 
   return (
-    <button
-      ref={ref}
-      className={`${baseStyles} ${variantStyle} ${sizeStyle} ${widthStyle} ${disabledStyle} ${focusStyles} ${variantFocusStyle} ${className}`}
-      disabled={disabled || isLoading}
-      aria-busy={isLoading}
-      aria-disabled={disabled || isLoading}
-      data-testid={testId}
-      {...props}
+    <svg
+      className="animate-spin"
+      width={width}
+      height={height}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      role="img"
+      aria-hidden="true"
     >
-      {isLoading ? (
-        <span className="flex items-center justify-center gap-2">
-          <span
-            className={`inline-block ${spinnerSize} border-2 border-current border-t-transparent rounded-full animate-spin`}
-            aria-hidden="true"
-          />
-          <span>{loadingText || 'Loading...'}</span>
-        </span>
-      ) : (
-        children
-      )}
-    </button>
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
+    </svg>
   );
-});
+};
 
-// Display name for React DevTools
+// =============================================================================
+// BUTTON COMPONENT
+// =============================================================================
+
+/**
+ * Western-styled button component with variants, icons, and loading states
+ *
+ * @example
+ * ```tsx
+ * <Button variant="primary" size="md">
+ *   Click Me
+ * </Button>
+ *
+ * <Button variant="secondary" icon={<StarIcon />}>
+ *   With Icon
+ * </Button>
+ *
+ * <Button isLoading loadingText="Saving...">
+ *   Save
+ * </Button>
+ * ```
+ */
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      children,
+      variant = 'primary',
+      size = 'md',
+      fullWidth = false,
+      isLoading = false,
+      loadingText,
+      icon,
+      iconAfter,
+      disabled = false,
+      className = '',
+      type = 'button',
+      'data-testid': testId,
+      'aria-label': ariaLabel,
+      ...props
+    },
+    ref
+  ) => {
+    const { isTouch } = useMobile();
+
+    const isDisabled = disabled || isLoading;
+
+    // Build class list
+    const classes = [
+      // Variant styling (from theme.css)
+      variantClasses[variant],
+      // Size styling
+      sizeClasses[size],
+      // Layout
+      'inline-flex items-center justify-center gap-2',
+      'font-semibold rounded-lg',
+      // Full width
+      fullWidth && 'w-full',
+      // Touch optimization
+      isTouch && 'touch-target touch-active no-select no-zoom',
+      // Disabled state
+      isDisabled && 'opacity-50 cursor-not-allowed pointer-events-none',
+      // Focus styles
+      'focus:outline-none focus-visible:ring-4 focus-visible:ring-opacity-50',
+      // Custom classes
+      className,
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    // Compute aria-label from children if not provided
+    const computedAriaLabel =
+      ariaLabel || (typeof children === 'string' ? children : undefined);
+
+    return (
+      <button
+        ref={ref}
+        type={type}
+        className={classes}
+        disabled={isDisabled}
+        aria-busy={isLoading}
+        aria-disabled={isDisabled}
+        aria-label={computedAriaLabel}
+        data-testid={testId}
+        {...props}
+      >
+        {isLoading ? (
+          <>
+            <LoadingSpinner size={size} />
+            <span>{loadingText || 'Loading...'}</span>
+          </>
+        ) : (
+          <>
+            {icon && <span className="flex-shrink-0">{icon}</span>}
+            {children && <span>{children}</span>}
+            {iconAfter && <span className="flex-shrink-0">{iconAfter}</span>}
+          </>
+        )}
+      </button>
+    );
+  }
+);
+
 Button.displayName = 'Button';
 
 export default Button;

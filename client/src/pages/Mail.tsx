@@ -10,7 +10,8 @@ import { Mail as MailType } from '@desperados/shared';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { StateView } from '@/components/ui/StateView';
+import { TabNavigation } from '@/components/ui/TabNavigation';
 import { ListItemSkeleton } from '@/components/ui/Skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { logger } from '@/services/logger.service';
@@ -27,8 +28,7 @@ export const Mail: React.FC = () => {
     fetchSent,
     sendMail,
     claimAttachment,
-    deleteMail,
-    clearError
+    deleteMail
   } = useMailStore();
 
   const { currentCharacter } = useCharacterStore();
@@ -183,93 +183,63 @@ export const Mail: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <div className="bg-brown-800 border-2 border-brown-600 rounded-lg p-6">
+      <div className="bg-wood-dark border-2 border-wood-grain rounded-lg p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gold-400">Mail</h1>
+          <h1 className="text-3xl font-bold text-gold-light">Mail</h1>
           <Button onClick={() => setShowComposeModal(true)}>
             Compose Mail
           </Button>
         </div>
 
-        {error && (
-          <div className="bg-red-800 text-white p-3 rounded mb-4">
-            {error}
-            <button onClick={clearError} className="ml-4 underline">
-              Dismiss
-            </button>
-          </div>
-        )}
+        <TabNavigation
+          tabs={[
+            { id: 'inbox', label: 'Inbox', count: unreadCount },
+            { id: 'sent', label: 'Sent', count: sent.length }
+          ]}
+          activeTab={activeTab}
+          onTabChange={(tabId) => setActiveTab(tabId as 'inbox' | 'sent')}
+          className="mb-6"
+        />
 
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={() => setActiveTab('inbox')}
-            className={`px-4 py-2 rounded ${
-              activeTab === 'inbox'
-                ? 'bg-gold-600 text-brown-900'
-                : 'bg-brown-700 text-gray-300'
-            }`}
+        {activeTab === 'inbox' && (
+          <StateView
+            isLoading={isLoading}
+            loadingComponent={
+              <div aria-busy="true" aria-live="polite">
+                <ListItemSkeleton count={5} />
+              </div>
+            }
+            error={error}
+            onRetry={() => fetchInbox()}
+            isEmpty={inbox.length === 0}
+            emptyProps={{
+              icon: '📬',
+              title: 'No Telegrams',
+              description: "Your mailbox is empty, partner. Messages from other outlaws will appear here.",
+              actionText: 'Compose Mail',
+              onAction: () => setShowComposeModal(true)
+            }}
+            size="md"
           >
-            Inbox ({unreadCount})
-          </button>
-          <button
-            onClick={() => setActiveTab('sent')}
-            className={`px-4 py-2 rounded ${
-              activeTab === 'sent'
-                ? 'bg-gold-600 text-brown-900'
-                : 'bg-brown-700 text-gray-300'
-            }`}
-          >
-            Sent
-          </button>
-        </div>
-
-        {isLoading ? (
-          <div aria-busy="true" aria-live="polite">
-            <ListItemSkeleton count={5} />
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {activeTab === 'inbox' && inbox.length === 0 && (
-              <EmptyState
-                icon="📬"
-                title="No Telegrams"
-                description="Your mailbox is empty, partner. Messages from other outlaws will appear here."
-                actionText="Compose Mail"
-                onAction={() => setShowComposeModal(true)}
-                size="md"
-              />
-            )}
-
-            {activeTab === 'sent' && sent.length === 0 && (
-              <EmptyState
-                icon="📬"
-                title="No Sent Telegrams"
-                description="You haven't sent any messages yet. Reach out to your fellow outlaws!"
-                actionText="Compose Mail"
-                onAction={() => setShowComposeModal(true)}
-                size="sm"
-              />
-            )}
-
-            {activeTab === 'inbox' &&
-              inbox.map((mail) => (
+            <div className="space-y-2">
+              {inbox.map((mail) => (
                 <div
                   key={mail._id}
                   onClick={() => openMailDetail(mail)}
-                  className={`p-4 rounded border cursor-pointer hover:bg-brown-700 ${
+                  className={`p-4 rounded border cursor-pointer hover:bg-wood-medium ${
                     mail.isRead
-                      ? 'bg-brown-900 border-brown-700'
-                      : 'bg-brown-800 border-gold-600'
+                      ? 'bg-wood-darker border-wood-medium'
+                      : 'bg-wood-dark border-gold-medium'
                   }`}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gold-400">
+                        <span className="font-semibold text-gold-light">
                           {mail.senderName}
                         </span>
                         {mail.goldAttachment > 0 && !mail.goldClaimed && (
-                          <span className="bg-gold-600 text-brown-900 px-2 py-0.5 rounded text-sm">
+                          <span className="bg-gold-medium text-wood-darker px-2 py-0.5 rounded text-sm">
                             {mail.goldAttachment} gold
                           </span>
                         )}
@@ -291,22 +261,45 @@ export const Mail: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </StateView>
+        )}
 
-            {activeTab === 'sent' &&
-              sent.map((mail) => (
+        {activeTab === 'sent' && (
+          <StateView
+            isLoading={isLoading}
+            loadingComponent={
+              <div aria-busy="true" aria-live="polite">
+                <ListItemSkeleton count={5} />
+              </div>
+            }
+            error={error}
+            onRetry={() => fetchSent()}
+            isEmpty={sent.length === 0}
+            emptyProps={{
+              icon: '📬',
+              title: 'No Sent Telegrams',
+              description: "You haven't sent any messages yet. Reach out to your fellow outlaws!",
+              actionText: 'Compose Mail',
+              onAction: () => setShowComposeModal(true)
+            }}
+            size="sm"
+          >
+            <div className="space-y-2">
+              {sent.map((mail) => (
                 <div
                   key={mail._id}
                   onClick={() => openMailDetail(mail)}
-                  className="p-4 rounded border bg-brown-900 border-brown-700 cursor-pointer hover:bg-brown-800"
+                  className="p-4 rounded border bg-wood-darker border-wood-medium cursor-pointer hover:bg-wood-dark"
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gold-400">
+                        <span className="font-semibold text-gold-light">
                           To: {mail.recipientName}
                         </span>
                         {mail.goldAttachment > 0 && (
-                          <span className="bg-gold-600 text-brown-900 px-2 py-0.5 rounded text-sm">
+                          <span className="bg-gold-medium text-wood-darker px-2 py-0.5 rounded text-sm">
                             {mail.goldAttachment} gold
                             {mail.goldClaimed && ' (claimed)'}
                           </span>
@@ -324,7 +317,8 @@ export const Mail: React.FC = () => {
                   </div>
                 </div>
               ))}
-          </div>
+            </div>
+          </StateView>
         )}
       </div>
 
@@ -344,7 +338,7 @@ export const Mail: React.FC = () => {
               onChange={(e) => handleRecipientInputChange(e.target.value)}
               onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
               onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
-              className="w-full px-3 py-2 bg-brown-900 border border-brown-600 rounded"
+              className="w-full px-3 py-2 bg-wood-darker border border-wood-grain rounded"
               placeholder="Type to search characters..."
             />
             {isSearching && (
@@ -353,15 +347,15 @@ export const Mail: React.FC = () => {
               </div>
             )}
             {showSearchResults && searchResults.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-brown-800 border border-brown-600 rounded shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-wood-dark border border-wood-grain rounded shadow-lg max-h-48 overflow-y-auto">
                 {searchResults.map((char) => (
                   <button
                     key={char._id}
                     type="button"
                     onClick={() => handleRecipientSelect(char)}
-                    className="w-full px-3 py-2 text-left hover:bg-brown-700 flex justify-between items-center"
+                    className="w-full px-3 py-2 text-left hover:bg-wood-medium flex justify-between items-center"
                   >
-                    <span className="text-gold-400">{char.name}</span>
+                    <span className="text-gold-light">{char.name}</span>
                     <span className="text-sm text-gray-400">
                       Lvl {char.level} {char.faction}
                     </span>
@@ -370,7 +364,7 @@ export const Mail: React.FC = () => {
               </div>
             )}
             {showSearchResults && searchResults.length === 0 && recipientName.length >= 2 && !isSearching && (
-              <div className="absolute z-10 w-full mt-1 bg-brown-800 border border-brown-600 rounded shadow-lg p-3 text-gray-400">
+              <div className="absolute z-10 w-full mt-1 bg-wood-dark border border-wood-grain rounded shadow-lg p-3 text-gray-400">
                 No characters found
               </div>
             )}
@@ -395,7 +389,7 @@ export const Mail: React.FC = () => {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               maxLength={100}
-              className="w-full px-3 py-2 bg-brown-900 border border-brown-600 rounded"
+              className="w-full px-3 py-2 bg-wood-darker border border-wood-grain rounded"
               placeholder="Subject"
             />
           </div>
@@ -409,7 +403,7 @@ export const Mail: React.FC = () => {
               onChange={(e) => setBody(e.target.value)}
               maxLength={2000}
               rows={6}
-              className="w-full px-3 py-2 bg-brown-900 border border-brown-600 rounded"
+              className="w-full px-3 py-2 bg-wood-darker border border-wood-grain rounded"
               placeholder="Your message"
             />
           </div>
@@ -428,7 +422,7 @@ export const Mail: React.FC = () => {
               }}
               min={0}
               max={currentCharacter.gold}
-              className="w-full px-3 py-2 bg-brown-900 border border-brown-600 rounded"
+              className="w-full px-3 py-2 bg-wood-darker border border-wood-grain rounded"
               placeholder="0"
             />
             <p className="text-sm text-gray-500 mt-1">
@@ -464,15 +458,15 @@ export const Mail: React.FC = () => {
           <div className="space-y-4">
             <div>
               <span className="text-sm text-gray-500">From:</span>{' '}
-              <span className="text-gold-400">{selectedMail.senderName}</span>
+              <span className="text-gold-light">{selectedMail.senderName}</span>
             </div>
 
-            <div className="bg-brown-900 p-4 rounded border border-brown-600">
+            <div className="bg-wood-darker p-4 rounded border border-wood-grain">
               <p className="whitespace-pre-wrap">{selectedMail.body}</p>
             </div>
 
             {selectedMail.goldAttachment > 0 && !selectedMail.goldClaimed && (
-              <div className="bg-gold-900 border border-gold-600 p-4 rounded">
+              <div className="bg-gold-dark border border-gold-medium p-4 rounded">
                 <p className="mb-2">
                   This mail has {selectedMail.goldAttachment} gold attached.
                 </p>
@@ -483,7 +477,7 @@ export const Mail: React.FC = () => {
             )}
 
             {selectedMail.goldAttachment > 0 && selectedMail.goldClaimed && (
-              <div className="bg-brown-900 border border-brown-600 p-4 rounded">
+              <div className="bg-wood-darker border border-wood-grain p-4 rounded">
                 <p className="text-gray-400">
                   Gold attachment ({selectedMail.goldAttachment}) already claimed.
                 </p>
@@ -524,7 +518,7 @@ export const Mail: React.FC = () => {
       {/* Gold Claimed Toast */}
       {goldClaimedMessage !== null && (
         <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
-          <div className="bg-gold-600 text-brown-900 px-6 py-4 rounded-lg shadow-lg flex items-center gap-3">
+          <div className="bg-gold-medium text-wood-darker px-6 py-4 rounded-lg shadow-lg flex items-center gap-3">
             <span className="text-2xl">💰</span>
             <div>
               <div className="font-bold">Gold Claimed!</div>
@@ -532,7 +526,7 @@ export const Mail: React.FC = () => {
             </div>
             <button
               onClick={() => setGoldClaimedMessage(null)}
-              className="ml-4 text-brown-700 hover:text-brown-900"
+              className="ml-4 text-wood-medium hover:text-wood-darker"
             >
               ×
             </button>

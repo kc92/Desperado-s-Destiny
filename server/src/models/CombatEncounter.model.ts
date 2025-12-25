@@ -2,10 +2,11 @@
  * CombatEncounter Model
  *
  * Mongoose schema for turn-based combat encounters
+ * Sprint 2: Added currentRound for hold/discard combat system
  */
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
-import { CombatStatus, Card, HandRank } from '@desperados/shared';
+import { CombatStatus, Card, HandRank, PlayerTurnPhase } from '@desperados/shared';
 
 /**
  * Combat round subdocument
@@ -32,6 +33,41 @@ export interface ILootAwarded {
 }
 
 /**
+ * Combat abilities subdocument (Sprint 2)
+ * Tracks skill-based abilities like reroll and peek
+ */
+export interface ICombatAbilities {
+  rerollsAvailable: number;
+  peeksAvailable: number;
+  rerollsUsed: number;
+  peeksUsed: number;
+  peekedCard?: Card;
+  quickDrawUnlocked: boolean;
+  deadlyAimUnlocked: boolean;
+}
+
+/**
+ * Current round state subdocument (Sprint 2)
+ * Stores the state of the current round for hold/discard combat
+ */
+export interface ICurrentRound {
+  phase: PlayerTurnPhase;
+  deck: Card[];
+  playerHand: Card[];
+  heldCardIndices: number[];
+  finalHand?: Card[];
+  handRank?: HandRank;
+  playerDamage?: number;
+  npcHand?: Card[];
+  npcHandRank?: HandRank;
+  npcDamage?: number;
+  abilities: ICombatAbilities;
+  phaseStartedAt: Date;
+  timeoutAt: Date;
+  discardedCards?: Card[];
+}
+
+/**
  * CombatEncounter document interface
  */
 export interface ICombatEncounter extends Document {
@@ -46,6 +82,8 @@ export interface ICombatEncounter extends Document {
   rounds: ICombatRound[];
   status: CombatStatus;
   lootAwarded?: ILootAwarded;
+  /** Sprint 2: Current round state for hold/discard combat */
+  currentRound?: ICurrentRound;
   startedAt: Date;
   endedAt?: Date;
   createdAt: Date;
@@ -95,6 +133,45 @@ const LootAwardedSchema = new Schema<ILootAwarded>({
   gold: { type: Number, required: true },
   xp: { type: Number, required: true },
   items: { type: [String], default: [] }
+}, { _id: false });
+
+/**
+ * Combat abilities subdocument schema (Sprint 2)
+ */
+const CombatAbilitiesSchema = new Schema<ICombatAbilities>({
+  rerollsAvailable: { type: Number, required: true, default: 0 },
+  peeksAvailable: { type: Number, required: true, default: 0 },
+  rerollsUsed: { type: Number, required: true, default: 0 },
+  peeksUsed: { type: Number, required: true, default: 0 },
+  peekedCard: { type: CardSchema, required: false },
+  quickDrawUnlocked: { type: Boolean, required: true, default: false },
+  deadlyAimUnlocked: { type: Boolean, required: true, default: false }
+}, { _id: false });
+
+/**
+ * Current round state subdocument schema (Sprint 2)
+ * Stores the active state during hold/discard combat
+ */
+const CurrentRoundSchema = new Schema<ICurrentRound>({
+  phase: {
+    type: String,
+    required: true,
+    enum: Object.values(PlayerTurnPhase),
+    default: PlayerTurnPhase.DRAW
+  },
+  deck: { type: [CardSchema], required: true, default: [] },
+  playerHand: { type: [CardSchema], required: true, default: [] },
+  heldCardIndices: { type: [Number], required: true, default: [] },
+  finalHand: { type: [CardSchema], required: false },
+  handRank: { type: Number, required: false },
+  playerDamage: { type: Number, required: false },
+  npcHand: { type: [CardSchema], required: false },
+  npcHandRank: { type: Number, required: false },
+  npcDamage: { type: Number, required: false },
+  abilities: { type: CombatAbilitiesSchema, required: true },
+  phaseStartedAt: { type: Date, required: true, default: Date.now },
+  timeoutAt: { type: Date, required: true },
+  discardedCards: { type: [CardSchema], required: false }
 }, { _id: false });
 
 /**
@@ -157,6 +234,11 @@ const CombatEncounterSchema = new Schema<ICombatEncounter>(
     },
     lootAwarded: {
       type: LootAwardedSchema,
+      required: false
+    },
+    /** Sprint 2: Current round state for hold/discard combat */
+    currentRound: {
+      type: CurrentRoundSchema,
       required: false
     },
     startedAt: {

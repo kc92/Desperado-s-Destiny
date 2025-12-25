@@ -26,12 +26,13 @@ module.exports = {
     '^@utils/(.*)$': '<rootDir>/src/utils/$1',
     '^@types/(.*)$': '<rootDir>/src/types/$1',
     '^redis$': '<rootDir>/tests/__mocks__/redis.ts',
+    '^isomorphic-dompurify$': '<rootDir>/tests/__mocks__/isomorphic-dompurify.ts',
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testTimeout: 10000,
   verbose: true,
   transformIgnorePatterns: [
-    'node_modules/(?!(uuid)/)',
+    'node_modules/(?!(uuid|isomorphic-dompurify|dompurify|parse5|jsdom)/)',
   ],
   testPathIgnorePatterns: [
     '/node_modules/',

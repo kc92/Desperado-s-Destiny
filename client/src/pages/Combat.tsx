@@ -36,11 +36,19 @@ export const Combat: React.FC = () => {
     error: combatError,
     fetchNPCs,
     startCombat,
-    playTurn,
     fleeCombat,
     endCombat,
     fetchCombatStats,
     checkActiveCombat,
+    // Sprint 2: Hold/Discard system
+    roundState,
+    heldCardIndices,
+    startTurn,
+    toggleHeldCard,
+    confirmHold,
+    rerollCard,
+    peekNextCard,
+    clearRoundState,
   } = useCombatStore();
 
   const isLoading = isCharacterLoading || isCombatLoading;
@@ -119,12 +127,44 @@ export const Combat: React.FC = () => {
     setSelectedNPCId(null);
   };
 
-  // Handle turn play
-  const handlePlayTurn = async () => {
+  // Sprint 2: Handle start turn
+  const handleStartTurn = async () => {
     try {
-      await playTurn();
+      await startTurn();
     } catch (error) {
-      logger.error('Failed to play turn from UI', error as Error);
+      logger.error('Failed to start turn from UI', error as Error);
+    }
+  };
+
+  // Sprint 2: Handle toggle card selection
+  const handleToggleCard = (index: number) => {
+    toggleHeldCard(index);
+  };
+
+  // Sprint 2: Handle confirm hold
+  const handleConfirmHold = async () => {
+    try {
+      await confirmHold();
+    } catch (error) {
+      logger.error('Failed to confirm hold from UI', error as Error);
+    }
+  };
+
+  // Sprint 2: Handle reroll card
+  const handleRerollCard = async (cardIndex: number) => {
+    try {
+      await rerollCard(cardIndex);
+    } catch (error) {
+      logger.error('Failed to reroll card from UI', error as Error);
+    }
+  };
+
+  // Sprint 2: Handle peek next card
+  const handlePeekNextCard = async () => {
+    try {
+      await peekNextCard();
+    } catch (error) {
+      logger.error('Failed to peek next card from UI', error as Error);
     }
   };
 
@@ -142,6 +182,7 @@ export const Combat: React.FC = () => {
     setShowResultModal(false);
     setCombatResult(null);
     endCombat();
+    clearRoundState(); // Sprint 2: Clear round state when combat ends
   };
 
   // Check if player can challenge (has enough energy)
@@ -179,9 +220,16 @@ export const Combat: React.FC = () => {
       <>
         <CombatArena
           encounter={activeCombat}
-          onPlayTurn={handlePlayTurn}
           onFlee={handleFlee}
           isProcessingTurn={isProcessingCombat}
+          // Sprint 2: Hold/Discard system
+          roundState={roundState}
+          heldCardIndices={heldCardIndices}
+          onStartTurn={handleStartTurn}
+          onToggleCard={handleToggleCard}
+          onConfirmHold={handleConfirmHold}
+          onRerollCard={handleRerollCard}
+          onPeekNextCard={handlePeekNextCard}
         />
 
         {/* Combat Result Modal */}

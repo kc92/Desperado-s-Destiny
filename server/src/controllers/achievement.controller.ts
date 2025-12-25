@@ -1,14 +1,14 @@
 /**
  * Achievement Controller
- * Handles achievement tracking and rewards
+ * HTTP layer for achievement endpoints
+ *
+ * Phase 1.3: Refactored to use AchievementService for all business logic
+ * Controller is now a thin HTTP layer following separation of concerns
  */
 
 import { Request, Response } from 'express';
-import { Achievement, ACHIEVEMENT_DEFINITIONS } from '../models/Achievement.model';
-import { Character } from '../models/Character.model';
 import { asyncHandler } from '../middleware/asyncHandler';
-import { DollarService } from '../services/dollar.service';
-import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { AchievementService } from '../services/achievement.service';
 import logger from '../utils/logger';
 
 /**
@@ -24,62 +24,11 @@ export const getAchievements = asyncHandler(
       return;
     }
 
-    // Get existing achievements
-    let achievements = await Achievement.find({ characterId }).lean();
-
-    // Initialize missing achievements
-    const existingTypes = achievements.map(a => a.achievementType);
-    const missingAchievements = ACHIEVEMENT_DEFINITIONS.filter(
-      def => !existingTypes.includes(def.type)
-    );
-
-    if (missingAchievements.length > 0) {
-      const newAchievements = missingAchievements.map(def => ({
-        characterId,
-        achievementType: def.type,
-        title: def.title,
-        description: def.description,
-        category: def.category,
-        tier: def.tier,
-        target: def.target,
-        progress: 0,
-        completed: false,
-        reward: def.reward
-      }));
-
-      await Achievement.insertMany(newAchievements);
-      achievements = await Achievement.find({ characterId }).lean();
-    }
-
-    // Group by category
-    const grouped = {
-      combat: achievements.filter(a => a.category === 'combat'),
-      crime: achievements.filter(a => a.category === 'crime'),
-      social: achievements.filter(a => a.category === 'social'),
-      economy: achievements.filter(a => a.category === 'economy'),
-      exploration: achievements.filter(a => a.category === 'exploration'),
-      special: achievements.filter(a => a.category === 'special')
-    };
-
-    // Calculate stats
-    const completedCount = achievements.filter(a => a.completed).length;
-    const totalCount = achievements.length;
-    const recentlyCompleted = achievements
-      .filter(a => a.completed && a.completedAt)
-      .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime())
-      .slice(0, 5);
+    const data = await AchievementService.getAchievements(characterId);
 
     res.json({
       success: true,
-      data: {
-        achievements: grouped,
-        stats: {
-          completed: completedCount,
-          total: totalCount,
-          percentage: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
-        },
-        recentlyCompleted
-      }
+      data,
     });
   }
 );
@@ -97,42 +46,33 @@ export const getAchievementSummary = asyncHandler(
       return;
     }
 
-    const achievements = await Achievement.find({ characterId }).lean();
-
-    const byCategory = {
-      combat: { completed: 0, total: 0 },
-      crime: { completed: 0, total: 0 },
-      social: { completed: 0, total: 0 },
-      economy: { completed: 0, total: 0 },
-      exploration: { completed: 0, total: 0 },
-      special: { completed: 0, total: 0 }
-    };
-
-    const byTier = {
-      bronze: { completed: 0, total: 0 },
-      silver: { completed: 0, total: 0 },
-      gold: { completed: 0, total: 0 },
-      legendary: { completed: 0, total: 0 }
-    };
-
-    achievements.forEach(a => {
-      byCategory[a.category as keyof typeof byCategory].total++;
-      byTier[a.tier as keyof typeof byTier].total++;
-
-      if (a.completed) {
-        byCategory[a.category as keyof typeof byCategory].completed++;
-        byTier[a.tier as keyof typeof byTier].completed++;
-      }
-    });
+    const summary = await AchievementService.getSummary(characterId);
 
     res.json({
       success: true,
-      data: {
-        byCategory,
-        byTier,
-        total: achievements.length,
-        completed: achievements.filter(a => a.completed).length
-      }
+      data: summary,
+    });
+  }
+);
+
+/**
+ * Get unclaimed completed achievements
+ * GET /api/achievements/unclaimed
+ */
+export const getUnclaimedAchievements = asyncHandler(
+  async (req: Request, res: Response) => {
+    const characterId = req.characterId;
+
+    if (!characterId) {
+      res.status(400).json({ success: false, error: 'No character selected' });
+      return;
+    }
+
+    const data = await AchievementService.getUnclaimed(characterId);
+
+    res.json({
+      success: true,
+      data,
     });
   }
 );
@@ -151,129 +91,96 @@ export const claimAchievementReward = asyncHandler(
       return;
     }
 
-    const achievement = await Achievement.findOne({
-      _id: achievementId,
-      characterId
-    });
+    try {
+      const result = await AchievementService.claimReward(characterId, achievementId);
 
-    if (!achievement) {
-      res.status(404).json({ success: false, error: 'Achievement not found' });
+      res.json({
+        success: true,
+        data: result,
+        message: `Claimed ${result.achievement.title} rewards!`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (message === 'Achievement not found') {
+        res.status(404).json({ success: false, error: message });
+      } else if (message === 'Achievement not completed' || message === 'Achievement rewards already claimed') {
+        res.status(400).json({ success: false, error: message });
+      } else {
+        throw error;
+      }
+    }
+  }
+);
+
+/**
+ * Claim all unclaimed achievement rewards
+ * POST /api/achievements/claim-all
+ */
+export const claimAllAchievementRewards = asyncHandler(
+  async (req: Request, res: Response) => {
+    const characterId = req.characterId;
+
+    if (!characterId) {
+      res.status(400).json({ success: false, error: 'No character selected' });
       return;
     }
 
-    if (!achievement.completed) {
-      res.status(400).json({ success: false, error: 'Achievement not completed' });
-      return;
-    }
+    const result = await AchievementService.claimAllRewards(characterId);
 
-    // Check if already claimed (completedAt already set means rewards given)
-    // Actually, we set completedAt when progress reaches target
-    // Let's add a claimed flag check - for now just return success with reward info
-
-    const character = await Character.findById(characterId);
-    if (!character) {
-      res.status(404).json({ success: false, error: 'Character not found' });
-      return;
-    }
-
-    // Apply rewards
-    if (achievement.reward.gold) {
-      await DollarService.addDollars(
-        characterId,
-        achievement.reward.gold,
-        TransactionSource.ACHIEVEMENT,
-        {
-          description: `Achievement reward: ${achievement.title}`,
-          currencyType: CurrencyType.DOLLAR,
-        }
-      );
-    }
-    if (achievement.reward.experience) {
-      character.experience += achievement.reward.experience;
-    }
-
-    await character.save();
+    const claimedCount = result.dollarsAwarded > 0 || result.experienceAwarded > 0 || result.itemsAwarded.length > 0
+      ? 'multiple'
+      : 0;
 
     res.json({
       success: true,
       data: {
-        achievement,
-        rewardsApplied: achievement.reward
+        claimed: claimedCount,
+        rewards: {
+          gold: result.dollarsAwarded,
+          experience: result.experienceAwarded,
+          items: result.itemsAwarded,
+        },
       },
-      message: `Claimed ${achievement.title} rewards!`
+      message: claimedCount === 0 ? 'No achievements to claim' : 'Claimed achievement rewards!',
     });
   }
 );
 
 /**
  * Update achievement progress (internal use)
- * Called by other controllers when actions complete
+ * Called by other services/controllers when actions complete
+ *
+ * @deprecated Use AchievementService.incrementProgress() directly
+ * Kept for backwards compatibility with existing code
  */
 export async function updateAchievementProgress(
   characterId: string,
   achievementType: string,
   progressIncrement: number = 1
 ): Promise<void> {
-  try {
-    const achievement = await Achievement.findOne({
-      characterId,
-      achievementType
-    });
-
-    if (!achievement || achievement.completed) {
-      return;
-    }
-
-    achievement.progress += progressIncrement;
-
-    if (achievement.progress >= achievement.target) {
-      achievement.progress = achievement.target;
-      achievement.completed = true;
-      achievement.completedAt = new Date();
-    }
-
-    await achievement.save();
-  } catch (error) {
-    logger.error('Error updating achievement progress:', error);
-  }
+  await AchievementService.incrementProgress(characterId, achievementType, progressIncrement);
 }
 
 /**
  * Set achievement progress to a specific value (for economy tracking)
+ *
+ * @deprecated Use AchievementService.setProgress() directly
+ * Kept for backwards compatibility with existing code
  */
 export async function setAchievementProgress(
   characterId: string,
   achievementType: string,
   progress: number
 ): Promise<void> {
-  try {
-    const achievement = await Achievement.findOne({
-      characterId,
-      achievementType
-    });
-
-    if (!achievement || achievement.completed) {
-      return;
-    }
-
-    achievement.progress = progress;
-
-    if (achievement.progress >= achievement.target) {
-      achievement.progress = achievement.target;
-      achievement.completed = true;
-      achievement.completedAt = new Date();
-    }
-
-    await achievement.save();
-  } catch (error) {
-    logger.error('Error setting achievement progress:', error);
-  }
+  await AchievementService.setProgress(characterId, achievementType, progress);
 }
 
 export default {
   getAchievements,
   getAchievementSummary,
+  getUnclaimedAchievements,
   claimAchievementReward,
+  claimAllAchievementRewards,
   updateAchievementProgress,
-  setAchievementProgress
+  setAchievementProgress,
 };

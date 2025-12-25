@@ -3,73 +3,44 @@
  *
  * Procedurally generated daily missions with streak bonuses
  * Part of the Competitor Parity Plan - Phase B
+ * Extended in Phase 3: Contract Expansion
  */
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import {
+  ContractType,
+  ContractDifficulty,
+  ContractStatus,
+  ContractUrgency,
+  CombatTargetType,
+  GangRankRequirement,
+  IContractTarget,
+  ISkillRequirement,
+  IContractRequirements,
+  ISkillXpReward,
+  IContractRewards,
+  IChainData,
+  IStreakBonus,
+} from '@desperados/shared';
 
-/**
- * Contract types - 6 categories matching Torn's variety
- */
-export type ContractType = 'combat' | 'crime' | 'social' | 'delivery' | 'investigation' | 'crafting';
+// Re-export shared types for backwards compatibility
+export type {
+  ContractType,
+  ContractDifficulty,
+  ContractStatus,
+  ContractUrgency,
+  CombatTargetType,
+  GangRankRequirement,
+} from '@desperados/shared';
 
-/**
- * Contract difficulty levels
- */
-export type ContractDifficulty = 'easy' | 'medium' | 'hard';
+// Alias for backwards compatibility
+export type ContractTarget = IContractTarget;
+export type SkillRequirement = ISkillRequirement;
+export type ContractRequirements = IContractRequirements;
+export type SkillXpReward = ISkillXpReward;
+export type ContractRewards = IContractRewards;
+export type StreakBonus = IStreakBonus;
 
-/**
- * Contract status
- */
-export type ContractStatus = 'available' | 'in_progress' | 'completed' | 'expired';
-
-/**
- * Contract target information
- */
-export interface ContractTarget {
-  type: string;       // 'npc', 'location', 'item', 'faction', 'enemy', 'skill'
-  id?: string;        // Specific ID if applicable
-  name: string;       // Display name
-  location?: string;  // Location where target can be found
-}
-
-/**
- * Skill requirement for contracts
- */
-export interface SkillRequirement {
-  skillId: string;    // Skill ID (e.g., 'lockpicking', 'firearms')
-  minLevel: number;   // Minimum level required
-}
-
-/**
- * Contract requirements
- */
-export interface ContractRequirements {
-  amount?: number;    // Quantity needed
-  item?: string;      // Item ID if applicable
-  npc?: string;       // NPC ID if applicable
-  skillLevel?: number; // Minimum skill level required (deprecated, use skills)
-  location?: string;  // Location to visit
-  skills?: SkillRequirement[];  // Skills required to attempt contract
-}
-
-/**
- * Skill XP reward
- */
-export interface SkillXpReward {
-  skillId: string;    // Skill to grant XP to
-  amount: number;     // Amount of skill XP to grant
-}
-
-/**
- * Contract rewards
- */
-export interface ContractRewards {
-  gold: number;
-  xp: number;
-  items?: string[];   // Item IDs
-  reputation?: Record<string, number>; // Faction reputation changes
-  skillXp?: SkillXpReward[];  // Skill XP rewards
-}
 
 /**
  * Individual contract
@@ -80,9 +51,9 @@ export interface IContract {
   type: ContractType;
   title: string;
   description: string;
-  target: ContractTarget;
-  requirements: ContractRequirements;
-  rewards: ContractRewards;
+  target: IContractTarget;
+  requirements: IContractRequirements;
+  rewards: IContractRewards;
   difficulty: ContractDifficulty;
   status: ContractStatus;
   progress: number;             // Current progress
@@ -90,19 +61,21 @@ export interface IContract {
   acceptedAt?: Date;
   completedAt?: Date;
   expiresAt: Date;
+
+  // Phase 3: Urgency and Chain contracts
+  urgency?: ContractUrgency;    // Time-limited urgency level
+  chainData?: IChainData;       // Multi-step chain contract data
+
+  // Premium contract fields (Sprint 7)
+  isPremium?: boolean;          // Whether this is a premium contract
+  premiumTemplateId?: string;   // Reference to premium template
+  energyCost?: number;          // Energy required per phase
+  phaseProgress?: number;       // Current phase for multi-phase contracts
+  factionImpact?: Record<string, number>; // Faction reputation changes
+  factionImpactApplied?: boolean; // Whether faction impact was applied
+  cooldownExpiresAt?: Date;     // When the cooldown for this template ends
 }
 
-/**
- * Streak bonus tier
- */
-export interface StreakBonus {
-  day: number;
-  gold: number;
-  xp: number;
-  item?: string;        // Special item reward
-  premiumCurrency?: number; // Gold coins (premium)
-  description: string;
-}
 
 /**
  * Daily Contract document for a character
@@ -118,6 +91,10 @@ export interface IDailyContract extends Document {
   lastStreakBonusClaimedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+
+  // Premium contracts (Sprint 7)
+  premiumContracts: IContract[]; // Separate array for premium contracts
+  premiumCooldowns: Record<string, Date>; // templateId -> cooldown expiry
 }
 
 /**
@@ -144,7 +121,7 @@ const ContractSchema = new Schema<IContract>(
     type: {
       type: String,
       required: true,
-      enum: ['combat', 'crime', 'social', 'delivery', 'investigation', 'crafting']
+      enum: ['combat', 'crime', 'social', 'delivery', 'investigation', 'crafting', 'gang', 'boss', 'urgent', 'chain', 'bounty', 'territory']
     },
     title: {
       type: String,
@@ -175,7 +152,24 @@ const ContractSchema = new Schema<IContract>(
       skills: [{
         skillId: { type: String, required: true },
         minLevel: { type: Number, required: true, min: 1 }
-      }]
+      }],
+      // Phase 3: Combat-specific requirements
+      combatTargetType: {
+        type: String,
+        enum: ['any', 'outlaw', 'wildlife', 'lawman', 'boss']
+      },
+      combatKillCount: Number,
+      damageThreshold: Number,
+      flawlessVictory: Boolean,
+      handRank: String,
+      bossId: String,
+      // Phase 3: Gang-specific requirements
+      gangRequired: Boolean,
+      gangRankRequired: {
+        type: String,
+        enum: ['member', 'officer', 'leader']
+      },
+      territoryZoneId: String
     },
     rewards: {
       gold: {
@@ -224,7 +218,48 @@ const ContractSchema = new Schema<IContract>(
     expiresAt: {
       type: Date,
       required: true
-    }
+    },
+    // Phase 3: Urgency level
+    urgency: {
+      type: String,
+      enum: ['standard', 'urgent', 'critical'],
+      default: 'standard'
+    },
+    // Phase 3: Chain contract data
+    chainData: {
+      chainId: String,
+      currentStep: { type: Number, default: 1 },
+      totalSteps: Number,
+      stepProgress: { type: Number, default: 0 },
+      stepProgressMax: Number,
+      stepsCompleted: [String],
+      startedAt: Date,
+      stepRewardsCollected: { type: Number, default: 0 }
+    },
+    // Premium contract fields (Sprint 7)
+    isPremium: {
+      type: Boolean,
+      default: false
+    },
+    premiumTemplateId: String,
+    energyCost: {
+      type: Number,
+      min: 0
+    },
+    phaseProgress: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    factionImpact: {
+      type: Map,
+      of: Number
+    },
+    factionImpactApplied: {
+      type: Boolean,
+      default: false
+    },
+    cooldownExpiresAt: Date
   },
   { _id: false }
 );
@@ -270,6 +305,16 @@ const DailyContractSchema = new Schema<IDailyContract>(
     lastStreakBonusClaimedAt: {
       type: Date,
       default: null
+    },
+    // Premium contracts (Sprint 7)
+    premiumContracts: {
+      type: [ContractSchema],
+      default: []
+    },
+    premiumCooldowns: {
+      type: Map,
+      of: Date,
+      default: {}
     }
   },
   {
@@ -312,12 +357,10 @@ DailyContractSchema.statics.findOrCreateForToday = async function(
 
     let streak = 0;
     if (yesterdayContract && yesterdayContract.completedCount > 0) {
-      // Continue streak if completed at least one contract yesterday
-      streak = yesterdayContract.streak + 1;
-    } else if (yesterdayContract) {
-      // Broke streak - reset
-      streak = 0;
+      // Copy streak from yesterday (will be incremented when first contract completed today)
+      streak = yesterdayContract.streak;
     }
+    // If yesterdayContract doesn't exist or completedCount === 0, streak stays at 0
 
     // Create new record (contracts will be generated by service)
     dailyContract = await this.create({

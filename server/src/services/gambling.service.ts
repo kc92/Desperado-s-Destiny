@@ -28,6 +28,7 @@ import logger from '../utils/logger';
 import { withLock } from '../utils/distributedLock';
 import { SecureRNG } from './base/SecureRNG';
 import karmaService from './karma.service';
+import { safeAchievementUpdate } from '../utils/achievementUtils';
 import karmaEffectsService from './karmaEffects.service';
 
 // ============================================================================
@@ -340,6 +341,16 @@ export async function makeBet(
       logger.debug(`Karma recorded for gambling win: GAMBLING_FAIR_WIN`);
     } catch (karmaError) {
       logger.warn('Failed to record karma for gambling win:', karmaError);
+    }
+
+    // Achievement tracking: Gambling achievements
+    safeAchievementUpdate(characterId, 'first_gamble', 1, 'gambling:win');
+    safeAchievementUpdate(characterId, 'gambler_25', 1, 'gambling:win');
+    safeAchievementUpdate(characterId, 'high_roller', payout, 'gambling:win');
+
+    // Check for jackpot (5,000+ win in single game)
+    if (payout >= 5000) {
+      safeAchievementUpdate(characterId, 'jackpot_winner', 1, 'gambling:jackpot');
     }
   }
 

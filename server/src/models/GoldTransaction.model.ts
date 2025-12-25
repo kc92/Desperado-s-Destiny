@@ -97,6 +97,8 @@ export enum TransactionSource {
   WORKER_WAGE = 'WORKER_WAGE',
   WORKER_TRAINING = 'WORKER_TRAINING',
   WORKER_SEVERANCE = 'WORKER_SEVERANCE',
+  WORKER_FEED = 'WORKER_FEED',
+  WORKER_TASK = 'WORKER_TASK',  // Phase 11: Worker task rewards
   STRIKE_RESOLUTION = 'STRIKE_RESOLUTION',
 
   // Tutorial sources
@@ -165,6 +167,7 @@ export enum TransactionSource {
 
   // Property sources
   PROPERTY_PURCHASE = 'PROPERTY_PURCHASE',
+  PROPERTY_LOSS = 'PROPERTY_LOSS',
 
   // NPC interaction sources
   NPC_INTERACTION = 'NPC_INTERACTION',
@@ -200,6 +203,50 @@ export enum TransactionSource {
 
   // Wealth tax sources (Phase 3.3 Balance Fix)
   WEALTH_TAX = 'WEALTH_TAX',
+
+  // Sprint 7: Mid-game activity sources
+  BOUNTY_HUNTING = 'BOUNTY_HUNTING',
+  MINING_CLAIM = 'MINING_CLAIM',
+  CATTLE_DRIVE = 'CATTLE_DRIVE',
+
+  // Milestone and Property income sources
+  MILESTONE_REWARD = 'MILESTONE_REWARD',
+  PROPERTY_INCOME = 'PROPERTY_INCOME',
+
+  // Investment sources (Phase 10)
+  INVESTMENT = 'INVESTMENT',
+  INVESTMENT_RETURN = 'INVESTMENT_RETURN',
+
+  // Business sources (Phase 12)
+  BUSINESS_REVENUE = 'BUSINESS_REVENUE',
+  BUSINESS_ESTABLISHMENT = 'BUSINESS_ESTABLISHMENT',
+  BUSINESS_SERVICE_FEE = 'BUSINESS_SERVICE_FEE',
+  BUSINESS_PRODUCT_SALE = 'BUSINESS_PRODUCT_SALE',
+  BUSINESS_OPERATING_COST = 'BUSINESS_OPERATING_COST',
+
+  // Admin sources
+  ADMIN_ADJUSTMENT = 'ADMIN_ADJUSTMENT',
+
+  // Workshop sources
+  WORKSHOP_ACCESS = 'WORKSHOP_ACCESS',
+  ITEM_REPAIR = 'ITEM_REPAIR',
+
+  // Guard/Raid sources
+  GUARD_HIRE = 'GUARD_HIRE',
+  GUARD_PREMIUM = 'GUARD_PREMIUM',
+
+  // Permanent unlock sources
+  PERMANENT_UNLOCK_BONUS = 'PERMANENT_UNLOCK_BONUS',
+
+  // Fence operation sources
+  FENCE_SALE = 'FENCE_SALE',
+  FENCE_STING_CONFISCATION = 'FENCE_STING_CONFISCATION',
+
+  // Deep mining sources (Phase 4 - Economy Hardening)
+  DEEP_MINING_EQUIPMENT = 'DEEP_MINING_EQUIPMENT',
+  DEEP_MINING_REPAIR = 'DEEP_MINING_REPAIR',
+  GANG_PROTECTION_FEE = 'GANG_PROTECTION_FEE',
+  RECIPE_LEARNING = 'RECIPE_LEARNING',
 }
 
 /**

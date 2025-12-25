@@ -13,6 +13,8 @@ import { AppError } from '../utils/errors';
 import { areTransactionsDisabled } from '../utils/transaction.helper';
 import { QuestService } from './quest.service';
 import logger from '../utils/logger';
+import { TerritoryBonusService } from './territoryBonus.service';
+import { DynamicPricingService } from './dynamicPricing.service';
 
 export class ShopService {
   /**
@@ -125,9 +127,51 @@ export class ShopService {
         logger.error('Failed to check world events for price modifiers', { error: eventError instanceof Error ? eventError.message : eventError, stack: eventError instanceof Error ? eventError.stack : undefined });
       }
 
-      // Calculate total cost with overflow check and price modifier
-      const basePrice = item.price * quantity;
-      const totalCost = Math.round(basePrice * priceModifier);
+      // TERRITORY BONUS: Apply gang territory trade bonuses (Phase 2.2)
+      try {
+        const charObjId = new mongoose.Types.ObjectId(characterId);
+        const tradeBonuses = await TerritoryBonusService.getTradeBonuses(charObjId);
+        if (tradeBonuses.hasBonuses) {
+          // Buy bonus reduces price (lower multiplier = cheaper)
+          priceModifier *= tradeBonuses.bonuses.buy;
+          logger.debug(`Territory trade bonus: buy price ${tradeBonuses.bonuses.buy}x`);
+        }
+      } catch (territoryError) {
+        logger.warn('Failed to apply territory trade bonus:', territoryError);
+      }
+
+      // DYNAMIC PRICING: Get current price with supply/demand mechanics
+      let totalCost: number;
+      let dynamicPriceData: Awaited<ReturnType<typeof DynamicPricingService.getItemPrice>> | null = null;
+
+      try {
+        // Get character location for dynamic pricing
+        const character = session
+          ? await Character.findById(characterId).session(session)
+          : await Character.findById(characterId);
+
+        if (character && character.currentLocation) {
+          const locationIdStr = character.currentLocation.toString();
+          dynamicPriceData = await DynamicPricingService.getItemPrice(itemId, locationIdStr, 'buy');
+
+          // Apply additional modifiers (reputation, mood, territory) to dynamic price
+          const baseDynamicPrice = dynamicPriceData.currentPrice * quantity;
+          totalCost = Math.round(baseDynamicPrice * priceModifier);
+
+          logger.debug(`Dynamic pricing: base=$${item.price}, dynamic=$${dynamicPriceData.currentPrice}, final=$${totalCost} (supply: ${dynamicPriceData.supplyLevel}, demand: ${dynamicPriceData.demandLevel})`);
+        } else {
+          // Fallback to static pricing if location unavailable
+          const basePrice = item.price * quantity;
+          totalCost = Math.round(basePrice * priceModifier);
+          logger.debug('Using static pricing (no location)');
+        }
+      } catch (dynamicPricingError) {
+        // Fallback to static pricing on error
+        logger.warn('Dynamic pricing failed, using static pricing:', dynamicPricingError);
+        const basePrice = item.price * quantity;
+        totalCost = Math.round(basePrice * priceModifier);
+      }
+
       if (totalCost > Number.MAX_SAFE_INTEGER || totalCost < 0) {
         throw new AppError('Total cost exceeds safe limits', 400);
       }
@@ -244,6 +288,19 @@ export class ShopService {
 
       if (session) await session.commitTransaction();
 
+      // DYNAMIC PRICING: Record transaction for supply/demand tracking
+      if (dynamicPriceData && character && character.currentLocation) {
+        const locationIdStr = character.currentLocation.toString();
+        const unitPrice = Math.round(totalCost / quantity);
+        await DynamicPricingService.recordTransaction(
+          itemId,
+          locationIdStr,
+          quantity,
+          'buy',
+          unitPrice
+        );
+      }
+
       // Trigger quest progress for item collected
       try {
         await QuestService.onItemCollected(characterId, itemId, quantity);
@@ -252,7 +309,7 @@ export class ShopService {
         logger.error('Failed to update quest progress for item purchase', { error: questError instanceof Error ? questError.message : questError, stack: questError instanceof Error ? questError.stack : undefined });
       }
 
-      return { character, item, totalCost, basePrice, priceModifier };
+      return { character, item, totalCost, basePrice: item.price, priceModifier };
     } catch (error) {
       if (session) await session.abortTransaction();
       throw error;
@@ -298,8 +355,53 @@ export class ShopService {
         throw new AppError(`Only have ${inventoryItem.quantity}, cannot sell ${quantity}`, 400);
       }
 
-      // Calculate dollars earned
-      const dollarsEarned = item.sellPrice * quantity;
+      // DYNAMIC PRICING: Get current sell price with supply/demand mechanics
+      let dollarsEarned: number;
+      let dynamicPriceData: Awaited<ReturnType<typeof DynamicPricingService.getItemPrice>> | null = null;
+
+      try {
+        if (character.currentLocation) {
+          const locationIdStr = character.currentLocation.toString();
+          dynamicPriceData = await DynamicPricingService.getItemPrice(itemId, locationIdStr, 'sell');
+
+          // Start with dynamic price
+          dollarsEarned = dynamicPriceData.currentPrice * quantity;
+
+          // Apply territory sell bonus to dynamic price
+          try {
+            const charObjId = new mongoose.Types.ObjectId(characterId);
+            const tradeBonuses = await TerritoryBonusService.getTradeBonuses(charObjId);
+            if (tradeBonuses.hasBonuses) {
+              dollarsEarned = Math.floor(dollarsEarned * tradeBonuses.bonuses.sell);
+              logger.debug(`Territory trade bonus: sell price ${tradeBonuses.bonuses.sell}x`);
+            }
+          } catch (territoryError) {
+            logger.warn('Failed to apply territory sell bonus:', territoryError);
+          }
+
+          logger.debug(`Dynamic sell pricing: base=$${item.sellPrice}, dynamic=$${dynamicPriceData.currentPrice}, final=$${dollarsEarned} (supply: ${dynamicPriceData.supplyLevel}, demand: ${dynamicPriceData.demandLevel})`);
+        } else {
+          // Fallback to static pricing
+          dollarsEarned = item.sellPrice * quantity;
+          logger.debug('Using static sell pricing (no location)');
+        }
+      } catch (dynamicPricingError) {
+        // Fallback to static pricing on error
+        logger.warn('Dynamic sell pricing failed, using static pricing:', dynamicPricingError);
+        dollarsEarned = item.sellPrice * quantity;
+
+        // Still try to apply territory bonus
+        try {
+          const charObjId = new mongoose.Types.ObjectId(characterId);
+          const tradeBonuses = await TerritoryBonusService.getTradeBonuses(charObjId);
+          if (tradeBonuses.hasBonuses) {
+            dollarsEarned = Math.floor(dollarsEarned * tradeBonuses.bonuses.sell);
+            logger.debug(`Territory trade bonus: sell price ${tradeBonuses.bonuses.sell}x`);
+          }
+        } catch (territoryError) {
+          logger.warn('Failed to apply territory sell bonus:', territoryError);
+        }
+      }
 
       // Remove from inventory
       inventoryItem.quantity -= quantity;
@@ -316,6 +418,19 @@ export class ShopService {
 
       await character.save(session ? { session } : undefined);
       if (session) await session.commitTransaction();
+
+      // DYNAMIC PRICING: Record transaction for supply/demand tracking
+      if (dynamicPriceData && character.currentLocation) {
+        const locationIdStr = character.currentLocation.toString();
+        const unitPrice = Math.round(dollarsEarned / quantity);
+        await DynamicPricingService.recordTransaction(
+          itemId,
+          locationIdStr,
+          quantity,
+          'sell',
+          unitPrice
+        );
+      }
 
       return { character, item, dollarsEarned };
     } catch (error) {

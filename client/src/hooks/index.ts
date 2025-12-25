@@ -626,3 +626,13 @@ export { default as useAnnouncerDefault } from './useAnnouncer';
 export { useKarma } from './useKarma';
 export { default as useKarmaDefault } from './useKarma';
 export type { UseKarmaReturn } from './useKarma';
+
+// Character Stats
+export { useStats } from './useStats';
+export { default as useStatsDefault } from './useStats';
+export type { StatKey, StatInfo, StatsHookResult } from './useStats';
+
+// Currency Display
+export { useCurrency } from './useCurrency';
+export { default as useCurrencyDefault } from './useCurrency';
+export type { CurrencyState } from './useCurrency';

@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { Card, Button, Modal, EmptyState } from '@/components/ui';
+import { TabNavigation } from '@/components/ui/TabNavigation';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/store/useToastStore';
 import { formatDollars } from '@/utils/format';
@@ -189,27 +190,15 @@ export const Bank: React.FC = () => {
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex flex-wrap gap-2">
-            {([
+          <TabNavigation
+            tabs={[
               { id: 'vault', label: 'Vault', icon: '🏦' },
               { id: 'transactions', label: 'History', icon: '📜' },
-              { id: 'upgrade', label: 'Upgrade', icon: '⬆️' },
-            ] as const).map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`
-                  px-4 py-2 rounded font-serif capitalize transition-all
-                  ${activeTab === tab.id
-                    ? 'bg-gold-light text-wood-dark'
-                    : 'bg-wood-dark/50 text-desert-sand hover:bg-wood-dark/70'
-                  }
-                `}
-              >
-                {tab.icon} {tab.label}
-              </button>
-            ))}
-          </div>
+              { id: 'upgrade', label: 'Upgrade', icon: '⬆️' }
+            ]}
+            activeTab={activeTab}
+            onTabChange={(tabId) => setActiveTab(tabId as TabType)}
+          />
         </div>
       </Card>
 

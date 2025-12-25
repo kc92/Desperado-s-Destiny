@@ -317,6 +317,41 @@ export function broadcastEvent(event: string, data: unknown): void {
 }
 
 /**
+ * Broadcast event to a specific user by character ID
+ * Finds all sockets belonging to the character and emits to them
+ *
+ * @param characterId - Character ID to broadcast to
+ * @param event - Event name
+ * @param data - Event data
+ */
+export async function broadcastToUser(
+  characterId: string,
+  event: string,
+  data: unknown
+): Promise<void> {
+  try {
+    const socketIO = getSocketIO();
+    const sockets = await socketIO.fetchSockets();
+
+    let emitted = false;
+    for (const socket of sockets) {
+      const authSocket = socket as unknown as AuthenticatedSocket;
+      if (authSocket.data?.characterId === characterId) {
+        socket.emit(event, data);
+        emitted = true;
+        logger.debug(`Emitted ${event} to character ${characterId} via socket ${socket.id}`);
+      }
+    }
+
+    if (!emitted) {
+      logger.debug(`No socket found for character ${characterId} - user may be offline`);
+    }
+  } catch (error) {
+    logger.error(`Error broadcasting to user ${characterId}:`, error);
+  }
+}
+
+/**
  * Get all connected sockets
  *
  * @returns Array of socket IDs
@@ -404,6 +439,8 @@ export async function disconnectCharacter(
 
 /**
  * Shutdown Socket.io server gracefully
+ *
+ * PHASE 5 FIX: Added drain period for clients to receive shutdown notification
  */
 export async function shutdownSocketIO(): Promise<void> {
   try {
@@ -411,13 +448,29 @@ export async function shutdownSocketIO(): Promise<void> {
       return;
     }
 
+    const DRAIN_PERIOD_MS = 5000; // 5 seconds for clients to receive shutdown notice
+
     logger.info('Shutting down Socket.io server...');
 
     // Get all connected sockets
     const sockets = await io.fetchSockets();
+    logger.info(`Notifying ${sockets.length} connected clients of shutdown...`);
 
-    // Disconnect all clients
-    for (const socket of sockets) {
+    // Notify all clients that server is shutting down
+    io.emit('server:shutdown', {
+      message: 'Server is shutting down for maintenance',
+      reconnectDelay: 10000 // Suggest clients wait 10s before reconnecting
+    });
+
+    // Wait for drain period to allow clients to receive notification
+    if (sockets.length > 0) {
+      logger.info(`Waiting ${DRAIN_PERIOD_MS}ms for clients to receive shutdown notice...`);
+      await new Promise(resolve => setTimeout(resolve, DRAIN_PERIOD_MS));
+    }
+
+    // Now disconnect all clients
+    const remainingSockets = await io.fetchSockets();
+    for (const socket of remainingSockets) {
       socket.disconnect(true);
     }
 
@@ -450,6 +503,7 @@ export default {
   emitToRoom,
   emitToSocket,
   broadcastEvent,
+  broadcastToUser,
   getConnectedSockets,
   getConnectionCount,
   disconnectSocket,

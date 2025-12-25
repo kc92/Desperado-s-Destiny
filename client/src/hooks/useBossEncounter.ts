@@ -96,8 +96,8 @@ export interface BossDiscovery {
   discovered: boolean;
   firstDiscoveredAt?: string;
   encountersAttempted: number;
-  victories: number;
-  defeats: number;
+  wins: number;
+  losses: number;
   bestTime?: number;
   lastVictoryAt?: string;
   lastAttemptAt?: string;
@@ -195,7 +195,7 @@ export interface BossLeaderboardEntry {
   characterId: string;
   characterName: string;
   bestTime: number;
-  victories: number;
+  wins: number;
   totalDamageDealt: number;
   achievedAt: string;
 }

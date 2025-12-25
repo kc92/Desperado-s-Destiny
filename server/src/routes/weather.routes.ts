@@ -50,9 +50,9 @@ router.get('/location/:locationId', asyncHandler(getLocationWeather));
 /**
  * @route   POST /api/weather/update
  * @desc    Manually trigger weather update
- * @access  Private (can be used by cron jobs)
+ * @access  Admin only
  */
-router.post('/update', requireCsrfToken, asyncHandler(updateWeather));
+router.post('/update', requireAuth, requireAdmin, requireCsrfToken, asyncHandler(updateWeather));
 
 /**
  * @route   POST /api/weather/set

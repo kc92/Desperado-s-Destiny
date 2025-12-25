@@ -1258,15 +1258,15 @@ export class ProgressionService {
     playerPrestige.currentRank = nextRank.rank;
     playerPrestige.totalPrestiges += 1;
 
-    // Calculate starting gold from bonuses
-    const startingGold = nextRank.permanentBonuses
+    // Calculate starting dollars from bonuses
+    const startingDollars = nextRank.permanentBonuses
       .filter(b => b.type === 'starting_bonus')
       .reduce((sum, b) => sum + b.value, 0);
 
     // Reset character but keep prestige
     character.level = 1;
     character.experience = 0;
-    character.gold = startingGold;
+    character.dollars = startingDollars;
     // Reset skills to level 1
     for (const skill of character.skills) {
       skill.level = 1;

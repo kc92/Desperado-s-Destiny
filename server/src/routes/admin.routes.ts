@@ -12,7 +12,18 @@ import { adminRateLimiter } from '../middleware/rateLimiter';
 import { requireCsrfToken } from '../middleware/csrf.middleware';
 import { performanceMonitor } from '../utils/performanceMonitor';
 import { AccountSecurityService } from '../services/accountSecurity.service';
-import { getJobStatistics, getAllQueues, QueueName } from '../jobs/queues';
+import { getJobStatistics, getAllQueues, QueueName, QUEUE_NAMES } from '../jobs/queues';
+
+// Allowed queue names for validation
+const ALLOWED_QUEUE_NAMES = new Set(Object.values(QUEUE_NAMES));
+
+/**
+ * Validate queue name against allowed list
+ * Prevents arbitrary string injection into queue operations
+ */
+function isValidQueueName(name: string): name is QueueName {
+  return ALLOWED_QUEUE_NAMES.has(name as QueueName);
+}
 import {
   getUsers,
   getUserDetails,
@@ -31,6 +42,8 @@ import {
   getServerHealth,
   resetTerritories
 } from '../controllers/admin.controller';
+import { validate } from '../validation/middleware';
+import { AdminSchemas } from '../validation/schemas';
 
 const router = Router();
 
@@ -117,7 +130,7 @@ router.get('/system/settings', asyncHandler(getSystemSettings));
 
 // PUT /api/admin/system/settings
 // Update system settings
-router.put('/system/settings', asyncHandler(updateSystemSettings));
+router.put('/system/settings', validate(AdminSchemas.updateSettings), asyncHandler(updateSystemSettings));
 
 // GET /api/admin/audit-logs
 // Get audit logs (admin actions)
@@ -151,8 +164,14 @@ router.get('/queues', asyncHandler(async (_req, res) => {
 // Get failed jobs for a specific queue
 router.get('/queues/:queueName/failed', asyncHandler(async (req, res) => {
   const { queueName } = req.params;
+
+  // Validate queue name against allowed list
+  if (!isValidQueueName(queueName)) {
+    return res.status(400).json({ success: false, error: 'Invalid queue name' });
+  }
+
   const queues = getAllQueues();
-  const queue = queues.get(queueName as QueueName);
+  const queue = queues.get(queueName);
 
   if (!queue) {
     return res.status(404).json({ success: false, error: 'Queue not found' });
@@ -176,8 +195,14 @@ router.get('/queues/:queueName/failed', asyncHandler(async (req, res) => {
 // Retry all failed jobs in a queue
 router.post('/queues/:queueName/retry', asyncHandler(async (req, res) => {
   const { queueName } = req.params;
+
+  // Validate queue name against allowed list
+  if (!isValidQueueName(queueName)) {
+    return res.status(400).json({ success: false, error: 'Invalid queue name' });
+  }
+
   const queues = getAllQueues();
-  const queue = queues.get(queueName as QueueName);
+  const queue = queues.get(queueName);
 
   if (!queue) {
     return res.status(404).json({ success: false, error: 'Queue not found' });
@@ -197,8 +222,14 @@ router.post('/queues/:queueName/retry', asyncHandler(async (req, res) => {
 router.post('/queues/:queueName/clean', asyncHandler(async (req, res) => {
   const { queueName } = req.params;
   const { grace = 3600000, status = 'completed' } = req.body; // default: 1 hour grace period
+
+  // Validate queue name against allowed list
+  if (!isValidQueueName(queueName)) {
+    return res.status(400).json({ success: false, error: 'Invalid queue name' });
+  }
+
   const queues = getAllQueues();
-  const queue = queues.get(queueName as QueueName);
+  const queue = queues.get(queueName);
 
   if (!queue) {
     return res.status(404).json({ success: false, error: 'Queue not found' });

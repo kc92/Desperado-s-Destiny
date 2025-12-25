@@ -145,7 +145,7 @@ export const LEGACY_TIER_DEFINITIONS: Record<LegacyTier, LegacyTierDefinition> =
 
     [LegacyTier.PLATINUM]: {
       tier: LegacyTier.PLATINUM,
-      milestonesRequired: 100,
+      milestonesRequired: 75, // Adjusted: Legendary now at 100
       bonuses: [
         {
           type: LegacyBonusType.XP_MULTIPLIER,
@@ -233,7 +233,7 @@ export const LEGACY_TIER_DEFINITIONS: Record<LegacyTier, LegacyTierDefinition> =
 
     [LegacyTier.LEGENDARY]: {
       tier: LegacyTier.LEGENDARY,
-      milestonesRequired: 200,
+      milestonesRequired: 100, // Reduced from 200 - only ~64 milestones exist in game
       bonuses: [
         {
           type: LegacyBonusType.XP_MULTIPLIER,
@@ -414,8 +414,8 @@ export function getNextTier(
 export function calculateTierFromMilestones(
   milestonesCompleted: number
 ): LegacyTier {
-  if (milestonesCompleted >= 200) return LegacyTier.LEGENDARY;
-  if (milestonesCompleted >= 100) return LegacyTier.PLATINUM;
+  if (milestonesCompleted >= 100) return LegacyTier.LEGENDARY; // Reduced from 200
+  if (milestonesCompleted >= 75) return LegacyTier.PLATINUM; // Adjusted for new Legendary threshold
   if (milestonesCompleted >= 50) return LegacyTier.GOLD;
   if (milestonesCompleted >= 25) return LegacyTier.SILVER;
   if (milestonesCompleted >= 10) return LegacyTier.BRONZE;

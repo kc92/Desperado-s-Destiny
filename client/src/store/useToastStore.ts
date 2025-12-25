@@ -5,7 +5,7 @@
 
 import { create } from 'zustand';
 
-export type ToastType = 'success' | 'error' | 'warning' | 'info';
+export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'reward';
 
 export interface Toast {
   id: string;
@@ -30,6 +30,7 @@ interface ToastStore {
   error: (title: string, message?: string) => string;
   warning: (title: string, message?: string) => string;
   info: (title: string, message?: string) => string;
+  reward: (title: string, message?: string) => string;
 }
 
 // Generate unique ID
@@ -41,6 +42,7 @@ const DEFAULT_DURATIONS: Record<ToastType, number> = {
   error: 5000,
   warning: 5000,
   info: 5000,
+  reward: 6000, // Slightly longer to savor the reward
 };
 
 // Western-themed icons by type
@@ -49,6 +51,7 @@ const DEFAULT_ICONS: Record<ToastType, string> = {
   error: '✗',
   warning: '⚡',
   info: '◆',
+  reward: '💰',
 };
 
 export const useToastStore = create<ToastStore>((set, get) => ({
@@ -106,10 +109,14 @@ export const useToastStore = create<ToastStore>((set, get) => ({
   info: (title, message) => {
     return get().addToast({ type: 'info', title, message });
   },
+
+  reward: (title, message) => {
+    return get().addToast({ type: 'reward', title, message });
+  },
 }));
 
 // Export convenience hook
 export const useToast = () => {
-  const { success, error, warning, info, addToast } = useToastStore();
-  return { success, error, warning, info, addToast };
+  const { success, error, warning, info, reward, addToast } = useToastStore();
+  return { success, error, warning, info, reward, addToast };
 };

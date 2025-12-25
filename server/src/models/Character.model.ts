@@ -71,6 +71,72 @@ export interface CombatStats {
   losses: number;
   totalDamage: number;
   kills: number;
+  totalDeaths: number;  // AAA BALANCE: Track all deaths for stakes visibility
+}
+
+/**
+ * Prestige system data (Phase 6 Progression)
+ */
+export interface CharacterPrestige {
+  currentRank: number;
+  totalPrestiges: number;
+  permanentBonuses: Array<{
+    type: string;
+    value: number;
+    description: string;
+  }>;
+  prestigeHistory: Array<{
+    rank: number;
+    achievedAt: Date;
+    levelAtPrestige: number;
+  }>;
+}
+
+/**
+ * Player event statistics tracking (Phase 1 Tech Debt Fix)
+ */
+export interface PlayerEventStats {
+  nightTravels: number;
+  mysteriousEncounters: number;
+  bountyHunterSurvived: number;
+  weatherHazardsSurvived: number;
+  hostileFactionEncounters: number;
+  friendlyFactionGifts: number;
+  eventsTotal: number;
+}
+
+/**
+ * Bounty Portfolio - Passive bounty investment system (Phase 5.1)
+ */
+export interface BountyInvestment {
+  bountyId: string;           // Reference to BountyHunt document
+  targetId: string;           // Bounty target ID
+  goldInvested: number;       // Amount of gold invested
+  investedAt: Date;           // When investment was made
+  expectedReturn: number;     // Expected payout if successful
+  status: 'active' | 'completed' | 'failed';
+}
+
+export interface BountyPortfolio {
+  activeBounties: BountyInvestment[];  // Current bounty investments
+  portfolioValue: number;               // Total gold currently invested
+  totalInvested: number;                // Lifetime total invested
+  totalReturns: number;                 // Lifetime total returns collected
+  pendingReturns: number;               // Returns ready to collect
+  successfulInvestments: number;        // Count of successful bounties
+  failedInvestments: number;            // Count of failed bounties
+}
+
+/**
+ * Fence Trust Record - Tracks trust with black market fences (Phase 13 - Deep Mining)
+ */
+export interface FenceTrustRecord {
+  fenceLocationId: string;              // Fence location ID
+  trustLevel: number;                   // 0-100 trust with this fence
+  totalTransactions: number;            // Total number of transactions
+  totalValueTraded: number;             // Lifetime value of items traded
+  lastTransactionAt?: Date;             // Last transaction timestamp
+  stingOperationsTriggered: number;     // Number of times caught in stings
 }
 
 /**
@@ -163,6 +229,15 @@ export interface ICharacter extends Document {
   };
   criminalReputation: number;
 
+  // Moral Reputation (Phase 19.3: Marshal/Outlaw system)
+  moralReputation: number;  // -100 (Notorious Outlaw) to +100 (Legendary Marshal)
+  moralReputationDailyChange: number;  // Track daily changes for limit
+  lastMoralDecay: Date;
+
+  // Legendary Quest System - Unlocked locations and NPC relationships
+  unlockedLocations: string[];
+  npcRelationships: Map<string, number>;
+
   // Legacy compatibility - reputation alias
   reputation?: {
     outlaws?: number;
@@ -180,6 +255,18 @@ export interface ICharacter extends Document {
 
   // Tutorial System
   tutorialRewardsClaimed: string[]; // IDs of tutorial steps where rewards have been claimed
+
+  // Milestone System (Sprint 7)
+  claimedMilestones: string[];      // Level milestones claimed (e.g., 'level-5', 'level-10')
+  unlockedFeatures: string[];       // Features unlocked by milestones (e.g., 'bounty_hunting', 'mining_claims')
+  milestoneModifiers: {             // Permanent stat bonuses from milestones
+    wilderness_income?: number;
+    property_discount?: number;
+    social_success?: number;
+    crime_success?: number;
+    combat_bonus?: number;
+    all_stats?: number;
+  };
 
   // Crafting Specializations (Phase 7.1)
   specializations?: Array<{
@@ -202,20 +289,16 @@ export interface ICharacter extends Document {
     ranks: number;
     unlockedAt: Date;
   }>;
-  prestige?: {
-    currentRank: number;
-    totalPrestiges: number;
-    permanentBonuses: Array<{
-      type: string;
-      value: number;
-      description: string;
-    }>;
-    prestigeHistory: Array<{
-      rank: number;
-      achievedAt: Date;
-      levelAtPrestige: number;
-    }>;
-  };
+  prestige?: CharacterPrestige;
+
+  // Player Event Statistics (Phase 1 Tech Debt Fix)
+  playerEventStats?: PlayerEventStats;
+
+  // Bounty Portfolio (Phase 5.1 - Passive bounty income)
+  bountyPortfolio?: BountyPortfolio;
+
+  // Fence Trust (Phase 13 - Deep Mining)
+  fenceTrust?: FenceTrustRecord[];
 
   // Timestamps
   createdAt: Date;
@@ -484,7 +567,8 @@ const CharacterSchema = new Schema<ICharacter>(
       wins: { type: Number, default: 0 },
       losses: { type: Number, default: 0 },
       totalDamage: { type: Number, default: 0 },
-      kills: { type: Number, default: 0 }
+      kills: { type: Number, default: 0 },
+      totalDeaths: { type: Number, default: 0 }  // AAA BALANCE: All death types tracked
     },
 
     // Crime and Jail System
@@ -552,6 +636,34 @@ const CharacterSchema = new Schema<ICharacter>(
       max: 100
     },
 
+    // Moral Reputation (Phase 19.3: Marshal/Outlaw system)
+    moralReputation: {
+      type: Number,
+      default: 0,
+      min: -100,
+      max: 100
+    },
+    moralReputationDailyChange: {
+      type: Number,
+      default: 0
+    },
+    lastMoralDecay: {
+      type: Date,
+      default: Date.now
+    },
+
+    // Legendary Quest System - Unlocked locations and NPC relationships
+    unlockedLocations: {
+      type: [String],
+      default: [],
+      index: true,
+    },
+    npcRelationships: {
+      type: Map,
+      of: Number,
+      default: new Map(),
+    },
+
     // Disguise System
     currentDisguise: {
       type: String,
@@ -577,6 +689,27 @@ const CharacterSchema = new Schema<ICharacter>(
     tutorialRewardsClaimed: {
       type: [String],
       default: []
+    },
+
+    // Milestone System (Sprint 7)
+    claimedMilestones: {
+      type: [String],
+      default: []
+    },
+    unlockedFeatures: {
+      type: [String],
+      default: []
+    },
+    milestoneModifiers: {
+      type: {
+        wilderness_income: { type: Number, default: 0 },
+        property_discount: { type: Number, default: 0 },
+        social_success: { type: Number, default: 0 },
+        crime_success: { type: Number, default: 0 },
+        combat_bonus: { type: Number, default: 0 },
+        all_stats: { type: Number, default: 0 }
+      },
+      default: {}
     },
 
     // Crafting Specializations (Phase 7.1)
@@ -616,6 +749,58 @@ const CharacterSchema = new Schema<ICharacter>(
         }]
       },
       default: undefined
+    },
+
+    // Player Event Statistics (Phase 1 Tech Debt Fix)
+    playerEventStats: {
+      type: {
+        nightTravels: { type: Number, default: 0, min: 0 },
+        mysteriousEncounters: { type: Number, default: 0, min: 0 },
+        bountyHunterSurvived: { type: Number, default: 0, min: 0 },
+        weatherHazardsSurvived: { type: Number, default: 0, min: 0 },
+        hostileFactionEncounters: { type: Number, default: 0, min: 0 },
+        friendlyFactionGifts: { type: Number, default: 0, min: 0 },
+        eventsTotal: { type: Number, default: 0, min: 0 }
+      },
+      default: undefined
+    },
+
+    // Bounty Portfolio (Phase 5.1 - Passive bounty income)
+    bountyPortfolio: {
+      type: {
+        activeBounties: [{
+          bountyId: { type: String, required: true },
+          targetId: { type: String, required: true },
+          goldInvested: { type: Number, required: true, min: 0 },
+          investedAt: { type: Date, default: Date.now },
+          expectedReturn: { type: Number, required: true, min: 0 },
+          status: {
+            type: String,
+            enum: ['active', 'completed', 'failed'],
+            default: 'active'
+          }
+        }],
+        portfolioValue: { type: Number, default: 0, min: 0 },
+        totalInvested: { type: Number, default: 0, min: 0 },
+        totalReturns: { type: Number, default: 0, min: 0 },
+        pendingReturns: { type: Number, default: 0, min: 0 },
+        successfulInvestments: { type: Number, default: 0, min: 0 },
+        failedInvestments: { type: Number, default: 0, min: 0 }
+      },
+      default: undefined
+    },
+
+    // Fence Trust (Phase 13 - Deep Mining)
+    fenceTrust: {
+      type: [{
+        fenceLocationId: { type: String, required: true },
+        trustLevel: { type: Number, default: 0, min: 0, max: 100 },
+        totalTransactions: { type: Number, default: 0, min: 0 },
+        totalValueTraded: { type: Number, default: 0, min: 0 },
+        lastTransactionAt: { type: Date },
+        stingOperationsTriggered: { type: Number, default: 0, min: 0 }
+      }],
+      default: []
     },
 
     // Activity tracking

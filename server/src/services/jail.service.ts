@@ -23,10 +23,13 @@ import {
   JAIL_ACTIVITIES,
   JAIL_SENTENCES,
   WANTED_ARREST_THRESHOLD,
-  BOUNTY_TURN_IN_MULTIPLIER
+  BOUNTY_TURN_IN_MULTIPLIER,
+  SkillCategory,
+  SKILLS,
 } from '@desperados/shared';
 import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
+import { safeAchievementUpdate } from '../utils/achievementUtils';
 
 /**
  * Activity cooldown tracking
@@ -214,6 +217,9 @@ export class JailService {
         session.endSession();
 
         logger.info(`Escape successful: ${character.name} escaped from jail`);
+
+        // Achievement tracking: Jailbreak
+        safeAchievementUpdate(character._id.toString(), 'jailbreak', 1, 'jail:escape');
 
         return {
           success: true,
@@ -700,25 +706,28 @@ export class JailService {
 
   /**
    * Calculate escape chance based on character skills
+   * AAA BALANCE: Escape is intentionally difficult to make jail meaningful
    */
   private static calculateEscapeChance(character: ICharacter): number {
-    let chance = JAIL_ACTIVITIES.escape_attempt.baseSuccessChance;
+    const escapeConfig = JAIL_ACTIVITIES.escape_attempt;
+    let chance = escapeConfig.baseSuccessChance;
 
-    // Cunning skill increases escape chance
-    const cunningBonus = character.stats.cunning * 0.01; // +1% per cunning point
+    // Cunning skill increases escape chance (reduced from 1% to 0.5% per point)
+    const cunningBonus = character.stats.cunning * 0.005; // +0.5% per cunning point
     chance += cunningBonus;
 
-    // Check for relevant skills (lockpicking, stealth, etc)
+    // Check for relevant skills (cunning-category skills)
+    // Reduced from 2% to 1% per skill level
     for (const skill of character.skills) {
-      if (skill.skillId.toLowerCase().includes('stealth') ||
-          skill.skillId.toLowerCase().includes('lockpick') ||
-          skill.skillId.toLowerCase().includes('escape')) {
-        chance += skill.level * 0.02; // +2% per skill level
+      const skillDef = SKILLS[skill.skillId.toUpperCase()];
+      if (skillDef && skillDef.category === SkillCategory.CUNNING) {
+        chance += skill.level * 0.01; // +1% per skill level (reduced from 2%)
       }
     }
 
-    // Cap at 75% max chance
-    return Math.min(0.75, chance);
+    // Cap at configurable max chance (default 50%, was 75%)
+    const maxChance = (escapeConfig as any).maxChance || 0.50;
+    return Math.min(maxChance, chance);
   }
 
   /**

@@ -9,3 +9,7 @@ export { WorkerManagement } from './WorkerManagement';
 export { StorageInventory } from './StorageInventory';
 export { LoanTracker } from './LoanTracker';
 export { UpgradePanel } from './UpgradePanel';
+
+// Phase R4: Collection UI
+export { CollectionPanel } from './CollectionPanel';
+export { IncomeSummary } from './IncomeSummary';

@@ -255,6 +255,7 @@ export class DeathService {
 
   /**
    * Record death in character's history
+   * AAA BALANCE: All deaths now tracked for visibility and stakes
    */
   private static async recordDeath(
     character: ICharacter,
@@ -262,27 +263,29 @@ export class DeathService {
     penalty: DeathPenalty,
     _session?: mongoose.ClientSession
   ): Promise<void> {
-    // Store death record in character metadata
-    // Note: We would need to add a deathHistory array to Character model
-    // For now, we'll just log it and update combat stats
-
+    // Initialize combat stats if missing
     if (!character.combatStats) {
       character.combatStats = {
         wins: 0,
         losses: 0,
         totalDamage: 0,
-        kills: 0
+        kills: 0,
+        totalDeaths: 0
       };
     }
 
-    // Increment death counter (using losses as death counter for now)
+    // Always increment total deaths counter (all death types)
+    character.combatStats.totalDeaths = (character.combatStats.totalDeaths || 0) + 1;
+
+    // Also track combat-related deaths in losses
     if (deathType === DeathType.COMBAT || deathType === DeathType.DUEL || deathType === DeathType.PVP) {
       character.combatStats.losses += 1;
     }
 
-    logger.debug(
+    logger.info(
       `Death recorded for ${character.name}: ` +
-      `Type: ${deathType}, Gold: ${penalty.goldLost}, XP: ${penalty.xpLost}`
+      `Type: ${deathType}, Total Deaths: ${character.combatStats.totalDeaths}, ` +
+      `Gold Lost: ${penalty.goldLost}, XP Lost: ${penalty.xpLost}`
     );
   }
 
@@ -336,6 +339,7 @@ export class DeathService {
 
   /**
    * Get death statistics for a character
+   * AAA BALANCE: Now returns actual totalDeaths from new tracking field
    */
   static async getDeathHistory(
     characterId: string | mongoose.Types.ObjectId
@@ -345,12 +349,11 @@ export class DeathService {
       throw new Error('Character not found');
     }
 
-    // For now, return basic stats
-    // In a full implementation, we'd store detailed death history
+    // Return actual death count from combatStats
     const stats: DeathStats = {
-      totalDeaths: character.combatStats?.losses || 0,
+      totalDeaths: character.combatStats?.totalDeaths || 0,
       deathsByCombat: character.combatStats?.losses || 0,
-      deathsByEnvironmental: 0,
+      deathsByEnvironmental: 0, // Would need detailed tracking
       deathsByExecution: 0,
       deathsByDuel: 0,
       deathsByPVP: 0,

@@ -274,8 +274,7 @@ export const cancelBounties = asyncHandler(async (req: Request, res: Response) =
     });
   }
 
-  // TODO: Add admin authorization check
-  // For now, any authenticated user can cancel bounties (for testing)
+  // Admin authorization enforced at route level via requireAdmin middleware
 
   const cancelled = await BountyService.cancelBounties(characterId);
 

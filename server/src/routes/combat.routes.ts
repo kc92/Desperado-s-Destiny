@@ -26,12 +26,6 @@ const router = Router();
 router.post('/start', requireAuth, requireCsrfToken, validate(CombatSchemas.startEncounter), detectSuspiciousEarning(), asyncHandler(combatController.startCombat));
 
 /**
- * POST /api/combat/turn/:encounterId
- * Play a turn in an active combat encounter
- */
-router.post('/turn/:encounterId', requireAuth, requireCsrfToken, validate(CombatSchemas.combatAction), detectSuspiciousEarning(), asyncHandler(combatController.playTurn));
-
-/**
  * GET /api/combat/active
  * Get the character's active combat encounter
  */
@@ -61,5 +55,32 @@ router.get('/stats', requireAuth, asyncHandler(combatController.getCombatStats))
  * Flee from an active combat encounter (only allowed in first 3 rounds)
  */
 router.post('/flee/:encounterId', requireAuth, requireCsrfToken, asyncHandler(combatController.fleeCombat));
+
+// =============================================================================
+// SPRINT 2: HOLD/DISCARD COMBAT SYSTEM ROUTES
+// =============================================================================
+
+/**
+ * POST /api/combat/:encounterId/start-turn
+ * Start a new turn in combat (draws cards, enters hold phase)
+ */
+router.post('/:encounterId/start-turn', requireAuth, requireCsrfToken, asyncHandler(combatController.startTurn));
+
+/**
+ * POST /api/combat/:encounterId/action
+ * Process a player action during combat
+ * Body: { type: 'hold' | 'confirm_hold' | 'reroll' | 'peek' | 'flee', cardIndices?: number[], cardIndex?: number }
+ */
+router.post('/:encounterId/action', requireAuth, requireCsrfToken, detectSuspiciousEarning(), asyncHandler(combatController.processAction));
+
+/**
+ * GET /api/combat/:encounterId/state
+ * Get current round state for an encounter
+ */
+router.get('/:encounterId/state', requireAuth, asyncHandler(combatController.getRoundState));
+
+// =============================================================================
+// END SPRINT 2: HOLD/DISCARD COMBAT SYSTEM ROUTES
+// =============================================================================
 
 export default router;

@@ -15,6 +15,7 @@ import { QuestService } from './quest.service';
 import { WorldEventService } from './worldEvent.service';
 import { WeatherService } from './weather.service';
 import { EncounterService } from './encounter.service';
+import { PlayerEventService } from './playerEvent.service';
 import { WorldEvent } from '../models/WorldEvent.model';
 import { calculateDangerChance, rollForEncounter } from '../middleware/accessRestriction.middleware';
 import { ZONE_INFO, WorldZoneType, getAdjacentZones, LocationJob } from '@desperados/shared';
@@ -370,6 +371,23 @@ export class LocationService {
         logger.info(
           `Random encounter triggered for character ${characterId} while traveling to ${targetLocation.name} (${encounterChance}% chance)`
         );
+      }
+
+      // Check for player-triggered events (bounty hunter, night bandit, etc.)
+      // Only check if no base encounter was triggered
+      if (!encounter) {
+        const playerEvent = await PlayerEventService.checkForPlayerEvent(
+          characterId,
+          targetLocationId.toString()
+        );
+
+        if (playerEvent.triggered && playerEvent.encounterId) {
+          // Player event created an encounter
+          encounter = await EncounterService.getActiveEncounter(characterId);
+          logger.info(
+            `Player event triggered: ${playerEvent.eventType} for character ${characterId}`
+          );
+        }
       }
 
       // NOW deduct energy and update location/lastActive atomically

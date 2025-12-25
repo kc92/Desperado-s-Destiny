@@ -271,6 +271,7 @@ export class CombatTransactionService {
         losses: 0,
         totalDamage: 0,
         kills: 0,
+        totalDeaths: 0
       };
     }
 

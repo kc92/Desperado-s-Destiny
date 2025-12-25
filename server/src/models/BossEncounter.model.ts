@@ -36,9 +36,12 @@ export interface IPlayerState {
  */
 export interface IMinion {
   id: string;
-  type: string;
+  type: string;           // Minion type/category
+  name: string;           // Display name
   health: number;
   maxHealth: number;
+  damage: number;         // Damage per attack
+  isAlive: boolean;       // Alive status
 }
 
 /**
@@ -129,8 +132,11 @@ const PlayerStateSchema = new Schema({
 const MinionSchema = new Schema({
   id: { type: String, required: true },
   type: { type: String, required: true },
+  name: { type: String, required: true },
   health: { type: Number, required: true, min: 0 },
   maxHealth: { type: Number, required: true, min: 1 },
+  damage: { type: Number, required: true, default: 10 },
+  isAlive: { type: Boolean, required: true, default: true },
 }, { _id: false });
 
 /**

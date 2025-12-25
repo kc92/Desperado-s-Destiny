@@ -9,6 +9,10 @@ import { LEGENDARY_ANIMAL_BOSSES } from './legendaryBosses';
 import { FACTION_LEADER_BOSSES } from './factionBosses';
 import { OUTLAW_LEGEND_BOSSES } from './outlawBosses';
 import { COSMIC_HORROR_BOSSES } from './cosmicBosses';
+import { GREENHORN_BOSSES } from './greenhornBosses';
+import { FRONTIER_JUSTICE_BOSSES } from './frontierBosses';
+import { HEART_OF_TERRITORY_BOSSES } from './heartOfTerritoryBosses';
+import { ALL_LEGENDS_BOSSES } from './legendsBosses';
 
 /**
  * All boss encounters in the game
@@ -18,6 +22,10 @@ export const ALL_BOSSES: BossEncounter[] = [
   ...FACTION_LEADER_BOSSES,
   ...OUTLAW_LEGEND_BOSSES,
   ...COSMIC_HORROR_BOSSES,
+  ...GREENHORN_BOSSES,           // Phase 19.2: Greenhorn's Trail (L5-15)
+  ...FRONTIER_JUSTICE_BOSSES,    // Phase 19.3: Frontier Justice (L16-25)
+  ...HEART_OF_TERRITORY_BOSSES,  // Phase 19.4: Heart of the Territory (L26-35)
+  ...ALL_LEGENDS_BOSSES,         // Phase 19.5: Legends of the West (L36-45)
 ];
 
 /**
@@ -93,4 +101,8 @@ export {
   FACTION_LEADER_BOSSES,
   OUTLAW_LEGEND_BOSSES,
   COSMIC_HORROR_BOSSES,
+  GREENHORN_BOSSES,
+  FRONTIER_JUSTICE_BOSSES,
+  HEART_OF_TERRITORY_BOSSES,
+  ALL_LEGENDS_BOSSES,
 };

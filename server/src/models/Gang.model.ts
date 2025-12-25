@@ -59,6 +59,14 @@ export interface IGangStats {
 }
 
 /**
+ * Gang war settings (Phase 2.1: Weekly War Schedule)
+ */
+export interface IGangWarSettings {
+  autoTournamentOptIn: boolean;
+  preferredWarDays?: number[]; // 0-6 for Sun-Sat
+}
+
+/**
  * Gang document interface
  */
 export interface IGang extends Document {
@@ -75,6 +83,10 @@ export interface IGang extends Document {
   baseId?: mongoose.Types.ObjectId;
   createdAt: Date;
   isActive: boolean;
+
+  // Phase 2.1: Weekly War Schedule
+  warSettings: IGangWarSettings;
+  warCooldownUntil?: Date;
 
   isMember(characterId: string | mongoose.Types.ObjectId): boolean;
   isOfficer(characterId: string | mongoose.Types.ObjectId): boolean;
@@ -239,6 +251,26 @@ const GangSchema = new Schema<IGang>(
       ref: 'GangBase',
       index: true,
     },
+
+    // Phase 2.1: Weekly War Schedule
+    warSettings: {
+      autoTournamentOptIn: {
+        type: Boolean,
+        default: false,
+      },
+      preferredWarDays: {
+        type: [Number],
+        default: [],
+        validate: {
+          validator: (v: number[]) => v.every(d => d >= 0 && d <= 6),
+          message: 'War days must be between 0 (Sunday) and 6 (Saturday)',
+        },
+      },
+    },
+    warCooldownUntil: {
+      type: Date,
+    },
+
     isActive: {
       type: Boolean,
       default: true,

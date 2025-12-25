@@ -441,7 +441,13 @@ export const QuestSchemas = {
   } as ValidationSchema,
 
   abandon: {
-    params: {
+    body: {
+      questId: { required: true, type: 'objectId' }
+    }
+  } as ValidationSchema,
+
+  complete: {
+    body: {
       questId: { required: true, type: 'objectId' }
     }
   } as ValidationSchema,
@@ -740,6 +746,23 @@ export const AdminSchemas = {
         min: 0 // 0 = permanent
       }
     }
+  } as ValidationSchema,
+
+  updateSettings: {
+    body: {
+      maintenanceMode: {
+        type: 'boolean',
+        message: 'maintenanceMode must be a boolean'
+      },
+      registrationEnabled: {
+        type: 'boolean',
+        message: 'registrationEnabled must be a boolean'
+      },
+      chatEnabled: {
+        type: 'boolean',
+        message: 'chatEnabled must be a boolean'
+      }
+    }
   } as ValidationSchema
 };
 
@@ -858,10 +881,14 @@ export const TrainSchemas = {
         enum: ['engine', 'passenger', 'cargo', 'caboose'] as const
       },
       gangMemberIds: {
-        type: 'array'
+        required: true,
+        type: 'array',
+        min: 1,
+        max: 10
       },
       equipment: {
-        type: 'array'
+        type: 'array',
+        max: 20
       }
     }
   } as ValidationSchema,
@@ -933,7 +960,10 @@ export const StagecoachSchemas = {
       ambushSpotId: { required: true, type: 'objectId' },
       scheduledTime: { required: true, type: 'string' },
       gangMemberIds: {
-        type: 'array'
+        required: true,
+        type: 'array',
+        min: 1,
+        max: 10
       },
       strategy: {
         type: 'string',
@@ -1042,7 +1072,8 @@ export const GangBaseSchemas = {
     body: {
       upgradeType: {
         required: true,
-        type: 'string'
+        type: 'string',
+        enum: ['storage', 'security', 'income', 'efficiency', 'aesthetics', 'defense', 'production', 'capacity'] as const
       }
     }
   } as ValidationSchema,

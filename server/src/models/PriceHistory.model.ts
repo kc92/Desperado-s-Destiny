@@ -85,6 +85,7 @@ export interface IPriceHistoryModel extends Model<IPriceHistory> {
   findOrCreateByItemId(itemId: string, itemName: string, category: string, rarity?: string, session?: mongoose.ClientSession): Promise<IPriceHistory>;
   recordSale(itemId: string, price: number, quantity: number, listingId?: string, sellerId?: string, buyerId?: string, session?: mongoose.ClientSession): Promise<IPriceHistory>;
   updateStats(itemId: string, session?: mongoose.ClientSession): Promise<IPriceHistory | null>;
+  batchUpdateStats(itemIds: string[], session?: mongoose.ClientSession): Promise<number>;
   getTopItems(category?: string, limit?: number): Promise<IPriceHistory[]>;
   getTrendingItems(limit?: number): Promise<IPriceHistory[]>;
 }
@@ -467,6 +468,131 @@ PriceHistorySchema.statics.updateStats = async function(
 };
 
 /**
+ * Static: Batch update statistics for multiple items
+ * Uses bulkWrite for efficient database operations - fixes N+1 query issue
+ */
+PriceHistorySchema.statics.batchUpdateStats = async function(
+  itemIds: string[],
+  session?: mongoose.ClientSession
+): Promise<number> {
+  if (itemIds.length === 0) return 0;
+
+  // Fetch all items at once
+  const query = this.find({ itemId: { $in: itemIds } });
+  if (session) query.session(session);
+  const items = await query;
+
+  if (items.length === 0) return 0;
+
+  const now = new Date();
+  const day24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const day7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const day30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Build bulk operations
+  const bulkOps = items.map(priceHistory => {
+    if (priceHistory.sales.length === 0) {
+      return null;
+    }
+
+    const sales = priceHistory.sales;
+    const prices = sales.map(s => s.price);
+    const sortedPrices = [...prices].sort((a, b) => a - b);
+
+    // Calculate basic stats
+    const stats = {
+      averagePrice: prices.reduce((sum, p) => sum + p, 0) / prices.length,
+      minPrice: Math.min(...prices),
+      maxPrice: Math.max(...prices),
+      medianPrice: sortedPrices[Math.floor(sortedPrices.length / 2)],
+      totalVolume: sales.reduce((sum, s) => sum + (s.price * s.quantity), 0),
+      totalSales: sales.length,
+      priceChange24h: 0,
+      priceChange7d: 0,
+      priceChange30d: 0
+    };
+
+    // Calculate price changes
+    const sales24h = sales.filter(s => s.date >= day24h);
+    const salesBefore24h = sales.filter(s => s.date < day24h);
+    if (sales24h.length > 0 && salesBefore24h.length > 0) {
+      const avgRecent = sales24h.reduce((sum, s) => sum + s.price, 0) / sales24h.length;
+      const avgOld = salesBefore24h.reduce((sum, s) => sum + s.price, 0) / salesBefore24h.length;
+      stats.priceChange24h = ((avgRecent - avgOld) / avgOld) * 100;
+    }
+
+    const sales7d = sales.filter(s => s.date >= day7d);
+    const salesBefore7d = sales.filter(s => s.date < day7d);
+    if (sales7d.length > 0 && salesBefore7d.length > 0) {
+      const avgRecent = sales7d.reduce((sum, s) => sum + s.price, 0) / sales7d.length;
+      const avgOld = salesBefore7d.reduce((sum, s) => sum + s.price, 0) / salesBefore7d.length;
+      stats.priceChange7d = ((avgRecent - avgOld) / avgOld) * 100;
+    }
+
+    const sales30d = sales.filter(s => s.date >= day30d);
+    const salesBefore30d = sales.filter(s => s.date < day30d);
+    if (sales30d.length > 0 && salesBefore30d.length > 0) {
+      const avgRecent = sales30d.reduce((sum, s) => sum + s.price, 0) / sales30d.length;
+      const avgOld = salesBefore30d.reduce((sum, s) => sum + s.price, 0) / salesBefore30d.length;
+      stats.priceChange30d = ((avgRecent - avgOld) / avgOld) * 100;
+    }
+
+    // Build daily snapshot update
+    const todaySales = sales.filter(s => {
+      const saleDate = new Date(s.date);
+      saleDate.setHours(0, 0, 0, 0);
+      return saleDate.getTime() === today.getTime();
+    });
+
+    let snapshotUpdate: any = {};
+    if (todaySales.length > 0) {
+      const todayPrices = todaySales.map(s => s.price);
+      const existingSnapshot = priceHistory.dailySnapshots.find(s => {
+        const snapshotDate = new Date(s.date);
+        snapshotDate.setHours(0, 0, 0, 0);
+        return snapshotDate.getTime() === today.getTime();
+      });
+
+      if (!existingSnapshot) {
+        // Add new snapshot
+        const newSnapshot = {
+          date: today,
+          openPrice: todayPrices[0],
+          closePrice: todayPrices[todayPrices.length - 1],
+          highPrice: Math.max(...todayPrices),
+          lowPrice: Math.min(...todayPrices),
+          volume: todaySales.reduce((sum, s) => sum + s.price * s.quantity, 0),
+          salesCount: todaySales.length
+        };
+        // Keep only last 30 snapshots
+        const snapshots = [...priceHistory.dailySnapshots, newSnapshot].slice(-30);
+        snapshotUpdate = { dailySnapshots: snapshots };
+      }
+    }
+
+    return {
+      updateOne: {
+        filter: { itemId: priceHistory.itemId },
+        update: {
+          $set: {
+            stats,
+            lastUpdated: now,
+            ...snapshotUpdate
+          }
+        }
+      }
+    };
+  }).filter(op => op !== null);
+
+  if (bulkOps.length === 0) return 0;
+
+  const result = await this.bulkWrite(bulkOps, { session });
+  return result.modifiedCount;
+};
+
+/**
  * Static: Get top items by volume
  */
 PriceHistorySchema.statics.getTopItems = async function(
@@ -499,7 +625,5 @@ PriceHistorySchema.statics.getTrendingItems = async function(
 /**
  * Price History model
  */
-export const PriceHistory = mongoose.model<IPriceHistory, IPriceHistoryModel>(
-  'PriceHistory',
-  PriceHistorySchema
-);
+export const PriceHistory = mongoose.models.PriceHistory as IPriceHistoryModel ||
+  mongoose.model<IPriceHistory, IPriceHistoryModel>('PriceHistory', PriceHistorySchema);

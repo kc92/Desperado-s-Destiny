@@ -217,7 +217,7 @@ export const spawnWorldBoss = asyncHandler(
       throw new AppError('Boss ID is required', HttpStatus.BAD_REQUEST);
     }
 
-    // TODO: Add admin authorization check
+    // Admin authorization enforced at route level via requireAdmin middleware
 
     const session = await WorldBossService.spawnWorldBoss(bossId as WorldBossType);
 
@@ -249,7 +249,7 @@ export const endWorldBossSession = asyncHandler(
       throw new AppError('Boss ID is required', HttpStatus.BAD_REQUEST);
     }
 
-    // TODO: Add admin authorization check
+    // Admin authorization enforced at route level via requireAdmin middleware
 
     await WorldBossService.endBossSession(bossId as WorldBossType, victory === true);
 

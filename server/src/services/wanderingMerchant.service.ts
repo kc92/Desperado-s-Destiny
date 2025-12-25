@@ -22,6 +22,7 @@ import { Character, ICharacter } from '../models/Character.model';
 import { Item, IItem } from '../models/Item.model';
 import { GoldTransaction, TransactionSource } from '../models/GoldTransaction.model';
 import { CharacterMerchantDiscovery } from '../models/CharacterMerchantDiscovery.model';
+import { MerchantStock } from '../models/MerchantStock.model';
 import { AppError } from '../utils/errors';
 import mongoose from 'mongoose';
 import { areTransactionsDisabled } from '../utils/transaction.helper';
@@ -509,9 +510,17 @@ export class WanderingMerchantService {
       throw new AppError(`You need trust level ${requiredTrust} with this merchant to buy this item`, 400);
     }
 
-    // Check stock if limited
-    if (merchantItem.quantity !== undefined && merchantItem.quantity < quantity) {
-      throw new AppError(`Only ${merchantItem.quantity} items left in stock`, 400);
+    // PHASE 4 FIX: Check stock using MerchantStock model for atomic tracking
+    // This prevents infinite stock exploit where stock was never decremented
+    const initialStock = merchantItem.quantity ?? 999; // Use 999 as "unlimited" placeholder
+
+    if (merchantItem.quantity !== undefined) {
+      // Get current stock from database (initializes if needed)
+      const currentStock = await MerchantStock.getStock(merchantId, itemId, initialStock);
+
+      if (currentStock < quantity) {
+        throw new AppError(`Only ${currentStock} items left in stock`, 400);
+      }
     }
 
     // Calculate price with trust discount
@@ -577,6 +586,22 @@ export class WanderingMerchantService {
             quantity,
             acquiredAt: new Date()
           });
+        }
+      }
+
+      // PHASE 4 FIX: Atomically decrement stock BEFORE save to prevent race condition
+      // This ensures stock is properly tracked and prevents infinite purchase exploit
+      if (merchantItem.quantity !== undefined) {
+        const stockResult = await MerchantStock.purchaseStock(
+          merchantId,
+          itemId,
+          quantity,
+          initialStock,
+          session || undefined
+        );
+
+        if (!stockResult.success) {
+          throw new AppError(`Only ${stockResult.remainingStock} items left in stock`, 400);
         }
       }
 

@@ -33,8 +33,23 @@ import {
   scaleProgressByLevel,
   scaleRewards,
   getTemplatesByDifficulty,
-  getSeededRandomElement
+  getSeededRandomElement,
+  GANG_CONTRACTS,
+  GANG_BOUNTY_CONTRACTS,
+  BOUNTY_CONTRACTS
 } from '../data/contractTemplates';
+import { Gang, IGang } from '../models/Gang.model';
+import {
+  PREMIUM_CONTRACT_TEMPLATES,
+  PremiumContractTemplate,
+  getAvailablePremiumContracts,
+  getPremiumContractTemplate,
+  fillContractTemplate
+} from '../data/activities/premiumContractTemplates';
+import { MilestoneRewardService } from './milestoneReward.service';
+import { EnergyService } from './energy.service';
+import { TerritoryBonusService } from './territoryBonus.service';
+import logger from '../utils/logger';
 
 /**
  * Contract generation result
@@ -174,6 +189,22 @@ export class DailyContractService {
       c.expiresAt = expiresAt;
     });
 
+    // Phase 3: Generate gang-specific contracts if character is in a gang
+    try {
+      const gangContracts = await this.generateGangContracts(character, seed + 1000);
+      if (gangContracts.length > 0) {
+        // Set expiry for gang contracts
+        gangContracts.forEach(c => {
+          c.expiresAt = expiresAt;
+        });
+        contracts.push(...gangContracts);
+        logger.debug(`Generated ${gangContracts.length} gang contracts for character ${characterId}`);
+      }
+    } catch (gangError) {
+      logger.warn('Failed to generate gang contracts:', gangError);
+      // Continue without gang contracts - don't fail the whole generation
+    }
+
     // Save contracts to the record
     dailyContract.contracts = contracts as IContract[];
     await dailyContract.save();
@@ -298,23 +329,38 @@ export class DailyContractService {
         throw new NotFoundError('Character');
       }
 
-      // Grant rewards
+      // Grant rewards (with territory contract bonuses - Phase 2.2)
       const rewards = contract.rewards;
 
-      // Dollars
+      // TERRITORY BONUS: Fetch contract bonuses
+      let contractBonuses = { gold: 1.0, xp: 1.0, streak: 1.0 };
+      try {
+        const charObjId = new mongoose.Types.ObjectId(characterId);
+        const bonusResult = await TerritoryBonusService.getContractBonuses(charObjId);
+        if (bonusResult.hasBonuses) {
+          contractBonuses = bonusResult.bonuses;
+          logger.debug(`Territory contract bonuses: gold ${contractBonuses.gold}x, xp ${contractBonuses.xp}x`);
+        }
+      } catch (bonusError) {
+        logger.warn('Failed to get territory contract bonuses:', bonusError);
+      }
+
+      // Dollars (with territory bonus)
       if (rewards.gold > 0) {
+        const bonusGold = Math.floor(rewards.gold * contractBonuses.gold);
         await DollarService.addDollars(
           characterId,
-          rewards.gold,
+          bonusGold,
           TransactionSource.CONTRACT_REWARD,
           { contractId: contract.id, contractTitle: contract.title },
           session
         );
       }
 
-      // XP
+      // XP (with territory bonus)
       if (rewards.xp > 0) {
-        await character.addExperience(rewards.xp);
+        const bonusXp = Math.floor(rewards.xp * contractBonuses.xp);
+        await character.addExperience(bonusXp);
       }
 
       // Items
@@ -651,6 +697,34 @@ export class DailyContractService {
             shouldUpdate = true;
           }
           break;
+
+        // Phase 3: Gang and Territory contracts
+        case 'gang':
+          if (actionType === 'gang_combat_win' || actionType === 'gang_war_participation' ||
+              actionType === 'gang_raid_completed' || actionType === 'contract_completed' ||
+              actionType === 'gang_treasury_contribution' || actionType === 'gang_recruit') {
+            shouldUpdate = true;
+          }
+          break;
+
+        case 'territory':
+          if (actionType === 'influence_gained' || actionType === 'territory_defended' ||
+              actionType === 'territory_captured') {
+            shouldUpdate = true;
+          }
+          break;
+
+        case 'boss':
+          if (actionType === 'boss_defeated') {
+            shouldUpdate = true;
+          }
+          break;
+
+        case 'bounty':
+          if (actionType === 'bounty_completed' || actionType === 'bounty_captured' || actionType === 'bounty_killed') {
+            shouldUpdate = true;
+          }
+          break;
       }
 
       if (shouldUpdate) {
@@ -682,7 +756,8 @@ export class DailyContractService {
   static getTimeUntilReset(): { hours: number; minutes: number; seconds: number } {
     const now = new Date();
     const tomorrow = new Date(now);
-    tomorrow.setUTCHours(24, 0, 0, 0);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    tomorrow.setUTCHours(0, 0, 0, 0);
 
     const diff = tomorrow.getTime() - now.getTime();
 
@@ -691,6 +766,583 @@ export class DailyContractService {
       minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
       seconds: Math.floor((diff % (1000 * 60)) / 1000)
     };
+  }
+
+  // ============ Gang Contract Methods (Phase 3) ============
+
+  /**
+   * Generate gang-specific contracts for a character
+   * Called from generateDailyContracts if character is in a gang
+   */
+  private static async generateGangContracts(
+    character: ICharacter,
+    seed: number
+  ): Promise<GeneratedContract[]> {
+    // Check if character is in a gang
+    if (!character.gangId) {
+      return [];
+    }
+
+    const gang = await Gang.findById(character.gangId);
+    if (!gang) {
+      return [];
+    }
+
+    const contracts: GeneratedContract[] = [];
+    let currentSeed = seed;
+
+    // Determine member rank
+    const member = gang.members.find(
+      m => m.characterId.toString() === character._id.toString()
+    );
+    const memberRank = member?.role || 'member';
+
+    // Filter templates by gang rank requirement
+    // Combine regular gang contracts and gang bounty contracts
+    const allGangTemplates = [...GANG_CONTRACTS, ...GANG_BOUNTY_CONTRACTS];
+    const availableTemplates = allGangTemplates.filter(template => {
+      if (!template.gangRankRequired) return true;
+
+      const rankOrder = { member: 1, officer: 2, leader: 3 };
+      const requiredRank = rankOrder[template.gangRankRequired] || 1;
+      const actualRank = rankOrder[memberRank as keyof typeof rankOrder] || 1;
+
+      return actualRank >= requiredRank;
+    });
+
+    if (availableTemplates.length === 0) {
+      return [];
+    }
+
+    // Generate 1-2 gang contracts
+    // 1 contract always, 2nd contract if gang controls territory
+    const gangContractCount = gang.territories && gang.territories.length > 0 ? 2 : 1;
+    const usedTemplateIds = new Set<string>();
+
+    for (let i = 0; i < gangContractCount && i < availableTemplates.length; i++) {
+      currentSeed = Math.abs(currentSeed * 1664525 + 1013904223) % Math.pow(2, 32);
+
+      // Filter out already used templates
+      const remainingTemplates = availableTemplates.filter(t => !usedTemplateIds.has(t.id));
+      if (remainingTemplates.length === 0) break;
+
+      // Prefer territory contracts if gang has territory
+      let selectedTemplate: ContractTemplate;
+      if (gang.territories && gang.territories.length > 0) {
+        const territoryTemplates = remainingTemplates.filter(t => t.type === 'territory');
+        if (territoryTemplates.length > 0 && i === 0) {
+          const templateIndex = Math.floor(seededRandom(currentSeed) * territoryTemplates.length);
+          selectedTemplate = territoryTemplates[templateIndex];
+        } else {
+          const templateIndex = Math.floor(seededRandom(currentSeed) * remainingTemplates.length);
+          selectedTemplate = remainingTemplates[templateIndex];
+        }
+      } else {
+        const templateIndex = Math.floor(seededRandom(currentSeed) * remainingTemplates.length);
+        selectedTemplate = remainingTemplates[templateIndex];
+      }
+
+      usedTemplateIds.add(selectedTemplate.id);
+
+      // Generate contract from template
+      currentSeed = Math.abs(currentSeed * 1664525 + 1013904223) % Math.pow(2, 32);
+      const contract = this.generateContractFromTemplate(selectedTemplate, character.level, currentSeed);
+
+      // Mark as gang contract in requirements
+      contract.requirements = {
+        ...contract.requirements,
+        gangRequired: true,
+        gangRankRequired: selectedTemplate.gangRankRequired
+      };
+
+      contracts.push(contract);
+    }
+
+    return contracts;
+  }
+
+  // ============ Premium Contract Methods (Sprint 7) ============
+
+  /**
+   * Check if character has access to premium contracts
+   */
+  static async hasPremiumContractAccess(characterId: string): Promise<boolean> {
+    return MilestoneRewardService.hasFeature(characterId, 'contracts_board');
+  }
+
+  /**
+   * Generate available premium contracts for a character
+   * Returns 1-2 contracts based on level, filtered by cooldowns
+   */
+  static async generatePremiumContracts(characterId: string): Promise<IContract[]> {
+    // Check feature unlock
+    const hasFeature = await this.hasPremiumContractAccess(characterId);
+    if (!hasFeature) {
+      return [];
+    }
+
+    const character = await Character.findById(characterId);
+    if (!character) {
+      throw new NotFoundError('Character');
+    }
+
+    // Get or create today's contract record
+    const dailyContract = await DailyContract.findOrCreateForToday(characterId);
+
+    // Filter templates by level and cooldowns
+    const now = new Date();
+    const cooldowns = dailyContract.premiumCooldowns instanceof Map
+      ? dailyContract.premiumCooldowns
+      : new Map(Object.entries(dailyContract.premiumCooldowns || {}));
+
+    const availableTemplates = PREMIUM_CONTRACT_TEMPLATES.filter(template => {
+      // Check level requirement
+      if (character.level < template.levelRequired) {
+        return false;
+      }
+
+      // Check cooldown
+      const cooldownExpiry = cooldowns.get(template.id);
+      if (cooldownExpiry && new Date(cooldownExpiry) > now) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Determine how many premium contracts to offer (1-2 based on level)
+    const count = character.level >= 40 ? 2 : 1;
+    const selectedTemplates = availableTemplates.slice(0, count);
+
+    // Generate contracts from templates
+    const contracts: IContract[] = selectedTemplates.map(template =>
+      this.generatePremiumContractFromTemplate(template, character.level)
+    );
+
+    return contracts;
+  }
+
+  /**
+   * Get premium contracts for a character (including active ones)
+   */
+  static async getPremiumContracts(characterId: string): Promise<{
+    available: IContract[];
+    active: IContract[];
+    cooldowns: Record<string, Date>;
+  }> {
+    const hasFeature = await this.hasPremiumContractAccess(characterId);
+    if (!hasFeature) {
+      return { available: [], active: [], cooldowns: {} };
+    }
+
+    const dailyContract = await DailyContract.findOrCreateForToday(characterId);
+    const available = await this.generatePremiumContracts(characterId);
+
+    // Get active premium contracts
+    const active = dailyContract.premiumContracts.filter(
+      c => c.status === 'in_progress'
+    );
+
+    // Convert cooldowns to plain object
+    const cooldowns: Record<string, Date> = {};
+    const cooldownMap = dailyContract.premiumCooldowns instanceof Map
+      ? dailyContract.premiumCooldowns
+      : new Map(Object.entries(dailyContract.premiumCooldowns || {}));
+
+    for (const [key, value] of cooldownMap) {
+      cooldowns[key] = new Date(value);
+    }
+
+    return { available, active, cooldowns };
+  }
+
+  /**
+   * Accept a premium contract
+   */
+  static async acceptPremiumContract(
+    characterId: string,
+    templateId: string
+  ): Promise<{ success: boolean; contract?: IContract; error?: string }> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const hasFeature = await this.hasPremiumContractAccess(characterId);
+      if (!hasFeature) {
+        throw new ValidationError('Premium contracts not unlocked (requires Level 35)');
+      }
+
+      const character = await Character.findById(characterId).session(session);
+      if (!character) {
+        throw new NotFoundError('Character');
+      }
+
+      const template = getPremiumContractTemplate(templateId);
+      if (!template) {
+        throw new NotFoundError('Premium contract template');
+      }
+
+      // Check level requirement
+      if (character.level < template.levelRequired) {
+        throw new ValidationError(`Requires level ${template.levelRequired}`);
+      }
+
+      // Check skill requirements
+      if (template.requiredSkills && template.requiredSkills.length > 0) {
+        for (const req of template.requiredSkills) {
+          const characterSkill = character.skills.find(s => s.skillId === req.skillId);
+          const skillLevel = characterSkill?.level || 0;
+          if (skillLevel < req.minLevel) {
+            throw new ValidationError(`Requires ${req.skillId} level ${req.minLevel}`);
+          }
+        }
+      }
+
+      const dailyContract = await DailyContract.findOrCreateForToday(characterId);
+
+      // Check cooldown
+      const cooldowns = dailyContract.premiumCooldowns instanceof Map
+        ? dailyContract.premiumCooldowns
+        : new Map(Object.entries(dailyContract.premiumCooldowns || {}));
+
+      const cooldownExpiry = cooldowns.get(templateId);
+      if (cooldownExpiry && new Date(cooldownExpiry) > new Date()) {
+        const remainingHours = Math.ceil(
+          (new Date(cooldownExpiry).getTime() - Date.now()) / (1000 * 60 * 60)
+        );
+        throw new ValidationError(`Contract on cooldown for ${remainingHours} more hours`);
+      }
+
+      // Check if already have an active premium contract of this type
+      const existingActive = dailyContract.premiumContracts.find(
+        c => c.premiumTemplateId === templateId && c.status === 'in_progress'
+      );
+      if (existingActive) {
+        throw new ValidationError('Already have an active contract of this type');
+      }
+
+      // Check energy cost
+      const energyStatus = await EnergyService.getStatus(characterId);
+      if (energyStatus.currentEnergy < template.energyCost) {
+        throw new ValidationError(`Requires ${template.energyCost} energy (have ${energyStatus.currentEnergy})`);
+      }
+
+      // Deduct energy
+      await EnergyService.spend(characterId, template.energyCost);
+
+      // Generate the contract
+      const contract = this.generatePremiumContractFromTemplate(template, character.level);
+      contract.status = 'in_progress';
+      contract.acceptedAt = new Date();
+
+      // Add to premium contracts array
+      dailyContract.premiumContracts.push(contract);
+
+      await dailyContract.save({ session });
+      await session.commitTransaction();
+
+      return { success: true, contract };
+    } catch (error) {
+      await session.abortTransaction();
+      if (error instanceof AppError) {
+        return { success: false, error: error.message };
+      }
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  /**
+   * Progress a multi-phase premium contract
+   */
+  static async progressPremiumContract(
+    characterId: string,
+    contractId: string
+  ): Promise<{ success: boolean; contract?: IContract; phaseCompleted?: number; error?: string }> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const dailyContract = await DailyContract.findOne({
+        characterId: new mongoose.Types.ObjectId(characterId),
+        'premiumContracts.id': contractId
+      }).session(session);
+
+      if (!dailyContract) {
+        throw new NotFoundError('Premium contract');
+      }
+
+      const contract = dailyContract.premiumContracts.find(c => c.id === contractId);
+      if (!contract) {
+        throw new NotFoundError('Premium contract');
+      }
+
+      if (contract.status !== 'in_progress') {
+        throw new ValidationError('Contract is not in progress');
+      }
+
+      // Check if contract is already complete
+      if (contract.progress >= contract.progressMax) {
+        throw new ValidationError('Contract progress already complete - ready for completion');
+      }
+
+      const template = getPremiumContractTemplate(contract.premiumTemplateId || '');
+      if (!template) {
+        throw new NotFoundError('Premium contract template');
+      }
+
+      // Check energy cost for this phase
+      const energyStatus = await EnergyService.getStatus(characterId);
+      if (energyStatus.currentEnergy < template.energyCost) {
+        throw new ValidationError(`Requires ${template.energyCost} energy for next phase`);
+      }
+
+      // Deduct energy
+      await EnergyService.spend(characterId, template.energyCost);
+
+      // Advance progress
+      contract.progress += 1;
+      contract.phaseProgress = contract.progress;
+
+      await dailyContract.save({ session });
+      await session.commitTransaction();
+
+      return {
+        success: true,
+        contract,
+        phaseCompleted: contract.progress
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      if (error instanceof AppError) {
+        return { success: false, error: error.message };
+      }
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  /**
+   * Complete a premium contract and claim rewards
+   */
+  static async completePremiumContract(
+    characterId: string,
+    contractId: string
+  ): Promise<{
+    success: boolean;
+    contract?: IContract;
+    rewards?: ContractRewards;
+    factionChanges?: Record<string, number>;
+    error?: string;
+  }> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const dailyContract = await DailyContract.findOne({
+        characterId: new mongoose.Types.ObjectId(characterId),
+        'premiumContracts.id': contractId
+      }).session(session);
+
+      if (!dailyContract) {
+        throw new NotFoundError('Premium contract');
+      }
+
+      const contract = dailyContract.premiumContracts.find(c => c.id === contractId);
+      if (!contract) {
+        throw new NotFoundError('Premium contract');
+      }
+
+      if (contract.status === 'completed') {
+        throw new ValidationError('Contract already completed');
+      }
+
+      if (contract.status !== 'in_progress') {
+        throw new ValidationError('Contract must be in progress to complete');
+      }
+
+      // Check if progress is complete
+      if (contract.progress < contract.progressMax) {
+        throw new ValidationError(`Contract not complete: ${contract.progress}/${contract.progressMax}`);
+      }
+
+      const character = await Character.findById(characterId).session(session);
+      if (!character) {
+        throw new NotFoundError('Character');
+      }
+
+      const template = getPremiumContractTemplate(contract.premiumTemplateId || '');
+
+      // Grant rewards
+      const rewards = contract.rewards;
+
+      // Dollars
+      if (rewards.gold > 0) {
+        await DollarService.addDollars(
+          characterId,
+          rewards.gold,
+          TransactionSource.CONTRACT_REWARD,
+          { contractId: contract.id, contractTitle: contract.title, isPremium: true },
+          session
+        );
+      }
+
+      // XP
+      if (rewards.xp > 0) {
+        await character.addExperience(rewards.xp);
+      }
+
+      // Items
+      if (rewards.items && rewards.items.length > 0) {
+        for (const itemId of rewards.items) {
+          const existingItem = character.inventory.find(inv => inv.itemId === itemId);
+          if (existingItem) {
+            existingItem.quantity += 1;
+          } else {
+            character.inventory.push({
+              itemId,
+              quantity: 1,
+              acquiredAt: new Date()
+            });
+          }
+        }
+      }
+
+      // Skill XP
+      if (rewards.skillXp && rewards.skillXp.length > 0) {
+        await SkillService.awardMultipleSkillXP(
+          characterId,
+          rewards.skillXp,
+          session
+        );
+      }
+
+      // Apply faction impact
+      const factionChanges: Record<string, number> = {};
+      if (contract.factionImpact && !contract.factionImpactApplied) {
+        const impactMap = contract.factionImpact instanceof Map
+          ? contract.factionImpact
+          : new Map(Object.entries(contract.factionImpact));
+
+        for (const [faction, amount] of impactMap) {
+          const factionKey = faction as keyof typeof character.factionReputation;
+          if (factionKey in character.factionReputation) {
+            const change = amount as number;
+            character.factionReputation[factionKey] = Math.max(
+              -100,
+              Math.min(100, character.factionReputation[factionKey] + change)
+            );
+            factionChanges[faction] = change;
+          }
+        }
+        contract.factionImpactApplied = true;
+      }
+
+      // Update contract status
+      contract.status = 'completed';
+      contract.completedAt = new Date();
+
+      // Set cooldown for this contract type
+      if (template) {
+        const cooldownExpiry = new Date();
+        cooldownExpiry.setTime(cooldownExpiry.getTime() + template.cooldownHours * 60 * 60 * 1000);
+
+        // Ensure premiumCooldowns is an object
+        if (!dailyContract.premiumCooldowns) {
+          dailyContract.premiumCooldowns = {} as Record<string, Date>;
+        }
+        (dailyContract.premiumCooldowns as Record<string, Date>)[template.id] = cooldownExpiry;
+
+        // Also set on the contract for reference
+        contract.cooldownExpiresAt = cooldownExpiry;
+      }
+
+      await character.save({ session });
+      await dailyContract.save({ session });
+
+      await session.commitTransaction();
+
+      return {
+        success: true,
+        contract,
+        rewards,
+        factionChanges: Object.keys(factionChanges).length > 0 ? factionChanges : undefined
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      if (error instanceof AppError) {
+        return { success: false, error: error.message };
+      }
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  /**
+   * Abandon a premium contract (no rewards, partial cooldown)
+   */
+  static async abandonPremiumContract(
+    characterId: string,
+    contractId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const dailyContract = await DailyContract.findOne({
+        characterId: new mongoose.Types.ObjectId(characterId),
+        'premiumContracts.id': contractId
+      }).session(session);
+
+      if (!dailyContract) {
+        throw new NotFoundError('Premium contract');
+      }
+
+      const contractIndex = dailyContract.premiumContracts.findIndex(c => c.id === contractId);
+      if (contractIndex === -1) {
+        throw new NotFoundError('Premium contract');
+      }
+
+      const contract = dailyContract.premiumContracts[contractIndex];
+
+      if (contract.status !== 'in_progress') {
+        throw new ValidationError('Can only abandon in-progress contracts');
+      }
+
+      const template = getPremiumContractTemplate(contract.premiumTemplateId || '');
+
+      // Set partial cooldown (half the normal cooldown time)
+      if (template) {
+        const partialCooldownHours = Math.ceil(template.cooldownHours / 2);
+        const cooldownExpiry = new Date();
+        cooldownExpiry.setTime(cooldownExpiry.getTime() + partialCooldownHours * 60 * 60 * 1000);
+
+        // Ensure premiumCooldowns is an object
+        if (!dailyContract.premiumCooldowns) {
+          dailyContract.premiumCooldowns = {} as Record<string, Date>;
+        }
+        (dailyContract.premiumCooldowns as Record<string, Date>)[template.id] = cooldownExpiry;
+      }
+
+      // Remove the contract from the array
+      dailyContract.premiumContracts.splice(contractIndex, 1);
+
+      await dailyContract.save({ session });
+      await session.commitTransaction();
+
+      return { success: true };
+    } catch (error) {
+      await session.abortTransaction();
+      if (error instanceof AppError) {
+        return { success: false, error: error.message };
+      }
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 
   // ============ Private Helpers ============
@@ -702,6 +1354,77 @@ export class DailyContractService {
     if (level < 3) return 3;
     if (level < 10) return 4;
     return 5;
+  }
+
+  /**
+   * Generate a premium contract from template
+   */
+  private static generatePremiumContractFromTemplate(
+    template: PremiumContractTemplate,
+    characterLevel: number
+  ): IContract {
+    const { title, description, targetName, targetLocation } = fillContractTemplate(template);
+
+    // Calculate expiry (premium contracts don't expire daily, they expire when completed or abandoned)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
+
+    // Build rewards
+    const rewards: ContractRewards = {
+      gold: template.baseRewards.gold,
+      xp: template.baseRewards.xp
+    };
+
+    // Add skill XP rewards if defined
+    if (template.skillXpRewards && template.skillXpRewards.length > 0) {
+      rewards.skillXp = template.skillXpRewards.map(r => ({
+        skillId: r.skillId,
+        amount: r.amount
+      }));
+    }
+
+    // Build requirements
+    const requirements: any = {
+      amount: template.baseProgressMax
+    };
+
+    if (template.requiredSkills && template.requiredSkills.length > 0) {
+      requirements.skills = template.requiredSkills.map(skill => ({
+        skillId: skill.skillId,
+        minLevel: skill.minLevel
+      }));
+    }
+
+    // Build target
+    const target = {
+      type: template.targetType,
+      name: targetName || 'Target',
+      location: targetLocation,
+      id: undefined
+    };
+
+    return {
+      id: uuidv4(),
+      templateId: template.id,
+      type: template.type,
+      title,
+      description,
+      target,
+      requirements,
+      rewards,
+      difficulty: template.difficulty,
+      status: 'available' as ContractStatus,
+      progress: 0,
+      progressMax: template.baseProgressMax,
+      expiresAt,
+      // Premium-specific fields
+      isPremium: true,
+      premiumTemplateId: template.id,
+      energyCost: template.energyCost,
+      phaseProgress: 0,
+      factionImpact: template.factionImpact,
+      factionImpactApplied: false
+    } as IContract;
   }
 
   /**

@@ -15,7 +15,7 @@ import {
   checkBountyHunter,
   cancelBounties,
 } from '../controllers/bounty.controller';
-import { requireAuth } from '../middleware/auth.middleware';
+import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { requireCsrfToken } from '../middleware/csrf.middleware';
 
@@ -76,6 +76,6 @@ router.post('/collect', requireCsrfToken, asyncHandler(collectBounty));
  * DELETE /api/bounty/cancel/:characterId
  * Admin: Cancel all bounties for a character
  */
-router.delete('/cancel/:characterId', requireCsrfToken, asyncHandler(cancelBounties));
+router.delete('/cancel/:characterId', requireAdmin, requireCsrfToken, asyncHandler(cancelBounties));
 
 export default router;

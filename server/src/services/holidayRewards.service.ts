@@ -12,6 +12,8 @@ import {
 } from '@desperados/shared';
 import { HolidayProgress } from '../models/HolidayProgress.model';
 import { Character } from '../models/Character.model';
+import { TransactionSource } from '../models/GoldTransaction.model';
+import { DollarService } from './dollar.service';
 import * as HolidayData from '../data/holidays/index';
 
 interface RewardResult {
@@ -304,7 +306,14 @@ export class HolidayRewardsService {
 
     switch (reward.type) {
       case 'GOLD':
-        character.gold = (character.gold || 0) + reward.amount;
+        // Use DollarService for proper transaction tracking
+        await DollarService.addDollars(
+          character._id.toString(),
+          reward.amount,
+          TransactionSource.HOLIDAY_REWARD,
+          { rewardId: reward.id }
+        );
+        // Note: Character will need to be reloaded after processing to get updated balance
         processed.name = 'Gold';
         break;
 

@@ -3,28 +3,19 @@
  *
  * Detailed zone-level territory control system for gang warfare
  * Supports influence mechanics, contestation, and zone benefits
+ *
+ * Phase 2.2: Added ZoneSpecialization and extended ZoneBenefitType support
  */
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import {
+  ZoneType,
+  ZoneBenefitType,
+  ZoneSpecialization,
+} from '@desperados/shared';
 
-/**
- * Zone type enum
- */
-export enum ZoneType {
-  TOWN_DISTRICT = 'town_district',
-  WILDERNESS = 'wilderness',
-  STRATEGIC_POINT = 'strategic_point',
-}
-
-/**
- * Zone benefit type enum
- */
-export enum ZoneBenefitType {
-  INCOME = 'income',
-  COMBAT = 'combat',
-  TACTICAL = 'tactical',
-  ECONOMIC = 'economic',
-}
+// Re-export for backwards compatibility
+export { ZoneType, ZoneBenefitType, ZoneSpecialization };
 
 /**
  * Zone benefit interface
@@ -33,6 +24,8 @@ export interface IZoneBenefit {
   type: ZoneBenefitType;
   description: string;
   value: number;
+  /** How the bonus is applied: 'multiply' (default) or 'add' */
+  modifier?: 'multiply' | 'add';
 }
 
 /**
@@ -54,6 +47,8 @@ export interface ITerritoryZone extends Document {
   name: string;
   type: ZoneType;
   parentLocation: string;
+  /** Zone specialization for bonus scaling (Phase 2.2) */
+  specialization: ZoneSpecialization;
 
   controlledBy: mongoose.Types.ObjectId | null;
   controllingGangName: string | null;
@@ -107,6 +102,11 @@ const ZoneBenefitSchema = new Schema<IZoneBenefit>(
     value: {
       type: Number,
       required: true,
+    },
+    modifier: {
+      type: String,
+      enum: ['multiply', 'add'],
+      default: 'multiply',
     },
   },
   { _id: false }
@@ -172,6 +172,12 @@ const TerritoryZoneSchema = new Schema<ITerritoryZone>(
     parentLocation: {
       type: String,
       required: true,
+      index: true,
+    },
+    specialization: {
+      type: String,
+      enum: Object.values(ZoneSpecialization),
+      default: ZoneSpecialization.MIXED,
       index: true,
     },
 

@@ -8,6 +8,7 @@ import { Character, ICharacter } from '../models/Character.model';
 import { ReputationHistory, IReputationHistory } from '../models/ReputationHistory.model';
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
+import { WorldEventService } from './worldEvent.service';
 
 export type Faction = 'settlerAlliance' | 'nahiCoalition' | 'frontera';
 export type Standing = 'hostile' | 'unfriendly' | 'neutral' | 'friendly' | 'honored';
@@ -44,12 +45,34 @@ export class ReputationService {
         throw new AppError('Character not found', 404);
       }
 
+      // Apply world event reputation_modifier
+      let modifiedAmount = amount;
+      if (character.currentLocation) {
+        try {
+          const activeEvents = await WorldEventService.getActiveEventsForLocation(character.currentLocation);
+          for (const event of activeEvents) {
+            const repMod = event.worldEffects.find(e => e.type === 'reputation_modifier');
+            if (repMod && (repMod.target === 'all' || repMod.target === faction)) {
+              const oldAmount = modifiedAmount;
+              modifiedAmount = Math.floor(modifiedAmount * repMod.value);
+              logger.info(
+                `World event "${event.name}" modified reputation change from ${oldAmount} to ${modifiedAmount} ` +
+                `(${repMod.value}x modifier: ${repMod.description})`
+              );
+            }
+          }
+        } catch (eventError) {
+          // Don't fail reputation change if event check fails
+          logger.error('Failed to check world events for reputation modifiers:', eventError);
+        }
+      }
+
       // Get current reputation
       const previousValue = character.factionReputation[faction];
       const previousStanding = this.getStanding(previousValue);
 
       // Calculate new reputation (capped at -100 to 100)
-      const newRep = Math.max(-100, Math.min(100, previousValue + amount));
+      const newRep = Math.max(-100, Math.min(100, previousValue + modifiedAmount));
       const newStanding = this.getStanding(newRep);
 
       // Check if anything actually changed
@@ -61,11 +84,11 @@ export class ReputationService {
         character.factionReputation[faction] = newRep;
         await character.save({ session });
 
-        // Create history record
+        // Create history record (using modifiedAmount for actual change applied)
         await ReputationHistory.create([{
           characterId,
           faction,
-          change: amount,
+          change: modifiedAmount,
           reason,
           previousValue,
           newValue: newRep,
@@ -74,7 +97,7 @@ export class ReputationService {
 
         logger.info(
           `Reputation changed: Character ${characterId}, Faction ${faction}, ` +
-          `${previousValue} -> ${newRep} (${amount > 0 ? '+' : ''}${amount}), ` +
+          `${previousValue} -> ${newRep} (${modifiedAmount > 0 ? '+' : ''}${modifiedAmount}), ` +
           `Standing: ${previousStanding} -> ${newStanding}, Reason: ${reason}`
         );
       }

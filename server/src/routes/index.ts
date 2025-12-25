@@ -34,6 +34,7 @@ import reputationRoutes from './reputation.routes';
 import worldRoutes from './world.routes';
 import secretsRoutes from './secrets.routes';
 import bankRoutes from './bank.routes';
+import investmentRoutes from './investment.routes';
 import timeRoutes from './time.routes';
 import weatherRoutes from './weather.routes';
 import bountyRoutes from './bounty.routes';
@@ -48,6 +49,7 @@ import serviceProviderRoutes from './serviceProvider.routes';
 import chineseDiasporaRoutes from './chineseDiaspora.routes';
 import newspaperRoutes from './newspaper.routes';
 import legacyRoutes from './legacy.routes';
+import prestigeRoutes from './prestige.routes';
 import permanentUnlockRoutes from './permanentUnlock.routes';
 import racingRoutes from './racing.routes';
 import shootingRoutes from './shooting.routes';
@@ -92,6 +94,17 @@ import workerRoutes from './worker.routes';
 import tutorialRoutes from './tutorial.routes';
 import karmaRoutes from './karma.routes';
 import deityEncounterRoutes from './deityEncounter.routes';
+import bountyHuntingRoutes from './bountyHunting.routes';
+import miningRoutes from './mining.routes';
+import cattleDriveRoutes from './cattleDrive.routes';
+import raidRoutes from './raid.routes';
+import taskRoutes from './task.routes';
+import businessRoutes from './business.routes';
+import deepMiningRoutes from './deepMining.routes';
+import maintenanceRoutes from './maintenance.routes';
+import incidentRoutes from './incident.routes';
+import gangBusinessRoutes from './gangBusiness.routes';
+import geographyRoutes from './geography.routes';
 import { apiRateLimiter } from '../middleware';
 
 const router = Router();
@@ -206,6 +219,9 @@ router.use('/secrets', apiRateLimiter, secretsRoutes);
 // Bank routes (with API rate limiting)
 router.use('/bank', apiRateLimiter, bankRoutes);
 
+// Investment routes (with API rate limiting) - Phase 10
+router.use('/investments', apiRateLimiter, investmentRoutes);
+
 // Time routes (with API rate limiting)
 router.use('/time', apiRateLimiter, timeRoutes);
 
@@ -247,6 +263,9 @@ router.use('/newspapers', apiRateLimiter, newspaperRoutes);
 
 // Legacy routes (with API rate limiting)
 router.use('/legacy', apiRateLimiter, legacyRoutes);
+
+// Prestige routes (with API rate limiting) - Prestige/endgame system
+router.use('/prestige', apiRateLimiter, prestigeRoutes);
 
 // Permanent Unlock routes (with API rate limiting)
 router.use('/unlocks', apiRateLimiter, permanentUnlockRoutes);
@@ -379,6 +398,39 @@ router.use('/karma', apiRateLimiter, karmaRoutes);
 
 // Deity Encounter routes (with API rate limiting) - Strangers, omens, dreams, manifestations
 router.use('/deity', apiRateLimiter, deityEncounterRoutes);
+
+// Bounty Hunting routes (with API rate limiting) - Sprint 7: Mid-game bounty hunting system
+router.use('/bounty-hunting', apiRateLimiter, bountyHuntingRoutes);
+
+// Mining routes (with API rate limiting) - Sprint 7: Mid-game mining claims system
+router.use('/mining', apiRateLimiter, miningRoutes);
+
+// Cattle Drive routes (with API rate limiting) - Sprint 7: Mid-game cattle drives system
+router.use('/cattle-drives', apiRateLimiter, cattleDriveRoutes);
+
+// Raid routes (with API rate limiting) - Phase 2.3: Full raid system (property, treasury, influence, production)
+router.use('/raids', apiRateLimiter, raidRoutes);
+
+// Task routes (with API rate limiting) - Phase 11: Full worker task system
+router.use('/tasks', apiRateLimiter, taskRoutes);
+
+// Business routes (with API rate limiting) - Phase 12: Business Ownership
+router.use('/businesses', apiRateLimiter, businessRoutes);
+
+// Deep Mining routes (with API rate limiting) - Phase 13: Deep Mining System
+router.use('/deep-mining', apiRateLimiter, deepMiningRoutes);
+
+// Maintenance routes (with API rate limiting) - Phase 14: Risk Simulation - Decay System
+router.use('/maintenance', apiRateLimiter, maintenanceRoutes);
+
+// Incident routes (with API rate limiting) - Phase 14: Risk Simulation - Incident System
+router.use('/incidents', apiRateLimiter, incidentRoutes);
+
+// Gang Business routes (with API rate limiting) - Phase 15: Gang Businesses
+router.use('/gang-businesses', apiRateLimiter, gangBusinessRoutes);
+
+// Geography routes (with API rate limiting) - Phase R3: Map System
+router.use('/geography', apiRateLimiter, geographyRoutes);
 
 export default router;
 

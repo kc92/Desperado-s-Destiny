@@ -13,6 +13,7 @@ import { CombatService } from '../services/combat.service';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, HttpStatus } from '../types';
 import logger from '../utils/logger';
+import { CombatAction } from '@desperados/shared';
 
 /**
  * POST /api/combat/start
@@ -73,64 +74,6 @@ export const startCombat = asyncHandler(
     });
 
     logger.info(`Combat started: ${character.name} vs ${npc.name}`);
-  }
-);
-
-/**
- * POST /api/combat/turn/:encounterId
- * Play a combat turn
- */
-export const playTurn = asyncHandler(
-  async (req: AuthenticatedRequest, res: Response) => {
-    const { encounterId } = req.params;
-    const userId = req.user?._id;
-
-    if (!userId) {
-      throw new AppError('Authentication required', HttpStatus.UNAUTHORIZED);
-    }
-
-    if (!encounterId) {
-      throw new AppError('Encounter ID is required', HttpStatus.BAD_REQUEST);
-    }
-
-    // Get character
-    const characters = await Character.findByUserId(userId);
-    if (!characters || characters.length === 0) {
-      throw new AppError('No active character found', HttpStatus.NOT_FOUND);
-    }
-
-    const character = characters[0];
-
-    // Play turn
-    const result = await CombatService.playPlayerTurn(
-      encounterId,
-      (character._id as any).toString()
-    );
-
-    // Build response message
-    let message = 'Turn completed';
-    if (result.combatEnded) {
-      if (result.lootAwarded) {
-        message = `Victory! You earned ${result.lootAwarded.gold} gold and ${result.lootAwarded.xp} XP`;
-      } else if (result.deathPenalty) {
-        message = `Defeat! You lost ${result.deathPenalty.goldLost} gold and were respawned`;
-      }
-    }
-
-    res.status(HttpStatus.OK).json({
-      success: true,
-      message,
-      data: {
-        encounter: result.encounter,
-        playerRound: result.playerRound,
-        npcRound: result.npcRound,
-        combatEnded: result.combatEnded,
-        lootAwarded: result.lootAwarded,
-        deathPenalty: result.deathPenalty
-      }
-    });
-
-    logger.info(`Turn played in encounter ${encounterId}`);
   }
 );
 
@@ -257,7 +200,8 @@ export const getCombatStats = asyncHandler(
       wins: 0,
       losses: 0,
       totalDamage: 0,
-      kills: 0
+      kills: 0,
+      totalDeaths: 0
     };
 
     res.status(HttpStatus.OK).json({
@@ -313,12 +257,200 @@ export const fleeCombat = asyncHandler(
   }
 );
 
+// =============================================================================
+// SPRINT 2: HOLD/DISCARD COMBAT SYSTEM ENDPOINTS
+// =============================================================================
+
+/**
+ * POST /api/combat/:encounterId/start-turn
+ * Start a new turn - draws cards and enters hold phase
+ */
+export const startTurn = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { encounterId } = req.params;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError('Authentication required', HttpStatus.UNAUTHORIZED);
+    }
+
+    if (!encounterId) {
+      throw new AppError('Encounter ID is required', HttpStatus.BAD_REQUEST);
+    }
+
+    // Get character
+    const characters = await Character.findByUserId(userId);
+    if (!characters || characters.length === 0) {
+      throw new AppError('No active character found', HttpStatus.NOT_FOUND);
+    }
+
+    const character = characters[0];
+
+    // Start turn
+    const result = await CombatService.startPlayerTurn(
+      encounterId,
+      (character._id as any).toString()
+    );
+
+    if (!result.success) {
+      throw new AppError(result.error || 'Failed to start turn', HttpStatus.BAD_REQUEST);
+    }
+
+    res.status(HttpStatus.OK).json({
+      success: true,
+      message: 'Turn started - select cards to hold',
+      data: {
+        roundState: result.roundState,
+        encounter: result.encounter
+      }
+    });
+
+    logger.info(`Turn started for encounter ${encounterId}`);
+  }
+);
+
+/**
+ * POST /api/combat/:encounterId/action
+ * Process a player action during combat (hold, confirm_hold, reroll, peek, flee)
+ */
+export const processAction = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { encounterId } = req.params;
+    const action = req.body as CombatAction;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError('Authentication required', HttpStatus.UNAUTHORIZED);
+    }
+
+    if (!encounterId) {
+      throw new AppError('Encounter ID is required', HttpStatus.BAD_REQUEST);
+    }
+
+    if (!action || !action.type) {
+      throw new AppError('Action type is required', HttpStatus.BAD_REQUEST);
+    }
+
+    // Validate action type
+    const validActions = ['hold', 'confirm_hold', 'reroll', 'peek', 'flee'];
+    if (!validActions.includes(action.type)) {
+      throw new AppError(`Invalid action type: ${action.type}`, HttpStatus.BAD_REQUEST);
+    }
+
+    // Get character
+    const characters = await Character.findByUserId(userId);
+    if (!characters || characters.length === 0) {
+      throw new AppError('No active character found', HttpStatus.NOT_FOUND);
+    }
+
+    const character = characters[0];
+
+    // Process action
+    const result = await CombatService.processPlayerAction(
+      encounterId,
+      (character._id as any).toString(),
+      action
+    );
+
+    if (!result.success) {
+      throw new AppError(result.error || 'Action failed', HttpStatus.BAD_REQUEST);
+    }
+
+    // Build response message
+    let message = 'Action processed';
+    if (result.combatEnded) {
+      if (result.lootAwarded) {
+        message = `Victory! You earned ${result.lootAwarded.gold} gold and ${result.lootAwarded.xp} XP`;
+      } else if (result.deathPenalty) {
+        message = `Defeat! You lost ${result.deathPenalty.goldLost} gold`;
+      } else if (action.type === 'flee') {
+        message = 'Successfully fled from combat';
+      }
+    } else if (action.type === 'hold') {
+      message = 'Cards selected - confirm to continue';
+    } else if (action.type === 'confirm_hold') {
+      message = 'Round complete - ready for next turn';
+    } else if (action.type === 'reroll') {
+      message = 'Card rerolled';
+    } else if (action.type === 'peek') {
+      message = 'Peeked at next card';
+    }
+
+    res.status(HttpStatus.OK).json({
+      success: true,
+      message,
+      data: {
+        roundState: result.roundState,
+        encounter: result.encounter,
+        combatEnded: result.combatEnded,
+        lootAwarded: result.lootAwarded,
+        deathPenalty: result.deathPenalty
+      }
+    });
+
+    logger.info(`Action ${action.type} processed for encounter ${encounterId}`);
+  }
+);
+
+/**
+ * GET /api/combat/:encounterId/state
+ * Get current round state for an encounter
+ */
+export const getRoundState = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { encounterId } = req.params;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      throw new AppError('Authentication required', HttpStatus.UNAUTHORIZED);
+    }
+
+    if (!encounterId) {
+      throw new AppError('Encounter ID is required', HttpStatus.BAD_REQUEST);
+    }
+
+    // Get character
+    const characters = await Character.findByUserId(userId);
+    if (!characters || characters.length === 0) {
+      throw new AppError('No active character found', HttpStatus.NOT_FOUND);
+    }
+
+    const character = characters[0];
+
+    // Get state
+    const result = await CombatService.getRoundState(
+      encounterId,
+      (character._id as any).toString()
+    );
+
+    if (!result.success) {
+      throw new AppError(result.error || 'Failed to get state', HttpStatus.BAD_REQUEST);
+    }
+
+    res.status(HttpStatus.OK).json({
+      success: true,
+      message: result.roundState ? 'Round state retrieved' : 'No active round',
+      data: {
+        roundState: result.roundState,
+        encounter: result.encounter
+      }
+    });
+  }
+);
+
+// =============================================================================
+// END SPRINT 2: HOLD/DISCARD COMBAT SYSTEM ENDPOINTS
+// =============================================================================
+
 export default {
   startCombat,
-  playTurn,
   getActiveCombat,
   listNPCs,
   getCombatHistory,
   getCombatStats,
-  fleeCombat
+  fleeCombat,
+  // Sprint 2: Hold/Discard endpoints
+  startTurn,
+  processAction,
+  getRoundState
 };

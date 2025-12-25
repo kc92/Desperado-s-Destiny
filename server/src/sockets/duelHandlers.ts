@@ -646,42 +646,52 @@ async function startDuelGame(duelId: string, state: ActiveDuelState): Promise<vo
 
     // Brief delay for dealing animation, then move to selection
     // H8 FIX: Track timer to prevent leaks if duel is cancelled during animation
-    const dealingTimer = setTimeout(async () => {
-      state.phase = DuelPhase.SELECTION;
-      state.turnPlayerId = state.challengerId;
-      state.turnStartedAt = Date.now();
+    // FIX: Wrap async callback with try/catch to prevent silent failures
+    const dealingTimer = setTimeout(() => {
+      (async () => {
+        try {
+          state.phase = DuelPhase.SELECTION;
+          state.turnPlayerId = state.challengerId;
+          state.turnStartedAt = Date.now();
 
-      // Deal cards to challenger
-      if (state.challengerSocketId) {
-        const challengerGameState = await DuelService.getDuelGameState(duelId, state.challengerId);
-        const io = getSocketIO();
-        io.to(state.challengerSocketId).emit('duel:cards_dealt', {
-          cards: challengerGameState?.hand || [],
-          roundNumber: state.roundNumber
-        });
-      }
+          // Deal cards to challenger
+          if (state.challengerSocketId) {
+            const challengerGameState = await DuelService.getDuelGameState(duelId, state.challengerId);
+            const io = getSocketIO();
+            io.to(state.challengerSocketId).emit('duel:cards_dealt', {
+              cards: challengerGameState?.hand || [],
+              roundNumber: state.roundNumber
+            });
+          }
 
-      // Deal cards to challenged
-      if (state.challengedSocketId) {
-        const challengedGameState = await DuelService.getDuelGameState(duelId, state.challengedId);
-        const io = getSocketIO();
-        io.to(state.challengedSocketId).emit('duel:cards_dealt', {
-          cards: challengedGameState?.hand || [],
-          roundNumber: state.roundNumber
-        });
-      }
+          // Deal cards to challenged
+          if (state.challengedSocketId) {
+            const challengedGameState = await DuelService.getDuelGameState(duelId, state.challengedId);
+            const io = getSocketIO();
+            io.to(state.challengedSocketId).emit('duel:cards_dealt', {
+              cards: challengedGameState?.hand || [],
+              roundNumber: state.roundNumber
+            });
+          }
 
-      // Start turn timer
-      startTurnTimer(duelId, state.turnTimeLimit);
+          // Start turn timer
+          await startTurnTimer(duelId, state.turnTimeLimit);
 
-      // Emit turn start
-      emitToRoom(roomName, 'duel:turn_start', {
-        playerId: state.turnPlayerId,
-        phase: state.phase,
-        timeLimit: state.turnTimeLimit,
-        availableActions: ['hold', 'draw']
-      });
-
+          // Emit turn start
+          emitToRoom(roomName, 'duel:turn_start', {
+            playerId: state.turnPlayerId,
+            phase: state.phase,
+            timeLimit: state.turnTimeLimit,
+            availableActions: ['hold', 'draw']
+          });
+        } catch (error) {
+          logger.error('Error in dealing timer callback', { duelId, error: error instanceof Error ? error.message : error });
+          emitToRoom(roomName, 'duel:error', {
+            message: 'Failed to deal cards',
+            code: 'DEALING_FAILED'
+          });
+        }
+      })();
     }, 2000); // 2 second dealing animation
     registerAnimationTimer(duelId, dealingTimer);
 
@@ -908,16 +918,21 @@ async function handleRevealPhase(duelId: string, state: ActiveDuelState): Promis
   });
 
   // After reveal animation, determine winner
-  // SECURITY FIX: Properly handle async operation in setTimeout
+  // SECURITY FIX: Properly handle async operation in setTimeout using IIFE pattern
   // H8 FIX: Track timer to prevent leaks if duel is cancelled during animation
-  const revealTimer = setTimeout(async () => {
-    try {
-      // Both states should be resolved, get results from service
-      await DuelService.processDuelAction(duelId, state.challengerId, { type: 'draw' });
-      // The duel service handles winner determination internally
-    } catch (error) {
-      logger.error('Failed to process duel action in reveal phase', { duelId, error });
-    }
+  const revealTimer = setTimeout(() => {
+    (async () => {
+      try {
+        // Both states should be resolved, get results from service
+        await DuelService.processDuelAction(duelId, state.challengerId, { type: 'draw' });
+        // The duel service handles winner determination internally
+      } catch (error) {
+        logger.error('Failed to process duel action in reveal phase', {
+          duelId,
+          error: error instanceof Error ? error.message : error
+        });
+      }
+    })();
   }, 3500); // 3.5 second reveal animation
   registerAnimationTimer(duelId, revealTimer);
 }

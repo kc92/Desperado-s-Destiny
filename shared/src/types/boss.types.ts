@@ -62,6 +62,21 @@ export enum StatusEffect {
   MADNESS = 'madness',
   BLIND = 'blind',
   SILENCE = 'silence',
+  // Phase 19.5: New boss mechanic effects
+  COLD_EXPOSURE = 'cold_exposure',       // Wendigo cold meter
+  GOLD_CORRUPTION = 'gold_corruption',   // Conquistador curse
+  GUILTY_VERDICT = 'guilty_verdict',     // Judge Bean debuff
+  CONTEMPT_OF_COURT = 'contempt_of_court', // Judge Bean debuff
+  MARKED = 'marked',                     // Tombstone Specter spirit targeting
+  // Phase 19.5: Ghost Town mini-boss effects
+  OXYGEN_DEPLETION = 'oxygen_depletion', // Mine Foreman - bad air
+  POKER_ROUND_ACTIVE = 'poker_round_active', // Wild Bill - poker phase
+  GUILT_VISION_ACTIVE = 'guilt_vision_active', // The Avenger - guilt check
+  ALTAR_TRIGGER = 'altar_trigger',       // Undead Priest - altar activation
+  DEAD_MANS_HAND_DEBUFF = 'dead_mans_hand_debuff', // Wild Bill choice consequence
+  TOUCHED_BY_GOLD = 'touched_by_gold',   // Deadwood choice consequence
+  COWARDS_MARK = 'cowards_mark',         // Walk away consequence
+  CONSUMED_BY_RAGE = 'consumed_by_rage', // Wrath's Hollow choice consequence
 }
 
 /**
@@ -78,6 +93,7 @@ export enum BossAbilityType {
   PHASE_CHANGE = 'phase_change',
   ENVIRONMENTAL = 'environmental',
   ULTIMATE = 'ultimate',
+  TRANSFORMATION = 'transformation', // Phase 19.5: Spirit form changes
 }
 
 /**
@@ -98,7 +114,7 @@ export enum BossSpawnConditionType {
 }
 
 /**
- * Status effect definition
+ * Status effect definition (stored on player state)
  */
 export interface StatusEffectInstance {
   type: StatusEffect;
@@ -107,6 +123,16 @@ export interface StatusEffectInstance {
   stackable: boolean;
   maxStacks?: number;
   appliedAt: Date;
+}
+
+/**
+ * Applied status effect result (for combat round logging)
+ */
+export interface AppliedStatusEffect {
+  targetId: string;              // Which player received the effect
+  effect: StatusEffect;          // The effect type
+  applied: boolean;              // Whether it was successfully applied
+  message: string;               // Descriptive message
 }
 
 /**
@@ -136,6 +162,7 @@ export interface BossAbility {
   priority: number;              // Higher = more likely to use
   requiresPhase?: number;        // Only available in certain phases
   targetType: 'single' | 'all' | 'random';
+  narrative?: string;            // Phase 19.5: Descriptive text for ability
 }
 
 /**
@@ -160,6 +187,9 @@ export interface BossPhase {
   // Combat changes
   abilities: string[];           // Ability IDs unlocked in this phase
   modifiers: PhaseModifier[];
+
+  // Dialogue choices (for interactive phases like Judge Bean's trial)
+  dialogueChoices?: DialogueChoice[];
 
   // Special mechanics
   environmentalHazard?: {
@@ -203,6 +233,11 @@ export interface EnvironmentEffect {
     type: 'damage' | 'heal' | 'buff' | 'debuff' | 'hazard';
     target: 'player' | 'boss' | 'both';
     power: number;
+    // Stackable effects (e.g., Wendigo cold meter)
+    statusEffect?: string;       // Status effect ID to apply
+    stackable?: boolean;         // Can stack multiple times
+    maxStacks?: number;          // Maximum stack count
+    scaling?: string;            // Scale power by this variable (e.g., 'cold_exposure_stacks')
   };
   duration?: number;             // Turns, undefined = permanent
   counterplay?: string;          // How to mitigate
@@ -219,6 +254,56 @@ export interface SpecialMechanic {
   instructions: string;
   failureConsequence?: string;
   successReward?: string;
+}
+
+/**
+ * Dialogue choice for boss phase interactions (e.g., Judge Bean's trial)
+ */
+export interface DialogueChoice {
+  id: string;
+  text: string;
+  skillCheck?: {
+    skill: string;
+    difficulty: number;
+  };
+  successEffect?: {
+    bossHpReduction?: number;      // % HP reduction
+    playerBuff?: string;           // Buff ID to apply
+    narrative?: string;            // Success text
+  };
+  failureEffect?: {
+    playerDebuff?: string;         // Debuff ID to apply
+    bossHeal?: number;             // % HP heal
+    narrative?: string;            // Failure text
+  };
+  effect?: {
+    skipToPhase?: number;          // Skip to a specific phase
+    endDialogue?: boolean;         // End dialogue sequence
+  };
+}
+
+/**
+ * Pre-combat challenge (e.g., Billy's quick-draw)
+ */
+export interface PreCombatChallenge {
+  type: 'quick_draw' | 'dialogue' | 'puzzle' | 'skill_check';
+  name: string;
+  description: string;
+  timeLimit?: number;              // Seconds for reaction challenges
+  skillCheck?: {
+    skill: string;
+    difficulty: number;
+  };
+  successEffect: {
+    bossHpPenalty?: number;        // % HP boss starts with
+    playerBonus?: string;          // Buff applied to player
+    narrative: string;
+  };
+  failureEffect: {
+    playerHpPenalty?: number;      // % HP player loses
+    bossBonus?: string;            // Buff applied to boss
+    narrative: string;
+  };
 }
 
 /**
@@ -306,6 +391,7 @@ export interface BossEncounter {
   // Special Systems
   specialMechanics: SpecialMechanic[];
   environmentEffects: EnvironmentEffect[];
+  preCombatChallenge?: PreCombatChallenge;  // Quick-draw, dialogue, etc.
 
   // Group Content
   playerLimit: PlayerLimit;
@@ -405,16 +491,32 @@ export interface BossCombatRound {
     abilityName: string;
     targetIds: string[];
     damage: number;
-    effectsApplied: StatusEffectInstance[];
+    effectsApplied: AppliedStatusEffect[];
+    narrative?: string;                    // Descriptive text for the ability
+    telegraphMessage?: string;             // Warning before major attacks
+    minionsSpawned?: Array<{               // For SUMMON abilities
+      id: string;
+      name: string;
+      health: number;
+      damage: number;
+    }>;
+    minionAttacks?: Array<{                // Minion attack results
+      minionId: string;
+      minionName: string;
+      targetId: string;
+      damage: number;
+    }>;
   }>;
 
   // Round results
   bossHealthAfter: number;
   playerHealthsAfter: Map<string, number>;
   phaseChange?: number;
-  minionsSpawned?: number;
+  minionsSpawned?: number;                 // Legacy count field
   environmentalEvents?: string[];
   narrativeText?: string;
+  statusEffectDamage?: Record<string, number>;  // DOT damage per player
+  expiredEffects?: Record<string, string[]>;    // Effects that expired this turn
 }
 
 /**
@@ -767,4 +869,325 @@ export function shouldApplyWeakness(damageType: BossDamageType, weaknesses: Boss
 
 export function isImmuneToDamage(damageType: BossDamageType, immunities: BossDamageType[]): boolean {
   return immunities.includes(damageType);
+}
+
+// =============================================================================
+// PHASE 19.5: GHOST TOWN MINI-BOSS COMBAT STATE EXTENSIONS
+// =============================================================================
+
+/**
+ * Extended combat state for Mine Foreman Ghost (Fading Breath mechanic)
+ */
+export interface MineforemanCombatState {
+  oxygenLevel: number;           // 0-100%
+  handSizeModifier: number;      // Current hand size reduction (-1 at 70%, -2 at 50%)
+  suffocatingDamageActive: boolean;
+  airPocketsFound: number;
+}
+
+/**
+ * Extended combat state for Wild Bill's Echo (Eternal Game mechanic)
+ */
+export interface WildBillCombatState {
+  pokerRoundCounter: number;     // Counts rounds since last poker
+  isPokerRound: boolean;         // Currently in poker phase
+  pokerWins: number;
+  pokerLosses: number;
+  lastPokerResult?: 'player_win_1' | 'player_win_2' | 'tie' | 'bill_win_1' | 'bill_win_2';
+  deadMansHandTriggered: boolean;
+  nextHandForced?: 'high_card';  // If player lost badly
+}
+
+/**
+ * Extended combat state for The Avenger (Guilt Mirror mechanic)
+ */
+export interface AvengerCombatState {
+  guiltScore: number;            // 0-100
+  guiltTier: 'innocent' | 'questionable' | 'guilty' | 'damned';
+  powerModifier: number;         // 0.7, 1.0, 1.3, or 1.5 based on guilt
+  visionCounter: number;         // Counts rounds since last vision
+  visionsCompleted: number;
+  peacefulResolutionPossible: boolean;
+  heartsMultiplierActive: boolean;
+}
+
+/**
+ * Altar state for Undead Priest combat
+ */
+export interface AltarState {
+  id: 'spades' | 'hearts' | 'clubs' | 'diamonds';
+  name: string;
+  purified: boolean;
+  timesTriggered: number;
+}
+
+/**
+ * Extended combat state for Undead Priest (Corrupted Sacraments mechanic)
+ */
+export interface UndeadPriestCombatState {
+  altars: AltarState[];
+  purifiedCount: number;
+  trueFormWeakened: boolean;   // True if all 4 purified
+  lastDominantSuit?: 'spades' | 'hearts' | 'clubs' | 'diamonds';
+  monochromeHandBonus: boolean;  // True if last hand was all black/red
+}
+
+/**
+ * Union type for all ghost town mini-boss combat states
+ */
+export type GhostTownMiniBossCombatState =
+  | { bossType: 'mine_foreman'; state: MineforemanCombatState }
+  | { bossType: 'wild_bill'; state: WildBillCombatState }
+  | { bossType: 'avenger'; state: AvengerCombatState }
+  | { bossType: 'undead_priest'; state: UndeadPriestCombatState };
+
+// =============================================================================
+// LEGENDARY BOUNTY BOSS COMBAT STATES (Phase 19.5)
+// =============================================================================
+
+/**
+ * Bluff claim for Jesse James mechanic
+ */
+export interface BluffClaim {
+  round: number;
+  claimedAttack: 'physical' | 'special' | 'ultimate';
+  actualAttack: 'physical' | 'special' | 'ultimate';
+  isBluff: boolean;
+  playerResponse?: 'call' | 'fold';
+  resolved: boolean;
+}
+
+/**
+ * Extended combat state for Jesse James (Deception Duel mechanic)
+ */
+export interface JesseJamesCombatState {
+  bluffRoundCounter: number;      // Counts rounds since last bluff
+  isBluffRound: boolean;          // Currently in bluff phase
+  currentBluff?: BluffClaim;      // Active bluff if any
+  bluffsCorrectlyCalled: number;
+  bluffsIncorrectlyCalled: number;
+  folds: number;
+  jesseVulnerable: boolean;       // True after correct call (+50% damage)
+  playerVulnerable: boolean;      // True after incorrect call (+30% damage taken)
+  surrendered: boolean;           // True if Royal Flush triggered
+}
+
+/**
+ * Poker pot result for Doc Holliday mechanic
+ */
+export interface PokerPotResult {
+  round: number;
+  playerHand: HandRank;
+  docHand: HandRank;
+  winner: 'player' | 'doc' | 'tie';
+  margin: number;                 // How many ranks difference
+  effect: string;                 // Description of the effect applied
+}
+
+/**
+ * Extended combat state for Doc Holliday (High Stakes Showdown mechanic)
+ */
+export interface DocHollidayCombatState {
+  pokerRoundCounter: number;      // Counts rounds since last poker
+  isPokerRound: boolean;          // Currently in poker phase
+  pokerResults: PokerPotResult[];
+  playerDamageBonus: number;      // Current bonus from poker wins
+  docDamageBonus: number;         // Current Doc bonus from poker wins
+  handCapped: boolean;            // True if player capped at Three of a Kind
+  capRoundsRemaining: number;
+  deadMansHandTriggered: boolean;
+  fourAcesTriggered: boolean;     // Peaceful resolution offered
+  royalFlushTriggered: boolean;   // Instant victory
+}
+
+/**
+ * Spirit trail for Ghost Rider mechanic
+ */
+export interface SpiritTrail {
+  suits: ('spades' | 'hearts' | 'clubs' | 'diamonds')[];
+  round: number;
+}
+
+/**
+ * Extended combat state for Ghost Rider (Spirit Chase mechanic)
+ */
+export interface GhostRiderCombatState {
+  currentRealm: 'physical' | 'spirit';
+  realmShiftCounter: number;      // Counts rounds until next shift
+  currentTrail?: SpiritTrail;     // Current spirit trail to match
+  trailMatchResults: {
+    round: number;
+    matched: number;              // 0-3 suits matched
+    damageDealt: boolean;
+    vengeanceTriggered: boolean;  // True if 0-1 match
+    escapedRound: boolean;        // True if 0 match
+  }[];
+  suitsInLastHand: Record<string, number>; // Count of each suit
+  flushBonus: boolean;            // True if last hand was flush
+  straightBonus: boolean;         // True if last hand was straight
+  escapeBlocked: boolean;         // True if straight prevents escape
+}
+
+/**
+ * Prestige wave definition
+ */
+export interface PrestigeWave {
+  waveNumber: number;
+  waveType: string;
+  enemiesTotal: number;
+  enemiesDefeated: number;
+  isBossWave: boolean;
+  completed: boolean;
+}
+
+/**
+ * Extended combat state for Prestige quests (Wave System)
+ */
+export interface PrestigeCombatState {
+  questType: 'the_law' | 'the_legend';
+  currentWave: number;
+  waves: PrestigeWave[];
+  totalEnemiesDefeated: number;
+  allyCount: number;
+  allyIds: string[];
+  allyHealth: Record<string, number>;
+  bossDefeated: boolean;
+}
+
+/**
+ * Union type for all legendary bounty combat states
+ */
+export type LegendaryBountyCombatState =
+  | { bossType: 'jesse_james'; state: JesseJamesCombatState }
+  | { bossType: 'doc_holliday'; state: DocHollidayCombatState }
+  | { bossType: 'ghost_rider'; state: GhostRiderCombatState };
+
+/**
+ * Alternative action types for legendary bounty bosses
+ */
+export type LegendaryBountyAlternativeAction =
+  | { type: 'call_bluff'; bossId: 'boss_jesse_james' }
+  | { type: 'fold_bluff'; bossId: 'boss_jesse_james' }
+  | { type: 'poker_showdown'; bossId: 'boss_doc_holliday' }
+  | { type: 'track_spirit'; bossId: 'boss_ghost_rider' };
+
+/**
+ * Initialize combat state for a legendary bounty boss
+ */
+export function initializeLegendaryBountyCombatState(bossId: string): LegendaryBountyCombatState | null {
+  switch (bossId) {
+    case 'boss_jesse_james':
+      return {
+        bossType: 'jesse_james',
+        state: {
+          bluffRoundCounter: 0,
+          isBluffRound: false,
+          bluffsCorrectlyCalled: 0,
+          bluffsIncorrectlyCalled: 0,
+          folds: 0,
+          jesseVulnerable: false,
+          playerVulnerable: false,
+          surrendered: false,
+        },
+      };
+    case 'boss_doc_holliday':
+      return {
+        bossType: 'doc_holliday',
+        state: {
+          pokerRoundCounter: 0,
+          isPokerRound: false,
+          pokerResults: [],
+          playerDamageBonus: 0,
+          docDamageBonus: 0,
+          handCapped: false,
+          capRoundsRemaining: 0,
+          deadMansHandTriggered: false,
+          fourAcesTriggered: false,
+          royalFlushTriggered: false,
+        },
+      };
+    case 'boss_ghost_rider':
+      return {
+        bossType: 'ghost_rider',
+        state: {
+          currentRealm: 'physical',
+          realmShiftCounter: 0,
+          trailMatchResults: [],
+          suitsInLastHand: {},
+          flushBonus: false,
+          straightBonus: false,
+          escapeBlocked: false,
+        },
+      };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Alternative action types for ghost town bosses
+ */
+export type GhostTownAlternativeAction =
+  | { type: 'find_air_pocket'; bossId: 'boss_mine_foreman_ghost' }
+  | { type: 'target_altar'; bossId: 'boss_undead_priest'; altar: 'spades' | 'hearts' | 'clubs' | 'diamonds' }
+  | { type: 'poker_play'; bossId: 'boss_wild_bill_echo' };
+
+/**
+ * Initialize combat state for a ghost town mini-boss
+ */
+export function initializeGhostTownCombatState(bossId: string, playerGuiltScore?: number): GhostTownMiniBossCombatState | null {
+  switch (bossId) {
+    case 'boss_mine_foreman_ghost':
+      return {
+        bossType: 'mine_foreman',
+        state: {
+          oxygenLevel: 100,
+          handSizeModifier: 0,
+          suffocatingDamageActive: false,
+          airPocketsFound: 0,
+        },
+      };
+    case 'boss_wild_bill_echo':
+      return {
+        bossType: 'wild_bill',
+        state: {
+          pokerRoundCounter: 0,
+          isPokerRound: false,
+          pokerWins: 0,
+          pokerLosses: 0,
+          deadMansHandTriggered: false,
+        },
+      };
+    case 'boss_the_avenger':
+      const guiltScore = playerGuiltScore ?? 50;
+      return {
+        bossType: 'avenger',
+        state: {
+          guiltScore,
+          guiltTier: guiltScore <= 20 ? 'innocent' : guiltScore <= 50 ? 'questionable' : guiltScore <= 80 ? 'guilty' : 'damned',
+          powerModifier: guiltScore <= 20 ? 0.7 : guiltScore <= 50 ? 1.0 : guiltScore <= 80 ? 1.3 : 1.5,
+          visionCounter: 0,
+          visionsCompleted: 0,
+          peacefulResolutionPossible: guiltScore <= 20,
+          heartsMultiplierActive: false,
+        },
+      };
+    case 'boss_undead_priest':
+      return {
+        bossType: 'undead_priest',
+        state: {
+          altars: [
+            { id: 'spades', name: 'Altar of Confession', purified: false, timesTriggered: 0 },
+            { id: 'hearts', name: 'Altar of Communion', purified: false, timesTriggered: 0 },
+            { id: 'clubs', name: 'Altar of Unction', purified: false, timesTriggered: 0 },
+            { id: 'diamonds', name: 'Altar of Baptism', purified: false, timesTriggered: 0 },
+          ],
+          purifiedCount: 0,
+          trueFormWeakened: false,
+          monochromeHandBonus: false,
+        },
+      };
+    default:
+      return null;
+  }
 }

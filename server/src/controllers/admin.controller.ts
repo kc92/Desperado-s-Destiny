@@ -8,7 +8,7 @@ import { Request, Response } from 'express';
 import { User } from '../models/User.model';
 import { Character } from '../models/Character.model';
 import { Gang } from '../models/Gang.model';
-import { GoldTransaction } from '../models/GoldTransaction.model';
+import { GoldTransaction, TransactionSource } from '../models/GoldTransaction.model';
 import { AppError, HttpStatus } from '../types';
 import { sendSuccess, sendError } from '../utils/responseHelpers';
 import logger from '../utils/logger';
@@ -16,6 +16,7 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import mongoose from 'mongoose';
 import os from 'os';
 import { logSecurityEvent, logEconomyEvent, SecurityEvent, EconomyEvent } from '../services/base';
+import { DollarService } from '../services/dollar.service';
 
 /**
  * C2 SECURITY FIX: Escape regex special characters to prevent NoSQL injection
@@ -396,31 +397,36 @@ export async function adjustGold(req: AuthenticatedRequest, res: Response): Prom
     throw new AppError('Character not found', HttpStatus.NOT_FOUND);
   }
 
-  const previousGold = character.gold;
-  character.gold = Math.max(0, character.gold + Number(amount));
-  await character.save();
+  const previousGold = character.dollars ?? character.gold ?? 0;
+  const numAmount = Number(amount);
 
-  // Log transaction
-  const transaction = new GoldTransaction({
-    characterId: character._id,
-    amount: Number(amount),
-    type: amount > 0 ? 'admin_grant' : 'admin_deduct',
-    source: 'admin',
-    description: reason || `Admin adjustment by ${req.user?.email}`,
-    balanceBefore: previousGold,
-    balanceAfter: character.gold
-  });
-  await transaction.save();
+  // Use DollarService for proper currency management
+  let result: { newBalance: number };
+  if (numAmount >= 0) {
+    result = await DollarService.addDollars(
+      characterId,
+      numAmount,
+      TransactionSource.ADMIN_ADJUSTMENT,
+      { reason: reason || `Admin adjustment by ${req.user?.email}` }
+    );
+  } else {
+    result = await DollarService.deductDollars(
+      characterId,
+      Math.abs(numAmount),
+      TransactionSource.ADMIN_ADJUSTMENT,
+      { reason: reason || `Admin adjustment by ${req.user?.email}` }
+    );
+  }
 
-  logger.info(`Admin ${req.user?.email} adjusted gold for ${character.name}: ${amount > 0 ? '+' : ''}${amount} (${previousGold} -> ${character.gold}). Reason: ${reason || 'Not specified'}`);
+  logger.info(`Admin ${req.user?.email} adjusted gold for ${character.name}: ${numAmount > 0 ? '+' : ''}${numAmount} (${previousGold} -> ${result.newBalance}). Reason: ${reason || 'Not specified'}`);
 
   // Audit log the admin gold adjustment
   await logEconomyEvent({
-    event: amount > 0 ? EconomyEvent.GOLD_GRANT : EconomyEvent.GOLD_DEDUCT,
+    event: numAmount > 0 ? EconomyEvent.GOLD_GRANT : EconomyEvent.GOLD_DEDUCT,
     characterId: characterId,
-    amount: Number(amount),
+    amount: numAmount,
     beforeBalance: previousGold,
-    afterBalance: character.gold,
+    afterBalance: result.newBalance,
     metadata: {
       source: 'ADMIN_ADJUSTMENT',
       reason: reason || 'Not specified',
@@ -435,8 +441,8 @@ export async function adjustGold(req: AuthenticatedRequest, res: Response): Prom
       _id: character._id,
       name: character.name,
       previousGold,
-      newGold: character.gold,
-      adjustment: Number(amount)
+      newGold: result.newBalance,
+      adjustment: numAmount
     }
   });
 }

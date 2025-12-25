@@ -213,3 +213,145 @@ export const triggerContractProgress = asyncHandler(
     });
   }
 );
+
+// ============ Premium Contract Endpoints (Sprint 7) ============
+
+/**
+ * Get premium contracts for the character
+ * GET /api/contracts/premium
+ */
+export const getPremiumContracts = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const characterId = req.character!._id.toString();
+    const result = await DailyContractService.getPremiumContracts(characterId);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        available: result.available,
+        active: result.active,
+        cooldowns: result.cooldowns,
+        hasAccess: result.available.length > 0 || result.active.length > 0
+      }
+    });
+  }
+);
+
+/**
+ * Accept a premium contract
+ * POST /api/contracts/premium/:templateId/accept
+ */
+export const acceptPremiumContract = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const characterId = req.character!._id.toString();
+    const { templateId } = req.params;
+
+    const result = await DailyContractService.acceptPremiumContract(characterId, templateId);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: `Premium contract accepted: ${result.contract!.title}`,
+        contract: result.contract
+      }
+    });
+  }
+);
+
+/**
+ * Progress a multi-phase premium contract
+ * POST /api/contracts/premium/:contractId/progress
+ */
+export const progressPremiumContract = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const characterId = req.character!._id.toString();
+    const { contractId } = req.params;
+
+    const result = await DailyContractService.progressPremiumContract(characterId, contractId);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    const isComplete = result.contract!.progress >= result.contract!.progressMax;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: isComplete
+          ? 'Contract ready for completion!'
+          : `Phase ${result.phaseCompleted} of ${result.contract!.progressMax} complete`,
+        contract: result.contract,
+        phaseCompleted: result.phaseCompleted,
+        isComplete
+      }
+    });
+  }
+);
+
+/**
+ * Complete a premium contract and claim rewards
+ * POST /api/contracts/premium/:contractId/complete
+ */
+export const completePremiumContract = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const characterId = req.character!._id.toString();
+    const { contractId } = req.params;
+
+    const result = await DailyContractService.completePremiumContract(characterId, contractId);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: `Premium contract completed: ${result.contract!.title}`,
+        contract: result.contract,
+        rewards: result.rewards,
+        factionChanges: result.factionChanges
+      }
+    });
+  }
+);
+
+/**
+ * Abandon a premium contract
+ * POST /api/contracts/premium/:contractId/abandon
+ */
+export const abandonPremiumContract = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const characterId = req.character!._id.toString();
+    const { contractId } = req.params;
+
+    const result = await DailyContractService.abandonPremiumContract(characterId, contractId);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: 'Premium contract abandoned. Partial cooldown applied.'
+      }
+    });
+  }
+);

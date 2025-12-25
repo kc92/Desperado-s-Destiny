@@ -242,6 +242,37 @@ export interface TransferPropertyResponse {
   message: string;
 }
 
+// ===== Income Collection Types =====
+
+export interface PropertyWithIncome {
+  propertyId: string;
+  propertyName: string;
+  propertyType: string;
+  pendingIncome: number;
+  location: string;
+  hoursAccumulated: number;
+  condition: number;
+  conditionTier: string;
+  incomeMultiplier: number;
+  needsWarning: boolean;
+  isCritical: boolean;
+}
+
+export interface CollectIncomeResponse {
+  success: boolean;
+  collected: number;
+  bonusApplied: number;
+  nextCollection: string;
+  message: string;
+  newCharacterGold: number;
+}
+
+export interface IncomeOverviewResponse {
+  totalPendingIncome: number;
+  properties: PropertyWithIncome[];
+  maxAccumulationHours: number;
+}
+
 // ===== Property Service =====
 
 export const propertyService = {
@@ -252,7 +283,7 @@ export const propertyService = {
    */
   async getListings(): Promise<PropertyListing[]> {
     const response = await api.get<{ data: { listings: PropertyListing[] } }>(
-      '/property/listings'
+      '/properties/listings'
     );
     return response.data.data?.listings || [];
   },
@@ -262,7 +293,7 @@ export const propertyService = {
    */
   async getForeclosedListings(): Promise<PropertyListing[]> {
     const response = await api.get<{ data: { listings: PropertyListing[] } }>(
-      '/property/foreclosed'
+      '/properties/foreclosed'
     );
     return response.data.data?.listings || [];
   },
@@ -271,7 +302,7 @@ export const propertyService = {
    * Get property details
    */
   async getPropertyDetails(propertyId: string): Promise<Property> {
-    const response = await api.get<{ data: Property }>(`/property/${propertyId}`);
+    const response = await api.get<{ data: Property }>(`/properties/${propertyId}`);
     return response.data.data;
   },
 
@@ -282,7 +313,7 @@ export const propertyService = {
    */
   async getMyProperties(): Promise<Property[]> {
     const response = await api.get<{ data: { properties: Property[] } }>(
-      '/property/my-properties'
+      '/properties/my-properties'
     );
     return response.data.data?.properties || [];
   },
@@ -291,7 +322,7 @@ export const propertyService = {
    * Get my loans
    */
   async getMyLoans(): Promise<PropertyLoan[]> {
-    const response = await api.get<{ data: { loans: PropertyLoan[] } }>('/property/loans');
+    const response = await api.get<{ data: { loans: PropertyLoan[] } }>('/properties/loans');
     return response.data.data?.loans || [];
   },
 
@@ -300,7 +331,7 @@ export const propertyService = {
    */
   async purchaseProperty(request: PurchasePropertyRequest): Promise<PurchasePropertyResponse> {
     const response = await api.post<{ data: PurchasePropertyResponse }>(
-      '/property/purchase',
+      '/properties/purchase',
       request
     );
     return response.data.data;
@@ -311,7 +342,7 @@ export const propertyService = {
    */
   async upgradeTier(propertyId: string): Promise<UpgradeTierResponse> {
     const response = await api.post<{ data: UpgradeTierResponse }>(
-      `/property/${propertyId}/upgrade-tier`
+      `/properties/${propertyId}/upgrade-tier`
     );
     return response.data.data;
   },
@@ -321,7 +352,7 @@ export const propertyService = {
    */
   async addUpgrade(propertyId: string, request: AddUpgradeRequest): Promise<AddUpgradeResponse> {
     const response = await api.post<{ data: AddUpgradeResponse }>(
-      `/property/${propertyId}/upgrade`,
+      `/properties/${propertyId}/upgrade`,
       request
     );
     return response.data.data;
@@ -332,7 +363,7 @@ export const propertyService = {
    */
   async hireWorker(propertyId: string, request: HireWorkerRequest): Promise<HireWorkerResponse> {
     const response = await api.post<{ data: HireWorkerResponse }>(
-      `/property/${propertyId}/hire`,
+      `/properties/${propertyId}/hire`,
       request
     );
     return response.data.data;
@@ -343,7 +374,7 @@ export const propertyService = {
    */
   async fireWorker(propertyId: string, request: FireWorkerRequest): Promise<FireWorkerResponse> {
     const response = await api.post<{ data: FireWorkerResponse }>(
-      `/property/${propertyId}/fire`,
+      `/properties/${propertyId}/fire`,
       request
     );
     return response.data.data;
@@ -357,7 +388,7 @@ export const propertyService = {
     request: DepositItemRequest
   ): Promise<DepositItemResponse> {
     const response = await api.post<{ data: DepositItemResponse }>(
-      `/property/${propertyId}/storage/deposit`,
+      `/properties/${propertyId}/storage/deposit`,
       request
     );
     return response.data.data;
@@ -371,7 +402,7 @@ export const propertyService = {
     request: WithdrawItemRequest
   ): Promise<WithdrawItemResponse> {
     const response = await api.post<{ data: WithdrawItemResponse }>(
-      `/property/${propertyId}/storage/withdraw`,
+      `/properties/${propertyId}/storage/withdraw`,
       request
     );
     return response.data.data;
@@ -385,7 +416,7 @@ export const propertyService = {
     request: MakeLoanPaymentRequest
   ): Promise<MakeLoanPaymentResponse> {
     const response = await api.post<{ data: MakeLoanPaymentResponse }>(
-      `/property/loans/${loanId}/pay`,
+      `/properties/loans/${loanId}/pay`,
       request
     );
     return response.data.data;
@@ -399,9 +430,56 @@ export const propertyService = {
     request: TransferPropertyRequest
   ): Promise<TransferPropertyResponse> {
     const response = await api.post<{ data: TransferPropertyResponse }>(
-      `/property/${propertyId}/transfer`,
+      `/properties/${propertyId}/transfer`,
       request
     );
+    return response.data.data;
+  },
+
+  // ===== Income Collection Methods =====
+
+  /**
+   * Get income overview for all owned properties
+   */
+  async getIncomeOverview(): Promise<IncomeOverviewResponse> {
+    const response = await api.get<{ data: IncomeOverviewResponse }>(
+      '/properties/income/overview'
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Collect income from a single property
+   * Character must be at the property location (visit-to-collect)
+   */
+  async collectIncome(propertyId: string): Promise<CollectIncomeResponse> {
+    const response = await api.post<{ data: CollectIncomeResponse }>(
+      `/properties/${propertyId}/collect`
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Collect income from all properties at current location
+   */
+  async collectAllIncomeAtLocation(): Promise<{
+    success: boolean;
+    totalCollected: number;
+    propertiesCollected: number;
+    details: Array<{ propertyId: string; propertyName: string; collected: number }>;
+    message: string;
+    newCharacterGold: number;
+  }> {
+    const response = await api.post<{
+      data: {
+        success: boolean;
+        totalCollected: number;
+        propertiesCollected: number;
+        details: Array<{ propertyId: string; propertyName: string; collected: number }>;
+        message: string;
+        newCharacterGold: number;
+      };
+    }>('/properties/income/collect-all');
     return response.data.data;
   },
 

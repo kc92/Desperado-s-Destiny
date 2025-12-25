@@ -2,6 +2,13 @@
  * Premium Utility
  * Handles premium status checks and benefit calculations
  * Caches results for 5 minutes to reduce database load
+ *
+ * PHASE 19 BALANCE: Premium = TIME ADVANTAGE ONLY
+ * - NO power bonuses (HP, damage, etc.)
+ * - Faster progression (energy regen, XP bonuses)
+ * - Convenience features (extra slots, discounts)
+ *
+ * This ensures premium never feels "pay to win" - it just saves time.
  */
 
 import { User } from '../models/User.model';
@@ -34,10 +41,17 @@ export interface SubscriptionPlan {
   monthlyPrice: number;
   benefits: {
     energyRegenBonus: number; // Percentage faster (e.g., 1.5 = 50% faster)
-    maxEnergyBonus: number; // Flat bonus
-    hpBonus: number; // Percentage bonus (e.g., 1.2 = 20% more HP)
-    goldBonus: number; // Percentage bonus on gold drops
-    xpBonus: number; // Percentage bonus on XP
+    maxEnergyBonus: number; // Flat bonus to max energy
+    /**
+     * @deprecated PHASE 19: HP bonus removed - premium should not affect combat power
+     * Kept at 1.0 for backwards compatibility with any code that references it
+     */
+    hpBonus: number;
+    goldBonus: number; // Percentage bonus on gold drops (REDUCED in Phase 19)
+    xpBonus: number; // Character XP bonus
+    skillXpBonus: number; // Skill training XP bonus (NEW in Phase 19)
+    bankSlotBonus: number; // Extra bank slots (convenience)
+    fastTravelDiscount: number; // Discount on fast travel costs (convenience)
   };
 }
 
@@ -57,22 +71,47 @@ const FREE_PLAN: SubscriptionPlan = {
   benefits: {
     energyRegenBonus: 1.0,
     maxEnergyBonus: 0,
-    hpBonus: 1.0,
+    hpBonus: 1.0, // No bonus
     goldBonus: 1.0,
     xpBonus: 1.0,
+    skillXpBonus: 1.0,
+    bankSlotBonus: 0,
+    fastTravelDiscount: 0,
   },
 };
 
+/**
+ * PHASE 19 BALANCE: Premium benefits rebalanced for TIME ADVANTAGE ONLY
+ *
+ * REMOVED:
+ * - hpBonus: Was 1.2 (+20% HP) - POWER CREEP, now 1.0
+ *
+ * REDUCED:
+ * - goldBonus: Was 1.25 (+25%), now 1.10 (+10%)
+ *
+ * KEPT:
+ * - energyRegenBonus: 1.5 (+50% faster) - TIME advantage
+ * - maxEnergyBonus: 50 - Convenience
+ * - xpBonus: 1.10 (+10% character XP) - TIME advantage
+ *
+ * ADDED:
+ * - skillXpBonus: 1.25 (+25% skill XP) - TIME advantage for skill training
+ * - bankSlotBonus: 50 extra slots - Convenience
+ * - fastTravelDiscount: 0.50 (50% off) - Convenience
+ */
 const PREMIUM_PLAN: SubscriptionPlan = {
   id: 'premium',
   name: 'Premium',
   monthlyPrice: 9.99,
   benefits: {
-    energyRegenBonus: 1.5, // 50% faster energy regen
-    maxEnergyBonus: 50, // +50 max energy
-    hpBonus: 1.2, // +20% HP in combat
-    goldBonus: 1.25, // +25% gold from all sources
-    xpBonus: 1.15, // +15% XP from all sources
+    energyRegenBonus: 1.5, // 50% faster energy regen (TIME advantage)
+    maxEnergyBonus: 50, // +50 max energy (convenience)
+    hpBonus: 1.0, // REMOVED: No HP bonus - premium should not affect combat power
+    goldBonus: 1.10, // REDUCED: +10% gold (was +25%)
+    xpBonus: 1.10, // +10% character XP (TIME advantage)
+    skillXpBonus: 1.25, // NEW: +25% skill training XP (TIME advantage)
+    bankSlotBonus: 50, // NEW: +50 bank slots (convenience)
+    fastTravelDiscount: 0.50, // NEW: 50% off fast travel (convenience)
   },
 };
 
@@ -172,13 +211,22 @@ export class PremiumUtils {
   /**
    * Calculate HP with premium bonus
    *
+   * @deprecated PHASE 19: Premium no longer affects HP - this always returns base HP
+   * Kept for backwards compatibility but logs a warning if called
+   *
    * @param baseHP - Base HP amount
    * @param characterId - Character ID
-   * @returns HP with premium bonus applied
+   * @returns HP unchanged (premium HP bonus removed)
    */
   static async calculateHPWithBonus(baseHP: number, characterId: string): Promise<number> {
-    const benefits = await this.getPremiumBenefitsByCharacter(characterId);
-    return Math.floor(baseHP * benefits.plan.benefits.hpBonus);
+    // PHASE 19: HP bonus removed - premium should not affect combat power
+    // Log warning to help identify code that still calls this
+    logger.warn(
+      'calculateHPWithBonus called but HP bonus has been removed in Phase 19. ' +
+      'Premium no longer affects combat power. Returning base HP unchanged.',
+      { characterId, baseHP }
+    );
+    return baseHP; // Always return base HP - no premium bonus
   }
 
   /**
@@ -225,6 +273,57 @@ export class PremiumUtils {
   static async getMaxEnergyBonus(userId: string): Promise<number> {
     const benefits = await this.getPremiumBenefits(userId);
     return benefits.plan.benefits.maxEnergyBonus;
+  }
+
+  // =============================================================================
+  // PHASE 19: New Premium Benefit Methods
+  // =============================================================================
+
+  /**
+   * Calculate skill XP with premium bonus
+   * Used for skill training progression
+   *
+   * @param baseXP - Base skill XP amount
+   * @param userId - User ID
+   * @returns Skill XP with premium bonus applied
+   */
+  static async calculateSkillXPWithBonus(baseXP: number, userId: string): Promise<number> {
+    const benefits = await this.getPremiumBenefits(userId);
+    return Math.floor(baseXP * benefits.plan.benefits.skillXpBonus);
+  }
+
+  /**
+   * Get bank slot bonus
+   *
+   * @param userId - User ID
+   * @returns Extra bank slots granted by premium
+   */
+  static async getBankSlotBonus(userId: string): Promise<number> {
+    const benefits = await this.getPremiumBenefits(userId);
+    return benefits.plan.benefits.bankSlotBonus;
+  }
+
+  /**
+   * Get fast travel discount
+   *
+   * @param userId - User ID
+   * @returns Discount multiplier (0.5 = 50% off)
+   */
+  static async getFastTravelDiscount(userId: string): Promise<number> {
+    const benefits = await this.getPremiumBenefits(userId);
+    return benefits.plan.benefits.fastTravelDiscount;
+  }
+
+  /**
+   * Calculate fast travel cost with premium discount
+   *
+   * @param baseCost - Base travel cost
+   * @param userId - User ID
+   * @returns Cost after premium discount applied
+   */
+  static async calculateFastTravelCost(baseCost: number, userId: string): Promise<number> {
+    const discount = await this.getFastTravelDiscount(userId);
+    return Math.floor(baseCost * (1 - discount));
   }
 
   /**

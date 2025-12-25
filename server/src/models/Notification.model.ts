@@ -17,7 +17,17 @@ export enum NotificationType {
   GANG_WAR_UPDATE = 'GANG_WAR_UPDATE',
   COMBAT_DEFEAT = 'COMBAT_DEFEAT',
   JAIL_RELEASED = 'JAIL_RELEASED',
-  SKILL_TRAINED = 'SKILL_TRAINED'
+  SKILL_TRAINED = 'SKILL_TRAINED',
+
+  // Raid System notifications (Phase 2.3)
+  RAID_PLANNED = 'RAID_PLANNED',              // Your gang is planning a raid
+  RAID_INCOMING = 'RAID_INCOMING',            // Warning: raid scheduled against you
+  RAID_STARTED = 'RAID_STARTED',              // Raid execution beginning
+  RAID_COMPLETED = 'RAID_COMPLETED',          // Raid finished (attacker)
+  RAID_DEFENDED = 'RAID_DEFENDED',            // Successfully defended
+  RAID_SUFFERED = 'RAID_SUFFERED',            // Your property/gang was raided
+  GUARD_HIRED = 'GUARD_HIRED',                // New guard at property
+  INSURANCE_CLAIMED = 'INSURANCE_CLAIMED',    // Insurance payout received
 }
 
 /**

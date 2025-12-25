@@ -9,7 +9,9 @@ import { ProductionSlot, IProductionSlot } from '../models/ProductionSlot.model'
 import { PropertyWorker, IPropertyWorker } from '../models/PropertyWorker.model';
 import { Character, ICharacter } from '../models/Character.model';
 import { Item } from '../models/Item.model';
+import { Property } from '../models/Property.model';
 import { TransactionSource } from '../models/GoldTransaction.model';
+import { TerritoryBonusService } from './territoryBonus.service';
 import {
   ProductDefinition,
   ProductQuality,
@@ -70,39 +72,96 @@ export class ProductionService {
    * Apply income cap to dollars earned from production
    * BALANCE FIX: Tracks daily property income and caps it
    *
+   * PHASE 4 FIX: Uses atomic increment to prevent race condition
+   * where concurrent collections could bypass the daily cap.
+   *
    * @param character - The character collecting production
    * @param dollarsEarned - Raw dollar amount from production
+   * @param session - Optional MongoDB session for transaction
    * @returns Capped dollar amount
    */
-  static async applyIncomeCap(character: ICharacter, dollarsEarned: number): Promise<number> {
+  static async applyIncomeCap(
+    character: ICharacter,
+    dollarsEarned: number,
+    session?: mongoose.ClientSession
+  ): Promise<number> {
     const dailyCap = this.calculateDailyIncomeCap(character.level);
 
     // Get today's start time (UTC midnight)
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    // Track daily production income in character stats
-    // If lastProductionIncomeReset is before today, reset the counter
-    if (!character.dailyProductionIncome || !character.lastProductionIncomeReset ||
-        new Date(character.lastProductionIncomeReset) < today) {
+    // PHASE 4 FIX: First, check if we need to reset the daily counter
+    // Use atomic operation to reset if lastProductionIncomeReset is before today
+    const needsReset = !character.lastProductionIncomeReset ||
+      new Date(character.lastProductionIncomeReset) < today;
+
+    if (needsReset) {
+      // Atomically reset the daily counter
+      await Character.findOneAndUpdate(
+        { _id: character._id },
+        {
+          $set: {
+            dailyProductionIncome: 0,
+            lastProductionIncomeReset: today
+          }
+        },
+        { session }
+      );
       character.dailyProductionIncome = 0;
       character.lastProductionIncomeReset = today;
     }
 
+    // Get current tracked income (refresh from DB for atomic accuracy)
+    const freshCharacter = await Character.findById(character._id).session(session || null);
+    const currentIncome = freshCharacter?.dailyProductionIncome || 0;
+
     // Calculate how much more the character can earn today
-    const remainingCap = Math.max(0, dailyCap - character.dailyProductionIncome);
+    const remainingCap = Math.max(0, dailyCap - currentIncome);
     const cappedDollars = Math.min(dollarsEarned, remainingCap);
+
+    if (cappedDollars <= 0) {
+      // Already at cap
+      logger.info(
+        `[BALANCE] Property income at cap for ${character.name}: ` +
+        `${dollarsEarned} → 0 (daily cap: ${dailyCap}, used: ${currentIncome})`
+      );
+      return 0;
+    }
+
+    // PHASE 4 FIX: Atomically increment daily income with cap check
+    // This prevents race condition where two requests both pass cap check
+    const result = await Character.findOneAndUpdate(
+      {
+        _id: character._id,
+        // Atomic check: only update if there's still room under the cap
+        dailyProductionIncome: { $lt: dailyCap }
+      },
+      {
+        $inc: { dailyProductionIncome: cappedDollars }
+      },
+      { new: true, session }
+    );
+
+    if (!result) {
+      // Cap was reached by a concurrent request
+      logger.info(
+        `[BALANCE] Property income cap reached (concurrent) for ${character.name}: ` +
+        `${dollarsEarned} → 0`
+      );
+      return 0;
+    }
+
+    // Update in-memory character for consistency
+    character.dailyProductionIncome = result.dailyProductionIncome;
 
     // Log if capping occurred
     if (cappedDollars < dollarsEarned) {
       logger.info(
         `[BALANCE] Property income capped for ${character.name}: ` +
-        `${dollarsEarned} → ${cappedDollars} (daily cap: ${dailyCap}, used: ${character.dailyProductionIncome})`
+        `${dollarsEarned} → ${cappedDollars} (daily cap: ${dailyCap}, used: ${result.dailyProductionIncome})`
       );
     }
-
-    // Update daily tracking
-    character.dailyProductionIncome += cappedDollars;
 
     return cappedDollars;
   }
@@ -243,6 +302,31 @@ export class ProductionService {
         const extraWorkers = workers.length - product.minWorkers;
         const workerBonus = extraWorkers * product.workerEfficiencyBonus;
         productionTime *= 1 - workerBonus;
+      }
+
+      // Apply territory bonuses for production speed and worker efficiency
+      try {
+        const property = await Property.findOne({ propertyId: slot.propertyId }).session(session);
+        if (property && property.locationId && character.gangId) {
+          const propertyBonuses = await TerritoryBonusService.getPropertyBonuses(
+            property.locationId,
+            character.gangId
+          );
+
+          // Apply production speed bonus (speed < 1 means faster production)
+          if (propertyBonuses.bonuses.speed < 1.0) {
+            productionTime *= propertyBonuses.bonuses.speed;
+          }
+
+          // Apply worker efficiency bonus to worker contribution
+          if (propertyBonuses.bonuses.workerEfficiency > 1.0 && workers.length > 0) {
+            const efficiencyBonus = (propertyBonuses.bonuses.workerEfficiency - 1.0) * 0.5;
+            productionTime *= (1 - efficiencyBonus);
+          }
+        }
+      } catch (error) {
+        logger.debug('Territory bonus lookup failed for production speed', { error });
+        // Continue without territory bonuses
       }
 
       // Rush order
@@ -398,11 +482,12 @@ export class ProductionService {
       // Process each output
       for (const output of results.outputs) {
         if (output.itemId === 'gold_direct') {
-          // Direct dollar production
-          dollarsEarned += output.quantity;
+          // Direct dollar production with territory bonus
+          const bonusedAmount = Math.floor(output.quantity * results.territoryIncomeMultiplier);
+          dollarsEarned += bonusedAmount;
         } else if (autoSell) {
-          // Auto-sell items
-          const sellValue = output.quantity * output.sellPrice;
+          // Auto-sell items with territory bonus
+          const sellValue = Math.floor(output.quantity * output.sellPrice * results.territoryIncomeMultiplier);
           dollarsEarned += sellValue;
         } else {
           // Add to inventory
@@ -429,7 +514,8 @@ export class ProductionService {
 
       // Apply income cap to dollars earned
       // BALANCE FIX: Prevents exponential wealth accumulation from properties
-      const cappedDollarsEarned = await this.applyIncomeCap(character, dollarsEarned);
+      // PHASE 4 FIX: Pass session for atomic cap enforcement
+      const cappedDollarsEarned = await this.applyIncomeCap(character, dollarsEarned, session);
 
       // Award dollars (capped)
       if (cappedDollarsEarned > 0) {
@@ -601,6 +687,7 @@ export class ProductionService {
   ): Promise<{
     quality: ProductQuality;
     outputs: Array<{ itemId: string; quantity: number; sellPrice: number }>;
+    territoryIncomeMultiplier: number;
   }> {
     // Determine quality
     let qualityRoll = SecureRNG.float(0, 1);
@@ -664,7 +751,22 @@ export class ProductionService {
       });
     }
 
-    return { quality, outputs };
+    // Get territory income bonus for property
+    let territoryIncomeMultiplier = 1.0;
+    try {
+      const property = await Property.findOne({ propertyId: slot.propertyId });
+      if (property && property.locationId && character.gangId) {
+        const propertyBonuses = await TerritoryBonusService.getPropertyBonuses(
+          property.locationId,
+          character.gangId
+        );
+        territoryIncomeMultiplier = propertyBonuses.bonuses.income;
+      }
+    } catch (error) {
+      logger.debug('Territory bonus lookup failed for production income', { error });
+    }
+
+    return { quality, outputs, territoryIncomeMultiplier };
   }
 
   /**

@@ -11,7 +11,7 @@ import { useEnergyStore } from '@/store/useEnergyStore';
 import { useCrimeStore } from '@/store/useCrimeStore';
 import { useActionStore } from '@/store/useActionStore';
 import { useSkillStore } from '@/store/useSkillStore';
-import { Card, Tooltip } from '@/components/ui';
+import { Card, Tooltip, NavTile } from '@/components/ui';
 import { DashboardStatsSkeleton, ProgressBarSkeleton } from '@/components/ui/Skeleton';
 import { DollarsDisplay } from '@/components/game/DollarsDisplay';
 import { GettingStartedGuide } from '@/components/game/GettingStartedGuide';
@@ -517,237 +517,123 @@ export const Game: React.FC = () => {
 
         {/* Town Buildings Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {/* The Saloon */}
-          <button
-            onClick={() => !isJailed && navigate('/game/crimes')}
+          <NavTile
+            to="/game/crimes"
+            icon="🍺"
+            title="The Saloon"
+            subtitle="Crimes & Bounties"
             disabled={isJailed}
-            className={`group relative overflow-hidden rounded-lg border transition-all ${
-              isJailed
-                ? 'opacity-50 cursor-not-allowed border-gray-600'
-                : 'border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20'
-            }`}
+            disabledReason="Cannot access while jailed"
             data-testid="nav-crimes"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🍺</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                The Saloon
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">
-                {isJailed ? 'Locked' : 'Crimes & Bounties'}
-              </p>
-            </div>
-          </button>
+          />
 
-          {/* Dueling Grounds */}
-          <button
-            onClick={() => !isJailed && navigate('/game/combat')}
+          <NavTile
+            to="/game/combat"
+            icon="⚔️"
+            title="Dueling Grounds"
+            subtitle="Combat & Duels"
             disabled={isJailed}
-            className={`group relative overflow-hidden rounded-lg border transition-all ${
-              isJailed
-                ? 'opacity-50 cursor-not-allowed border-gray-600'
-                : 'border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20'
-            }`}
+            disabledReason="Cannot access while jailed"
             data-tutorial-target="combat-link"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">⚔️</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                Dueling Grounds
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">
-                {isJailed ? 'Locked' : 'Combat & Duels'}
-              </p>
-            </div>
-          </button>
+          />
 
-          {/* The Library */}
-          <button
-            onClick={() => navigate('/game/skills')}
-            className="group relative overflow-hidden rounded-lg border border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20 transition-all"
+          <NavTile
+            to="/game/skills"
+            icon="📚"
+            title="The Library"
+            subtitle="Skills & Training"
             data-tutorial-target="skills-link"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📚</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                The Library
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">Skills & Training</p>
-            </div>
-          </button>
+          />
 
-          {/* Stables */}
-          <button
-            onClick={() => navigate('/game/territory')}
-            className="group relative overflow-hidden rounded-lg border border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20 transition-all"
+          <NavTile
+            to="/game/territory"
+            icon="🐎"
+            title="Stables"
+            subtitle="Territory Map"
             data-testid="nav-territory"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🐎</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                Stables
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">Territory Map</p>
-            </div>
-          </button>
+          />
 
-          {/* Gang Hideout */}
-          <button
-            onClick={() => navigate('/game/gang')}
-            className="group relative overflow-hidden rounded-lg border border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20 transition-all"
+          <NavTile
+            to="/game/gang"
+            icon="🤠"
+            title="Gang Hideout"
+            subtitle={currentCharacter.gangId ? 'Your Gang' : 'Join a Gang'}
             data-testid="nav-gang"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🤠</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                Gang Hideout
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">
-                {currentCharacter.gangId ? 'Your Gang' : 'Join a Gang'}
-              </p>
-            </div>
-          </button>
+          />
 
-          {/* Telegraph Office */}
-          <button
-            onClick={() => navigate('/game/mail')}
-            className="group relative overflow-hidden rounded-lg border border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20 transition-all"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📨</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                Telegraph Office
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">Mail & Messages</p>
-            </div>
-          </button>
+          <NavTile
+            to="/game/mail"
+            icon="📨"
+            title="Telegraph Office"
+            subtitle="Mail & Messages"
+          />
 
-          {/* Town Square */}
-          <button
-            onClick={() => navigate('/game/friends')}
-            className="group relative overflow-hidden rounded-lg border border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20 transition-all"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🤝</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                Town Square
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">Friends & Allies</p>
-            </div>
-          </button>
+          <NavTile
+            to="/game/friends"
+            icon="🤝"
+            title="Town Square"
+            subtitle="Friends & Allies"
+          />
 
-          {/* General Store */}
-          <button
-            onClick={() => navigate('/game/inventory')}
-            className="group relative overflow-hidden rounded-lg border border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20 transition-all"
+          <NavTile
+            to="/game/inventory"
+            icon="🏪"
+            title="General Store"
+            subtitle="Inventory"
             data-testid="nav-inventory"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🏪</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                General Store
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">Inventory</p>
-            </div>
-          </button>
+          />
 
-          {/* Bounty Board */}
-          <button
-            onClick={() => !isJailed && navigate('/game/actions')}
+          <NavTile
+            to="/game/actions"
+            icon="📜"
+            title="Bounty Board"
+            subtitle="Actions & Tasks"
             disabled={isJailed}
-            className={`group relative overflow-hidden rounded-lg border transition-all ${
-              isJailed
-                ? 'opacity-50 cursor-not-allowed border-gray-600'
-                : 'border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20'
-            }`}
+            disabledReason="Cannot access while jailed"
             data-testid="nav-actions"
             data-tutorial-target="actions-link"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📜</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                Bounty Board
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">
-                {isJailed ? 'Locked' : 'Actions & Tasks'}
-              </p>
-            </div>
-          </button>
+          />
 
-          {/* Town Hall */}
-          <button
-            onClick={() => navigate('/game/leaderboard')}
-            className="group relative overflow-hidden rounded-lg border border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20 transition-all"
+          <NavTile
+            to="/game/leaderboard"
+            icon="🏛️"
+            title="Town Hall"
+            subtitle="Leaderboard"
             data-testid="nav-leaderboard"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🏛️</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                Town Hall
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">Leaderboard</p>
-            </div>
-          </button>
+          />
 
-          {/* Gunsmith */}
-          <button
-            onClick={() => navigate('/game/shop')}
-            className="group relative overflow-hidden rounded-lg border border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20 transition-all"
+          <NavTile
+            to="/game/shop"
+            icon="🔧"
+            title="Gunsmith"
+            subtitle="Buy & Sell"
             data-testid="nav-shop"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🔧</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                Gunsmith
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">Buy & Sell</p>
-            </div>
-          </button>
+          />
 
-          {/* Quest Hall */}
-          <button
-            onClick={() => navigate('/game/quests')}
-            className="group relative overflow-hidden rounded-lg border border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20 transition-all"
+          <NavTile
+            to="/game/quests"
+            icon="📖"
+            title="Quest Hall"
+            subtitle="Missions"
             data-testid="nav-quests"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📖</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                Quest Hall
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">Missions</p>
-            </div>
-          </button>
+          />
 
-          {/* Contract Board */}
-          <button
-            onClick={() => navigate('/game/contracts')}
-            className="group relative overflow-hidden rounded-lg border border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20 transition-all"
+          <NavTile
+            to="/game/contracts"
+            icon="📋"
+            title="Contract Board"
+            subtitle="Daily Jobs"
+            gradientColors="bg-gradient-to-b from-amber-900 to-amber-800"
             data-testid="nav-contracts"
-          >
-            <div className="bg-gradient-to-b from-amber-900 to-amber-800 p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📋</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                Contract Board
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">Daily Jobs</p>
-            </div>
-          </button>
+          />
 
-          {/* Saloon Library */}
-          <button
-            onClick={() => navigate('/game/deck-guide')}
-            className="group relative overflow-hidden rounded-lg border border-wood-grain/50 hover:border-gold-light hover:shadow-lg hover:shadow-gold-dark/20 transition-all"
+          <NavTile
+            to="/game/deck-guide"
+            icon="🃏"
+            title="Card Table"
+            subtitle="Deck Guide"
             data-testid="nav-deck-guide"
-          >
-            <div className="bg-gradient-to-b from-wood-dark to-wood-medium p-4 text-center">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🃏</div>
-              <h3 className="font-western text-desert-sand group-hover:text-gold-light transition-colors">
-                Card Table
-              </h3>
-              <p className="text-xs text-desert-stone mt-1">Deck Guide</p>
-            </div>
-          </button>
+          />
         </div>
 
         {/* Red Gulch Town Buildings - Dynamic Section */}

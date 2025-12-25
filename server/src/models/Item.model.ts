@@ -5,18 +5,46 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-export type ItemType = 'weapon' | 'armor' | 'consumable' | 'mount' | 'material' | 'quest';
+export type ItemType = 'weapon' | 'armor' | 'consumable' | 'mount' | 'material' | 'quest' | 'tool' | 'accessory';
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 export type EquipmentSlot = 'weapon' | 'head' | 'body' | 'feet' | 'mount' | 'accessory';
+
+/**
+ * Item effect types - all possible effect types for items
+ */
+export type ItemEffectType =
+  | 'stat' | 'energy' | 'health' | 'special'
+  // Movement/travel effects
+  | 'travel_speed' | 'ambush_chance'
+  // Combat effects
+  | 'combat_score' | 'initiative'
+  // Social effects
+  | 'social_success'
+  // Crime effects
+  | 'crime_success'
+  // Skill effects
+  | 'skill_training_speed'
+  // Utility effects
+  | 'inventory_slots' | 'gambling' | 'energy_regen';
 
 /**
  * Item effect - stat bonuses or special abilities
  */
 export interface ItemEffect {
-  type: 'stat' | 'energy' | 'health' | 'special';
+  type: ItemEffectType;
   stat?: 'combat' | 'cunning' | 'spirit' | 'craft' | 'hp' | 'energy';
   value: number;
   description: string;
+}
+
+/**
+ * Item stat bonuses - direct stat modifications when equipped
+ */
+export interface ItemStats {
+  combat?: number;
+  cunning?: number;
+  spirit?: number;
+  craft?: number;
 }
 
 /**
@@ -46,12 +74,20 @@ export interface IItem extends Document {
   // Effects when equipped/used
   effects: ItemEffect[];
 
+  // Stat bonuses when equipped
+  stats?: ItemStats;
+
   // Equipment
   equipSlot?: EquipmentSlot;
   isEquippable: boolean;
   isConsumable: boolean;
   isStackable: boolean;
   maxStack: number;
+
+  // Tutorial/Milestone flags
+  tutorialItem?: boolean;
+  milestoneLevel?: number;
+  flavorText?: string;
 
   // Metadata
   createdAt: Date;
@@ -88,7 +124,7 @@ const ItemSchema = new Schema<IItem>(
     type: {
       type: String,
       required: true,
-      enum: ['weapon', 'armor', 'consumable', 'mount', 'material', 'quest']
+      enum: ['weapon', 'armor', 'consumable', 'mount', 'material', 'quest', 'tool', 'accessory']
     },
     rarity: {
       type: String,
@@ -122,7 +158,14 @@ const ItemSchema = new Schema<IItem>(
     effects: [{
       type: {
         type: String,
-        enum: ['stat', 'energy', 'health', 'special'],
+        enum: [
+          'stat', 'energy', 'health', 'special',
+          'travel_speed', 'ambush_chance',
+          'combat_score', 'initiative',
+          'social_success', 'crime_success',
+          'skill_training_speed',
+          'inventory_slots', 'gambling', 'energy_regen'
+        ],
         required: true
       },
       stat: {
@@ -138,6 +181,12 @@ const ItemSchema = new Schema<IItem>(
         required: true
       }
     }],
+    stats: {
+      combat: { type: Number },
+      cunning: { type: Number },
+      spirit: { type: Number },
+      craft: { type: Number }
+    },
     equipSlot: {
       type: String,
       enum: ['weapon', 'head', 'body', 'feet', 'mount', 'accessory']
@@ -157,6 +206,16 @@ const ItemSchema = new Schema<IItem>(
     maxStack: {
       type: Number,
       default: 99
+    },
+    tutorialItem: {
+      type: Boolean,
+      default: false
+    },
+    milestoneLevel: {
+      type: Number
+    },
+    flavorText: {
+      type: String
     }
   },
   {

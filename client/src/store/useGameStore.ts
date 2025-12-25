@@ -164,7 +164,6 @@ export const useGameStore = () => {
       }
       await combat.startCombat(npcId, character.currentCharacter._id);
     },
-    playTurn: combat.playTurn,
     fleeCombat: combat.fleeCombat,
     endCombat: combat.endCombat,
     fetchCombatHistory: combat.fetchCombatHistory,

@@ -55,7 +55,8 @@ export async function processLevelMilestone(
   userId: string,
   level: number
 ): Promise<void> {
-  const milestones = [5, 10, 15, 25, 30, 50];
+  // Sprint 7: Added 20, 35, 40, 45 to match level milestone system
+  const milestones = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 
   if (milestones.includes(level)) {
     const event = `milestone:level_${level}`;
@@ -266,13 +267,14 @@ export async function syncAllMilestoneUnlocks(userId: string): Promise<void> {
   }
 
   // Check character-level milestones
+  // Sprint 7: Added 20, 35, 40, 45 to match level milestone system
   const characters = await Character.find({ userId: objectId });
   const maxLevel = Math.max(...characters.map(c => c.level || 1), 0);
 
-  if (maxLevel >= 5) await processLevelMilestone(userId, 5);
-  if (maxLevel >= 10) await processLevelMilestone(userId, 10);
-  if (maxLevel >= 15) await processLevelMilestone(userId, 15);
-  if (maxLevel >= 25) await processLevelMilestone(userId, 25);
-  if (maxLevel >= 30) await processLevelMilestone(userId, 30);
-  if (maxLevel >= 50) await processLevelMilestone(userId, 50);
+  const milestoneLevels = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+  for (const level of milestoneLevels) {
+    if (maxLevel >= level) {
+      await processLevelMilestone(userId, level);
+    }
+  }
 }

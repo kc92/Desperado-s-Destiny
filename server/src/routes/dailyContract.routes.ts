@@ -15,7 +15,13 @@ import {
   claimStreakBonus,
   getStreakLeaderboard,
   getResetTimer,
-  triggerContractProgress
+  triggerContractProgress,
+  // Premium contracts (Sprint 7)
+  getPremiumContracts,
+  acceptPremiumContract,
+  progressPremiumContract,
+  completePremiumContract,
+  abandonPremiumContract
 } from '../controllers/dailyContract.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
@@ -64,5 +70,27 @@ router.post('/:contractId/progress', requireCsrfToken, asyncHandler(updateProgre
 // Complete a contract - detect suspicious earning patterns
 // POST /api/contracts/:contractId/complete
 router.post('/:contractId/complete', requireCsrfToken, detectSuspiciousEarning(), asyncHandler(completeContract));
+
+// ============ Premium Contract Routes (Sprint 7) ============
+
+// Get premium contracts for the character
+// GET /api/contracts/premium
+router.get('/premium', asyncHandler(getPremiumContracts));
+
+// Accept a premium contract
+// POST /api/contracts/premium/:templateId/accept
+router.post('/premium/:templateId/accept', requireCsrfToken, asyncHandler(acceptPremiumContract));
+
+// Progress a multi-phase premium contract
+// POST /api/contracts/premium/:contractId/progress
+router.post('/premium/:contractId/progress', requireCsrfToken, asyncHandler(progressPremiumContract));
+
+// Complete a premium contract - detect suspicious earning patterns
+// POST /api/contracts/premium/:contractId/complete
+router.post('/premium/:contractId/complete', requireCsrfToken, detectSuspiciousEarning(), asyncHandler(completePremiumContract));
+
+// Abandon a premium contract
+// POST /api/contracts/premium/:contractId/abandon
+router.post('/premium/:contractId/abandon', requireCsrfToken, asyncHandler(abandonPremiumContract));
 
 export default router;
