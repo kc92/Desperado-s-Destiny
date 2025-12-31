@@ -186,12 +186,12 @@ export const gatheringService = {
    */
   getTypeIcon(type: GatheringType): string {
     const icons: Record<GatheringType, string> = {
-      mining: '\u26CF\uFE0F',  // Pick
-      herbalism: '\uD83C\uDF3F',  // Herb
-      woodcutting: '\uD83E\uDE93',  // Axe
-      foraging: '\uD83D\uDD0D',  // Magnifying glass
+      mining: '⛏️',  // Pick
+      herbalism: '🌿',  // Herb
+      woodcutting: '🪓',  // Axe
+      foraging: '🔍',  // Magnifying glass
     };
-    return icons[type] || '\uD83D\uDCE6';
+    return icons[type] || '📦';
   },
 
   /**

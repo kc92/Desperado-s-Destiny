@@ -16,12 +16,12 @@ interface RecipeListProps {
 }
 
 const CATEGORIES: Array<{ key: RecipeCategory | 'all'; label: string; icon: string }> = [
-  { key: 'all', label: 'All', icon: '\uD83D\uDCDC' },
-  { key: 'weapon', label: 'Weapons', icon: '\uD83D\uDDE1\uFE0F' },
-  { key: 'armor', label: 'Armor', icon: '\uD83D\uDEE1\uFE0F' },
-  { key: 'consumable', label: 'Consumables', icon: '\uD83E\uDDEA' },
-  { key: 'ammo', label: 'Ammo', icon: '\uD83D\uDD2B' },
-  { key: 'material', label: 'Materials', icon: '\uD83D\uDD27' },
+  { key: 'all', label: 'All', icon: '📜' },
+  { key: 'weapon', label: 'Weapons', icon: '🗡️' },
+  { key: 'armor', label: 'Armor', icon: '🛡️' },
+  { key: 'consumable', label: 'Consumables', icon: '🧪' },
+  { key: 'ammo', label: 'Ammo', icon: '🔫' },
+  { key: 'material', label: 'Materials', icon: '🔧' },
 ];
 
 export function RecipeList({

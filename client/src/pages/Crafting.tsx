@@ -257,7 +257,7 @@ export function Crafting() {
           {/* Left Panel - Recipe List */}
           <Card className="p-4 overflow-hidden flex flex-col">
             <h2 className="text-lg font-bold text-gray-300 mb-4 flex items-center gap-2">
-              <span>\uD83D\uDCDC</span> Recipes
+              <span>📜</span> Recipes
               <span className="text-sm font-normal text-gray-500">({recipes.length})</span>
             </h2>
             <div className="flex-1 overflow-hidden">
@@ -289,18 +289,18 @@ export function Crafting() {
               />
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <div className="text-6xl mb-4">\uD83D\uDD28</div>
+                <div className="text-6xl mb-4">🔨</div>
                 <h3 className="text-xl font-bold text-gray-400 mb-2">Select a Recipe</h3>
                 <p className="text-gray-500 max-w-md">
                   Choose a recipe from the list to view its details, requirements, and craft items.
                 </p>
                 <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
                   <div className="p-3 bg-gray-800/50 rounded-lg">
-                    <div className="text-2xl mb-1">\uD83D\uDCDA</div>
+                    <div className="text-2xl mb-1">📚</div>
                     <div className="text-gray-400">{recipes.length} Recipes</div>
                   </div>
                   <div className="p-3 bg-gray-800/50 rounded-lg">
-                    <div className="text-2xl mb-1">\uD83C\uDFED</div>
+                    <div className="text-2xl mb-1">🏭</div>
                     <div className="text-gray-400">{stations.filter(s => s.isAvailable).length} Stations</div>
                   </div>
                 </div>
