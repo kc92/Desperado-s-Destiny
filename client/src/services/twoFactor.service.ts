@@ -24,10 +24,22 @@ export interface TwoFactorStatusResponse {
 
 /**
  * Get current 2FA status for the user
+ * Returns default status (not enabled) if API fails or returns 404
  */
 export async function getStatus(): Promise<TwoFactorStatusResponse> {
-  const response = await apiCall<{ data: TwoFactorStatusResponse }>('get', '/auth/2fa/status');
-  return response.data;
+  try {
+    // apiCall already unwraps response.data.data, so we get the status directly
+    const status = await apiCall<TwoFactorStatusResponse>(
+      'get',
+      '/auth/2fa/status',
+      undefined,
+      { suppressErrorToast: true }
+    );
+    return status || { enabled: false, pendingSetup: false };
+  } catch {
+    // Return safe default when 2FA is not configured (404) or any error
+    return { enabled: false, pendingSetup: false };
+  }
 }
 
 /**

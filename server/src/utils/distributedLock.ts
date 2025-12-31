@@ -8,6 +8,7 @@
 
 import { getRedisClient } from '../config/redis';
 import logger from './logger';
+import { SecureRNG } from '../services/base/SecureRNG';
 
 // Lock configuration
 const DEFAULT_LOCK_TTL_MS = 10000; // 10 seconds default
@@ -27,7 +28,7 @@ export async function acquireLock(
 ): Promise<string | null> {
   try {
     const redis = getRedisClient();
-    const lockToken = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const lockToken = `${Date.now()}-${SecureRNG.hex(8)}`;
 
     // SET NX (only if not exists) with EX (expiry)
     // This is atomic - either we get the lock or we don't

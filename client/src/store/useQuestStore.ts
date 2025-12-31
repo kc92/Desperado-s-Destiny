@@ -106,9 +106,13 @@ export const useQuestStore = create<QuestStore>((set, get) => ({
     try {
       const response = await questService.acceptQuest(questId);
 
-      // Add the accepted quest to activeQuests
+      // Add the accepted quest to activeQuests with definition attached
+      const questWithDefinition = {
+        ...response.quest,
+        definition: response.definition,
+      };
       set((state) => ({
-        activeQuests: [...state.activeQuests, response.quest],
+        activeQuests: [...state.activeQuests, questWithDefinition],
         isLoading: false,
         error: null,
       }));

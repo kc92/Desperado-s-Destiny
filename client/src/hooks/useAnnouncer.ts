@@ -170,9 +170,9 @@ export function useAnnouncer() {
  * Pre-built announcement helpers for common game events
  */
 export const gameAnnouncements = {
-  /** Announce gold change */
+  /** Announce dollars change */
   goldChange: (amount: number, isGain: boolean) =>
-    `${isGain ? 'Gained' : 'Lost'} ${Math.abs(amount)} gold`,
+    `${isGain ? 'Gained' : 'Lost'} $${Math.abs(amount)} dollars`,
 
   /** Announce experience gain */
   experienceGain: (amount: number) =>

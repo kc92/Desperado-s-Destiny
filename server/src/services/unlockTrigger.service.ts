@@ -240,28 +240,25 @@ export async function syncAllMilestoneUnlocks(userId: string): Promise<void> {
     throw new Error('User not found');
   }
 
-  // Process all applicable milestones
-  // TODO: Add these tracking fields to User model
-  const userAny = user as any;
-
-  if (userAny.totalGoldEarned) {
-    await processGoldMilestone(userId, userAny.totalGoldEarned);
+  // Process all applicable milestones using User model tracking fields
+  if (user.totalGoldEarned) {
+    await processGoldMilestone(userId, user.totalGoldEarned);
   }
 
-  if (userAny.totalDuelsWon) {
-    await processDuelMilestone(userId, userAny.totalDuelsWon);
+  if (user.totalDuelsWon) {
+    await processDuelMilestone(userId, user.totalDuelsWon);
   }
 
-  if (userAny.totalCrimesCommitted) {
-    await processCrimeMilestone(userId, userAny.totalCrimesCommitted);
+  if (user.totalCrimesCommitted) {
+    await processCrimeMilestone(userId, user.totalCrimesCommitted);
   }
 
-  if (userAny.totalTimePlayed) {
-    await processTimePlayedMilestone(userId, userAny.totalTimePlayed);
+  if (user.totalTimePlayed) {
+    await processTimePlayedMilestone(userId, user.totalTimePlayed);
   }
 
-  if (userAny.legacyTier) {
-    for (let tier = 1; tier <= userAny.legacyTier; tier++) {
+  if (user.legacyTier) {
+    for (let tier = 1; tier <= user.legacyTier; tier++) {
       await processLegacyTierUnlock(userId, tier);
     }
   }

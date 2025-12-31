@@ -17,6 +17,7 @@ export interface INPC extends Document {
   level: number;
   maxHP: number;
   difficulty: number;
+  isBoss?: boolean;
   lootTable: {
     goldMin: number;
     goldMax: number;
@@ -81,6 +82,10 @@ const NPCSchema = new Schema<INPC>(
       required: true,
       min: 1,
       max: 10
+    },
+    isBoss: {
+      type: Boolean,
+      default: false
     },
     lootTable: {
       goldMin: { type: Number, required: true, min: 0 },

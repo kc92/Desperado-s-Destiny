@@ -15,6 +15,8 @@ import {
   INPCKnowledge,
   IKnownEvent
 } from '../models/NPCKnowledge.model';
+import { NPC } from '../models/NPC.model';
+import { Location } from '../models/Location.model';
 import {
   ReputationEventType,
   KnowledgeSource,
@@ -426,6 +428,51 @@ export class ReputationSpreadingService {
     // Get recent events (last 5)
     const recentEvents = events.slice(0, 5);
 
+    // Calculate per-faction standing
+    const factionStanding: { [faction: string]: number } = {};
+    const factionCounts: { [faction: string]: number } = {};
+
+    for (const knowledge of knowledgeRecords) {
+      try {
+        // Get NPC's location
+        const npc = await NPC.findOne({ name: knowledge.npcId }).lean();
+        if (!npc || !npc.location) continue;
+
+        // Get location's faction influence
+        const location = await Location.findOne({ slug: npc.location }).lean();
+        if (!location || !location.factionInfluence) continue;
+
+        // Determine dominant faction from influence
+        const { settlerAlliance = 0, nahiCoalition = 0, frontera = 0 } = location.factionInfluence;
+        let dominantFaction = 'neutral';
+        const maxInfluence = Math.max(settlerAlliance, nahiCoalition, frontera);
+
+        if (maxInfluence > 0) {
+          if (settlerAlliance === maxInfluence) dominantFaction = 'settlerAlliance';
+          else if (nahiCoalition === maxInfluence) dominantFaction = 'nahiCoalition';
+          else if (frontera === maxInfluence) dominantFaction = 'frontera';
+        }
+
+        // Aggregate opinion for this faction
+        if (!factionStanding[dominantFaction]) {
+          factionStanding[dominantFaction] = 0;
+          factionCounts[dominantFaction] = 0;
+        }
+        factionStanding[dominantFaction] += knowledge.overallOpinion;
+        factionCounts[dominantFaction]++;
+      } catch (err) {
+        // Skip if NPC/location lookup fails
+        continue;
+      }
+    }
+
+    // Calculate averages for each faction
+    for (const faction of Object.keys(factionStanding)) {
+      if (factionCounts[faction] > 0) {
+        factionStanding[faction] = Math.round(factionStanding[faction] / factionCounts[faction]);
+      }
+    }
+
     return {
       characterId,
       locationId,
@@ -434,7 +481,7 @@ export class ReputationSpreadingService {
       dominantSentiment,
       mostInfluentialEvent,
       recentEvents,
-      factionStanding: {} // TODO: Calculate per-faction
+      factionStanding
     };
   }
 

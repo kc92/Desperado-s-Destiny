@@ -906,6 +906,98 @@ export interface WatchRaceResponse {
 }
 
 // ============================================================================
+// HORSE SHOW SYSTEM
+// ============================================================================
+
+/**
+ * Horse show event (different from racing - judged performance)
+ */
+export interface HorseShow {
+  _id: ObjectId;
+  name: string;
+  description: string;
+  showType: 'DRESSAGE' | 'JUMPING' | 'HALTER' | 'REINING' | 'TRAIL';
+  prestige: number;
+
+  // Location and timing
+  locationId: string;
+  scheduledStart: Date;
+  registrationDeadline: Date;
+  status: 'UPCOMING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+  // Entry
+  entryFee: number;
+  maxEntrants: number;
+  registeredHorses: {
+    horseId: ObjectId;
+    ownerId: ObjectId;
+    scratched: boolean;
+  }[];
+
+  // Judging
+  judgeCount: number;
+  scoringCategories: {
+    category: string;
+    weight: number;
+  }[];
+
+  // Prizes
+  purse: number;
+  prizeDistribution: number[];
+
+  // Results
+  results?: {
+    position: number;
+    horseId: ObjectId;
+    score: number;
+    categoryScores: Map<string, number>;
+    prizeMoney: number;
+  }[];
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Race result response for API
+ */
+export interface RaceResultResponse {
+  success: boolean;
+  race: HorseRace;
+  results: RaceResult[];
+  playerResult?: {
+    position: number;
+    prizeMoney: number;
+    experienceGained: number;
+    reputationGained: number;
+    trackRecord: boolean;
+  };
+  message: string;
+}
+
+/**
+ * Show result response for API
+ */
+export interface ShowResultResponse {
+  success: boolean;
+  show: HorseShow;
+  results: {
+    position: number;
+    horseId: ObjectId;
+    horseName: string;
+    score: number;
+    prizeMoney: number;
+  }[];
+  playerResult?: {
+    position: number;
+    score: number;
+    prizeMoney: number;
+    experienceGained: number;
+  };
+  message: string;
+}
+
+// ============================================================================
 // CONSTANTS
 // ============================================================================
 

@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for Node.js Backend
 # Stage 1: Development
-FROM node:18-alpine AS development
+FROM node:20-alpine AS development
 
 # Set working directory
 WORKDIR /app
@@ -42,7 +42,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 CMD ["npm", "run", "dev"]
 
 # Stage 2: Build
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -65,7 +65,7 @@ RUN npm run build
 RUN npm prune --production
 
 # Stage 3: Production
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 WORKDIR /app
 

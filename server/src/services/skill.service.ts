@@ -131,6 +131,31 @@ export class SkillService {
   }
 
   /**
+   * Add any missing skills to an existing character's skill array
+   * This handles characters created before new skills were added
+   * Returns the updated skills array (does not save to DB)
+   */
+  static addMissingSkills(existingSkills: CharacterSkill[]): CharacterSkill[] {
+    const existingIds = new Set(existingSkills.map(s => s.skillId.toLowerCase()));
+    const updatedSkills = [...existingSkills];
+
+    for (const skillKey of Object.keys(SKILLS)) {
+      const skill = SKILLS[skillKey];
+      if (skill && !existingIds.has(skill.id.toLowerCase())) {
+        updatedSkills.push({
+          skillId: skill.id,
+          level: SKILL_PROGRESSION.STARTING_LEVEL,
+          experience: 0,
+          trainingStarted: undefined,
+          trainingCompletes: undefined
+        });
+      }
+    }
+
+    return updatedSkills;
+  }
+
+  /**
    * Calculate XP needed to reach next level
    * Formula: level * BASE_XP_PER_LEVEL
    */
@@ -900,5 +925,64 @@ export class SkillService {
     }
 
     return best;
+  }
+
+  // ============================================
+  // EFFECTIVE STATS CALCULATION
+  // ============================================
+
+  /**
+   * Calculate effective stats from skill levels
+   *
+   * Each skill contributes its level to its category's stat.
+   * This replaces the unused character.stats object with real values.
+   *
+   * Categories:
+   * - cunning: lockpicking, stealth, pickpocket, tracking, deception, gambling, perception, sleight_of_hand, poker_face
+   * - spirit: medicine, persuasion, animal_handling, leadership, ritual_knowledge, performance
+   * - combat: melee_combat, ranged_combat, defensive_tactics, mounted_combat, explosives
+   * - craft: blacksmithing, leatherworking, cooking, alchemy, engineering, mining, prospecting, herbalism, carpentry
+   *
+   * @param character - The character to calculate stats for
+   * @returns Object with cunning, spirit, combat, craft values
+   */
+  static getEffectiveStats(character: ICharacter): {
+    cunning: number;
+    spirit: number;
+    combat: number;
+    craft: number;
+  } {
+    const stats = { cunning: 0, spirit: 0, combat: 0, craft: 0 };
+
+    for (const category of Object.keys(SPECIALIZATION_CONFIG.categories) as SpecializationCategory[]) {
+      const skillIds = SPECIALIZATION_CONFIG.categories[category];
+
+      for (const skillId of skillIds) {
+        const characterSkill = character.skills.find(s => s.skillId === skillId);
+        if (characterSkill) {
+          stats[category] += characterSkill.level;
+        }
+      }
+    }
+
+    return stats;
+  }
+
+  /**
+   * Get a single effective stat value
+   * Convenience method for services that only need one stat
+   */
+  static getEffectiveStat(character: ICharacter, stat: SpecializationCategory): number {
+    const skillIds = SPECIALIZATION_CONFIG.categories[stat];
+    let total = 0;
+
+    for (const skillId of skillIds) {
+      const characterSkill = character.skills.find(s => s.skillId === skillId);
+      if (characterSkill) {
+        total += characterSkill.level;
+      }
+    }
+
+    return total;
   }
 }

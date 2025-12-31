@@ -291,6 +291,22 @@ async function seedStarterData(): Promise<void> {
     const { seedRedGulchBuildings } = await import('./seeds/redGulchBuildings.seed');
     await seedRedGulchBuildings();
 
+    // Seed starter NPCs (basic 15 NPCs)
+    const { initializeNPCs } = await import('./models/NPC.model');
+    await initializeNPCs();
+
+    // Seed regional NPCs for combat arena
+    const { seedNewNPCs } = await import('./seeds/npcs_new');
+    await seedNewNPCs();
+
+    // Seed quests
+    const { seedQuests } = await import('./seeds/quests.seed');
+    await seedQuests();
+
+    // Seed items
+    const { seedItems } = await import('./seeds/items.seed');
+    await seedItems();
+
     // Seed test user for development
     if (config.isDevelopment) {
       const { seedTestUser } = await import('./seeds/testUser.seed');

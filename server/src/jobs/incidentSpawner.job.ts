@@ -10,6 +10,7 @@
 import { IncidentService } from '../services/incident.service';
 import { withLock } from '../utils/distributedLock';
 import logger from '../utils/logger';
+import { SecureRNG } from '../services/base/SecureRNG';
 import { IBatchIncidentSpawnResult } from '@desperados/shared';
 
 /**
@@ -153,7 +154,7 @@ export async function forceSpawnIncident(
       return { success: false, error: 'No incident types available for this target' };
     }
 
-    const incidentType = incidentTypes[Math.floor(Math.random() * incidentTypes.length)];
+    const incidentType = SecureRNG.select(incidentTypes);
     const incident = await (IncidentService as any).createIncident(targetInfo, incidentType);
 
     return { success: true, incidentId: incident._id.toString() };

@@ -20,6 +20,14 @@ export interface ItemEffect {
   description: string;
 }
 
+/**
+ * Price modifier from dynamic pricing
+ */
+export interface PriceModifier {
+  source: 'supply' | 'demand' | 'event' | 'territory' | 'season';
+  modifier: number;
+}
+
 export interface ShopItem {
   _id: string;
   itemId: string;
@@ -27,7 +35,10 @@ export interface ShopItem {
   description: string;
   type: ItemType;
   rarity: ItemRarity;
-  price: number;
+  price: number; // Base price
+  currentPrice?: number; // Dynamic price (with modifiers applied)
+  priceModifiers?: PriceModifier[];
+  priceTrend?: 'rising' | 'stable' | 'falling';
   sellPrice: number;
   icon: string;
   effects: ItemEffect[];

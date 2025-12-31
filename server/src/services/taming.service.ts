@@ -20,6 +20,7 @@ import { getSpeciesDefinition, getTameableSpecies } from '../data/companionSpeci
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
+import { SkillService } from './skill.service';
 
 export class TamingService {
   /**
@@ -224,7 +225,8 @@ export class TamingService {
       const baseChance = 100 - (speciesDef.tamingDifficulty * 10);
 
       // Bonuses
-      const spiritBonus = Math.floor(character.stats.spirit * 0.5); // Spirit helps taming
+      const effectiveSpirit = SkillService.getEffectiveStat(character, 'spirit');
+      const spiritBonus = Math.floor(effectiveSpirit * 0.5); // Spirit helps taming
       const animalHandlingSkill = character.getSkillLevel('animal_handling'); // If such skill exists
       const skillBonus = animalHandlingSkill * 3;
 

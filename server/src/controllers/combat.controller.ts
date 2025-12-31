@@ -57,19 +57,28 @@ export const startCombat = asyncHandler(
     // Populate NPC data for response
     const populatedEncounter = await CombatEncounter.findById(encounter._id).populate('npcId');
 
+    // PRODUCTION FIX: Attach NPC data directly to encounter object for frontend
+    // Frontend expects encounter.npc (not a separate npc field)
+    const encounterWithNpc = populatedEncounter?.toObject() as unknown as Record<string, unknown> | undefined;
+    if (encounterWithNpc) {
+      encounterWithNpc.npc = {
+        _id: npc._id,
+        name: npc.name,
+        level: npc.level,
+        type: npc.type,
+        maxHP: npc.maxHP,
+        difficulty: npc.difficulty,
+        description: npc.description,
+        isBoss: npc.isBoss || false,
+        lootTable: npc.lootTable
+      };
+    }
+
     res.status(HttpStatus.CREATED).json({
       success: true,
       message: `Combat started with ${npc.name}`,
       data: {
-        encounter: populatedEncounter,
-        npc: {
-          name: npc.name,
-          level: npc.level,
-          type: npc.type,
-          maxHP: npc.maxHP,
-          difficulty: npc.difficulty,
-          description: npc.description
-        }
+        encounter: encounterWithNpc
       }
     });
 
@@ -296,12 +305,34 @@ export const startTurn = asyncHandler(
       throw new AppError(result.error || 'Failed to start turn', HttpStatus.BAD_REQUEST);
     }
 
+    // PRODUCTION FIX: Attach NPC data to encounter for frontend
+    let encounterWithNpc: Record<string, unknown> | undefined = result.encounter as unknown as Record<string, unknown> | undefined;
+    if (result.encounter) {
+      const npc = await NPC.findById((result.encounter as unknown as { npcId: string }).npcId);
+      if (npc) {
+        encounterWithNpc = 'toObject' in result.encounter && typeof (result.encounter as { toObject?: () => unknown }).toObject === 'function'
+          ? (result.encounter as { toObject: () => Record<string, unknown> }).toObject()
+          : { ...result.encounter } as Record<string, unknown>;
+        encounterWithNpc.npc = {
+          _id: npc._id,
+          name: npc.name,
+          level: npc.level,
+          type: npc.type,
+          maxHP: npc.maxHP,
+          difficulty: npc.difficulty,
+          description: npc.description,
+          isBoss: npc.isBoss || false,
+          lootTable: npc.lootTable
+        };
+      }
+    }
+
     res.status(HttpStatus.OK).json({
       success: true,
       message: 'Turn started - select cards to hold',
       data: {
         roundState: result.roundState,
-        encounter: result.encounter
+        encounter: encounterWithNpc
       }
     });
 
@@ -356,13 +387,35 @@ export const processAction = asyncHandler(
       throw new AppError(result.error || 'Action failed', HttpStatus.BAD_REQUEST);
     }
 
+    // PRODUCTION FIX: Attach NPC data to encounter for frontend
+    let encounterWithNpc: Record<string, unknown> | undefined = result.encounter as unknown as Record<string, unknown> | undefined;
+    if (result.encounter && (result.encounter as unknown as { npcId?: string }).npcId) {
+      const npc = await NPC.findById((result.encounter as unknown as { npcId: string }).npcId);
+      if (npc) {
+        encounterWithNpc = 'toObject' in result.encounter && typeof (result.encounter as { toObject?: () => unknown }).toObject === 'function'
+          ? (result.encounter as { toObject: () => Record<string, unknown> }).toObject()
+          : { ...result.encounter } as Record<string, unknown>;
+        encounterWithNpc.npc = {
+          _id: npc._id,
+          name: npc.name,
+          level: npc.level,
+          type: npc.type,
+          maxHP: npc.maxHP,
+          difficulty: npc.difficulty,
+          description: npc.description,
+          isBoss: npc.isBoss || false,
+          lootTable: npc.lootTable
+        };
+      }
+    }
+
     // Build response message
     let message = 'Action processed';
     if (result.combatEnded) {
       if (result.lootAwarded) {
-        message = `Victory! You earned ${result.lootAwarded.gold} gold and ${result.lootAwarded.xp} XP`;
+        message = `Victory! You earned $${result.lootAwarded.gold} and ${result.lootAwarded.xp} XP`;
       } else if (result.deathPenalty) {
-        message = `Defeat! You lost ${result.deathPenalty.goldLost} gold`;
+        message = `Defeat! You lost $${result.deathPenalty.goldLost}`;
       } else if (action.type === 'flee') {
         message = 'Successfully fled from combat';
       }
@@ -381,7 +434,7 @@ export const processAction = asyncHandler(
       message,
       data: {
         roundState: result.roundState,
-        encounter: result.encounter,
+        encounter: encounterWithNpc,
         combatEnded: result.combatEnded,
         lootAwarded: result.lootAwarded,
         deathPenalty: result.deathPenalty
@@ -427,12 +480,34 @@ export const getRoundState = asyncHandler(
       throw new AppError(result.error || 'Failed to get state', HttpStatus.BAD_REQUEST);
     }
 
+    // PRODUCTION FIX: Attach NPC data to encounter for frontend
+    let encounterWithNpc: Record<string, unknown> | undefined = result.encounter as unknown as Record<string, unknown> | undefined;
+    if (result.encounter && (result.encounter as unknown as { npcId?: string }).npcId) {
+      const npc = await NPC.findById((result.encounter as unknown as { npcId: string }).npcId);
+      if (npc) {
+        encounterWithNpc = 'toObject' in result.encounter && typeof (result.encounter as { toObject?: () => unknown }).toObject === 'function'
+          ? (result.encounter as { toObject: () => Record<string, unknown> }).toObject()
+          : { ...result.encounter } as Record<string, unknown>;
+        encounterWithNpc.npc = {
+          _id: npc._id,
+          name: npc.name,
+          level: npc.level,
+          type: npc.type,
+          maxHP: npc.maxHP,
+          difficulty: npc.difficulty,
+          description: npc.description,
+          isBoss: npc.isBoss || false,
+          lootTable: npc.lootTable
+        };
+      }
+    }
+
     res.status(HttpStatus.OK).json({
       success: true,
       message: result.roundState ? 'Round state retrieved' : 'No active round',
       data: {
         roundState: result.roundState,
-        encounter: result.encounter
+        encounter: encounterWithNpc
       }
     });
   }

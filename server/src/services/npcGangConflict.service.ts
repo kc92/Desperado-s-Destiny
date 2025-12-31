@@ -182,7 +182,7 @@ export class NPCGangConflictService {
         relationshipChange,
         newRelationship: relationship.relationshipScore,
         newAttitude: relationship.attitude,
-        message: `Paid ${tributeAmount} gold tribute to ${npcGang.name}. Relationship improved.`,
+        message: `Paid $${tributeAmount} tribute to ${npcGang.name}. Relationship improved.`,
         streak: relationship.tributeStreak,
       };
     } catch (error) {

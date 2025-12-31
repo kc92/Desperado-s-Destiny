@@ -60,13 +60,7 @@ export const GameLayout: React.FC = () => {
       {/* Day/Night overlay - tints screen based on time of day */}
       <DayNightOverlay enabled={true} />
 
-      {/* Skip to content link for accessibility */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-gold-light focus:text-wood-dark focus:rounded focus:font-bold focus:shadow-lg"
-      >
-        Skip to main content
-      </a>
+      {/* Skip link is provided by App.tsx for the entire application */}
 
       <Header />
 

@@ -10,6 +10,7 @@
 import { NPCBusiness, INPCBusinessDocument } from '../models/NPCBusiness.model';
 import { CompetitionService } from './competition.service';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 import {
   NPCBusinessPersonality,
   NPCBusinessStatus,
@@ -179,7 +180,7 @@ export class NPCBusinessBehaviorService {
 
     // Check resilience
     const closeChance = (100 - business.resilience) / 100;
-    return Math.random() < closeChance;
+    return SecureRNG.chance(closeChance);
   }
 
   /**

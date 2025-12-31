@@ -9,12 +9,15 @@ import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
+import * as Sentry from '@sentry/node';
 import { config } from './index';
 import logger from '../utils/logger';
 import { socketAuthMiddleware, AuthenticatedSocket } from '../middleware/socketAuth';
 import { registerChatHandlers } from '../sockets/chatHandlers';
 import { registerDuelHandlers } from '../sockets/duelHandlers';
 import { registerKarmaHandlers } from '../sockets/karmaHandlers';
+import { registerTeamCardGameHandlers } from '../sockets/teamCardGameHandlers';
+import { registerCardTableHandlers } from '../sockets/cardTableHandlers';
 import PresenceService from '../services/presence.service';
 
 /**
@@ -53,7 +56,13 @@ export async function initializeSocketIO(httpServer: HTTPServer): Promise<Socket
           'http://localhost:3001',
           'http://localhost:5173',
           'http://localhost:5174',
-          'http://localhost:5175'
+          'http://localhost:5175',
+          // Also allow 127.0.0.1 variants for local dev
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:3001',
+          'http://127.0.0.1:5173',
+          'http://127.0.0.1:5174',
+          'http://127.0.0.1:5175'
         ];
 
     io = new SocketIOServer(httpServer, {
@@ -104,9 +113,32 @@ export async function initializeSocketIO(httpServer: HTTPServer): Promise<Socket
       io.adapter(createAdapter(pubClient, subClient));
       logger.info('Socket.io Redis adapter connected - horizontal scaling enabled');
     } catch (redisError) {
-      logger.warn('Failed to set up Redis adapter for Socket.io:', redisError);
+      // PRODUCTION FIX: Alert on Redis adapter failure - critical for multi-instance deployments
+      const errorMessage = 'Failed to set up Redis adapter for Socket.io';
+      logger.error(errorMessage, redisError);
+
+      // Report to Sentry for alerting
+      Sentry.captureException(redisError, {
+        tags: {
+          component: 'socket.io',
+          severity: config.isProduction ? 'critical' : 'warning'
+        },
+        extra: {
+          message: 'Redis adapter failure - socket events will not sync across instances',
+          redisUrl: config.database.redisUrl?.replace(/:[^:@]+@/, ':***@') // Mask password
+        }
+      });
+
+      if (config.isProduction) {
+        // In production, this is a critical error - fail fast
+        logger.error('CRITICAL: Redis adapter is required for production multi-instance deployment!');
+        logger.error('Socket.io cannot function correctly without Redis in a clustered environment.');
+        throw new Error('Redis adapter required for production Socket.io');
+      }
+
+      // In development, allow single-instance mode with warning
       logger.warn('Socket.io will run in single-instance mode (no horizontal scaling)');
-      // Continue without Redis adapter - single instance mode still works
+      logger.warn('This is acceptable for development but NOT for production!');
     }
 
     // Apply authentication middleware
@@ -149,6 +181,11 @@ function handleConnection(socket: AuthenticatedSocket): void {
       logger.error(`Error setting character ${characterId} online:`, error);
     });
 
+  // Join user-specific room for O(1) broadcasts to this character
+  // This enables efficient messaging without iterating all sockets
+  socket.join(`user:${characterId}`);
+  logger.debug(`Socket ${socket.id} joined room user:${characterId}`);
+
   // Register chat event handlers
   registerChatHandlers(socket);
 
@@ -157,6 +194,12 @@ function handleConnection(socket: AuthenticatedSocket): void {
 
   // Register karma/deity event handlers
   registerKarmaHandlers(socket);
+
+  // Register team card game event handlers
+  registerTeamCardGameHandlers(socket);
+
+  // Register card table event handlers (tavern casual games)
+  registerCardTableHandlers(socket);
 
   // Setup heartbeat mechanism
   setupHeartbeat(socket);
@@ -318,34 +361,25 @@ export function broadcastEvent(event: string, data: unknown): void {
 
 /**
  * Broadcast event to a specific user by character ID
- * Finds all sockets belonging to the character and emits to them
+ * Uses Socket.io rooms for O(1) broadcast instead of iterating all sockets
+ *
+ * SCALABILITY FIX: Changed from O(n) socket iteration to O(1) room broadcast
+ * Each user joins room `user:${characterId}` on connection
  *
  * @param characterId - Character ID to broadcast to
  * @param event - Event name
  * @param data - Event data
  */
-export async function broadcastToUser(
+export function broadcastToUser(
   characterId: string,
   event: string,
   data: unknown
-): Promise<void> {
+): void {
   try {
     const socketIO = getSocketIO();
-    const sockets = await socketIO.fetchSockets();
-
-    let emitted = false;
-    for (const socket of sockets) {
-      const authSocket = socket as unknown as AuthenticatedSocket;
-      if (authSocket.data?.characterId === characterId) {
-        socket.emit(event, data);
-        emitted = true;
-        logger.debug(`Emitted ${event} to character ${characterId} via socket ${socket.id}`);
-      }
-    }
-
-    if (!emitted) {
-      logger.debug(`No socket found for character ${characterId} - user may be offline`);
-    }
+    // O(1) room-based broadcast - no iteration needed
+    socketIO.to(`user:${characterId}`).emit(event, data);
+    logger.debug(`Emitted ${event} to room user:${characterId}`);
   } catch (error) {
     logger.error(`Error broadcasting to user ${characterId}:`, error);
   }

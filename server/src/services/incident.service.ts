@@ -8,11 +8,14 @@
  */
 
 import mongoose from 'mongoose';
+import { SecureRNG } from './base/SecureRNG';
 import { Incident, IIncident } from '../models/Incident.model';
 import { Property } from '../models/Property.model';
 import { MiningClaim } from '../models/MiningClaim.model';
 import { Character } from '../models/Character.model';
 import { DollarService } from './dollar.service';
+import { NotificationService } from './notification.service';
+import { NotificationType } from '../models/Notification.model';
 import { TerritoryBonusService } from './territoryBonus.service';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import logger from '../utils/logger';
@@ -159,7 +162,7 @@ export class IncidentService {
       const finalChance = calculateEffectiveChance(checkChance, prevention.totalReduction);
 
       // Roll for incident
-      const roll = Math.random() * 100;
+      const roll = SecureRNG.float(0, 100, 2);
       const incidentOccurred = roll < finalChance;
 
       prevention.baseChance = checkChance;
@@ -433,7 +436,7 @@ export class IncidentService {
     }));
 
     const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0);
-    let roll = Math.random() * totalWeight;
+    let roll = SecureRNG.float(0, totalWeight, 4);
 
     for (const { type, weight } of weighted) {
       roll -= weight;
@@ -581,7 +584,7 @@ export class IncidentService {
       }
 
       // Roll for success
-      const roll = Math.random() * 100;
+      const roll = SecureRNG.float(0, 100, 2);
       const success = roll < response.successChance;
 
       incident.responseCompletedAt = new Date();
@@ -873,8 +876,13 @@ export class IncidentService {
         incident.reminderSent = true;
         await incident.save();
 
-        // TODO: Send notification via NotificationService
-        // await NotificationService.sendIncidentReminder(incident);
+        // Send notification to incident owner
+        await NotificationService.sendNotification(
+          incident.characterId,
+          NotificationType.SYSTEM,
+          `Incident "${incident.type}" expires soon! Respond before time runs out.`,
+          { link: '/properties/incidents', priority: 'high' }
+        );
 
         sent++;
       } catch (error) {

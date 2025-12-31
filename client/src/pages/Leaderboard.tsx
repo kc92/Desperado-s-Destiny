@@ -256,7 +256,7 @@ export const Leaderboard: React.FC = () => {
       case 'reputation':
         return value.toLocaleString();
       case 'level':
-        return `Level ${Math.floor(value / 1000)}`;
+        return `Level ${value}`;
       default:
         return value.toLocaleString();
     }

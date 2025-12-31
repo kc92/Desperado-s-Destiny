@@ -115,3 +115,42 @@ export async function requireCharacterOwnership(
 // Aliases for simpler imports
 export const requireCharacter = requireCharacterOwnership;
 export const characterOwnership = requireCharacterOwnership;
+
+/**
+ * Optional character middleware
+ * Attaches character to request if user is authenticated with an active character
+ * Does not fail if user is not authenticated or has no character
+ * Use with optionalAuth middleware for public routes that benefit from character context
+ */
+export async function optionalCharacter(
+  req: CharacterRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user?._id;
+
+    // No authenticated user, continue without character
+    if (!userId) {
+      return next();
+    }
+
+    // Try to find the most recent active character
+    const characters = await Character.find({
+      userId: userId,
+      isActive: true
+    }).sort({ lastActive: -1 }).limit(1);
+
+    if (characters && characters.length > 0) {
+      req.character = characters[0];
+      req.characterId = characters[0]._id.toString();
+      logger.debug(`[optionalCharacter] Set characterId: ${req.characterId}`);
+    }
+
+    next();
+  } catch (error) {
+    // Don't fail the request if character lookup fails
+    logger.warn('Optional character lookup failed:', error);
+    next();
+  }
+}

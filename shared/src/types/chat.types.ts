@@ -145,6 +145,64 @@ export interface WhisperConversation {
 }
 
 /**
+ * Card table seat data
+ */
+export interface CardTableSeat {
+  /** Seat index (0-based) */
+  seatIndex: number;
+  /** Character ID (null if empty) */
+  characterId: string | null;
+  /** Character name (null if empty) */
+  characterName: string | null;
+  /** Whether player is ready */
+  isReady: boolean;
+  /** Whether seat is occupied by NPC */
+  isNPC: boolean;
+}
+
+/**
+ * Card table stakes configuration
+ */
+export interface CardTableStakes {
+  /** Whether stakes are enabled */
+  enabled: boolean;
+  /** Buy-in amount */
+  buyIn: number;
+  /** Total pot */
+  potTotal: number;
+}
+
+/**
+ * Card table data for socket events
+ */
+export interface CardTableData {
+  /** Table ID */
+  tableId: string;
+  /** Location ID where table is */
+  locationId: string;
+  /** Location display name */
+  locationName: string;
+  /** Host character ID */
+  hostId: string;
+  /** Host character name */
+  hostName: string;
+  /** Game type (euchre, spades, etc.) */
+  gameType: string;
+  /** Table seats */
+  seats: CardTableSeat[];
+  /** Table status */
+  status: 'waiting' | 'in_progress' | 'finished';
+  /** Stakes configuration */
+  stakes: CardTableStakes;
+  /** Number of players */
+  playerCount: number;
+  /** Whether game can start */
+  canStart: boolean;
+  /** Table creation timestamp */
+  createdAt: string;
+}
+
+/**
  * Socket.io Events - Client to Server
  */
 export interface ClientToServerEvents {
@@ -223,6 +281,41 @@ export interface ClientToServerEvents {
 
   /** Send emote */
   'duel:emote': (data: { duelId: string; emote: string }) => void;
+
+  // ============================================================================
+  // CARD TABLE EVENTS
+  // ============================================================================
+
+  /** Join a location's card tables room */
+  'cardTable:join_location': (data: { locationId: string }) => void;
+
+  /** Leave a location's card tables room */
+  'cardTable:leave_location': (data: { locationId: string }) => void;
+
+  /** Create a new card table */
+  'cardTable:create': (data: {
+    locationId: string;
+    gameType: string;
+    stakes?: { enabled: boolean; buyIn: number };
+  }) => void;
+
+  /** Join a card table */
+  'cardTable:join': (data: { tableId: string; seatIndex: number }) => void;
+
+  /** Leave current card table */
+  'cardTable:leave': (data: { tableId: string }) => void;
+
+  /** Set ready status */
+  'cardTable:ready': (data: { tableId: string; isReady: boolean }) => void;
+
+  /** Add NPC to seat */
+  'cardTable:add_npc': (data: { tableId: string; seatIndex: number }) => void;
+
+  /** Kick player from seat */
+  'cardTable:kick': (data: { tableId: string; seatIndex: number }) => void;
+
+  /** Request tables at location */
+  'cardTable:get_tables': (data: { locationId: string }) => void;
 }
 
 /**
@@ -410,6 +503,34 @@ export interface ServerToClientEvents {
     newOwnerGangId: string;
     newOwnerGangName: string;
   }) => void;
+
+  // ============================================================================
+  // CARD TABLE EVENTS
+  // ============================================================================
+
+  /** Tables list update for location */
+  'cardTable:tables_update': (data: { locationId: string; tables: CardTableData[] }) => void;
+
+  /** Single table update */
+  'cardTable:table_update': (data: { table: CardTableData }) => void;
+
+  /** Table created successfully */
+  'cardTable:created': (data: { table: CardTableData }) => void;
+
+  /** Joined table successfully */
+  'cardTable:joined': (data: { table: CardTableData; seatIndex: number }) => void;
+
+  /** Left table successfully */
+  'cardTable:left': (data: { tableId: string }) => void;
+
+  /** Player kicked from table */
+  'cardTable:kicked': (data: { tableId: string }) => void;
+
+  /** Game is starting */
+  'cardTable:game_starting': (data: { tableId: string; table: CardTableData }) => void;
+
+  /** Card table error */
+  'cardTable:error': (data: { error: string; code: string }) => void;
 }
 
 /**
@@ -432,4 +553,6 @@ export interface ChatSettings {
   showOnlineUsers: boolean;
   /** Message font size */
   fontSize: 'small' | 'medium' | 'large';
+  /** Chat panel minimized state */
+  isMinimized: boolean;
 }

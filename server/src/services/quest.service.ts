@@ -282,6 +282,44 @@ export class QuestService {
   /**
    * Update quest progress
    */
+  /**
+   * Normalize target strings for flexible matching
+   * Handles formats like: saloon, building:saloon, location:saloon
+   */
+  private static normalizeTarget(target: string): string {
+    return target
+      .toLowerCase()
+      .replace(/^location:/, '')
+      .replace(/^building:/, '')
+      .replace(/^npc:/, '')
+      .replace(/[-_]/g, '')  // Remove both hyphens and underscores for flexible matching
+      .replace(/\s+/g, '')   // Also remove spaces
+      .trim();
+  }
+
+  /**
+   * Check if a given locationId matches an objective's target
+   * Handles various formats: ObjectId, building:type, location:slug
+   */
+  private static targetsMatch(objectiveTarget: string, visitedLocation: string): boolean {
+    // Exact match
+    if (objectiveTarget === visitedLocation) return true;
+
+    // Normalize both for fuzzy matching
+    const normalizedObjective = this.normalizeTarget(objectiveTarget);
+    const normalizedVisited = this.normalizeTarget(visitedLocation);
+
+    // Direct normalized match
+    if (normalizedObjective === normalizedVisited) return true;
+
+    // Check if one contains the other (for partial matches like "saloon" matching "red-gulch-saloon")
+    if (normalizedObjective.includes(normalizedVisited) || normalizedVisited.includes(normalizedObjective)) {
+      return true;
+    }
+
+    return false;
+  }
+
   static async updateProgress(
     characterId: string,
     objectiveType: string,
@@ -303,7 +341,14 @@ export class QuestService {
         let updated = false;
 
         for (const objective of quest.objectives) {
-          if (objective.type === objectiveType && objective.target === target) {
+          // Handle both exact and flexible matching for visit objectives
+          const typeMatches = objective.type === objectiveType ||
+            (objectiveType === 'visit' && objective.type === 'visit_location');
+
+          const targetMatches = objective.target === target ||
+            (objectiveType === 'visit' && this.targetsMatch(objective.target, target));
+
+          if (typeMatches && targetMatches) {
             objective.current = Math.min(objective.current + amount, objective.required);
             updated = true;
           }

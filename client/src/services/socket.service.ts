@@ -112,27 +112,64 @@ class SocketService {
 
   /**
    * Connect to the socket server
+   * PRODUCTION FIX: Returns a Promise for proper async handling
+   * @param timeoutMs - Connection timeout in milliseconds (default 10000)
+   * @returns Promise that resolves when connected or rejects on error/timeout
    */
-  connect(): void {
+  connect(timeoutMs = 10000): Promise<void> {
+    // Already connected - resolve immediately
     if (this.socket?.connected) {
-      return;
+      return Promise.resolve();
     }
 
-    this.updateStatus('connecting');
+    return new Promise((resolve, reject) => {
+      this.updateStatus('connecting');
 
-    const socketUrl = this.getSocketUrl();
+      const socketUrl = this.getSocketUrl();
 
-    this.socket = io(socketUrl, {
-      withCredentials: true,
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: this.reconnectDelay,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: this.maxReconnectAttempts,
-      timeout: 10000,
+      this.socket = io(socketUrl, {
+        withCredentials: true,
+        // Start with polling (more reliable through proxies), then upgrade to websocket
+        transports: ['polling', 'websocket'],
+        reconnection: true,
+        reconnectionDelay: this.reconnectDelay,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: this.maxReconnectAttempts,
+        timeout: 10000,
+      });
+
+      // Set up connection timeout
+      const timeout = setTimeout(() => {
+        cleanup();
+        this.updateStatus('error');
+        reject(new Error('Socket connection timeout'));
+      }, timeoutMs);
+
+      // Track cleanup for one-time listeners
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.socket?.off('connect', onConnect);
+        this.socket?.off('connect_error', onError);
+      };
+
+      const onConnect = () => {
+        cleanup();
+        // setupListeners will handle ongoing connect events
+        resolve();
+      };
+
+      const onError = (error: Error) => {
+        cleanup();
+        reject(error);
+      };
+
+      // One-time listeners for initial connection
+      this.socket.once('connect', onConnect);
+      this.socket.once('connect_error', onError);
+
+      // Set up persistent listeners for reconnection handling
+      this.setupListeners();
     });
-
-    this.setupListeners();
   }
 
   /**
@@ -296,6 +333,48 @@ class SocketService {
    */
   isConnected(): boolean {
     return this.socket?.connected ?? false;
+  }
+
+  /**
+   * Wait for socket connection with timeout
+   * PRODUCTION FIX: Allows async code to wait for connection before proceeding
+   * @param timeoutMs - Maximum time to wait for connection (default 5000ms)
+   * @returns Promise that resolves to true if connected, false if timeout
+   */
+  waitForConnection(timeoutMs = 5000): Promise<boolean> {
+    // Already connected
+    if (this.socket?.connected) {
+      return Promise.resolve(true);
+    }
+
+    // If status is error, don't wait
+    if (this.currentStatus === 'error') {
+      return Promise.resolve(false);
+    }
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        unsubscribe();
+        resolve(false);
+      }, timeoutMs);
+
+      const unsubscribe = this.onStatusChange((status) => {
+        if (status === 'connected') {
+          clearTimeout(timeout);
+          unsubscribe();
+          resolve(true);
+        } else if (status === 'error') {
+          clearTimeout(timeout);
+          unsubscribe();
+          resolve(false);
+        }
+      });
+
+      // If socket exists but not connected, trigger reconnect
+      if (this.socket && !this.socket.connected && this.currentStatus === 'disconnected') {
+        this.socket.connect();
+      }
+    });
   }
 
   /**

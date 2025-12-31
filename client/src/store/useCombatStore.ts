@@ -44,6 +44,9 @@ interface CombatStore {
   fetchCombatStats: () => Promise<void>;
   checkActiveCombat: () => Promise<void>;
   clearCombatState: () => void;
+  // PRODUCTION FIX: Error recovery methods
+  resetProcessingState: () => void;
+  forceEndCombat: () => void;
 
   // Sprint 2: Hold/Discard actions
   startTurn: () => Promise<void>;
@@ -181,6 +184,10 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
       activeCombat: null,
       inCombat: false,
       isProcessingCombat: false,
+      // Also reset combat end state
+      combatEnded: false,
+      lootAwarded: null,
+      deathPenalty: null,
     });
   },
 
@@ -241,6 +248,40 @@ export const useCombatStore = create<CombatStore>((set, get) => ({
       roundState: null,
       heldCardIndices: [],
       combatEnded: false,
+      lootAwarded: null,
+      deathPenalty: null,
+    });
+  },
+
+  /**
+   * PRODUCTION FIX: Reset processing state without clearing combat
+   * Use when an operation times out or fails but combat might still be active
+   */
+  resetProcessingState: () => {
+    logger.info('[CombatStore] Resetting processing state');
+    set({
+      isProcessingCombat: false,
+      isLoading: false,
+      error: null,
+    });
+  },
+
+  /**
+   * PRODUCTION FIX: Force end combat state
+   * Use when combat is stuck or in an inconsistent state
+   * This is a client-side only reset - server state may differ
+   */
+  forceEndCombat: () => {
+    logger.warn('[CombatStore] Force ending combat - state may be inconsistent with server');
+    set({
+      activeCombat: null,
+      inCombat: false,
+      isProcessingCombat: false,
+      isLoading: false,
+      error: null,
+      roundState: null,
+      heldCardIndices: [],
+      combatEnded: true,
       lootAwarded: null,
       deathPenalty: null,
     });

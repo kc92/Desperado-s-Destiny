@@ -119,11 +119,19 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         });
 
         // Initialize energy store with character's energy data
+        // FIX: Correct parameter order - (current, max, regenRate, lastUpdate, isPremium)
+        const isPremium = (character as any).isPremium || false;
+        const regenRate = isPremium ? 0.75 : 0.5; // energy per minute (30/hr = 0.5/min, premium 45/hr = 0.75/min)
+        const lastUpdate = (character as any).lastEnergyUpdate
+          ? new Date((character as any).lastEnergyUpdate)
+          : new Date();
+
         useEnergyStore.getState().initializeEnergy(
           character.energy,
-          character.maxEnergy || 100,
-          (character as any).isPremium ? 15 : 10,
-          (character as any).isPremium || false
+          character.maxEnergy || 150,
+          regenRate,
+          lastUpdate,
+          isPremium
         );
 
         localStorage.setItem('selectedCharacterId', id);
@@ -195,11 +203,19 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         });
 
         // Initialize energy store with character's energy data
+        // FIX: Correct parameter order - (current, max, regenRate, lastUpdate, isPremium)
+        const isPremium = (character as any).isPremium || false;
+        const regenRate = isPremium ? 0.75 : 0.5; // energy per minute (30/hr = 0.5/min, premium 45/hr = 0.75/min)
+        const lastUpdate = (character as any).lastEnergyUpdate
+          ? new Date((character as any).lastEnergyUpdate)
+          : new Date();
+
         useEnergyStore.getState().initializeEnergy(
           character.energy,
-          character.maxEnergy || 100,
-          (character as any).isPremium ? 15 : 10,
-          (character as any).isPremium || false
+          character.maxEnergy || 150,
+          regenRate,
+          lastUpdate,
+          isPremium
         );
       } else {
         localStorage.removeItem('selectedCharacterId');

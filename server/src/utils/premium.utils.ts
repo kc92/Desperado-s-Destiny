@@ -9,26 +9,39 @@
  * - Convenience features (extra slots, discounts)
  *
  * This ensures premium never feels "pay to win" - it just saves time.
+ *
+ * PLAYTEST MODE: Set PLAYTEST_MODE=true to give everyone premium for free
  */
+
+/**
+ * PLAYTEST MODE: When enabled, all players get premium benefits for free
+ * Set PLAYTEST_MODE=true in environment to enable
+ */
+const PLAYTEST_MODE = process.env.PLAYTEST_MODE === 'true';
 
 import { User } from '../models/User.model';
 import { Character } from '../models/Character.model';
 import logger from './logger';
 
 // Redis client for caching (loaded dynamically)
-let redisClient: any = null;
+let redisClientCache: any = null;
 
 function getRedisClient() {
-  if (!redisClient) {
+  if (!redisClientCache) {
     try {
       const redis = require('../config/redis');
-      redisClient = redis.redisClient || redis.default;
+      // Use the exported getRedisClient function to get the connected client
+      if (redis.isRedisConnected && redis.isRedisConnected()) {
+        redisClientCache = redis.getRedisClient();
+      } else {
+        return null;
+      }
     } catch (error) {
       logger.warn('Redis not available for premium caching, will query DB each time');
       return null;
     }
   }
-  return redisClient;
+  return redisClientCache;
 }
 
 // =============================================================================
@@ -193,6 +206,11 @@ export class PremiumUtils {
    * @returns true if subscription is active
    */
   private static checkSubscriptionActive(user: any): boolean {
+    // PLAYTEST MODE: Everyone gets premium for free!
+    if (PLAYTEST_MODE) {
+      return true;
+    }
+
     if (!user.subscriptionPlan || user.subscriptionPlan === 'free') {
       return false;
     }

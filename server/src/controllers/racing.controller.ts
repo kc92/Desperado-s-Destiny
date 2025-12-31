@@ -197,7 +197,7 @@ export const placeBet = asyncHandler(
     if (req.character!.gold < amount) {
       return res.status(400).json({
         success: false,
-        error: 'Insufficient gold for this bet',
+        error: 'Insufficient funds for this bet',
       });
     }
 

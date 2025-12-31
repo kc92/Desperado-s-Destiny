@@ -28,6 +28,7 @@ import {
   PlayerBusinessType,
 } from '@desperados/shared';
 import { CompetitionService } from './competition.service';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Map PlayerBusinessType to BusinessTypeCategory for competition calculations
@@ -173,7 +174,8 @@ export class CustomerTrafficService {
     }
 
     // Apply variance and saturation modifier
-    const variance = 1 + (Math.random() - 0.5) * 2 * BUSINESS_ECONOMY_CONSTANTS.NPC_SPAWN_VARIANCE;
+    const varianceRange = BUSINESS_ECONOMY_CONSTANTS.NPC_SPAWN_VARIANCE;
+    const variance = 1 + SecureRNG.float(-varianceRange, varianceRange, 2);
     const visitors = Math.max(0, Math.round(baseVisitors * variance * saturationModifier));
 
     if (visitors === 0) {
@@ -222,12 +224,12 @@ export class CustomerTrafficService {
       // Calculate tip
       let tipAmount = 0;
       if (satisfaction >= NPC_CUSTOMER_CONSTANTS.TIPPING.TIP_SATISFACTION_THRESHOLD) {
-        if (Math.random() < NPC_CUSTOMER_CONSTANTS.TIPPING.BASE_TIP_CHANCE) {
-          const tipPercent =
-            NPC_CUSTOMER_CONSTANTS.TIPPING.TIP_MIN_PERCENTAGE +
-            Math.random() *
-            (NPC_CUSTOMER_CONSTANTS.TIPPING.TIP_MAX_PERCENTAGE -
-              NPC_CUSTOMER_CONSTANTS.TIPPING.TIP_MIN_PERCENTAGE);
+        if (SecureRNG.chance(NPC_CUSTOMER_CONSTANTS.TIPPING.BASE_TIP_CHANCE)) {
+          const tipPercent = SecureRNG.float(
+            NPC_CUSTOMER_CONSTANTS.TIPPING.TIP_MIN_PERCENTAGE,
+            NPC_CUSTOMER_CONSTANTS.TIPPING.TIP_MAX_PERCENTAGE,
+            2
+          );
           tipAmount = Math.round(finalPrice * tipPercent);
         }
       }
@@ -325,17 +327,12 @@ export class CustomerTrafficService {
     });
 
     // Weighted random selection
-    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
-    let random = Math.random() * totalWeight;
+    const weightedItems = services.map((service, i) => ({
+      item: service,
+      weight: Math.max(1, Math.round(weights[i] * 100))
+    }));
 
-    for (let i = 0; i < services.length; i++) {
-      random -= weights[i];
-      if (random <= 0) {
-        return services[i];
-      }
-    }
-
-    return services[0];
+    return SecureRNG.weightedSelect(weightedItems);
   }
 
   /**
@@ -376,7 +373,7 @@ export class CustomerTrafficService {
     satisfaction += (business.reputation.cleanliness - 50) * 0.1;
 
     // Add some random variance
-    satisfaction += (Math.random() - 0.5) * 20;
+    satisfaction += SecureRNG.float(-10, 10, 0);
 
     // Clamp to 0-100
     return Math.max(0, Math.min(100, Math.round(satisfaction)));
@@ -386,7 +383,7 @@ export class CustomerTrafficService {
    * Get a random NPC name
    */
   private static getRandomNPCName(): string {
-    return NPC_NAMES[Math.floor(Math.random() * NPC_NAMES.length)];
+    return SecureRNG.select(NPC_NAMES);
   }
 
   /**

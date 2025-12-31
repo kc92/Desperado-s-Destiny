@@ -10,6 +10,7 @@ import { Character, ICharacter } from '../models/Character.model';
 import { Mount } from '../models/Mount.model';
 import { GroundItem } from '../models/GroundItem.model';
 import { PendingReward } from '../models/PendingReward.model';
+import { getItemById } from '../data/items';
 import logger from '../utils/logger';
 
 // =============================================================================
@@ -26,7 +27,7 @@ export interface InventoryCapacity {
 }
 
 export interface AddItemsSource {
-  type: 'combat' | 'quest' | 'npc' | 'purchase' | 'trade' | 'other';
+  type: 'combat' | 'quest' | 'npc' | 'purchase' | 'trade' | 'deep_mining' | 'other';
   id?: string;
   name?: string;
 }
@@ -42,6 +43,23 @@ export interface ClaimPendingRewardsResult {
   claimed: Array<{ itemId: string; quantity: number; source: string }>;
   stillPending: number;
   message: string;
+}
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Get item weight from the item database
+ * Returns default weight of 1 if item not found
+ */
+function getItemWeight(itemId: string): number {
+  const item = getItemById(itemId);
+  if (item && typeof item.weight === 'number') {
+    return item.weight;
+  }
+  // Default weight for unknown items or items without weight defined
+  return 1;
 }
 
 // =============================================================================
@@ -121,9 +139,7 @@ export class InventoryService {
     let totalWeight = 0;
 
     for (const item of character.inventory) {
-      // TODO: Replace with actual item database lookup when available
-      // For now, assume average weight of 1 unit per item
-      const itemWeight = 1; // await ItemDatabase.findById(item.itemId).weight
+      const itemWeight = getItemWeight(item.itemId);
       totalWeight += itemWeight * item.quantity;
     }
 
@@ -179,8 +195,7 @@ export class InventoryService {
 
     for (const item of items) {
       slotsNeeded += item.quantity;
-      // TODO: Replace with actual item weight lookup
-      const itemWeight = 1; // await ItemDatabase.findById(item.itemId).weight
+      const itemWeight = getItemWeight(item.itemId);
       weightNeeded += itemWeight * item.quantity;
     }
 
@@ -218,7 +233,7 @@ export class InventoryService {
     let currentWeight = capacity.currentWeight;
 
     for (const item of items) {
-      const itemWeight = 1; // TODO: Replace with actual item weight lookup
+      const itemWeight = getItemWeight(item.itemId);
       const itemSlotsNeeded = item.quantity;
       const itemWeightNeeded = itemWeight * item.quantity;
 

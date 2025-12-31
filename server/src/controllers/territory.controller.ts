@@ -89,7 +89,7 @@ export class TerritoryController {
       if (funding < 1000) {
         res.status(400).json({
           success: false,
-          error: 'Minimum war funding is 1000 gold',
+          error: 'Minimum war funding is $1000',
         });
         return;
       }
@@ -121,7 +121,7 @@ export class TerritoryController {
       res.status(201).json({
         success: true,
         data: { war },
-        message: `War declared on ${territoryId} with ${funding} gold`,
+        message: `War declared on ${territoryId} with $${funding}`,
       });
     } catch (error) {
       logger.error('Error declaring war:', error);

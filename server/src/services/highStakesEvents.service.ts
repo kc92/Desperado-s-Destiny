@@ -21,6 +21,8 @@ import {
   isEventActive,
   getNextEventTime
 } from '../data/highStakesEvents';
+import { AchievementService } from './achievement.service';
+import { InventoryService } from './inventory.service';
 import logger from '../utils/logger';
 
 // Track event participants (in production, use Redis)
@@ -109,7 +111,10 @@ export async function checkEventRequirements(
         break;
 
       case 'ACHIEVEMENT':
-        // TODO: Check achievements system
+        const hasAchievement = await AchievementService.hasAchievement(characterId, req.value as string);
+        if (!hasAchievement) {
+          failures.push(`Required achievement: ${req.value}`);
+        }
         break;
     }
   }
@@ -322,18 +327,39 @@ async function awardPrize(characterId: string, prize: GamblingPrize): Promise<vo
       break;
 
     case 'ITEM':
-      // TODO: Add item to character inventory
-      logger.info(`Awarded item ${prize.itemId} to ${character.name}`);
+      if (prize.itemId) {
+        await InventoryService.addItems(
+          characterId,
+          [{ itemId: prize.itemId, quantity: prize.amount || 1 }],
+          { type: 'other', id: 'high_stakes_prize', name: 'High Stakes Event Prize' }
+        );
+        logger.info(`Awarded item ${prize.itemId} to ${character.name}`);
+      }
       break;
 
     case 'UNIQUE_ITEM':
-      // TODO: Add unique item to character inventory
-      logger.info(`Awarded unique item ${prize.itemId} to ${character.name}`);
+      if (prize.itemId) {
+        await InventoryService.addItems(
+          characterId,
+          [{ itemId: prize.itemId, quantity: 1 }],
+          { type: 'other', id: 'high_stakes_unique_prize', name: 'Unique High Stakes Event Prize' }
+        );
+        logger.info(`Awarded unique item ${prize.itemId} to ${character.name}`);
+      }
       break;
 
     case 'TITLE':
-      // TODO: Add title to character
-      logger.info(`Awarded title "${prize.title}" to ${character.name}`);
+      if (prize.title) {
+        // Add title to character's earned titles
+        if (!character.earnedTitles) {
+          character.earnedTitles = [];
+        }
+        if (!character.earnedTitles.includes(prize.title)) {
+          character.earnedTitles.push(prize.title);
+          await character.save();
+        }
+        logger.info(`Awarded title "${prize.title}" to ${character.name}`);
+      }
       break;
 
     case 'REPUTATION':

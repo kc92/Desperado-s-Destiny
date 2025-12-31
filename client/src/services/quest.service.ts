@@ -276,7 +276,7 @@ export const questService = {
     const parts: string[] = [];
 
     if (rewards.experience) parts.push(`${rewards.experience} XP`);
-    if (rewards.gold) parts.push(`${rewards.gold} Gold`);
+    if (rewards.gold) parts.push(`$${rewards.gold}`);
     if (rewards.reputation) parts.push(`${rewards.reputation} Reputation`);
     if (rewards.skillPoints) parts.push(`${rewards.skillPoints} Skill Points`);
     if (rewards.items && rewards.items.length > 0) {

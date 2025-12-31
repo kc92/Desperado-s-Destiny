@@ -10,6 +10,7 @@
  */
 
 import mongoose from 'mongoose';
+import { SecureRNG } from './base/SecureRNG';
 import { WarWeekSchedule, IWarWeekSchedule } from '../models/WarWeekSchedule.model';
 import { GangPowerRating, IGangPowerRating } from '../models/GangPowerRating.model';
 import { GangWar } from '../models/GangWar.model';
@@ -353,7 +354,7 @@ export class AutoTournamentService {
       }
 
       // Determine attacker/defender randomly
-      const isGang1Attacker = Math.random() > 0.5;
+      const isGang1Attacker = !SecureRNG.chance(0.5);
       const attacker = isGang1Attacker ? gang1 : gang2;
       const defender = isGang1Attacker ? gang2 : gang1;
 

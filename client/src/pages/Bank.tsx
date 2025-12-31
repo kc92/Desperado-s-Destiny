@@ -55,7 +55,12 @@ export const Bank: React.FC = () => {
 
       setVault(vaultInfo.vault);
       setTiers(allTiers);
-      setNextTier(vaultInfo.nextTier || null);
+      // Find full tier info from tiers array using the nextTier string
+      const nextTierStr = vaultInfo.vault.nextTier;
+      const nextTierInfo = nextTierStr
+        ? allTiers.find((t) => t.tier === nextTierStr) || null
+        : null;
+      setNextTier(nextTierInfo);
     } catch (err: unknown) {
       logger.error('Failed to load bank data', err as Error, { context: 'Bank.loadData' });
       setError('Failed to load bank data. Please try again.');
@@ -72,19 +77,22 @@ export const Bank: React.FC = () => {
       return;
     }
 
-    const availableSpace = vault.maxCapacity - vault.currentBalance;
-    if (depositAmount > availableSpace) {
-      showError('Vault Full', `Your vault can only hold ${formatDollars(availableSpace)} more gold.`);
-      return;
+    // Check capacity (skip for unlimited vaults)
+    if (vault.capacity !== -1) {
+      const availableSpace = vault.capacity - vault.balance;
+      if (depositAmount > availableSpace) {
+        showError('Vault Full', `Your vault can only hold ${formatDollars(availableSpace)} more gold.`);
+        return;
+      }
     }
 
     setIsSubmitting(true);
     try {
       const result = await bankService.deposit(depositAmount);
       setVault((prev) =>
-        prev ? { ...prev, currentBalance: result.newVaultBalance } : prev
+        prev ? { ...prev, balance: result.vaultBalance } : prev
       );
-      updateCharacter({ gold: result.newCharacterGold });
+      updateCharacter({ gold: result.walletBalance });
       success('Deposit Successful', `Deposited ${formatDollars(depositAmount)} into your vault.`);
       setDepositAmount(0);
       loadData(); // Refresh to get updated transaction history
@@ -99,7 +107,7 @@ export const Bank: React.FC = () => {
   const handleWithdraw = async () => {
     if (!currentCharacter || !vault || withdrawAmount <= 0) return;
 
-    if (withdrawAmount > vault.currentBalance) {
+    if (withdrawAmount > vault.balance) {
       showError('Insufficient Funds', 'You do not have enough gold in your vault.');
       return;
     }
@@ -108,9 +116,9 @@ export const Bank: React.FC = () => {
     try {
       const result = await bankService.withdraw(withdrawAmount);
       setVault((prev) =>
-        prev ? { ...prev, currentBalance: result.newVaultBalance } : prev
+        prev ? { ...prev, balance: result.vaultBalance } : prev
       );
-      updateCharacter({ gold: result.newCharacterGold });
+      updateCharacter({ gold: result.walletBalance });
       success('Withdrawal Successful', `Withdrew ${formatDollars(withdrawAmount)} from your vault.`);
       setWithdrawAmount(0);
       loadData(); // Refresh to get updated transaction history
@@ -133,10 +141,9 @@ export const Bank: React.FC = () => {
     setIsSubmitting(true);
     try {
       const result = await bankService.upgradeVault();
-      updateCharacter({ gold: result.newCharacterGold });
-      success('Vault Upgraded!', `Your vault is now ${result.newTier.name}!`);
+      success('Vault Upgraded!', result.message);
       setShowUpgradeModal(false);
-      loadData(); // Refresh vault info
+      loadData(); // Refresh vault info and character gold
     } catch (err: unknown) {
       logger.error('Upgrade failed', err as Error, { context: 'Bank.handleUpgrade' });
       showError('Upgrade Failed', 'Unable to upgrade vault. Please try again.');
@@ -147,13 +154,16 @@ export const Bank: React.FC = () => {
 
   const handleDepositAll = () => {
     if (!currentCharacter || !vault) return;
-    const availableSpace = vault.maxCapacity - vault.currentBalance;
+    // For unlimited vaults, allow depositing all gold
+    const availableSpace = vault.capacity === -1
+      ? currentCharacter.gold
+      : vault.capacity - vault.balance;
     setDepositAmount(Math.min(currentCharacter.gold, availableSpace));
   };
 
   const handleWithdrawAll = () => {
     if (!vault) return;
-    setWithdrawAmount(vault.currentBalance);
+    setWithdrawAmount(vault.balance);
   };
 
   if (!currentCharacter) {
@@ -232,52 +242,50 @@ export const Bank: React.FC = () => {
               <div className="bg-wood-grain/10 rounded-lg p-4 mb-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-wood-grain">Tier</span>
-                  <span className="font-bold text-gold-dark">{vault.tier.name}</span>
+                  <span className="font-bold text-gold-dark">{vault.tierName}</span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-wood-grain">Balance</span>
-                  <span className="font-bold text-gold-dark">{formatDollars(vault.currentBalance)}</span>
+                  <span className="font-bold text-gold-dark">{formatDollars(vault.balance)}</span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-wood-grain">Capacity</span>
-                  <span className="text-wood-dark">{formatDollars(vault.maxCapacity)}</span>
-                </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-wood-grain">Interest Rate</span>
-                  <span className="text-green-600">{vault.tier.interestRate}% APY</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-wood-grain">Interest Accrued</span>
-                  <span className="text-green-600">{formatDollars(vault.interestAccrued)}</span>
-                </div>
-              </div>
-
-              {/* Capacity Bar */}
-              <div className="mb-4">
-                <div className="flex justify-between text-sm text-wood-grain mb-1">
-                  <span>Vault Usage</span>
-                  <span>
-                    {Math.round((vault.currentBalance / vault.maxCapacity) * 100)}%
+                  <span className="text-wood-dark">
+                    {vault.capacity === -1 ? 'Unlimited' : formatDollars(vault.capacity)}
                   </span>
                 </div>
-                <div className="h-3 bg-wood-grain/20 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gold-light rounded-full transition-all"
-                    style={{
-                      width: `${(vault.currentBalance / vault.maxCapacity) * 100}%`,
-                    }}
-                  />
-                </div>
+                {vault.interestAccrued !== undefined && vault.interestAccrued > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-wood-grain">Interest Accrued</span>
+                    <span className="text-green-600">{formatDollars(vault.interestAccrued)}</span>
+                  </div>
+                )}
               </div>
 
-              {/* Features */}
+              {/* Capacity Bar - only show for non-unlimited vaults with valid capacity */}
+              {vault.capacity !== -1 && vault.capacity > 0 && (
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm text-wood-grain mb-1">
+                    <span>Vault Usage</span>
+                    <span>
+                      {Math.round(((vault.balance || 0) / vault.capacity) * 100)}%
+                    </span>
+                  </div>
+                  <div className="h-3 bg-wood-grain/20 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gold-light rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(100, ((vault.balance || 0) / vault.capacity) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Tier Description */}
               <div className="text-sm text-wood-grain">
-                <p className="font-bold mb-1">Vault Features:</p>
-                <ul className="list-disc list-inside">
-                  {vault.tier.features.map((feature, i) => (
-                    <li key={i}>{feature}</li>
-                  ))}
-                </ul>
+                <p className="font-bold mb-1">About Your Vault:</p>
+                <p>Your {vault.tierName} provides secure storage for your gold.</p>
               </div>
             </div>
           </Card>
@@ -298,10 +306,10 @@ export const Bank: React.FC = () => {
                     className="flex-1 px-3 py-2 bg-wood-grain/10 border border-wood-grain/30 rounded"
                     placeholder="Amount"
                     min={0}
-                    max={Math.min(
-                      currentCharacter.gold,
-                      vault.maxCapacity - vault.currentBalance
-                    )}
+                    max={vault.capacity === -1
+                      ? currentCharacter.gold
+                      : Math.min(currentCharacter.gold, vault.capacity - vault.balance)
+                    }
                   />
                   <Button
                     variant="ghost"
@@ -334,7 +342,7 @@ export const Bank: React.FC = () => {
                     className="flex-1 px-3 py-2 bg-wood-grain/10 border border-wood-grain/30 rounded"
                     placeholder="Amount"
                     min={0}
-                    max={vault.currentBalance}
+                    max={vault.balance}
                   />
                   <Button
                     variant="ghost"
@@ -366,7 +374,7 @@ export const Bank: React.FC = () => {
           <div className="p-6">
             <h2 className="text-xl font-western text-wood-dark mb-4">Transaction History</h2>
 
-            {vault.depositHistory.length === 0 && vault.withdrawHistory.length === 0 ? (
+            {(!vault.depositHistory?.length && !vault.withdrawHistory?.length) ? (
               <EmptyState
                 icon="📜"
                 title="No Transactions"
@@ -376,7 +384,7 @@ export const Bank: React.FC = () => {
               />
             ) : (
               <div className="space-y-2">
-                {[...vault.depositHistory, ...vault.withdrawHistory]
+                {[...(vault.depositHistory || []), ...(vault.withdrawHistory || [])]
                   .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
                   .slice(0, 20)
                   .map((tx: VaultTransaction) => (
@@ -426,14 +434,15 @@ export const Bank: React.FC = () => {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tiers.map((tier) => {
-                const isCurrentTier = vault?.tier.id === tier.id;
-                const canUpgradeTo = nextTier?.id === tier.id;
-                const isPastTier = vault && tier.id < vault.tier.id;
+                const isCurrentTier = vault?.tier === tier.tier;
+                const canUpgradeTo = nextTier?.tier === tier.tier;
+                const tierOrder = ['none', 'bronze', 'silver', 'gold'];
+                const isPastTier = vault && tierOrder.indexOf(tier.tier) < tierOrder.indexOf(vault.tier);
                 const canAfford = currentCharacter.gold >= tier.upgradeCost;
 
                 return (
                   <div
-                    key={tier.id}
+                    key={tier.tier}
                     className={`
                       p-4 rounded-lg border-2 transition-all
                       ${isCurrentTier
@@ -459,11 +468,9 @@ export const Bank: React.FC = () => {
                     <div className="space-y-1 text-sm mb-3">
                       <div className="flex justify-between">
                         <span className="text-wood-grain">Capacity</span>
-                        <span className="text-wood-dark">{formatDollars(tier.maxCapacity)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-wood-grain">Interest</span>
-                        <span className="text-green-600">{tier.interestRate}% APY</span>
+                        <span className="text-wood-dark">
+                          {tier.capacity === 'Unlimited' ? 'Unlimited' : formatDollars(Number(tier.capacity))}
+                        </span>
                       </div>
                       {!isCurrentTier && !isPastTier && (
                         <div className="flex justify-between">
@@ -475,11 +482,13 @@ export const Bank: React.FC = () => {
                       )}
                     </div>
 
-                    <ul className="text-xs text-wood-grain mb-3 space-y-1">
-                      {tier.features.map((feature, i) => (
-                        <li key={i}>• {feature}</li>
-                      ))}
-                    </ul>
+                    {tier.features && tier.features.length > 0 && (
+                      <ul className="text-xs text-wood-grain mb-3 space-y-1">
+                        {tier.features.map((feature, i) => (
+                          <li key={i}>• {feature}</li>
+                        ))}
+                      </ul>
+                    )}
 
                     {canUpgradeTo && (
                       <Button
@@ -520,11 +529,9 @@ export const Bank: React.FC = () => {
               </div>
               <div className="flex justify-between mb-2">
                 <span>New Capacity</span>
-                <span>{formatDollars(nextTier.maxCapacity)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>New Interest Rate</span>
-                <span className="text-green-600">{nextTier.interestRate}% APY</span>
+                <span>
+                  {nextTier.capacity === 'Unlimited' ? 'Unlimited' : formatDollars(Number(nextTier.capacity))}
+                </span>
               </div>
             </div>
 

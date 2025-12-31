@@ -201,11 +201,17 @@ export * from './shooting.types';
 // End-Game Content types (Phase 14, Wave 14.1)
 export * from './endGame.types';
 
-// Cosmic Horror types (Phase 14, Wave 14.1)
+// Cosmic Horror types (Phase 14, Wave 14.1) - DEPRECATED: Use divineStruggle.types
 export * from './cosmicHorror.types';
 
-// Cosmic Story types (Phase 14, Wave 14.1)
+// Cosmic Story types (Phase 14, Wave 14.1) - DEPRECATED: Use divineStory.types
 export * from './cosmicStory.types';
+
+// Divine Struggle types (Angels & Demons rebrand of Cosmic Horror)
+export * from './divineStruggle.types';
+
+// Divine Story types (Angels & Demons rebrand of Cosmic Story)
+export * from './divineStory.types';
 
 // Boss Encounter types (Phase 14, Wave 14.2)
 export * from './boss.types';
@@ -254,3 +260,9 @@ export * from './moralReputation.types';
 
 // Economy types (Phase R2: Economy Foundation)
 export * from './economy.types';
+
+// Team Card Game types (Hard Raid Expansion)
+export * from './teamCardGame.types';
+
+// Permadeath System types (High-Stakes Death System)
+export * from './permadeath.types';

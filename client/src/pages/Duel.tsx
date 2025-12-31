@@ -380,7 +380,7 @@ export const Duel: React.FC = () => {
             </p>
             {duelResult.rewards && (
               <div className="parchment p-4">
-                <p>Rewards: +{duelResult.rewards.xp} XP, +{duelResult.rewards.gold} Gold</p>
+                <p>Rewards: +{duelResult.rewards.xp} XP, +${duelResult.rewards.gold}</p>
               </div>
             )}
             <Button

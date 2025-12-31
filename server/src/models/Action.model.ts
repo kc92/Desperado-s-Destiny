@@ -222,6 +222,7 @@ ActionSchema.methods.toSafeObject = function(this: IAction) {
     description: this.description,
     energyCost: this.energyCost,
     difficulty: this.difficulty,
+    targetScore: this.difficulty * 100, // Target score for DeckGame display
     requiredSuit: this.requiredSuit,
     minHandRank: this.minHandRank,
     requiredSkillCategory: this.requiredSkillCategory,

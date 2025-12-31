@@ -72,6 +72,13 @@ export interface IUserDocument extends Document {
   twoFactorBackupCodes?: string[];
   twoFactorPendingSetup: boolean;
 
+  // Legacy/Progression Tracking (aggregated from all characters)
+  legacyTier: number;           // Highest legacy tier achieved
+  totalGoldEarned: number;      // Cumulative gold earned across all characters
+  totalCrimesCommitted: number; // Total crimes committed
+  totalDuelsWon: number;        // Total duels won
+  totalTimePlayed: number;      // Total time played in minutes
+
   // Methods
   comparePassword(candidatePassword: string): Promise<boolean>;
   generateVerificationToken(): string;
@@ -209,6 +216,38 @@ const UserSchema = new Schema<IUserDocument, IUserModel>(
       type: Boolean,
       default: false,
       comment: 'Whether 2FA setup is in progress but not yet verified'
+    },
+
+    // Legacy/Progression Tracking (aggregated from all characters)
+    legacyTier: {
+      type: Number,
+      default: 0,
+      min: 0,
+      comment: 'Highest legacy tier achieved by any character'
+    },
+    totalGoldEarned: {
+      type: Number,
+      default: 0,
+      min: 0,
+      comment: 'Cumulative gold earned across all characters'
+    },
+    totalCrimesCommitted: {
+      type: Number,
+      default: 0,
+      min: 0,
+      comment: 'Total crimes committed across all characters'
+    },
+    totalDuelsWon: {
+      type: Number,
+      default: 0,
+      min: 0,
+      comment: 'Total duels won across all characters'
+    },
+    totalTimePlayed: {
+      type: Number,
+      default: 0,
+      min: 0,
+      comment: 'Total time played in minutes across all sessions'
     }
   },
   {

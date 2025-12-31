@@ -30,6 +30,7 @@ import locationRoutes from './location.routes';
 import encounterRoutes from './encounter.routes';
 import npcRoutes from './npc.routes';
 import craftingRoutes from './crafting.routes';
+import gatheringRoutes from './gathering.routes';
 import reputationRoutes from './reputation.routes';
 import worldRoutes from './world.routes';
 import secretsRoutes from './secrets.routes';
@@ -49,6 +50,7 @@ import serviceProviderRoutes from './serviceProvider.routes';
 import chineseDiasporaRoutes from './chineseDiaspora.routes';
 import newspaperRoutes from './newspaper.routes';
 import legacyRoutes from './legacy.routes';
+import gravestoneRoutes from './gravestone.routes';
 import prestigeRoutes from './prestige.routes';
 import permanentUnlockRoutes from './permanentUnlock.routes';
 import racingRoutes from './racing.routes';
@@ -105,6 +107,8 @@ import maintenanceRoutes from './maintenance.routes';
 import incidentRoutes from './incident.routes';
 import gangBusinessRoutes from './gangBusiness.routes';
 import geographyRoutes from './geography.routes';
+import teamCardGameRoutes from './teamCardGame.routes';
+import subscriptionRoutes from './subscription.routes';
 import { apiRateLimiter } from '../middleware';
 
 const router = Router();
@@ -207,6 +211,9 @@ router.use('/npcs', apiRateLimiter, npcRoutes);
 // Crafting routes (with API rate limiting)
 router.use('/crafting', apiRateLimiter, craftingRoutes);
 
+// Gathering routes (with API rate limiting) - Phase 7 AAA Crafting System
+router.use('/gathering', apiRateLimiter, gatheringRoutes);
+
 // Reputation routes (with API rate limiting)
 router.use('/reputation', apiRateLimiter, reputationRoutes);
 
@@ -263,6 +270,9 @@ router.use('/newspapers', apiRateLimiter, newspaperRoutes);
 
 // Legacy routes (with API rate limiting)
 router.use('/legacy', apiRateLimiter, legacyRoutes);
+
+// Gravestone routes (with API rate limiting) - Permadeath inheritance system
+router.use('/gravestones', apiRateLimiter, gravestoneRoutes);
 
 // Prestige routes (with API rate limiting) - Prestige/endgame system
 router.use('/prestige', apiRateLimiter, prestigeRoutes);
@@ -431,6 +441,12 @@ router.use('/gang-businesses', apiRateLimiter, gangBusinessRoutes);
 
 // Geography routes (with API rate limiting) - Phase R3: Map System
 router.use('/geography', apiRateLimiter, geographyRoutes);
+
+// Team Card Game routes (with API rate limiting) - Team-based trick-taking card games (Hard Raids)
+router.use('/team-card', apiRateLimiter, teamCardGameRoutes);
+
+// Subscription routes (with API rate limiting) - Phase 7: Stripe Subscription System
+router.use('/subscription', apiRateLimiter, subscriptionRoutes);
 
 export default router;
 

@@ -107,7 +107,8 @@ export const ActionCard: React.FC<ActionCardProps> = React.memo(({
 }) => {
   const typeIcon = ACTION_TYPE_ICONS[action.type];
   const typeGradient = ACTION_TYPE_COLORS[action.type];
-  const energyDeficit = action.energyCost - Math.floor(currentEnergy);
+  const actionEnergyCost = action.energyCost ?? (action as any).energyRequired ?? 0;
+  const energyDeficit = actionEnergyCost - Math.floor(currentEnergy);
 
   // Generate difficulty stars (1-10)
   const difficultyStars = Math.min(Math.max(Math.ceil(action.difficulty / 2), 1), 5);
@@ -147,7 +148,7 @@ export const ActionCard: React.FC<ActionCardProps> = React.memo(({
               ${canAfford ? 'bg-gold-medium text-wood-dark' : 'bg-blood-red text-white'}
             `}
           >
-            {action.energyCost} ⚡
+            {actionEnergyCost} ⚡
           </div>
           <span className="text-xs text-wood-grain mt-1">Energy</span>
         </div>

@@ -596,13 +596,18 @@ export class BossEncounterService {
       await discovery.save({ session });
     }
 
-    const participants = Array.from(encounter.playerStates.entries()).map(([charId, state]) => ({
-      characterId: charId,
-      characterName: 'Unknown', // TODO: Lookup
-      damageDealt: (state as any).damageDealt,
-      damageTaken: (state as any).damageTaken,
-      survived: false,
-    }));
+    const participants = await Promise.all(
+      Array.from(encounter.playerStates.entries()).map(async ([charId, state]) => {
+        const character = await Character.findById(charId).select('name').session(session);
+        return {
+          characterId: charId,
+          characterName: character?.name ?? 'Unknown',
+          damageDealt: (state as any).damageDealt,
+          damageTaken: (state as any).damageTaken,
+          survived: false,
+        };
+      })
+    );
 
     const result: BossEncounterResult = {
       sessionId: encounter.sessionId,

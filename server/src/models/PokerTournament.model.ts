@@ -39,6 +39,8 @@ export interface IPokerTournament extends Document {
   currentBlindLevel: number;
   blindDuration: number;
   nextBlindIncrease?: Date;
+  blindScheduleId: string;
+  prizeStructureId: string;
 
   // Players
   minPlayers: number;
@@ -207,6 +209,8 @@ const PokerTournamentSchema = new Schema<IPokerTournament>(
     currentBlindLevel: { type: Number, default: 0 },
     blindDuration: { type: Number, required: true },
     nextBlindIncrease: { type: Date },
+    blindScheduleId: { type: String, default: 'standard' },
+    prizeStructureId: { type: String, default: 'medium' },
 
     // Players
     minPlayers: { type: Number, required: true },

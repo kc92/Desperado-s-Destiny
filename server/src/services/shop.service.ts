@@ -94,7 +94,9 @@ export class ShopService {
         logger.error('Failed to check mood for pricing', { error: moodError instanceof Error ? moodError.message : moodError, stack: moodError instanceof Error ? moodError.stack : undefined });
       }
 
-      // Apply world event modifiers to shop prices
+      // PRODUCTION FIX: World event modifiers are handled by DynamicPricingService
+      // Only track them here for static pricing fallback to avoid double-application
+      let worldEventModifier = 1;
       try {
         const character = session
           ? await Character.findById(characterId).session(session)
@@ -115,8 +117,9 @@ export class ShopService {
               for (const effect of event.worldEffects) {
                 // FESTIVAL or TRADE_CARAVAN: reduce shop prices
                 if (effect.type === 'price_modifier' && (effect.target === 'all' || effect.target === 'shop_items')) {
-                  priceModifier *= effect.value;
-                  logger.debug(`World event "${event.name}" modified shop price by ${effect.value}x (${effect.description})`);
+                  // Store separately - only apply to static pricing path
+                  worldEventModifier *= effect.value;
+                  logger.debug(`World event "${event.name}" modifier ${effect.value}x (${effect.description})`);
                 }
               }
             }
@@ -161,15 +164,17 @@ export class ShopService {
           logger.debug(`Dynamic pricing: base=$${item.price}, dynamic=$${dynamicPriceData.currentPrice}, final=$${totalCost} (supply: ${dynamicPriceData.supplyLevel}, demand: ${dynamicPriceData.demandLevel})`);
         } else {
           // Fallback to static pricing if location unavailable
+          // Include world event modifier here since DynamicPricingService isn't used
           const basePrice = item.price * quantity;
-          totalCost = Math.round(basePrice * priceModifier);
+          totalCost = Math.round(basePrice * priceModifier * worldEventModifier);
           logger.debug('Using static pricing (no location)');
         }
       } catch (dynamicPricingError) {
         // Fallback to static pricing on error
+        // Include world event modifier here since DynamicPricingService isn't used
         logger.warn('Dynamic pricing failed, using static pricing:', dynamicPricingError);
         const basePrice = item.price * quantity;
-        totalCost = Math.round(basePrice * priceModifier);
+        totalCost = Math.round(basePrice * priceModifier * worldEventModifier);
       }
 
       if (totalCost > Number.MAX_SAFE_INTEGER || totalCost < 0) {
@@ -185,7 +190,7 @@ export class ShopService {
       };
 
       const characterUpdate = {
-        $inc: { dollars: -totalCost },
+        $inc: { dollars: -totalCost, gold: -totalCost }, // Update both for legacy sync
         $push: {
           inventory: {
             itemId: item.itemId,

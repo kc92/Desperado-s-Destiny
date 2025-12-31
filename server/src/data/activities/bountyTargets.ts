@@ -5,6 +5,8 @@
  * Sprint 7: Mid-Game Content - Bounty Hunting (L20 unlock)
  */
 
+import { SecureRNG } from '../../services/base/SecureRNG';
+
 export type BountyTier = 'petty' | 'wanted' | 'notorious' | 'legendary';
 
 export interface BountyTarget {
@@ -343,7 +345,7 @@ export function getAvailableBounties(playerLevel: number): BountyTarget[] {
  */
 export function calculateBountyReward(target: BountyTarget, captureMethod: 'dead' | 'alive'): number {
   const { min, max } = target.goldReward;
-  const base = Math.floor(Math.random() * (max - min + 1)) + min;
+  const base = SecureRNG.range(min, max);
   // Alive captures get 20% bonus
   return captureMethod === 'alive' ? Math.floor(base * 1.2) : base;
 }

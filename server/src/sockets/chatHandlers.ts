@@ -32,6 +32,7 @@ interface SendMessagePayload {
   roomType: string;
   roomId: string;
   content: string;
+  _clientId?: string; // Client-generated ID for optimistic update confirmation
 }
 
 interface FetchHistoryPayload {
@@ -104,6 +105,16 @@ async function handleJoinRoom(
     const { characterId, characterName, userId } = socket.data;
     const { roomType, roomId } = payload;
 
+    // DEBUG: Log incoming join request
+    logger.debug('chat:join_room received', {
+      socketId: socket.id,
+      characterId,
+      payload,
+      roomType,
+      roomId,
+      roomTypeType: typeof roomType
+    });
+
     // H10 SECURITY FIX: Per-event character ownership verification
     const isOwned = await verifyCharacterOwnership(socket);
     if (!isOwned) {
@@ -174,20 +185,49 @@ async function handleJoinRoom(
       timestamp: new Date().toISOString()
     });
 
-    // Broadcast user joined to room
+    // Fetch current user's character details for broadcast
+    const { Character } = await import('../models/Character.model');
+    const joiningChar = await Character.findById(characterId).populate('gangId').lean();
+
+    // Create OnlineUser object for the joining user
+    const joiningUser = {
+      userId: characterId,
+      username: characterName,
+      faction: joiningChar?.faction || 'settler',
+      level: joiningChar?.level || 1,
+      gangName: (joiningChar?.gangId as { name?: string } | undefined)?.name,
+      isOnline: true
+    };
+
+    // Broadcast user joined to room with proper OnlineUser format
     socket.to(roomName).emit('chat:user_joined', {
-      characterId,
-      characterName,
       roomType,
       roomId,
+      user: joiningUser,
       timestamp: new Date().toISOString()
     });
 
     // Send online users list
-    const onlineUsers = await PresenceService.getOnlineUsers(
+    const presenceUsers = await PresenceService.getOnlineUsers(
       roomType as RoomType,
       roomId
     );
+
+    // Transform PresenceService users to shared OnlineUser format
+    const allCharacterIds = presenceUsers.map(u => u.characterId);
+    const characters = await Character.find({ _id: { $in: allCharacterIds } }).populate('gangId').lean();
+
+    const onlineUsers = presenceUsers.map(pu => {
+      const char = characters.find(c => c._id.toString() === pu.characterId);
+      return {
+        userId: pu.characterId,
+        username: pu.characterName,
+        faction: char?.faction || 'settler',
+        level: char?.level || 1,
+        gangName: (char?.gangId as { name?: string } | undefined)?.name,
+        isOnline: true
+      };
+    });
 
     socket.emit('chat:online_users', {
       roomType,
@@ -242,9 +282,9 @@ async function handleLeaveRoom(
       timestamp: new Date().toISOString()
     });
 
-    // Broadcast user left to room
+    // Broadcast user left to room (use userId to match client expectations)
     socket.to(roomName).emit('chat:user_left', {
-      characterId,
+      userId: characterId,
       characterName,
       roomType,
       roomId,
@@ -269,7 +309,7 @@ async function handleSendMessage(
 ): Promise<void> {
   try {
     const { characterId, characterName, userId, userRole } = socket.data;
-    const { roomType, roomId, content } = payload;
+    const { roomType, roomId, content, _clientId } = payload;
 
     // H10 SECURITY FIX: Re-verify character ownership on message send
     // This prevents actions if character was deleted/transferred since socket connected
@@ -361,13 +401,10 @@ async function handleSendMessage(
           result.systemMessage
         );
 
-        socket.to(roomName).emit('chat:message', {
-          message: systemMessage
-        });
-
-        socket.emit('chat:message', {
-          message: systemMessage
-        });
+        // Emit system message without wrapper (matches ServerToClientEvents type)
+        const systemMsgObj = systemMessage.toObject ? systemMessage.toObject() : systemMessage;
+        socket.to(roomName).emit('chat:message', systemMsgObj);
+        socket.emit('chat:message', systemMsgObj);
 
         // Handle kick command - disconnect the target
         if (content.toLowerCase().startsWith('/kick')) {
@@ -441,16 +478,16 @@ async function handleSendMessage(
       content
     );
 
-    // Broadcast message to room
+    // Broadcast message to room (other users receive without _clientId)
     const roomName = getRoomName(roomType as RoomType, roomId);
+    const messageObj = message.toObject();
 
-    socket.to(roomName).emit('chat:message', {
-      message
-    });
+    socket.to(roomName).emit('chat:message', messageObj);
 
-    // Send to sender as confirmation
+    // Send to sender as confirmation (include _clientId for optimistic update)
     socket.emit('chat:message', {
-      message
+      ...messageObj,
+      _clientId // Echo back the client ID for confirmation
     });
 
     logger.debug(

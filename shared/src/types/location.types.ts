@@ -67,6 +67,7 @@ export type LocationType =
   | 'shrine'
   // Red Gulch expansion buildings
   | 'government'
+  | 'courthouse'
   | 'mining_office'
   | 'elite_club'
   | 'labor_exchange'
@@ -80,7 +81,8 @@ export type LocationType =
   | 'labor'
   | 'service'
   // High-level zone types
-  | 'wasteland';
+  | 'wasteland'
+  | 'ghost_town';
 
 /**
  * Town tier for building availability (1=Camp, 5=Capital)

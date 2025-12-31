@@ -22,6 +22,7 @@ import { Character } from '../models/Character.model';
 import { Location } from '../models/Location.model';
 import deityDialogueService from './deityDialogue.service';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 // ============================================================================
 // STRANGER TEMPLATES
@@ -180,12 +181,10 @@ class DeityStrangerService {
 
       // Select stranger template
       const templates = deity === 'GAMBLER' ? GAMBLER_STRANGERS : OUTLAW_KING_STRANGERS;
-      const template = templates[Math.floor(Math.random() * templates.length)];
+      const template = SecureRNG.select(templates);
 
       // Select interaction type
-      const interactionType = template.interactions[
-        Math.floor(Math.random() * template.interactions.length)
-      ];
+      const interactionType = SecureRNG.select(template.interactions);
 
       // Generate payload
       const payload = await this.generatePayload(deity, interactionType, targetCharacterId);
@@ -251,7 +250,7 @@ class DeityStrangerService {
 
       case 'TEST':
         const tests = deity === 'GAMBLER' ? GAMBLER_TESTS : OUTLAW_KING_TESTS;
-        const test = tests[Math.floor(Math.random() * tests.length)];
+        const test = SecureRNG.select(tests);
         payload.testType = test.type;
         payload.testDescription = test.description;
         payload.passReward = test.passReward;
@@ -369,14 +368,14 @@ class DeityStrangerService {
         { gives: 'Fortune\'s favor for a day', wants: 'An honest confession' },
         { gives: 'Lucky charm', wants: 'Your word', goldCost: 50 }
       ];
-      return offers[Math.floor(Math.random() * offers.length)];
+      return SecureRNG.select(offers);
     } else {
       const offers = [
         { gives: 'The secret of escape', wants: 'A law broken' },
         { gives: 'Wild spirit\'s blessing', wants: 'An act of defiance', goldCost: 75 },
         { gives: 'The outlaw\'s way', wants: 'Your chains', goldCost: 150 }
       ];
-      return offers[Math.floor(Math.random() * offers.length)];
+      return SecureRNG.select(offers);
     }
   }
 

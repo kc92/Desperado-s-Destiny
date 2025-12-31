@@ -13,6 +13,7 @@
 
 import { KarmaDimension, IKarmaValues } from '../models/CharacterKarma.model';
 import { ManifestationType, DeityName } from '../models/DivineManifestation.model';
+import { SecureRNG } from './base/SecureRNG';
 
 // ============================================================================
 // DIALOGUE TEMPLATES
@@ -265,7 +266,7 @@ class DeityDialogueService {
     }
 
     // Select random template
-    const template = filteredTemplates[Math.floor(Math.random() * filteredTemplates.length)];
+    const template = SecureRNG.select(filteredTemplates);
 
     // Apply variable substitution if karma values provided
     let message = template.text;
@@ -390,7 +391,7 @@ class DeityDialogueService {
 
     const deityWrappers = wrappers[deity];
     const typeWrappers = deityWrappers[type] || deityWrappers.WHISPER;
-    return typeWrappers[Math.floor(Math.random() * typeWrappers.length)];
+    return SecureRNG.select(typeWrappers);
   }
 
   /**
@@ -525,7 +526,7 @@ class DeityDialogueService {
     const severityReactions = deityReactions[severity];
     const reactionList = wasPositive ? severityReactions.positive : severityReactions.negative;
 
-    return reactionList[Math.floor(Math.random() * reactionList.length)];
+    return SecureRNG.select(reactionList);
   }
 }
 

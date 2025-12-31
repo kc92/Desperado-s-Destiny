@@ -82,12 +82,20 @@ export const CardHand: React.FC<CardHandProps> = ({
   };
 
   // Reset state when cards change
+  // PRODUCTION FIX: During hold phase (isSelectable), show cards face-up immediately
   useEffect(() => {
     if (cards.length === 5) {
-      setFlippedCards([false, false, false, false, false]);
-      setRevealComplete(false);
+      if (isSelectable) {
+        // Hold phase: cards should be visible immediately for selection
+        setFlippedCards([true, true, true, true, true]);
+        setRevealComplete(true);
+      } else {
+        // Combat resolution: start face-down for reveal animation
+        setFlippedCards([false, false, false, false, false]);
+        setRevealComplete(false);
+      }
     }
-  }, [cards]);
+  }, [cards, isSelectable]);
 
   // Handle sequential reveal animation with screen reader announcements
   useEffect(() => {

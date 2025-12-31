@@ -21,6 +21,7 @@ import { DivineManifestation, ManifestationType } from '../models/DivineManifest
 import deityDialogueService from './deityDialogue.service';
 import deityDecisionService from './deityDecision.service';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Rest types that can trigger dreams
@@ -131,7 +132,7 @@ class DeityDreamService {
 
       // Calculate dream chance
       const dreamChance = await this.calculateDreamChance(characterId, karma, restType);
-      if (Math.random() > dreamChance) {
+      if (!SecureRNG.chance(dreamChance)) {
         return null;
       }
 
@@ -246,7 +247,7 @@ class DeityDreamService {
 
     // Weight by attention level
     const total = gamblerScore + outlawScore;
-    if (Math.random() < gamblerScore / total) {
+    if (SecureRNG.chance(gamblerScore / total)) {
       return 'GAMBLER';
     } else {
       return 'OUTLAW_KING';

@@ -5,7 +5,15 @@ import crypto from 'crypto';
 // logger imports config, so config cannot import logger
 
 // Load environment variables from project root
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+const envPath = path.resolve(__dirname, '../../../.env');
+const dotenvResult = dotenv.config({ path: envPath });
+
+// Only log non-sensitive config status in development
+if (process.env.NODE_ENV !== 'production') {
+  if (dotenvResult.error) {
+    console.warn('[Config] Failed to load .env file:', dotenvResult.error.message);
+  }
+}
 
 /**
  * Security constants
@@ -13,6 +21,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 const SECURITY = {
   JWT_SECRET_MIN_LENGTH: 32,
   SESSION_SECRET_MIN_LENGTH: 32,
+  MIN_SECRET_ENTROPY: 3.0, // Minimum bits of entropy per character
   KNOWN_WEAK_SECRETS: [
     'your-secret-key',
     'secret',
@@ -22,6 +31,27 @@ const SECURITY = {
     'test-secret',
   ],
 } as const;
+
+/**
+ * PRODUCTION FIX: Calculate Shannon entropy of a string
+ * Used to detect weak/predictable secrets like "aaaaaa" or "123123"
+ */
+function calculateEntropy(str: string): number {
+  if (!str || str.length === 0) return 0;
+
+  const charCounts = new Map<string, number>();
+  for (const char of str) {
+    charCounts.set(char, (charCounts.get(char) || 0) + 1);
+  }
+
+  let entropy = 0;
+  for (const count of charCounts.values()) {
+    const probability = count / str.length;
+    entropy -= probability * Math.log2(probability);
+  }
+
+  return entropy;
+}
 
 /**
  * Required environment variables that must be present
@@ -105,6 +135,16 @@ function validateEnv(): void {
       throw new Error(
         'JWT_SECRET is using a known weak/default value. ' +
         'Please generate a secure random secret for production.'
+      );
+    }
+
+    // PRODUCTION FIX: Validate JWT secret entropy (detect patterns like "aaaa..." or "1234...")
+    const jwtEntropy = calculateEntropy(jwtSecret);
+    if (jwtEntropy < SECURITY.MIN_SECRET_ENTROPY) {
+      throw new Error(
+        `JWT_SECRET has low entropy (${jwtEntropy.toFixed(2)} bits). ` +
+        `This indicates a weak/predictable secret. ` +
+        `Use: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
       );
     }
 
@@ -228,9 +268,9 @@ export const config = {
    * Database configuration
    */
   database: {
-    mongoUri: process.env['MONGODB_URI'] || 'mongodb://mongodb:27017/desperados-destiny',
-    mongoTestUri: process.env['MONGODB_TEST_URI'] || 'mongodb://mongodb:27017/desperados-destiny-test',
-    redisUrl: process.env['REDIS_URL'] || 'redis://redis:6379',
+    mongoUri: process.env['MONGODB_URI'] || 'mongodb://localhost:27017/desperados-destiny',
+    mongoTestUri: process.env['MONGODB_TEST_URI'] || 'mongodb://localhost:27017/desperados-destiny-test',
+    redisUrl: process.env['REDIS_URL'] || 'redis://localhost:6379',
     redisPassword: process.env['REDIS_PASSWORD'] || undefined,
   },
 

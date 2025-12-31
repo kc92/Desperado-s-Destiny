@@ -75,6 +75,15 @@ export interface CombatStats {
 }
 
 /**
+ * Fate Mark - Accumulated bad luck that increases permadeath risk
+ */
+export interface CharacterFateMark {
+  acquiredAt: Date;
+  source: string;  // FateMarkSource enum value
+  description?: string;
+}
+
+/**
  * Prestige system data (Phase 6 Progression)
  */
 export interface CharacterPrestige {
@@ -212,7 +221,16 @@ export interface ICharacter extends Document {
   isJailed: boolean;
   isDead: boolean;
   isKnockedOut: boolean;
+
+  // Permadeath System
+  fateMarks: CharacterFateMark[];  // Accumulated bad luck marks
+  deathLocation?: string;          // Where permadeath occurred
+  diedAt?: Date;                   // When permadeath occurred
+  causeOfDeath?: string;           // How they died
+  killedBy?: string;               // Who/what killed them
+
   jailedUntil: Date | null;
+  jailOffense: string | null;
   wantedLevel: number;
   lastWantedDecay: Date;
   bountyAmount: number;
@@ -300,6 +318,22 @@ export interface ICharacter extends Document {
   // Fence Trust (Phase 13 - Deep Mining)
   fenceTrust?: FenceTrustRecord[];
 
+  // Location Visit Tracking (Phase 5 Feature Enhancement)
+  visitedLocations?: Map<string, number>;  // locationId -> visit count
+
+  // Title System (Phase 5 Feature Enhancement)
+  earnedTitles?: string[];  // Earned title IDs
+  activeTitle?: string;     // Currently displayed title
+
+  // Devil Deals (Permadeath Protection)
+  devilDeals?: Array<{
+    type: string;
+    purchasedAt: Date;
+    expiresAt?: Date;
+    consumed: boolean;
+    consumedAt?: Date;
+  }>;
+
   // Timestamps
   createdAt: Date;
   lastActive: Date;
@@ -339,7 +373,7 @@ export interface ICharacter extends Document {
   calculateBounty(): number;
   canBeArrested(): boolean;
   decayWantedLevel(): boolean;
-  sendToJail(minutes: number, bailCost?: number): void;
+  sendToJail(minutes: number, bailCost?: number, offense?: string): void;
   canArrestTarget(targetId: string): boolean;
   recordArrest(targetId: string): void;
 
@@ -584,8 +618,39 @@ const CharacterSchema = new Schema<ICharacter>(
       type: Boolean,
       default: false
     },
+
+    // Permadeath System
+    fateMarks: {
+      type: [{
+        acquiredAt: { type: Date, required: true },
+        source: { type: String, required: true },
+        description: { type: String }
+      }],
+      default: []
+    },
+    deathLocation: {
+      type: String,
+      default: undefined
+    },
+    diedAt: {
+      type: Date,
+      default: undefined
+    },
+    causeOfDeath: {
+      type: String,
+      default: undefined
+    },
+    killedBy: {
+      type: String,
+      default: undefined
+    },
+
     jailedUntil: {
       type: Date,
+      default: null
+    },
+    jailOffense: {
+      type: String,
       default: null
     },
     wantedLevel: {
@@ -803,6 +868,38 @@ const CharacterSchema = new Schema<ICharacter>(
       default: []
     },
 
+    // Location Visit Tracking (Phase 5 Feature Enhancement)
+    visitedLocations: {
+      type: Map,
+      of: Number,
+      default: new Map(),
+      comment: 'Tracks how many times character has visited each location'
+    },
+
+    // Title System (Phase 5 Feature Enhancement)
+    earnedTitles: {
+      type: [String],
+      default: [],
+      comment: 'Titles earned through achievements and events'
+    },
+    activeTitle: {
+      type: String,
+      default: null,
+      comment: 'Currently displayed title'
+    },
+
+    // Devil Deals (Permadeath Protection)
+    devilDeals: {
+      type: [{
+        type: { type: String, required: true },
+        purchasedAt: { type: Date, required: true },
+        expiresAt: { type: Date },
+        consumed: { type: Boolean, default: false },
+        consumedAt: { type: Date }
+      }],
+      default: []
+    },
+
     // Activity tracking
     lastActive: {
       type: Date,
@@ -981,7 +1078,10 @@ CharacterSchema.methods.toSafeObject = function(this: ICharacter) {
     wantedLevel: this.wantedLevel,
     bountyAmount: this.bountyAmount,
     createdAt: this.createdAt,
-    lastActive: this.lastActive
+    lastActive: this.lastActive,
+    // Permadeath system
+    fateMarks: this.fateMarks || [],
+    isDead: this.isDead || false
   };
 };
 
@@ -1007,7 +1107,9 @@ CharacterSchema.methods.addDollars = async function(
   // Import DollarService dynamically to avoid circular dependencies
   const { DollarService } = await import('../services/dollar.service');
   const { newBalance } = await DollarService.addDollars(this._id as any, amount, source, metadata);
-  this.dollars = newBalance; // Update local instance
+  // Update both fields for sync (DollarService atomic update handles DB, this syncs instance)
+  this.dollars = newBalance;
+  this.gold = newBalance; // Keep legacy field in sync
   return newBalance;
 };
 
@@ -1023,7 +1125,9 @@ CharacterSchema.methods.deductDollars = async function(
   // Import DollarService dynamically to avoid circular dependencies
   const { DollarService } = await import('../services/dollar.service');
   const { newBalance } = await DollarService.deductDollars(this._id as any, amount, source, metadata);
-  this.dollars = newBalance; // Update local instance
+  // Update both fields for sync (DollarService atomic update handles DB, this syncs instance)
+  this.dollars = newBalance;
+  this.gold = newBalance; // Keep legacy field in sync
   return newBalance;
 };
 
@@ -1131,14 +1235,16 @@ CharacterSchema.methods.getRemainingJailTime = function(this: ICharacter): numbe
 CharacterSchema.methods.releaseFromJail = function(this: ICharacter): void {
   this.isJailed = false;
   this.jailedUntil = null;
+  this.jailOffense = null;
 };
 
 /**
  * Instance method: Send character to jail
  */
-CharacterSchema.methods.sendToJail = function(this: ICharacter, minutes: number, bailCost?: number): void {
+CharacterSchema.methods.sendToJail = function(this: ICharacter, minutes: number, bailCost?: number, offense?: string): void {
   this.isJailed = true;
   this.jailedUntil = new Date(Date.now() + minutes * 60 * 1000);
+  this.jailOffense = offense ?? null;
   // Store bail cost from action if provided, otherwise calculate based on wanted level
   this.lastBailCost = bailCost ?? (this.wantedLevel * 50);
 };

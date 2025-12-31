@@ -79,7 +79,7 @@ export class GangEconomyController {
 
     res.status(200).json({
       success: true,
-      message: `Deposited ${amount} gold to ${accountType}`,
+      message: `Deposited $${amount} to ${accountType}`,
       data: economy,
     });
   });
@@ -112,7 +112,7 @@ export class GangEconomyController {
 
     res.status(200).json({
       success: true,
-      message: `Withdrew ${amount} gold from ${accountType}`,
+      message: `Withdrew $${amount} from ${accountType}`,
       data: economy,
     });
   });
@@ -140,7 +140,7 @@ export class GangEconomyController {
 
     res.status(200).json({
       success: true,
-      message: `Transferred ${request.amount} gold from ${request.fromAccount} to ${request.toAccount}`,
+      message: `Transferred $${request.amount} from ${request.fromAccount} to ${request.toAccount}`,
       data: economy,
     });
   });
@@ -183,7 +183,7 @@ export class GangEconomyController {
 
     res.status(201).json({
       success: true,
-      message: `Purchased ${business.name} for ${business.startupCost} gold`,
+      message: `Purchased ${business.name} for $${business.startupCost}`,
       data: business,
     });
   });
@@ -205,7 +205,7 @@ export class GangEconomyController {
 
     res.status(200).json({
       success: true,
-      message: `Sold business for ${salePrice} gold`,
+      message: `Sold business for $${salePrice}`,
       data: { salePrice },
     });
   });
@@ -379,7 +379,7 @@ export class GangEconomyController {
 
     res.status(200).json({
       success: true,
-      message: `Payroll updated. Total weekly: ${economy.payroll.totalWeekly} gold`,
+      message: `Payroll updated. Total weekly: $${economy.payroll.totalWeekly}`,
       data: economy.payroll,
     });
   });

@@ -174,20 +174,23 @@ export const useGameStore = () => {
     checkJailStatus: crime.checkJailStatus,
     checkWantedStatus: crime.checkWantedStatus,
     payBail: async () => {
-      const result = await crime.payBail();
+      if (!character.currentCharacter?._id) return;
+      const result = await crime.payBail(character.currentCharacter._id);
       if (result.success && character.currentCharacter) {
         character.updateCharacter({ gold: result.newGold });
       }
     },
     layLow: async (useGold: boolean) => {
-      const result = await crime.layLow(useGold);
+      if (!character.currentCharacter?._id) return;
+      const result = await crime.layLow(character.currentCharacter._id, useGold);
       if (result.success && result.newGold !== undefined && character.currentCharacter) {
         character.updateCharacter({ gold: result.newGold });
       }
     },
     arrestPlayer: async (targetId: string) => {
+      if (!character.currentCharacter?._id) return false;
       try {
-        const result = await crime.arrestPlayer(targetId);
+        const result = await crime.arrestPlayer(character.currentCharacter._id, targetId);
         if (result.success && character.currentCharacter) {
           character.updateCharacter({ gold: result.newGold });
         }

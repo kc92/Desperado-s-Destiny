@@ -19,6 +19,9 @@ export enum NotificationType {
   JAIL_RELEASED = 'JAIL_RELEASED',
   SKILL_TRAINED = 'SKILL_TRAINED',
 
+  // System notifications (Phase 5 - Feature Enhancement)
+  SYSTEM = 'SYSTEM',                            // General system notifications
+
   // Raid System notifications (Phase 2.3)
   RAID_PLANNED = 'RAID_PLANNED',              // Your gang is planning a raid
   RAID_INCOMING = 'RAID_INCOMING',            // Warning: raid scheduled against you

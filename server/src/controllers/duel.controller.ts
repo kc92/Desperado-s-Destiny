@@ -80,7 +80,7 @@ export const challengePlayer = asyncHandler(
         if (wager < WAGER_LIMITS.ABSOLUTE_MIN) {
           res.status(400).json({
             success: false,
-            error: `Minimum wager is ${WAGER_LIMITS.ABSOLUTE_MIN} gold`
+            error: `Minimum wager is $${WAGER_LIMITS.ABSOLUTE_MIN}`
           });
           return;
         }
@@ -90,7 +90,7 @@ export const challengePlayer = asyncHandler(
         if (wager > maxWager) {
           res.status(400).json({
             success: false,
-            error: `Maximum wager for your level and gold is ${maxWager}. Requested: ${wager}`
+            error: `Maximum wager for your level is $${maxWager}. Requested: $${wager}`
           });
           return;
         }

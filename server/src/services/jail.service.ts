@@ -28,6 +28,7 @@ import {
   SKILLS,
 } from '@desperados/shared';
 import logger from '../utils/logger';
+import { SkillService } from './skill.service';
 import { SecureRNG } from './base/SecureRNG';
 import { safeAchievementUpdate } from '../utils/achievementUtils';
 
@@ -84,7 +85,7 @@ export class JailService {
       const calculatedBail = bailAmount || this.calculateBail(character.wantedLevel, sentence);
 
       // Send to jail
-      character.sendToJail(sentence, calculatedBail);
+      character.sendToJail(sentence, calculatedBail, this.getReasonText(reason));
       character.lastArrestTime = new Date();
 
       // Move to jail location
@@ -713,7 +714,8 @@ export class JailService {
     let chance = escapeConfig.baseSuccessChance;
 
     // Cunning skill increases escape chance (reduced from 1% to 0.5% per point)
-    const cunningBonus = character.stats.cunning * 0.005; // +0.5% per cunning point
+    const effectiveCunning = SkillService.getEffectiveStat(character, 'cunning');
+    const cunningBonus = effectiveCunning * 0.005; // +0.5% per cunning point
     chance += cunningBonus;
 
     // Check for relevant skills (cunning-category skills)

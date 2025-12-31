@@ -115,6 +115,10 @@ export function SkillsErrorFallback(props: Omit<PageErrorFallbackProps, 'pageNam
   return <PageErrorFallback {...props} pageName="Skills" backPath="/game" backLabel="Back to Game" />;
 }
 
+export function StatsErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
+  return <PageErrorFallback {...props} pageName="Stats" backPath="/game" backLabel="Back to Game" />;
+}
+
 export function ActionsErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
   return <PageErrorFallback {...props} pageName="Actions" backPath="/game" backLabel="Back to Game" />;
 }
@@ -129,4 +133,12 @@ export function SettingsErrorFallback(props: Omit<PageErrorFallbackProps, 'pageN
 
 export function ProfileErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
   return <PageErrorFallback {...props} pageName="Profile" backPath="/game" backLabel="Back to Game" />;
+}
+
+export function CraftingErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
+  return <PageErrorFallback {...props} pageName="Crafting" backPath="/game" backLabel="Back to Game" />;
+}
+
+export function GatheringErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
+  return <PageErrorFallback {...props} pageName="Gathering" backPath="/game" backLabel="Back to Game" />;
 }

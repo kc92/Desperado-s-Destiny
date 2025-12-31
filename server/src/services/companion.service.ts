@@ -7,6 +7,7 @@
 import mongoose from 'mongoose';
 import { AnimalCompanion, IAnimalCompanion } from '../models/AnimalCompanion.model';
 import { Character, ICharacter } from '../models/Character.model';
+import { Property } from '../models/Property.model';
 import { DollarService } from './dollar.service';
 import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import {
@@ -65,13 +66,21 @@ export class CompanionService {
       // Get stats
       const stats = await AnimalCompanion.getOwnerStats(characterId);
 
+      // Calculate kennel capacity from owned stable/ranch properties
+      const animalProperties = await Property.find({
+        ownerId: character._id,
+        propertyType: { $in: ['stable', 'ranch'] },
+      }).session(session);
+      const propertyCapacityBonus = animalProperties.reduce((sum, prop) => sum + (prop.tier * 2), 0);
+      const totalCapacity = COMPANION_CONSTANTS.BASE_KENNEL_CAPACITY + propertyCapacityBonus;
+
       await session.commitTransaction();
       session.endSession();
 
       return {
         companions: companions.map(c => c.toSafeObject()),
         activeCompanion: activeCompanion ? activeCompanion.toSafeObject() : undefined,
-        capacity: COMPANION_CONSTANTS.BASE_KENNEL_CAPACITY, // TODO: Expand with upgrades
+        capacity: totalCapacity,
         dailyUpkeep,
         stats
       };

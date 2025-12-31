@@ -16,6 +16,7 @@ import { TransactionSource } from '../models/GoldTransaction.model';
 import { DollarService } from './dollar.service';
 import { InventoryService } from './inventory.service';
 import { AppError } from '../utils/errors';
+import { SecureRNG } from './base/SecureRNG';
 import {
   ShaftLevel,
   HazardType,
@@ -532,10 +533,10 @@ export class DeepMiningShaftService {
     for (const hazardType of config.possibleHazards) {
       // Roll for hazard spawn (higher levels = more likely)
       const spawnChance = 20 + (level * 5); // 25% at L1, 70% at L10
-      if (Math.random() * 100 < spawnChance) {
+      if (SecureRNG.range(0, 99) < spawnChance) {
         // Determine severity based on level
         let severity: HazardSeverity;
-        const severityRoll = Math.random() * 100;
+        const severityRoll = SecureRNG.range(0, 99);
 
         if (level >= 8 && severityRoll < 30) {
           severity = HazardSeverity.CRITICAL;
@@ -564,18 +565,18 @@ export class DeepMiningShaftService {
     if (shaft.activeHazards.length === 0) return null;
 
     // Pick a random active hazard
-    const hazard = shaft.activeHazards[Math.floor(Math.random() * shaft.activeHazards.length)];
+    const hazard = SecureRNG.select(shaft.activeHazards);
 
     // Calculate trigger chance (base 30%, reduced by mitigation)
     const baseTriggerChance = 30;
     const triggerChance = baseTriggerChance * (1 - hazard.currentMitigation / 100);
 
-    if (Math.random() * 100 >= triggerChance) {
+    if (SecureRNG.range(0, 99) >= triggerChance) {
       return null; // Hazard didn't trigger
     }
 
     // Hazard triggered - determine outcome
-    const mitigationRoll = Math.random() * 100;
+    const mitigationRoll = SecureRNG.range(0, 99);
     let outcome: 'avoided' | 'minor_damage' | 'major_damage' | 'injury';
     let damage = 0;
 
@@ -583,7 +584,7 @@ export class DeepMiningShaftService {
       outcome = 'avoided';
     } else {
       const severityDamage = HAZARD_DAMAGE[hazard.severity];
-      const damageRoll = Math.random() * 100;
+      const damageRoll = SecureRNG.range(0, 99);
 
       if (damageRoll < 20) {
         outcome = 'injury';
@@ -677,7 +678,7 @@ export class DeepMiningShaftService {
       const levelBonus = (level - resource.minShaftLevel) * 2;
       const discoveryChance = baseChance + levelBonus;
 
-      if (Math.random() * 100 < discoveryChance) {
+      if (SecureRNG.range(0, 99) < discoveryChance) {
         // Determine quantity (1-3, rarer = less)
         let maxQuantity: number;
         switch (resource.rarity) {
@@ -695,7 +696,7 @@ export class DeepMiningShaftService {
             maxQuantity = 2;
         }
 
-        const quantity = Math.ceil(Math.random() * maxQuantity);
+        const quantity = SecureRNG.range(1, maxQuantity);
 
         found.push({
           resourceType: type as DeepResourceType,

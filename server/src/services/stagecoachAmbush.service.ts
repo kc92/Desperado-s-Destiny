@@ -22,6 +22,7 @@ import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model
 import { getRouteById } from '../data/stagecoachRoutes';
 import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
+import { SkillService } from './skill.service';
 
 /**
  * Ambush spots database (pre-defined good ambush locations)
@@ -611,7 +612,8 @@ export class StagecoachAmbushService {
       }
 
       // Simulate defense (simplified)
-      const defendSkill = character.stats.combat + character.getSkillLevel('gunslinger');
+      const effectiveCombat = SkillService.getEffectiveStat(character, 'combat');
+      const defendSkill = effectiveCombat + character.getSkillLevel('gunslinger');
       const attackerStrength = SecureRNG.range(10, 29);
 
       const success = defendSkill > attackerStrength;

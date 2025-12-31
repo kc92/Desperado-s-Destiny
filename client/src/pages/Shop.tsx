@@ -110,8 +110,11 @@ export const Shop: React.FC = () => {
       {!isLoading && items.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {items.map((item) => {
-            const canAfford = currentCharacter.gold >= item.price;
+            // PRODUCTION FIX: Use dynamic price if available, fall back to base price
+            const displayPrice = item.currentPrice ?? item.price;
+            const canAfford = currentCharacter.gold >= displayPrice;
             const meetsLevel = currentCharacter.level >= item.levelRequired;
+            const hasModifier = item.currentPrice && item.currentPrice !== item.price;
 
             return (
               <div
@@ -129,15 +132,25 @@ export const Shop: React.FC = () => {
                 </h3>
                 <p className="text-xs text-desert-stone capitalize">{item.rarity}</p>
                 <div className="flex justify-between items-center mt-3">
-                  <span className={`font-bold ${canAfford ? 'text-gold-light' : 'text-red-500'}`}>
-                    {item.price}g
-                  </span>
+                  <div className="flex flex-col">
+                    <span className={`font-bold ${canAfford ? 'text-gold-light' : 'text-red-500'}`}>
+                      ${displayPrice}
+                    </span>
+                    {hasModifier && (
+                      <span className="text-xs text-desert-stone line-through">${item.price}</span>
+                    )}
+                  </div>
                   {item.levelRequired > 1 && (
                     <span className={`text-xs ${meetsLevel ? 'text-desert-stone' : 'text-red-500'}`}>
                       Lvl {item.levelRequired}
                     </span>
                   )}
                 </div>
+                {item.priceTrend && item.priceTrend !== 'stable' && (
+                  <div className={`text-xs mt-1 ${item.priceTrend === 'rising' ? 'text-red-400' : 'text-green-400'}`}>
+                    {item.priceTrend === 'rising' ? '↑ Prices rising' : '↓ Prices falling'}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -200,16 +213,28 @@ export const Shop: React.FC = () => {
             <div className="flex justify-between items-center pt-4 border-t border-wood-grain/30">
               <div>
                 <p className="text-sm text-desert-stone">Price</p>
-                <p className={`text-2xl font-western ${
-                  currentCharacter.gold >= selectedItem.price ? 'text-gold-light' : 'text-red-500'
-                }`}>
-                  {selectedItem.price}g
-                </p>
+                {/* PRODUCTION FIX: Display dynamic price with base price strikethrough */}
+                {(() => {
+                  const displayPrice = selectedItem.currentPrice ?? selectedItem.price;
+                  const hasModifier = selectedItem.currentPrice && selectedItem.currentPrice !== selectedItem.price;
+                  return (
+                    <div>
+                      <p className={`text-2xl font-western ${
+                        currentCharacter.gold >= displayPrice ? 'text-gold-light' : 'text-red-500'
+                      }`}>
+                        ${displayPrice}
+                      </p>
+                      {hasModifier && (
+                        <p className="text-xs text-desert-stone line-through">${selectedItem.price} base</p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <Button
                 onClick={() => handlePurchase(selectedItem)}
                 disabled={
-                  currentCharacter.gold < selectedItem.price ||
+                  currentCharacter.gold < (selectedItem.currentPrice ?? selectedItem.price) ||
                   currentCharacter.level < selectedItem.levelRequired ||
                   isPurchasing
                 }

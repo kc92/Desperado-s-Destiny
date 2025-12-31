@@ -24,6 +24,8 @@ import {
 } from '../data/activities/bountyTargets';
 import logger from '../utils/logger';
 import { TerritoryBonusService } from './territoryBonus.service';
+import { SkillService } from './skill.service';
+import { SecureRNG } from './base/SecureRNG';
 
 export interface AcceptBountyResult {
   success: boolean;
@@ -192,14 +194,14 @@ export class BountyHuntingService {
 
       // Calculate progress based on tracking difficulty
       const difficultyModifier = 1 - (target.trackingDifficulty / 200); // 0.5 to 1.0
-      const progressGained = Math.floor(this.PROGRESS_PER_ACTION * difficultyModifier * (0.8 + Math.random() * 0.4));
+      const progressGained = Math.floor(this.PROGRESS_PER_ACTION * difficultyModifier * SecureRNG.float(0.8, 1.2, 2));
 
       hunt.trackingProgress = Math.min(100, hunt.trackingProgress + progressGained);
       hunt.energySpent += energyCost;
 
       // Check for random encounter
       let encounter: BountyEncounter | undefined;
-      if (Math.random() < this.ENCOUNTER_CHANCE) {
+      if (SecureRNG.chance(this.ENCOUNTER_CHANCE)) {
         encounter = this.generateEncounter(target, hunt);
         hunt.encounters.push(encounter);
         hunt.cluesFound++;
@@ -239,11 +241,11 @@ export class BountyHuntingService {
       encounterTypes.push('gang_encounter');
     }
 
-    const type = encounterTypes[Math.floor(Math.random() * encounterTypes.length)];
-    const location = target.knownLocations[Math.floor(Math.random() * target.knownLocations.length)];
+    const type = SecureRNG.select(encounterTypes);
+    const location = SecureRNG.select(target.knownLocations);
 
     // Determine outcome based on random chance
-    const roll = Math.random() * 100;
+    const roll = SecureRNG.range(0, 99);
     const successThreshold = 60 - (target.trackingDifficulty / 5);
     const partialThreshold = successThreshold + 25;
 
@@ -284,7 +286,7 @@ export class BountyHuntingService {
     };
 
     const descriptionList = descriptions[type];
-    const description = descriptionList[Math.floor(Math.random() * descriptionList.length)];
+    const description = SecureRNG.select(descriptionList);
 
     return {
       type,
@@ -347,24 +349,25 @@ export class BountyHuntingService {
       successChance -= target.combatDifficulty / 3; // Penalty for difficulty
 
       // Method bonuses
+      const effectiveStats = SkillService.getEffectiveStats(character);
       if (method === 'ambush') {
         successChance += 15;
       } else if (method === 'negotiate') {
         successChance += 10;
-        successChance += character.stats.spirit * 2; // Spirit helps negotiation
+        successChance += effectiveStats.spirit * 2; // Spirit helps negotiation
       } else if (method === 'fight') {
-        successChance += character.stats.combat * 2; // Combat helps fighting
+        successChance += effectiveStats.combat * 2; // Combat helps fighting
       }
 
       // Cap success chance
       successChance = Math.max(20, Math.min(90, successChance));
 
-      const roll = Math.random() * 100;
+      const roll = SecureRNG.range(0, 99);
       const success = roll < successChance;
 
       if (success) {
         // Determine capture or kill
-        const captureMethod: 'dead' | 'alive' = method === 'negotiate' || Math.random() > 0.3 ? 'alive' : 'dead';
+        const captureMethod: 'dead' | 'alive' = method === 'negotiate' || SecureRNG.chance(0.7) ? 'alive' : 'dead';
         const outcome = captureMethod === 'alive' ? 'captured' : 'killed';
 
         hunt.status = captureMethod === 'alive' ? 'captured' : 'killed';
@@ -407,7 +410,27 @@ export class BountyHuntingService {
         if (target.reputationReward) {
           reputationChange = target.reputationReward;
           hunt.reputationChange = reputationChange;
-          // TODO: Apply reputation change to character
+
+          // Apply reputation change to character
+          const factionKey = reputationChange.faction.toLowerCase().replace(/\s+/g, '');
+          if (character.factionReputation) {
+            const repMap: Record<string, keyof typeof character.factionReputation> = {
+              'settleralliance': 'settlerAlliance',
+              'settler': 'settlerAlliance',
+              'nahicoalition': 'nahiCoalition',
+              'nahi': 'nahiCoalition',
+              'frontera': 'frontera'
+            };
+            const repKey = repMap[factionKey];
+            if (repKey && character.factionReputation[repKey] !== undefined) {
+              character.factionReputation[repKey] = Math.max(
+                -100,
+                Math.min(100, character.factionReputation[repKey] + reputationChange.amount)
+              );
+              await character.save();
+              logger.info(`Applied reputation change: ${reputationChange.faction} ${reputationChange.amount > 0 ? '+' : ''}${reputationChange.amount}`);
+            }
+          }
         }
 
         await hunt.save();
@@ -449,7 +472,7 @@ export class BountyHuntingService {
         };
       } else {
         // Target escaped
-        if (Math.random() * 100 < target.escapeChance) {
+        if (SecureRNG.range(0, 99) < target.escapeChance) {
           hunt.status = 'escaped';
           hunt.completedAt = new Date();
           await hunt.save();

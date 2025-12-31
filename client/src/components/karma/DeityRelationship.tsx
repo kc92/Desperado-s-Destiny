@@ -124,7 +124,7 @@ const DeityCard: React.FC<DeityCardProps> = ({
       </div>
       <div className="flex justify-between text-xs">
         <span className="text-gray-400">Affinity:</span>
-        <span className={affinityColor}>{affinity >= 0 ? '+' : ''}{affinity}</span>
+        <span className={affinityColor}>{affinity >= 0 ? '+' : ''}{Math.round(affinity)}</span>
       </div>
       <div className="flex justify-between text-xs mt-1">
         <span className="text-gray-400">Status:</span>
@@ -141,7 +141,7 @@ const DeityCard: React.FC<DeityCardProps> = ({
             {icon}
           </span>
           <span className={`text-sm font-medium ${affinityColor}`}>
-            {affinity >= 0 ? '+' : ''}{affinity}
+            {affinity >= 0 ? '+' : ''}{Math.round(affinity)}
           </span>
         </div>
       </Tooltip>
@@ -177,7 +177,7 @@ const DeityCard: React.FC<DeityCardProps> = ({
             <div className="flex justify-between text-xs mb-1">
               <span className="text-gray-500">Affinity</span>
               <span className={affinityColor}>
-                {affinity >= 0 ? '+' : ''}{affinity}
+                {affinity >= 0 ? '+' : ''}{Math.round(affinity)}
               </span>
             </div>
             <AffinityBar affinity={affinity} size="sm" />
@@ -309,7 +309,7 @@ const PanelVariant: React.FC<PanelVariantProps> = ({
             <div className="flex justify-between text-sm mb-1">
               <span className="text-gray-400">Affinity</span>
               <span className={getAffinityColor(gamblerAffinity)}>
-                {gamblerAffinity >= 0 ? '+' : ''}{gamblerAffinity}
+                {gamblerAffinity >= 0 ? '+' : ''}{Math.round(gamblerAffinity)}
               </span>
             </div>
             <AffinityBar affinity={gamblerAffinity} size="md" />
@@ -343,7 +343,7 @@ const PanelVariant: React.FC<PanelVariantProps> = ({
             <div className="flex justify-between text-sm mb-1">
               <span className="text-gray-400">Affinity</span>
               <span className={getAffinityColor(outlawKingAffinity)}>
-                {outlawKingAffinity >= 0 ? '+' : ''}{outlawKingAffinity}
+                {outlawKingAffinity >= 0 ? '+' : ''}{Math.round(outlawKingAffinity)}
               </span>
             </div>
             <AffinityBar affinity={outlawKingAffinity} size="md" />

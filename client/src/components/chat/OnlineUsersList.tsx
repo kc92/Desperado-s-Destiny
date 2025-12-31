@@ -123,6 +123,8 @@ export function OnlineUsersList({
 
           {/* Search */}
           <input
+            id="online-users-search"
+            name="searchUsers"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

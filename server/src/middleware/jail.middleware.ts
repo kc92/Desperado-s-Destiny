@@ -74,7 +74,7 @@ export async function preventActionsWhileJailed(
           isJailed: true,
           remainingMinutes,
           bailCost,
-          message: `You're locked up in the county jail! ${remainingMinutes} minutes until release, or pay ${bailCost} gold to post bail.`,
+          message: `You're locked up in the county jail! ${remainingMinutes} minutes until release, or pay $${bailCost} to post bail.`,
           flavorText: getJailFlavorText(character.wantedLevel)
         }
       });
@@ -187,7 +187,7 @@ export async function blockJailedPlayers(
         jailed: true,
         remainingTime,
         bailAmount: character.lastBailCost,
-        message: `You are in jail for ${remainingTime} more minutes. Pay ${character.lastBailCost} gold bail or wait it out.`
+        message: `You are in jail for ${remainingTime} more minutes. Pay $${character.lastBailCost} bail or wait it out.`
       });
       return;
     }
@@ -262,7 +262,7 @@ export function smartJailBlock(
     jailed: true,
     remainingTime,
     bailAmount: character.lastBailCost,
-    message: `You are in jail for ${remainingTime} more minutes. Pay ${character.lastBailCost} gold bail or wait it out.`
+    message: `You are in jail for ${remainingTime} more minutes. Pay $${character.lastBailCost} bail or wait it out.`
   });
 }
 

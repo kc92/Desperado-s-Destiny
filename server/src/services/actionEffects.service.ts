@@ -20,6 +20,7 @@ import {
 import { actionFactionToTerritoryFaction } from '@desperados/shared';
 import { Character, ICharacter } from '../models/Character.model';
 import { Gang } from '../models/Gang.model';
+import { WorldEvent, EventStatus } from '../models/WorldEvent.model';
 import {
   PlayerInfluenceContribution,
   IPlayerInfluenceContribution,
@@ -249,8 +250,14 @@ export class ActionEffectsService {
     // Gang bonus: +10-30% if gang aligned with faction
     const gangBonus = await this.getGangBonus(character, targetFaction);
 
-    // Event bonus: Check for active events (placeholder for now)
-    const eventBonus = 0; // TODO: Implement event system
+    // Event bonus: Sum reputation modifiers from active events affecting this faction
+    const activeEvents = await WorldEvent.find({ status: EventStatus.ACTIVE });
+    const eventBonus = activeEvents.reduce((sum, event) => {
+      const factionEffects = event.worldEffects.filter(
+        effect => effect.type === 'reputation_modifier' && effect.target === targetFaction
+      );
+      return sum + factionEffects.reduce((effectSum, effect) => effectSum + effect.value, 0);
+    }, 0);
 
     // Territory multiplier
     const territoryMultiplier = territoryId

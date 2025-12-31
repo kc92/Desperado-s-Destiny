@@ -35,6 +35,7 @@ export interface ItemEffect {
   stat?: 'combat' | 'cunning' | 'spirit' | 'craft' | 'hp' | 'energy';
   value: number;
   description: string;
+  duration?: number;  // Duration in seconds for temporary effects
 }
 
 /**
@@ -83,6 +84,9 @@ export interface IItem extends Document {
   isConsumable: boolean;
   isStackable: boolean;
   maxStack: number;
+
+  // Inventory weight
+  weight?: number; // Weight in units (default: 1)
 
   // Tutorial/Milestone flags
   tutorialItem?: boolean;
@@ -206,6 +210,11 @@ const ItemSchema = new Schema<IItem>(
     maxStack: {
       type: Number,
       default: 99
+    },
+    weight: {
+      type: Number,
+      default: 1,
+      min: 0
     },
     tutorialItem: {
       type: Boolean,

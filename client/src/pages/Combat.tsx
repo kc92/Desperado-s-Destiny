@@ -1,6 +1,7 @@
 /**
  * Combat Page
  * Main combat interface with NPC selection and combat arena
+ * @updated 2025-12-28 - Fixed victory modal display
  */
 
 import React, { useEffect, useState } from 'react';
@@ -11,7 +12,8 @@ import { CombatArena } from '@/components/game/CombatArena';
 import { CombatResultModal } from '@/components/game/CombatResultModal';
 import { Button, EmptyState } from '@/components/ui';
 import { CardGridSkeleton, StatSkeleton } from '@/components/ui/Skeleton';
-import { NPCType, CombatResult, CombatStatus } from '@desperados/shared';
+import { NPCType, CombatResult } from '@desperados/shared';
+// CombatStatus available for future combat state tracking
 import { logger } from '@/services/logger.service';
 import { dispatchCombatWon } from '@/utils/tutorialEvents';
 
@@ -21,10 +23,12 @@ type NPCFilterType = NPCType | 'ALL' | 'BOSS';
  * Combat page with NPC selection and combat interface
  */
 export const Combat: React.FC = () => {
+  console.log('[Combat] Component rendering - DEBUG CHECK');
   const {
     currentCharacter,
     isLoading: isCharacterLoading,
-    error: characterError
+    error: characterError,
+    refreshCharacter
   } = useCharacterStore();
   const {
     npcs,
@@ -49,6 +53,10 @@ export const Combat: React.FC = () => {
     rerollCard,
     peekNextCard,
     clearRoundState,
+    // Combat end state - used for victory/defeat modal
+    combatEnded,
+    lootAwarded,
+    deathPenalty,
   } = useCombatStore();
 
   const isLoading = isCharacterLoading || isCombatLoading;
@@ -67,36 +75,34 @@ export const Combat: React.FC = () => {
     checkActiveCombat();
   }, [fetchNPCs, fetchCombatStats, checkActiveCombat]);
 
-  // Check if combat ended after each turn
+  // Check if combat ended - use combatEnded flag from store (more reliable than activeCombat.status)
   useEffect(() => {
-    if (activeCombat && activeCombat.status !== CombatStatus.ACTIVE) {
-      // Combat ended, calculate result
-      const npc = activeCombat.npc;
-      const lootTable = npc?.lootTable;
-
-      // Dispatch tutorial event if player won
-      if (activeCombat.status === CombatStatus.PLAYER_VICTORY && npc) {
-        dispatchCombatWon(npc._id || npc.name);
-      }
+    console.log('[Combat] useEffect check:', { combatEnded, showResultModal, lootAwarded, deathPenalty });
+    if (combatEnded && !showResultModal) {
+      console.log('[Combat] Combat ended! Showing modal...');
+      // Combat ended, build result from store data
+      const isVictory = !!lootAwarded; // lootAwarded exists means victory
 
       const result = {
-        victory: activeCombat.status === CombatStatus.PLAYER_VICTORY,
-        xpGained: activeCombat.status === CombatStatus.PLAYER_VICTORY ?
-          (lootTable?.xpReward ?? 0) : 0,
-        goldGained: activeCombat.status === CombatStatus.PLAYER_VICTORY && lootTable ?
-          Math.floor(lootTable.goldMin + Math.random() * (lootTable.goldMax - lootTable.goldMin)) : 0,
-        goldLost: activeCombat.status === CombatStatus.PLAYER_DEFEAT ? Math.floor((currentCharacter?.gold || 0) * 0.1) : 0,
-        itemsLooted: activeCombat.status === CombatStatus.PLAYER_VICTORY && lootTable ? generateLoot(lootTable) : [],
-        // Note: finalPlayerHP and finalNPCHP not in CombatResult type
-        totalRounds: activeCombat.rounds.length,
-        totalDamageDealt: activeCombat.rounds.reduce((sum, round) => sum + round.playerDamage, 0),
-        totalDamageTaken: activeCombat.rounds.reduce((sum, round) => sum + round.npcDamage, 0),
+        victory: isVictory,
+        xpGained: lootAwarded?.xp ?? 0,
+        goldGained: lootAwarded?.gold ?? 0,
+        goldLost: deathPenalty?.goldLost ?? 0,
+        itemsLooted: lootAwarded?.items ?? [],
+        totalRounds: activeCombat?.rounds?.length ?? 0,
+        totalDamageDealt: activeCombat?.rounds?.reduce((sum, round) => sum + round.playerDamage, 0) ?? 0,
+        totalDamageTaken: activeCombat?.rounds?.reduce((sum, round) => sum + round.npcDamage, 0) ?? 0,
       };
+
+      // Dispatch tutorial event if player won
+      if (isVictory && activeCombat?.npc) {
+        dispatchCombatWon(activeCombat.npc._id || activeCombat.npc.name);
+      }
 
       setCombatResult(result as any);
       setShowResultModal(true);
     }
-  }, [activeCombat, currentCharacter]);
+  }, [combatEnded, lootAwarded, deathPenalty, activeCombat, showResultModal]);
 
   // Filter NPCs based on selected filter
   const filteredNPCs = (npcs || []).filter((npc) => {
@@ -172,17 +178,21 @@ export const Combat: React.FC = () => {
   const handleFlee = async () => {
     try {
       await fleeCombat();
+      // Refresh character data after fleeing (energy might have been spent)
+      await refreshCharacter();
     } catch (error) {
       logger.error('Failed to flee combat from UI', error as Error);
     }
   };
 
   // Handle combat result modal close
-  const handleContinue = () => {
+  const handleContinue = async () => {
     setShowResultModal(false);
     setCombatResult(null);
     endCombat();
     clearRoundState(); // Sprint 2: Clear round state when combat ends
+    // Refresh character data to get updated dollars, XP, items from combat
+    await refreshCharacter();
   };
 
   // Check if player can challenge (has enough energy)
@@ -217,30 +227,19 @@ export const Combat: React.FC = () => {
   // Active combat view
   if (inCombat && activeCombat) {
     return (
-      <>
-        <CombatArena
-          encounter={activeCombat}
-          onFlee={handleFlee}
-          isProcessingTurn={isProcessingCombat}
-          // Sprint 2: Hold/Discard system
-          roundState={roundState}
-          heldCardIndices={heldCardIndices}
-          onStartTurn={handleStartTurn}
-          onToggleCard={handleToggleCard}
-          onConfirmHold={handleConfirmHold}
-          onRerollCard={handleRerollCard}
-          onPeekNextCard={handlePeekNextCard}
-        />
-
-        {/* Combat Result Modal */}
-        {showResultModal && combatResult && (
-          <CombatResultModal
-            result={combatResult}
-            isOpen={showResultModal}
-            onContinue={handleContinue}
-          />
-        )}
-      </>
+      <CombatArena
+        encounter={activeCombat}
+        onFlee={handleFlee}
+        isProcessingTurn={isProcessingCombat}
+        // Sprint 2: Hold/Discard system
+        roundState={roundState}
+        heldCardIndices={heldCardIndices}
+        onStartTurn={handleStartTurn}
+        onToggleCard={handleToggleCard}
+        onConfirmHold={handleConfirmHold}
+        onRerollCard={handleRerollCard}
+        onPeekNextCard={handlePeekNextCard}
+      />
     );
   }
 
@@ -277,9 +276,9 @@ export const Combat: React.FC = () => {
                 </div>
               </div>
               <div className="bg-wood-darker/50 rounded p-3">
-                <div className="text-sm text-desert-dust font-serif">Total Gold</div>
+                <div className="text-sm text-desert-dust font-serif">Total Earned</div>
                 <div className="text-2xl font-western text-gold-medium">
-                  {combatStats.totalGoldGained}
+                  ${combatStats.totalGoldGained}
                 </div>
               </div>
             </div>
@@ -379,40 +378,17 @@ export const Combat: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Combat Result Modal - Rendered outside active combat conditional so it shows when combat ends */}
+      {showResultModal && combatResult && (
+        <CombatResultModal
+          result={combatResult}
+          isOpen={showResultModal}
+          onContinue={handleContinue}
+        />
+      )}
     </div>
   );
 };
-
-// Helper function to generate loot
-function generateLoot(lootTable: any): any[] {
-  const items: any[] = [];
-
-  // Check if item drops
-  const dropChance = Math.random() * 100;
-  if (dropChance <= lootTable.itemChance) {
-    // Determine rarity
-    const rarityRoll = Math.random() * 100;
-    let rarity = 'common';
-
-    if (rarityRoll < lootTable.itemRarities.legendary) {
-      rarity = 'legendary';
-    } else if (rarityRoll < lootTable.itemRarities.legendary + lootTable.itemRarities.epic) {
-      rarity = 'epic';
-    } else if (rarityRoll < lootTable.itemRarities.legendary + lootTable.itemRarities.epic + lootTable.itemRarities.rare) {
-      rarity = 'rare';
-    } else if (rarityRoll < lootTable.itemRarities.legendary + lootTable.itemRarities.epic + lootTable.itemRarities.rare + lootTable.itemRarities.uncommon) {
-      rarity = 'uncommon';
-    }
-
-    items.push({
-      name: `${rarity.charAt(0).toUpperCase() + rarity.slice(1)} Loot`,
-      rarity,
-      type: 'misc',
-      description: 'A valuable item from combat',
-    });
-  }
-
-  return items;
-}
 
 export default Combat;

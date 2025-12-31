@@ -497,8 +497,8 @@ const DuelResultModal: React.FC<{
           <div className="flex justify-center gap-6">
             {rewards.gold > 0 && (
               <div className="text-center">
-                <span className="text-2xl text-gold-primary">{rewards.gold}</span>
-                <p className="text-sm text-wood-medium">Gold</p>
+                <span className="text-2xl text-gold-primary">${rewards.gold}</span>
+                <p className="text-sm text-wood-medium">Dollars</p>
               </div>
             )}
             {rewards.experience > 0 && (

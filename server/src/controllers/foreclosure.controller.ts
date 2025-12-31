@@ -95,7 +95,7 @@ export class ForeclosureController {
       res.status(200).json({
         success: true,
         data: auction,
-        message: `Bid of ${amount} gold placed successfully`,
+        message: `Bid of $${amount} placed successfully`,
       });
     } catch (error) {
       logger.error('Error placing bid:', error);

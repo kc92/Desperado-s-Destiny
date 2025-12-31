@@ -760,15 +760,17 @@ export class DollarService {
         });
       }
 
-      // Build bulk operations
+      // PRODUCTION FIX: Build bulk operations with optimistic locking
+      // Use exact balance check to prevent race conditions where balance changes between read and write
       const bulkOperations: any[] = [
         {
           updateOne: {
             filter: {
               _id: fromCharacterId,
+              // Optimistic lock: check exact balance we read earlier
               $or: [
-                { dollars: { $gte: totalAmount } },
-                { dollars: { $exists: false }, gold: { $gte: totalAmount } }
+                { dollars: fromBalanceBefore },
+                { dollars: { $exists: false }, gold: fromBalanceBefore }
               ]
             },
             update: {
@@ -779,13 +781,15 @@ export class DollarService {
       ];
 
       for (const transfer of transfers) {
+        const recipientBalance = recipientBalances.get(transfer.characterId.toString())!;
         bulkOperations.push({
           updateOne: {
             filter: {
               _id: transfer.characterId,
+              // Optimistic lock: check exact balance we read earlier
               $or: [
-                { dollars: { $lte: MAX_DOLLARS - transfer.amount } },
-                { dollars: { $exists: false }, gold: { $lte: MAX_DOLLARS - transfer.amount } }
+                { dollars: recipientBalance.before },
+                { dollars: { $exists: false }, gold: recipientBalance.before }
               ]
             },
             update: {

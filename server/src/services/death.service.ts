@@ -2,6 +2,7 @@
  * Death Service
  *
  * Handles player death, penalties, and respawn mechanics
+ * Integrates with the Permadeath System for high-stakes gameplay
  */
 
 import mongoose from 'mongoose';
@@ -10,12 +11,18 @@ import { Location } from '../models/Location.model';
 import { DollarService } from './dollar.service';
 import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import deityDreamService from './deityDream.service';
+import { MortalDangerService } from './mortalDanger.service';
+import { LastStandService } from './lastStand.service';
+import { GravestoneService } from './gravestone.service';
 import {
   DeathType,
   DeathPenalty,
   DEATH_PENALTIES,
   RESPAWN_DELAYS,
-  DeathStats
+  DeathStats,
+  MortalDangerResult,
+  ActionDangerRating,
+  SurvivalType
 } from '@desperados/shared';
 import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
@@ -30,6 +37,15 @@ interface DeathRecord {
   itemsLost: string[];
   location: string;
   timestamp: Date;
+}
+
+/**
+ * Extended death result including mortal danger outcome
+ */
+export interface DeathWithMortalDangerResult {
+  deathPenalty: DeathPenalty;
+  mortalDanger: MortalDangerResult;
+  isPermadeath: boolean;
 }
 
 export class DeathService {
@@ -394,5 +410,234 @@ export class DeathService {
     const sentence = baseSentence + (SecureRNG.float(0, 1) * variance * 2 - variance);
 
     return Math.max(5, Math.floor(sentence)); // Minimum 5 minutes
+  }
+
+  // ===========================================================================
+  // PERMADEATH SYSTEM INTEGRATION
+  // ===========================================================================
+
+  /**
+   * Handle death with mortal danger checks
+   * This is the main entry point for death events that could trigger permadeath
+   *
+   * Flow:
+   * 1. Calculate death risk based on character state and action
+   * 2. Roll mortal danger check
+   * 3. If survived: Apply normal death penalties
+   * 4. If failed: Trigger Last Stand (karma judgement)
+   * 5. If Last Stand fails: Permadeath
+   */
+  static async handleDeathWithMortalDanger(
+    characterId: string | mongoose.Types.ObjectId,
+    deathType: DeathType,
+    actionType: string = 'npc_combat',
+    opponentLevel?: number,
+    killerName?: string,
+    session?: mongoose.ClientSession
+  ): Promise<{ deathPenalty: DeathPenalty; mortalDanger: MortalDangerResult; isPermadeath: boolean }> {
+    const character = await Character.findById(characterId);
+    if (!character) {
+      throw new Error('Character not found');
+    }
+
+    // Check if permadeath is active (always true per design)
+    if (!MortalDangerService.isPermadeathActive(character)) {
+      // Permadeath not active - just normal death
+      const penalty = await this.handleDeath(characterId, deathType, session);
+      return {
+        deathPenalty: penalty,
+        mortalDanger: {
+          survived: true,
+          survivalType: undefined,
+          message: 'You fell in battle but will rise again.',
+          lastStandTriggered: false
+        } as MortalDangerResult,
+        isPermadeath: false
+      };
+    }
+
+    // Get action danger rating
+    const actionDanger = MortalDangerService.getActionDanger(actionType);
+
+    // Build risk factors
+    const riskFactors = await MortalDangerService.buildRiskFactors(
+      character,
+      actionDanger,
+      opponentLevel
+    );
+
+    // Calculate death risk
+    const deathRisk = MortalDangerService.calculateDeathRisk(riskFactors);
+
+    logger.info(
+      `Death risk for ${character.name}: ${(deathRisk.risk * 100).toFixed(1)}% ` +
+      `(${deathRisk.dangerLevel}) - Action: ${actionType}`
+    );
+
+    // Roll mortal danger check
+    const mortalDangerResult = await MortalDangerService.rollMortalDanger(
+      characterId.toString(),
+      deathRisk
+    );
+
+    if (mortalDangerResult.survived) {
+      // Character survived the mortal danger check - apply normal death penalties
+      const penalty = await this.handleDeath(characterId, deathType, session);
+
+      logger.info(
+        `${character.name} survived mortal danger (${mortalDangerResult.survivalType}). ` +
+        `Normal death penalties applied.`
+      );
+
+      return {
+        deathPenalty: penalty,
+        mortalDanger: mortalDangerResult,
+        isPermadeath: false
+      };
+    }
+
+    // Character failed mortal danger check - trigger Last Stand (karma judgement)
+    logger.warn(
+      `${character.name} FAILED mortal danger check. Last Stand triggered!`
+    );
+
+    // Perform karma judgement - deities decide if they will intervene
+    const lastStandResult = await LastStandService.performKarmaJudgement(
+      characterId.toString(),
+      session
+    );
+
+    if (lastStandResult.survived) {
+      // A deity saved the character! Apply normal death penalties but they live
+      const penalty = await this.handleDeath(characterId, deathType, session);
+
+      logger.info(
+        `${character.name} was SAVED by divine intervention! ` +
+        `Type: ${lastStandResult.survivalType}, ` +
+        `Deity: ${lastStandResult.divineIntervention?.deity || 'Deal'}`
+      );
+
+      return {
+        deathPenalty: penalty,
+        mortalDanger: lastStandResult,
+        isPermadeath: false
+      };
+    }
+
+    // No salvation - character faces true permadeath
+    logger.warn(
+      `${character.name} received NO SALVATION. PERMADEATH initiated.`
+    );
+
+    // Apply normal death penalties first
+    const penalty = await this.handleDeath(characterId, deathType, session);
+
+    // Process permadeath - mark character as permanently dead
+    await this.processPermadeath(characterId, deathType, killerName, session);
+
+    return {
+      deathPenalty: penalty,
+      mortalDanger: lastStandResult,
+      isPermadeath: true
+    };
+  }
+
+  /**
+   * Process permadeath - character dies permanently
+   * This is called when Last Stand fails or no divine intervention occurs
+   */
+  static async processPermadeath(
+    characterId: string | mongoose.Types.ObjectId,
+    deathType: DeathType,
+    killerName?: string,
+    session?: mongoose.ClientSession
+  ): Promise<void> {
+    const character = await Character.findById(characterId);
+    if (!character) {
+      throw new Error('Character not found');
+    }
+
+    // Mark character as permanently dead
+    character.isDead = true;
+    character.diedAt = new Date();
+    character.deathLocation = character.currentLocation;
+    character.causeOfDeath = deathType;
+    if (killerName) {
+      character.killedBy = killerName;
+    }
+
+    await character.save(session ? { session } : undefined);
+
+    logger.warn(
+      `PERMADEATH: ${character.name} has died permanently. ` +
+      `Cause: ${deathType}, Location: ${character.currentLocation}, ` +
+      `Killer: ${killerName || 'Unknown'}`
+    );
+
+    // Create gravestone for inheritance system
+    const { gravestone, epitaph } = await GravestoneService.createGravestone(character, session);
+
+    logger.info(
+      `Gravestone created for ${character.name}: "${epitaph}" ` +
+      `(ID: ${gravestone._id})`
+    );
+  }
+
+  /**
+   * Get death risk preview for an action without actually dying
+   * Used by UI to show danger warnings
+   */
+  static async getDeathRiskPreview(
+    characterId: string | mongoose.Types.ObjectId,
+    actionType: string,
+    opponentLevel?: number
+  ): Promise<{ risk: number; dangerLevel: string; fateMarks: number }> {
+    const preview = await MortalDangerService.getDeathRiskPreview(
+      characterId.toString(),
+      actionType,
+      opponentLevel
+    );
+
+    return {
+      risk: preview.risk.risk,
+      dangerLevel: preview.risk.dangerLevel,
+      fateMarks: preview.fateMarks
+    };
+  }
+
+  /**
+   * Check if a character is permanently dead
+   */
+  static async isCharacterDead(
+    characterId: string | mongoose.Types.ObjectId
+  ): Promise<boolean> {
+    const character = await Character.findById(characterId);
+    return character?.isDead ?? false;
+  }
+
+  /**
+   * Get permadeath info for a dead character
+   */
+  static async getPermadeathInfo(
+    characterId: string | mongoose.Types.ObjectId
+  ): Promise<{
+    isDead: boolean;
+    diedAt?: Date;
+    deathLocation?: string;
+    causeOfDeath?: string;
+    killedBy?: string;
+  } | null> {
+    const character = await Character.findById(characterId);
+    if (!character) {
+      return null;
+    }
+
+    return {
+      isDead: character.isDead,
+      diedAt: character.diedAt,
+      deathLocation: character.deathLocation,
+      causeOfDeath: character.causeOfDeath,
+      killedBy: character.killedBy
+    };
   }
 }

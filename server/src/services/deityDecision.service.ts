@@ -18,6 +18,7 @@ import { DivineManifestation, ManifestationType } from '../models/DivineManifest
 import { Character } from '../models/Character.model';
 import { Gang } from '../models/Gang.model';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 // ============================================================================
 // ATTENTION CALCULATION WEIGHTS
@@ -398,7 +399,7 @@ class DeityDecisionService {
       const typeChance = INTERVENTION_CHANCES[type] * baseChance * moodMod.blessing;
 
       // Roll for intervention
-      if (Math.random() < typeChance) {
+      if (SecureRNG.chance(typeChance)) {
         return type;
       }
     }
@@ -489,10 +490,10 @@ class DeityDecisionService {
     if (totalAttention < 10) return null; // Not enough attention for dreams
 
     const effectiveChance = baseChance * (totalAttention / 100);
-    if (Math.random() > effectiveChance) return null;
+    if (!SecureRNG.chance(effectiveChance)) return null;
 
     // Select deity weighted by attention
-    const deity: DeityName = Math.random() < (gamblerAttention.attention / totalAttention)
+    const deity: DeityName = SecureRNG.chance(gamblerAttention.attention / totalAttention)
       ? 'GAMBLER'
       : 'OUTLAW_KING';
 

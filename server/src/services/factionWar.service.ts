@@ -19,7 +19,9 @@ import {
 import { FactionWarEvent, IFactionWarEvent } from '../models/FactionWarEvent.model';
 import { WarParticipant, IWarParticipant } from '../models/WarParticipant.model';
 import { Character, ICharacter } from '../models/Character.model';
-import { Territory, ITerritory } from '../models/Territory.model';
+import { Gang } from '../models/Gang.model';
+import { Territory, ITerritory, TerritoryFaction } from '../models/Territory.model';
+import { WorldZone } from '../models/WorldZone.model';
 import { getTemplateById, getRandomTemplate } from '../data/warEventTemplates';
 import { WarObjectivesService } from './warObjectives.service';
 import logger from '../utils/logger';
@@ -172,7 +174,9 @@ export class FactionWarService {
         characterName: character.name,
         characterLevel: character.level,
         gangId: character.gangId,
-        gangName: character.gangId ? 'Unknown Gang' : undefined, // TODO: populate gang name
+        gangName: character.gangId
+          ? (await Gang.findById(character.gangId).select('name').session(session))?.name ?? 'Unknown Gang'
+          : undefined,
         side,
         joinedAt: new Date(),
         objectivesCompleted: [],
@@ -384,12 +388,64 @@ export class FactionWarService {
   }
 
   /**
-   * Get adjacent territories
+   * Get adjacent territories using WorldZone adjacency graph
    */
   private static async getAdjacentTerritories(territoryId: string): Promise<string[]> {
-    // TODO: Implement proper adjacency logic when territory graph is available
-    // For now, return empty array
-    return [];
+    try {
+      // Get the target territory
+      const territory = await Territory.findOne({ id: territoryId }).lean();
+      if (!territory) return [];
+
+      // Map territory faction to zone primaryFaction
+      const factionToZoneMap: Record<string, string> = {
+        [TerritoryFaction.SETTLER]: 'settler',
+        [TerritoryFaction.NAHI]: 'nahi',
+        [TerritoryFaction.FRONTERA]: 'frontera',
+        [TerritoryFaction.NEUTRAL]: 'frontier',
+      };
+      const zoneFaction = factionToZoneMap[territory.faction] || 'frontier';
+
+      // Find the zone that matches this faction
+      const zone = await WorldZone.findOne({ primaryFaction: zoneFaction }).lean();
+      if (!zone || !zone.adjacentZones || zone.adjacentZones.length === 0) {
+        // Fallback: return all territories except current
+        const allTerritories = await Territory.find({ id: { $ne: territoryId } }).lean();
+        return allTerritories.map(t => t.id);
+      }
+
+      // Get all zones that are adjacent
+      const adjacentZones = await WorldZone.find({
+        id: { $in: zone.adjacentZones },
+      }).lean();
+
+      // Map adjacent zones to their factions
+      const adjacentFactions = adjacentZones.map(z => {
+        const zoneToFactionMap: Record<string, string> = {
+          'settler': TerritoryFaction.SETTLER,
+          'settler_territory': TerritoryFaction.SETTLER,
+          'nahi': TerritoryFaction.NAHI,
+          'coalition_lands': TerritoryFaction.NAHI,
+          'frontera': TerritoryFaction.FRONTERA,
+          'sangre_canyon': TerritoryFaction.FRONTERA,
+          'frontier': TerritoryFaction.NEUTRAL,
+          'outlaw_territory': TerritoryFaction.NEUTRAL,
+          'ranch_country': TerritoryFaction.SETTLER,
+          'sacred_mountains': TerritoryFaction.NAHI,
+        };
+        return zoneToFactionMap[z.id] || TerritoryFaction.NEUTRAL;
+      });
+
+      // Find territories in adjacent factions
+      const adjacentTerritories = await Territory.find({
+        faction: { $in: adjacentFactions },
+        id: { $ne: territoryId },
+      }).lean();
+
+      return adjacentTerritories.map(t => t.id);
+    } catch (error) {
+      logger.error('[FactionWarService] Error getting adjacent territories:', error);
+      return [];
+    }
   }
 
   /**

@@ -193,6 +193,7 @@ export interface ApiError {
   message: string;
   status: number;
   code?: string;
+  error?: string;  // Some controllers return 'error' field instead of 'message'
 }
 
 /**

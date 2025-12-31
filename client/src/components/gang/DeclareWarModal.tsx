@@ -90,10 +90,12 @@ export const DeclareWarModal: React.FC<DeclareWarModalProps> = ({
 
         {/* Funding Amount */}
         <div>
-          <label className="block text-sm font-western text-desert-sand mb-2">
+          <label htmlFor="war-fund-amount" className="block text-sm font-western text-desert-sand mb-2">
             Initial War Fund
           </label>
           <input
+            id="war-fund-amount"
+            name="warFundAmount"
             type="range"
             min={1000}
             max={Math.max(1000, gangBank)}

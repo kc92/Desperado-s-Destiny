@@ -10,6 +10,13 @@ import { Card, Button, LoadingSpinner, Modal } from '@/components/ui';
 import { api } from '@/services/api';
 import { logger } from '@/services/logger.service';
 import { DeckGame, GameState, DeckGameResult, ActionResult } from '@/components/game/deckgames/DeckGame';
+import { dispatchJobCompleted } from '@/utils/tutorialEvents';
+import { actionService } from '@/services/action.service';
+import { ActionModal, CombatModal } from '@/components/location';
+import { TavernTables } from '@/components/tavern';
+import { LocationGraveyard } from '@/components/location/LocationGraveyard';
+import { DeathRiskIndicator } from '@/components/danger/DeathRiskIndicator';
+import type { Action, NPC } from '@desperados/shared';
 
 interface LocationJob {
   id: string;
@@ -157,6 +164,31 @@ const buildingConfig: Record<string, { icon: string; color: string }> = {
   assay_office: { icon: '⚖️', color: 'bg-amber-800/50 border-amber-600' },
 };
 
+/**
+ * Location types that support card tables
+ */
+const SALOON_TYPES = ['saloon', 'worker_tavern', 'cantina', 'tavern'];
+
+/**
+ * Calculate action danger rating (0.0-1.0) from action properties
+ * Crime and combat actions are inherently more dangerous
+ */
+const getActionDanger = (action: any): number => {
+  const baseDanger = (action.difficulty || 1) / 10;
+  const typeMultiplier = action.type === 'CRIME' ? 1.3 : action.type === 'COMBAT' ? 1.2 : 1.0;
+  const wantedMultiplier = action.crimeProperties?.wantedLevelIncrease
+    ? 1 + (action.crimeProperties.wantedLevelIncrease * 0.1)
+    : 1.0;
+  return Math.min(baseDanger * typeMultiplier * wantedMultiplier, 0.95);
+};
+
+/**
+ * Check if a location type supports card tables
+ */
+const isSaloonLocation = (locationType: string): boolean => {
+  return SALOON_TYPES.includes(locationType.toLowerCase());
+};
+
 export const Location: React.FC = () => {
   const { currentCharacter, refreshCharacter } = useCharacterStore();
 
@@ -181,9 +213,25 @@ export const Location: React.FC = () => {
   // NPC state
   const [selectedNPC, setSelectedNPC] = useState<LocationNPC | null>(null);
 
-  // Crime state
+  // Crime state (legacy - now using locationActions)
   const [crimes, setCrimes] = useState<any[]>([]);
   const [crimesLoading, setCrimesLoading] = useState(false);
+
+  // Location-specific actions (Phase 7)
+  const [locationActions, setLocationActions] = useState<{
+    crimes: Action[];
+    combat: Action[];
+    craft: Action[];
+    social: Action[];
+    global: Action[];
+  } | null>(null);
+  const [actionsLoading, setActionsLoading] = useState(false);
+  const [actionsExpanded, setActionsExpanded] = useState<Record<string, boolean>>({
+    crimes: true,
+    combat: true,
+    craft: false,
+    social: false,
+  });
 
   // Buildings state
   const [buildings, setBuildings] = useState<TownBuilding[]>([]);
@@ -192,6 +240,14 @@ export const Location: React.FC = () => {
 
   // Zone travel state
   const [zoneTravelOptions, setZoneTravelOptions] = useState<ZoneTravelOptions | null>(null);
+
+  // Action Modal state
+  const [selectedAction, setSelectedAction] = useState<Action | null>(null);
+
+  // Combat Modal state (hostile NPCs)
+  const [selectedCombatNPC, setSelectedCombatNPC] = useState<NPC | null>(null);
+  const [hostileNPCs, setHostileNPCs] = useState<NPC[]>([]);
+  const [hostilesLoading, setHostilesLoading] = useState(false);
 
   // Fetch current location
   const fetchLocation = async () => {
@@ -202,11 +258,13 @@ export const Location: React.FC = () => {
       const locationData = response.data.data.location;
       setLocation(locationData);
 
-      // Fetch location-specific crimes, buildings, and zone travel
+      // Fetch location-specific data
       if (locationData?._id) {
         fetchCrimes(locationData._id);
         fetchBuildings(locationData._id);
         fetchZoneTravelOptions();
+        fetchLocationActions(); // Phase 7: Location-specific actions
+        fetchHostileNPCs(); // Hostile NPCs for combat
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load location');
@@ -215,7 +273,7 @@ export const Location: React.FC = () => {
     }
   };
 
-  // Fetch crimes available at this location
+  // Fetch crimes available at this location (legacy)
   const fetchCrimes = async (locationId: string) => {
     try {
       setCrimesLoading(true);
@@ -226,6 +284,28 @@ export const Location: React.FC = () => {
       logger.error('Failed to fetch crimes for location', err, { locationId });
     } finally {
       setCrimesLoading(false);
+    }
+  };
+
+  // Fetch filtered location actions (Phase 7 - Location-Specific Actions)
+  const fetchLocationActions = async () => {
+    try {
+      setActionsLoading(true);
+      const response = await actionService.getFilteredLocationActions();
+      if (response.success && response.data) {
+        setLocationActions(response.data.actions);
+        logger.debug('Fetched location actions', {
+          crimes: response.data.actions.crimes.length,
+          combat: response.data.actions.combat.length,
+          craft: response.data.actions.craft.length,
+          social: response.data.actions.social.length,
+          global: response.data.actions.global.length,
+        });
+      }
+    } catch (err: any) {
+      logger.error('Failed to fetch location actions', err);
+    } finally {
+      setActionsLoading(false);
     }
   };
 
@@ -255,6 +335,22 @@ export const Location: React.FC = () => {
     } catch (err: any) {
       logger.error('Failed to fetch zone travel options', err);
       setZoneTravelOptions(null);
+    }
+  };
+
+  // Fetch hostile NPCs for this location
+  const fetchHostileNPCs = async () => {
+    try {
+      setHostilesLoading(true);
+      const response = await api.get('/locations/current/hostiles');
+      if (response.data.success && response.data.data?.npcs) {
+        setHostileNPCs(response.data.data.npcs);
+      }
+    } catch (err: any) {
+      logger.error('Failed to fetch hostile NPCs', err);
+      setHostileNPCs([]);
+    } finally {
+      setHostilesLoading(false);
     }
   };
 
@@ -323,10 +419,18 @@ export const Location: React.FC = () => {
         goldEarned: result.actionResult.rewardsGained.gold,
         xpEarned: result.actionResult.rewardsGained.xp,
         items: result.actionResult.rewardsGained.items,
-        message: `You completed ${result.actionResult.actionName} and earned ${result.actionResult.rewardsGained.gold} gold and ${result.actionResult.rewardsGained.xp} XP!`,
+        message: `You completed ${result.actionResult.actionName} and earned $${result.actionResult.rewardsGained.gold} and ${result.actionResult.rewardsGained.xp} XP!`,
         score: result.gameResult.score,
         handName: result.gameResult.handName,
       });
+    }
+
+    // Dispatch tutorial event for job completion (before clearing activeJobInfo)
+    if (activeJobInfo?.id) {
+      // Normalize job ID to use hyphens (e.g., "smuggle_goods" -> "smuggle-goods")
+      const normalizedJobId = activeJobInfo.id.replace(/_/g, '-');
+      dispatchJobCompleted(normalizedJobId);
+      logger.info('[Location] Dispatched job completion event for tutorial', { jobId: normalizedJobId });
     }
 
     setActiveJobGame(null);
@@ -369,15 +473,37 @@ export const Location: React.FC = () => {
       setLocation(response.data.data.result.newLocation);
       // Refetch zone travel options for new location
       fetchZoneTravelOptions();
-      // Also refetch buildings if needed
+      // Also refetch buildings, actions, and hostiles for new location
       if (response.data.data.result.newLocation?._id) {
         fetchBuildings(response.data.data.result.newLocation._id);
         fetchCrimes(response.data.data.result.newLocation._id);
+        fetchLocationActions(); // Phase 7: Location-specific actions
+        fetchHostileNPCs(); // Hostile NPCs for combat
       }
       setTravelingTo(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to travel');
       setTravelingTo(null);
+    }
+  };
+
+  // Handle action modal completion
+  const handleActionComplete = (success: boolean, rewards?: { gold?: number; xp?: number; items?: any[] }) => {
+    setSelectedAction(null);
+    refreshCharacter();
+    fetchLocationActions(); // Refresh actions in case of cooldowns
+    if (success && rewards) {
+      logger.info('[Location] Action completed successfully', { rewards });
+    }
+  };
+
+  // Handle combat modal completion
+  const handleCombatComplete = (victory: boolean, rewards?: { gold?: number; xp?: number; items?: any[] }) => {
+    setSelectedCombatNPC(null);
+    refreshCharacter();
+    fetchHostileNPCs(); // Refresh hostiles in case NPC was defeated
+    if (victory && rewards) {
+      logger.info('[Location] Combat completed successfully', { rewards });
     }
   };
 
@@ -594,6 +720,246 @@ export const Location: React.FC = () => {
         </Modal>
       )}
 
+      {/* Location-Specific Actions Section (Phase 7) */}
+      {locationActions && (
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-amber-400">Available Actions</h2>
+            {actionsLoading && <LoadingSpinner size="sm" />}
+          </div>
+
+          {/* Global Social Actions */}
+          {locationActions.global.length > 0 && (
+            <div className="mb-4">
+              <button
+                className="w-full flex items-center justify-between p-2 bg-pink-900/30 rounded-t border border-pink-700/50 hover:bg-pink-900/40 transition-colors"
+                onClick={() => setActionsExpanded(prev => ({ ...prev, global: !prev.global }))}
+              >
+                <span className="font-semibold text-pink-300 flex items-center gap-2">
+                  <span className="text-lg">❤️</span>
+                  Social ({locationActions.global.length})
+                </span>
+                <span className="text-pink-400">{actionsExpanded.global ? '▼' : '▶'}</span>
+              </button>
+              {actionsExpanded.global && (
+                <div className="grid gap-3 md:grid-cols-2 p-3 bg-pink-900/10 border-x border-b border-pink-700/50 rounded-b">
+                  {locationActions.global.map((action: any) => (
+                    <div key={action.id} className="p-3 bg-gray-800/50 rounded-lg border border-pink-700/30">
+                      <h4 className="font-semibold text-pink-200">{action.name}</h4>
+                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">{action.description}</p>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-xs text-blue-400">⚡ {action.energyCost}</span>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="bg-pink-900/50 hover:bg-pink-800/50 border-pink-700"
+                          onClick={() => setSelectedAction(action)}
+                          disabled={(currentCharacter?.energy || 0) < action.energyCost}
+                        >
+                          Attempt
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Crimes Section */}
+          {locationActions.crimes.length > 0 && (
+            <div className="mb-4">
+              <button
+                className="w-full flex items-center justify-between p-2 bg-red-900/30 rounded-t border border-red-700/50 hover:bg-red-900/40 transition-colors"
+                onClick={() => setActionsExpanded(prev => ({ ...prev, crimes: !prev.crimes }))}
+              >
+                <span className="font-semibold text-red-300 flex items-center gap-2">
+                  <span className="text-lg">♠️</span>
+                  Crimes ({locationActions.crimes.length})
+                </span>
+                <span className="text-red-400">{actionsExpanded.crimes ? '▼' : '▶'}</span>
+              </button>
+              {actionsExpanded.crimes && (
+                <div className="grid gap-3 md:grid-cols-2 p-3 bg-red-900/10 border-x border-b border-red-700/50 rounded-b">
+                  {locationActions.crimes.map((action: any) => (
+                    <DeathRiskIndicator
+                      key={action.id}
+                      actionDanger={getActionDanger(action)}
+                      requiredSkill={action.difficulty * 10}
+                      characterSkill={currentCharacter?.stats?.combat || 10}
+                    >
+                      <div className="p-3 bg-gray-800/50 rounded-lg">
+                        <h4 className="font-semibold text-red-200">{action.name}</h4>
+                        <p className="text-xs text-gray-400 mt-1 line-clamp-2">{action.description}</p>
+                        <div className="mt-2 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="text-blue-400">⚡ {action.energyCost}</span>
+                            <span className="text-yellow-400">💰 {action.rewards?.gold || 0}</span>
+                          </div>
+                          <span className="text-red-400">⚠️ +{action.crimeProperties?.wantedLevelIncrease || 1}</span>
+                        </div>
+                        <div className="mt-2 flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="bg-red-900/50 hover:bg-red-800/50 border-red-700"
+                            onClick={() => setSelectedAction(action)}
+                            disabled={(currentCharacter?.energy || 0) < action.energyCost}
+                          >
+                            Attempt Crime
+                          </Button>
+                        </div>
+                      </div>
+                    </DeathRiskIndicator>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Combat Section */}
+          {locationActions.combat.length > 0 && (
+            <div className="mb-4">
+              <button
+                className="w-full flex items-center justify-between p-2 bg-blue-900/30 rounded-t border border-blue-700/50 hover:bg-blue-900/40 transition-colors"
+                onClick={() => setActionsExpanded(prev => ({ ...prev, combat: !prev.combat }))}
+              >
+                <span className="font-semibold text-blue-300 flex items-center gap-2">
+                  <span className="text-lg">♣️</span>
+                  Combat ({locationActions.combat.length})
+                </span>
+                <span className="text-blue-400">{actionsExpanded.combat ? '▼' : '▶'}</span>
+              </button>
+              {actionsExpanded.combat && (
+                <div className="grid gap-3 md:grid-cols-2 p-3 bg-blue-900/10 border-x border-b border-blue-700/50 rounded-b">
+                  {locationActions.combat.map((action: any) => (
+                    <DeathRiskIndicator
+                      key={action.id}
+                      actionDanger={getActionDanger(action)}
+                      requiredSkill={action.difficulty * 10}
+                      characterSkill={currentCharacter?.stats?.combat || 10}
+                    >
+                      <div className="p-3 bg-gray-800/50 rounded-lg">
+                        <h4 className="font-semibold text-blue-200">{action.name}</h4>
+                        <p className="text-xs text-gray-400 mt-1 line-clamp-2">{action.description}</p>
+                        <div className="mt-2 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="text-blue-400">⚡ {action.energyCost}</span>
+                            <span className="text-purple-400">⭐ {action.rewards?.xp || 0} XP</span>
+                          </div>
+                          <span className="text-gray-400">Diff: {action.difficulty}</span>
+                        </div>
+                        <div className="mt-2 flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="bg-blue-900/50 hover:bg-blue-800/50 border-blue-700"
+                            onClick={() => setSelectedAction(action)}
+                            disabled={(currentCharacter?.energy || 0) < action.energyCost}
+                          >
+                            Fight
+                          </Button>
+                        </div>
+                      </div>
+                    </DeathRiskIndicator>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Craft Section */}
+          {locationActions.craft.length > 0 && (
+            <div className="mb-4">
+              <button
+                className="w-full flex items-center justify-between p-2 bg-amber-900/30 rounded-t border border-amber-700/50 hover:bg-amber-900/40 transition-colors"
+                onClick={() => setActionsExpanded(prev => ({ ...prev, craft: !prev.craft }))}
+              >
+                <span className="font-semibold text-amber-300 flex items-center gap-2">
+                  <span className="text-lg">♦️</span>
+                  Crafting ({locationActions.craft.length})
+                </span>
+                <span className="text-amber-400">{actionsExpanded.craft ? '▼' : '▶'}</span>
+              </button>
+              {actionsExpanded.craft && (
+                <div className="grid gap-3 md:grid-cols-2 p-3 bg-amber-900/10 border-x border-b border-amber-700/50 rounded-b">
+                  {locationActions.craft.map((action: any) => (
+                    <div key={action.id} className="p-3 bg-gray-800/50 rounded-lg border border-amber-700/30">
+                      <h4 className="font-semibold text-amber-200">{action.name}</h4>
+                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">{action.description}</p>
+                      <div className="mt-2 flex items-center justify-between text-xs">
+                        <span className="text-blue-400">⚡ {action.energyCost}</span>
+                        <span className="text-gray-400">Diff: {action.difficulty}</span>
+                      </div>
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="bg-amber-900/50 hover:bg-amber-800/50 border-amber-700"
+                          onClick={() => setSelectedAction(action)}
+                          disabled={(currentCharacter?.energy || 0) < action.energyCost}
+                        >
+                          Craft
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Location-Specific Social Actions */}
+          {locationActions.social.length > 0 && (
+            <div className="mb-4">
+              <button
+                className="w-full flex items-center justify-between p-2 bg-green-900/30 rounded-t border border-green-700/50 hover:bg-green-900/40 transition-colors"
+                onClick={() => setActionsExpanded(prev => ({ ...prev, social: !prev.social }))}
+              >
+                <span className="font-semibold text-green-300 flex items-center gap-2">
+                  <span className="text-lg">🤝</span>
+                  Special ({locationActions.social.length})
+                </span>
+                <span className="text-green-400">{actionsExpanded.social ? '▼' : '▶'}</span>
+              </button>
+              {actionsExpanded.social && (
+                <div className="grid gap-3 md:grid-cols-2 p-3 bg-green-900/10 border-x border-b border-green-700/50 rounded-b">
+                  {locationActions.social.map((action: any) => (
+                    <div key={action.id} className="p-3 bg-gray-800/50 rounded-lg border border-green-700/30">
+                      <h4 className="font-semibold text-green-200">{action.name}</h4>
+                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">{action.description}</p>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-xs text-blue-400">⚡ {action.energyCost}</span>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="bg-green-900/50 hover:bg-green-800/50 border-green-700"
+                          onClick={() => setSelectedAction(action)}
+                          disabled={(currentCharacter?.energy || 0) < action.energyCost}
+                        >
+                          Attempt
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* No actions message */}
+          {locationActions.crimes.length === 0 &&
+           locationActions.combat.length === 0 &&
+           locationActions.craft.length === 0 &&
+           locationActions.social.length === 0 &&
+           locationActions.global.length === 0 && (
+            <p className="text-center text-gray-500 py-4">
+              No special actions available at this location.
+            </p>
+          )}
+        </Card>
+      )}
+
       {/* Jobs Section - Only show when inside a building, not in parent town */}
       {!isParentTown && location.jobs.length > 0 && (
         <Card className="p-6">
@@ -618,7 +984,7 @@ export const Location: React.FC = () => {
                 <div className="mt-2 flex items-center justify-between text-sm">
                   <span className="text-blue-400">⚡ {job.energyCost} energy</span>
                   <span className="text-yellow-400">
-                    💰 {job.rewards.goldMin}-{job.rewards.goldMax} gold
+                    💰 ${job.rewards.goldMin}-${job.rewards.goldMax}
                   </span>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
@@ -656,44 +1022,47 @@ export const Location: React.FC = () => {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {crimes.map(crime => (
-                <div key={crime._id} className="p-4 bg-gray-800/50 rounded-lg border border-red-900/50">
-                  <h3 className="font-semibold text-red-300">{crime.name}</h3>
-                  <p className="text-sm text-gray-400 mt-1">{crime.description}</p>
-                  <div className="mt-2 flex items-center justify-between text-sm">
-                    <span className="text-blue-400">⚡ {crime.energyCost} energy</span>
-                    <span className="text-yellow-400">
-                      💰 {crime.rewards?.gold || 0} gold
-                    </span>
+                <DeathRiskIndicator
+                  key={crime._id}
+                  actionDanger={getActionDanger(crime)}
+                  requiredSkill={crime.difficulty * 10}
+                  characterSkill={currentCharacter?.stats?.combat || 10}
+                >
+                  <div className="p-4 bg-gray-800/50 rounded-lg">
+                    <h3 className="font-semibold text-red-300">{crime.name}</h3>
+                    <p className="text-sm text-gray-400 mt-1">{crime.description}</p>
+                    <div className="mt-2 flex items-center justify-between text-sm">
+                      <span className="text-blue-400">⚡ {crime.energyCost} energy</span>
+                      <span className="text-yellow-400">
+                        💰 ${crime.rewards?.gold || 0}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-sm">
+                      <span className="text-gray-500">
+                        Difficulty: {crime.difficulty}
+                      </span>
+                      <span className="text-red-400">
+                        ⚠️ +{crime.crimeProperties?.wantedLevelIncrease || 1} wanted
+                      </span>
+                    </div>
+                    <div className="mt-3">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="w-full bg-red-900/50 hover:bg-red-800/50 border-red-700"
+                        onClick={() => setSelectedAction(crime)}
+                        disabled={(currentCharacter?.energy || 0) < crime.energyCost}
+                      >
+                        Attempt Crime
+                      </Button>
+                    </div>
+                    {crime.crimeProperties?.jailTimeOnFailure && (
+                      <p className="text-xs text-red-400/70 mt-2 text-center">
+                        ⛓️ {crime.crimeProperties.jailTimeOnFailure}m jail on failure
+                      </p>
+                    )}
                   </div>
-                  <div className="mt-2 flex items-center justify-between text-sm">
-                    <span className="text-gray-500">
-                      Difficulty: {crime.difficulty}
-                    </span>
-                    <span className="text-red-400">
-                      ⚠️ +{crime.crimeProperties?.wantedLevelIncrease || 1} wanted
-                    </span>
-                  </div>
-                  <div className="mt-3">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="w-full bg-red-900/50 hover:bg-red-800/50 border-red-700"
-                      onClick={() => {
-                        // Store crime data and navigate to action challenge
-                        sessionStorage.setItem('selectedAction', JSON.stringify(crime));
-                        window.location.href = '/game/action-challenge';
-                      }}
-                      disabled={(currentCharacter?.energy || 0) < crime.energyCost}
-                    >
-                      Attempt Crime
-                    </Button>
-                  </div>
-                  {crime.crimeProperties?.jailTimeOnFailure && (
-                    <p className="text-xs text-red-400/70 mt-2 text-center">
-                      ⛓️ {crime.crimeProperties.jailTimeOnFailure}m jail on failure
-                    </p>
-                  )}
-                </div>
+                </DeathRiskIndicator>
               ))}
             </div>
           )}
@@ -748,6 +1117,90 @@ export const Location: React.FC = () => {
             ))}
           </div>
         </Card>
+      )}
+
+      {/* Card Tables Section - Only show at saloon-type locations */}
+      {location && isSaloonLocation(location.type) && (
+        <Card className="p-6">
+          <TavernTables
+            locationId={location._id}
+            locationName={location.name}
+          />
+        </Card>
+      )}
+
+      {/* Hostile NPCs Section */}
+      {hostileNPCs.length > 0 && (
+        <Card className="p-6">
+          <h2 className="text-xl font-bold text-red-400 mb-4">⚔️ Hostile Encounters</h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Dangerous individuals lurking in this area. Approach with caution.
+          </p>
+
+          {hostilesLoading ? (
+            <div className="text-center py-4">
+              <LoadingSpinner size="sm" />
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {hostileNPCs.map((npc) => {
+                // Extended NPC props from server may not be in base type
+                const extNpc = npc as typeof npc & { icon?: string; title?: string; baseStats?: { health?: number }; rewards?: { gold?: number; xp?: number } };
+                return (
+                <div
+                  key={npc._id}
+                  className="p-4 bg-gradient-to-br from-red-900/30 to-gray-800/50 rounded-lg border border-red-700/50 hover:border-red-500 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="text-3xl">{extNpc.icon || '💀'}</div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-red-200">{npc.name}</h3>
+                      {extNpc.title && (
+                        <p className="text-xs text-red-400">{extNpc.title}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">{npc.description}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-400">Lvl {npc.level || 1}</span>
+                      <span className="text-red-400">HP {extNpc.baseStats?.health || 100}</span>
+                    </div>
+                    <span className="text-gray-500">
+                      {npc.difficulty || 'Normal'}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="text-xs text-gray-400">
+                      <span className="text-yellow-400">💰 {extNpc.rewards?.gold || 0}</span>
+                      <span className="ml-2 text-purple-400">⭐ {extNpc.rewards?.xp || 0}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="bg-red-900/50 hover:bg-red-800/50 border-red-700"
+                      onClick={() => setSelectedCombatNPC(npc)}
+                    >
+                      Fight
+                    </Button>
+                  </div>
+                </div>
+              )})}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Graveyard Section - Souls Lost Here */}
+      {location && (
+        <LocationGraveyard
+          locationId={location._id}
+          locationName={location.name}
+          canClaim={true}
+          compact
+        />
       )}
 
       {/* Zone-Aware Travel Section */}
@@ -998,6 +1451,24 @@ export const Location: React.FC = () => {
             />
           </div>
         </Modal>
+      )}
+
+      {/* Action Modal (inline action challenge) */}
+      {selectedAction && (
+        <ActionModal
+          action={selectedAction}
+          onClose={() => setSelectedAction(null)}
+          onComplete={handleActionComplete}
+        />
+      )}
+
+      {/* Combat Modal (inline NPC combat) */}
+      {selectedCombatNPC && (
+        <CombatModal
+          npc={selectedCombatNPC}
+          onClose={() => setSelectedCombatNPC(null)}
+          onComplete={handleCombatComplete}
+        />
       )}
     </div>
   );

@@ -10,6 +10,7 @@
 
 import { Request, Response } from 'express';
 import karmaService from '../services/karma.service';
+import karmaEffectsService from '../services/karmaEffects.service';
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
 import { isValidObjectId } from 'mongoose';
@@ -318,38 +319,41 @@ export async function getActiveEffects(req: Request, res: Response): Promise<voi
       throw new AppError('Not authorized to view these effects', 403);
     }
 
-    const summary = await karmaService.getKarmaSummary(characterId);
-
-    // Combine all active effects into a single object
-    const combinedEffects: Record<string, number> = {};
-
-    for (const blessing of summary.activeBlessings) {
-      // Parse effect data if stored as string
-      const effect = typeof blessing === 'object' ? blessing : JSON.parse(blessing as unknown as string);
-      // Skip non-numeric properties
-      for (const [key, value] of Object.entries(effect)) {
-        if (typeof value === 'number' && key !== 'power' && key !== 'source') {
-          combinedEffects[key] = (combinedEffects[key] || 0) + value;
-        }
-      }
-    }
-
-    for (const curse of summary.activeCurses) {
-      const effect = typeof curse === 'object' ? curse : JSON.parse(curse as unknown as string);
-      for (const [key, value] of Object.entries(effect)) {
-        if (typeof value === 'number' && key !== 'severity' && key !== 'source') {
-          combinedEffects[key] = (combinedEffects[key] || 0) + value;
-        }
-      }
-    }
+    // Use the proper karma effects service to calculate effects
+    const effects = await karmaEffectsService.getActiveEffects(characterId);
 
     res.json({
       success: true,
       data: {
         characterId,
-        effects: combinedEffects,
-        blessingCount: summary.activeBlessings.length,
-        curseCount: summary.activeCurses.length
+        effects: {
+          luck_bonus: effects.luck_bonus,
+          critical_chance: effects.critical_chance,
+          gambling_bonus: effects.gambling_bonus,
+          gambling_penalty: effects.gambling_penalty,
+          combat_bonus: effects.combat_bonus,
+          combat_penalty: effects.combat_penalty,
+          crit_bonus: effects.crit_bonus,
+          damage_variance: effects.damage_variance,
+          damage_reduction: effects.damage_reduction,
+          health_regen: effects.health_regen,
+          accuracy: effects.accuracy,
+          reputation_bonus: effects.reputation_bonus,
+          reputation_penalty: effects.reputation_penalty,
+          npc_disposition: effects.npc_disposition,
+          intimidation: effects.intimidation,
+          deception_bonus: effects.deception_bonus,
+          deception_penalty: effects.deception_penalty,
+          bribe_discount: effects.bribe_discount,
+          escape_bonus: effects.escape_bonus,
+          movement_penalty: effects.movement_penalty,
+          energy_cost_increase: effects.energy_cost_increase,
+          jail_time_reduction: effects.jail_time_reduction,
+          fear_penalty: effects.fear_penalty
+        },
+        blessingCount: effects.blessingCount,
+        curseCount: effects.curseCount,
+        sources: effects.sources
       }
     });
   } catch (error) {

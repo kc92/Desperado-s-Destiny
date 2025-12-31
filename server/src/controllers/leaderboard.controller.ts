@@ -51,6 +51,7 @@ export const getLevelLeaderboard = asyncHandler(
       characterId: char._id,
       name: char.name,
       value: char.level,
+      level: char.level,  // PRODUCTION FIX: Explicit level field for frontend display
       experience: char.experience,
       faction: char.faction
     }));

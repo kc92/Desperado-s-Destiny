@@ -12,16 +12,19 @@ import { Character } from '../models/Character.model';
 import { FenceTransaction } from '../models/FenceTransaction.model';
 import { DollarService, TransactionSource } from './dollar.service';
 import { InventoryService } from './inventory.service';
+import { BountyService } from './bounty.service';
+import { JailService } from './jail.service';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 import {
+  BountyFaction,
+  JailReason,
   FenceLocationId,
   FenceTrustLevel,
   FenceSpecialization,
   IFenceTransaction,
   IFenceTrust,
   IFenceListingResponse,
-} from '@desperados/shared';
-import {
   FENCE_LOCATIONS,
   FENCE_TRUST_THRESHOLDS,
   getTrustLevel,
@@ -140,7 +143,7 @@ export class FenceOperationService {
 
       // Check for sting operation
       const stingRisk = this.calculateStingRisk(fenceLocation, trustLevel);
-      const wasStingOperation = Math.random() * 100 < stingRisk;
+      const wasStingOperation = SecureRNG.chance(stingRisk / 100);
 
       // Calculate sale value first (needed for transaction logging)
       const fenceRate = this.calculateFenceRate(fenceLocation, trustLevel);
@@ -437,9 +440,37 @@ export class FenceOperationService {
       });
     }
 
-    // TODO: Add wanted level, jail time, etc.
-
     await character.save();
+
+    // Add bounty for illegal fence operation (caught in sting)
+    try {
+      await BountyService.addCrimeBounty(
+        character._id.toString(),
+        'Illegal Fence Operation',
+        BountyFaction.SETTLER_ALLIANCE, // Law enforcement faction
+        character.currentLocation
+      );
+      logger.info(`Bounty placed on ${character.name} for illegal fence operation`);
+    } catch (bountyError) {
+      logger.warn('Failed to add bounty for sting operation:', bountyError);
+    }
+
+    // Jail the character for the offense (15-30 minutes based on previous offenses)
+    try {
+      const stingCount = existingTrust?.stingOperationsTriggered || 1;
+      const jailMinutes = 15 + (stingCount * 5); // 15 min base + 5 min per previous offense (max ~45 min)
+      const bailAmount = 100 * stingCount; // $100 bail per previous offense
+      await JailService.jailPlayer(
+        character._id.toString(),
+        Math.min(jailMinutes, 60), // Cap at 60 minutes
+        JailReason.CAUGHT_CRIME,
+        bailAmount,
+        true // canBail
+      );
+      logger.info(`${character.name} jailed for ${jailMinutes} minutes (fence sting at ${fenceLocationId})`);
+    } catch (jailError) {
+      logger.warn('Failed to jail for sting operation:', jailError);
+    }
   }
 
   /**

@@ -10,6 +10,7 @@ import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model
 import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
 import karmaService from './karma.service';
+import { SkillService } from './skill.service';
 
 export interface BribeResult {
   success: boolean;
@@ -135,7 +136,8 @@ export class BribeService {
       // Calculate success chance based on amount and character cunning
       const basChance = 50;
       const amountBonus = Math.min(30, amount / 10);
-      const cunningBonus = character.stats.cunning * 2;
+      const effectiveCunning = SkillService.getEffectiveStat(character, 'cunning');
+      const cunningBonus = effectiveCunning * 2;
       const successChance = basChance + amountBonus + cunningBonus;
 
       const succeeded = SecureRNG.chance(successChance / 100);

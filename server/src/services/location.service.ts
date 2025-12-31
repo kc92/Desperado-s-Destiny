@@ -8,7 +8,9 @@
 import mongoose from 'mongoose';
 import { Location, ILocation } from '../models/Location.model';
 import { Character, ICharacter } from '../models/Character.model';
-import { Action } from '../models/Action.model';
+import { Action, ActionType } from '../models/Action.model';
+import { NPC, INPC } from '../models/NPC.model';
+import { NPCType } from '@desperados/shared';
 import { GoldService } from './gold.service';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import { QuestService } from './quest.service';
@@ -18,11 +20,20 @@ import { EncounterService } from './encounter.service';
 import { PlayerEventService } from './playerEvent.service';
 import { WorldEvent } from '../models/WorldEvent.model';
 import { calculateDangerChance, rollForEncounter } from '../middleware/accessRestriction.middleware';
-import { ZONE_INFO, WorldZoneType, getAdjacentZones, LocationJob } from '@desperados/shared';
+import { ZONE_INFO, WorldZoneType, getAdjacentZones, LocationJob, SkillCategory } from '@desperados/shared';
 import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
 import { ActionDeckSession } from '../models/ActionDeckSession.model';
 import { initGame, getGameTypeForJobCategory, GameState, Suit } from './deckGames';
+import {
+  GLOBAL_ACTIONS,
+  CRIME_LOCATION_MAP,
+  COMBAT_LOCATION_MAP,
+  CRAFT_LOCATION_MAP,
+  SOCIAL_LOCATION_MAP,
+  getLocationTypeFromSlug,
+  LocationType,
+} from '../constants/globalActions';
 
 /**
  * Travel result interface
@@ -137,6 +148,138 @@ export class LocationService {
       return availableActions.map(a => a.toSafeObject());
     } catch (error) {
       logger.error('Error getting available actions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get actions available at a location filtered by location TYPE
+   * Uses the globalActions constants to determine what's available
+   * Also filters crimes by character CUNNING skill level
+   *
+   * Phase 7: Location-Specific Actions System
+   */
+  static async getActionsForLocationByType(
+    locationId: string,
+    character: ICharacter
+  ): Promise<{
+    crimes: any[];
+    combat: any[];
+    craft: any[];
+    social: any[];
+    global: any[];
+  }> {
+    try {
+      const location = await Location.findById(locationId);
+      if (!location) {
+        return { crimes: [], combat: [], craft: [], social: [], global: [] };
+      }
+
+      // Determine location type from the location's type field or infer from name
+      const locationSlug = location.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+      const locationType: LocationType = (location.type as LocationType) || getLocationTypeFromSlug(locationSlug) || 'frontier';
+
+      logger.debug(`Getting actions for location ${location.name} (type: ${locationType})`);
+
+      // Get action names that should be available at this location type
+      const availableCrimeNames: string[] = [];
+      const availableCombatNames: string[] = [];
+      const availableCraftNames: string[] = [];
+      const availableSocialNames: string[] = [];
+
+      // Check each map for actions available at this location type
+      for (const [actionName, locationTypes] of Object.entries(CRIME_LOCATION_MAP)) {
+        if (locationTypes.includes(locationType)) {
+          availableCrimeNames.push(actionName);
+        }
+      }
+
+      for (const [actionName, locationTypes] of Object.entries(COMBAT_LOCATION_MAP)) {
+        if (locationTypes.includes(locationType)) {
+          availableCombatNames.push(actionName);
+        }
+      }
+
+      for (const [actionName, locationTypes] of Object.entries(CRAFT_LOCATION_MAP)) {
+        if (locationTypes.includes(locationType)) {
+          availableCraftNames.push(actionName);
+        }
+      }
+
+      for (const [actionName, locationTypes] of Object.entries(SOCIAL_LOCATION_MAP)) {
+        if (locationTypes.includes(locationType)) {
+          availableSocialNames.push(actionName);
+        }
+      }
+
+      // Fetch all actions by name
+      const allActionNames = [
+        ...availableCrimeNames,
+        ...availableCombatNames,
+        ...availableCraftNames,
+        ...availableSocialNames,
+        ...GLOBAL_ACTIONS,
+      ];
+
+      const actions = await Action.find({
+        name: { $in: allActionNames },
+        isActive: true,
+      });
+
+      // Get character's CUNNING skill level for crime filtering
+      const cunningLevel = character.getSkillLevel('CUNNING') || character.getSkillLevel('cunning') || 0;
+
+      // Categorize and filter actions
+      const crimes: any[] = [];
+      const combat: any[] = [];
+      const craft: any[] = [];
+      const social: any[] = [];
+      const global: any[] = [];
+
+      for (const action of actions) {
+        const safeAction = action.toSafeObject();
+
+        // Filter crimes by CUNNING skill level (hide crimes player can't attempt)
+        if (action.type === ActionType.CRIME) {
+          // Check if player has required CUNNING level
+          const requiredLevel = action.requiredSkillLevel || 1;
+          if (cunningLevel >= requiredLevel && availableCrimeNames.includes(action.name)) {
+            crimes.push(safeAction);
+          }
+        } else if (action.type === ActionType.COMBAT) {
+          // Combat filtered by character level
+          const requiredLevel = action.requiredSkillLevel || 1;
+          if (character.level >= requiredLevel && availableCombatNames.includes(action.name)) {
+            combat.push(safeAction);
+          }
+        } else if (action.type === ActionType.CRAFT) {
+          // Craft actions - check level requirement
+          const requiredLevel = action.requiredSkillLevel || 1;
+          if (character.level >= requiredLevel && availableCraftNames.includes(action.name)) {
+            craft.push(safeAction);
+          }
+        } else if (action.type === ActionType.SOCIAL) {
+          // Social actions
+          if (GLOBAL_ACTIONS.includes(action.name)) {
+            global.push(safeAction);
+          } else if (availableSocialNames.includes(action.name)) {
+            social.push(safeAction);
+          }
+        }
+      }
+
+      // Sort each category by difficulty
+      crimes.sort((a, b) => a.difficulty - b.difficulty);
+      combat.sort((a, b) => a.difficulty - b.difficulty);
+      craft.sort((a, b) => a.difficulty - b.difficulty);
+      social.sort((a, b) => a.difficulty - b.difficulty);
+      global.sort((a, b) => a.difficulty - b.difficulty);
+
+      logger.debug(`Actions at ${location.name}: ${crimes.length} crimes, ${combat.length} combat, ${craft.length} craft, ${social.length} social, ${global.length} global`);
+
+      return { crimes, combat, craft, social, global };
+    } catch (error) {
+      logger.error('Error getting actions by location type:', error);
       throw error;
     }
   }
@@ -409,8 +552,14 @@ export class LocationService {
       // Update quest progress for location visit (fire-and-forget, outside transaction)
       // This is safe because quest progress is not critical to travel completion
       if (!encounter) {
+        // Trigger with ObjectId for direct matches
         QuestService.onLocationVisited(characterId, targetLocationId).catch(err =>
           logger.error('Quest update failed after travel:', err)
+        );
+        // Also trigger with slug format for quest matching
+        const locationSlug = targetLocation.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+        QuestService.onLocationVisited(characterId, `location:${locationSlug}`).catch(err =>
+          logger.error('Quest slug update failed after travel:', err)
         );
       }
 
@@ -597,7 +746,7 @@ export class LocationService {
         goldEarned,
         xpEarned,
         items,
-        message: `You completed ${job.name} and earned ${goldEarned} gold and ${xpEarned} XP`,
+        message: `You completed ${job.name} and earned $${goldEarned} and ${xpEarned} XP`,
       };
     } catch (error) {
       logger.error('Error performing job:', error);
@@ -841,42 +990,72 @@ export class LocationService {
           success: false,
           itemId: '',
           goldSpent: 0,
-          message: `Not enough gold. Need ${item.price}, have ${character.gold}`,
+          message: `Not enough dollars. Need $${item.price}, have $${character.dollars}`,
         };
       }
 
-      // Deduct gold
-      await GoldService.deductGold(
-        character._id as any,
-        item.price,
-        TransactionSource.SHOP_PURCHASE,
-        {
-          shopId,
-          shopName: shop.name,
-          itemId: item.itemId,
-          itemName: item.name,
-          description: `Purchased ${item.name} for ${item.price} gold`,
-        },
-        session
-      );
+      // End session - we'll use atomic operations instead of transactions
+      // MongoDB doesn't allow multiple writes to same doc in a transaction
+      await session.abortTransaction();
+      session.endSession();
 
-      // Add item to inventory
+      // Check if item already exists in inventory
       const existingItem = character.inventory.find(i => i.itemId === item.itemId);
+
+      // Perform atomic update: deduct gold AND update inventory in one operation
+      // This avoids the WriteConflict that occurs with separate transaction writes
+      let updateResult;
       if (existingItem) {
-        existingItem.quantity += 1;
+        // Item exists - increment quantity and deduct gold atomically
+        updateResult = await Character.findOneAndUpdate(
+          {
+            _id: characterId,
+            dollars: { $gte: item.price },
+            'inventory.itemId': item.itemId
+          },
+          {
+            $inc: {
+              dollars: -item.price,
+              gold: -item.price,
+              'inventory.$.quantity': 1
+            },
+            $set: { lastActive: new Date() }
+          },
+          { new: true }
+        );
       } else {
-        character.inventory.push({
-          itemId: item.itemId,
-          quantity: 1,
-          acquiredAt: new Date(),
-        });
+        // New item - push to inventory and deduct gold atomically
+        updateResult = await Character.findOneAndUpdate(
+          {
+            _id: characterId,
+            dollars: { $gte: item.price }
+          },
+          {
+            $inc: {
+              dollars: -item.price,
+              gold: -item.price
+            },
+            $push: {
+              inventory: {
+                itemId: item.itemId,
+                quantity: 1,
+                acquiredAt: new Date()
+              }
+            },
+            $set: { lastActive: new Date() }
+          },
+          { new: true }
+        );
       }
 
-      character.lastActive = new Date();
-      await character.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
+      if (!updateResult) {
+        return {
+          success: false,
+          itemId: '',
+          goldSpent: 0,
+          message: `Purchase failed - insufficient funds or concurrent request`,
+        };
+      }
 
       logger.info(`Character ${characterId} purchased ${item.name} for ${item.price} gold`);
 
@@ -884,11 +1063,10 @@ export class LocationService {
         success: true,
         itemId: item.itemId,
         goldSpent: item.price,
-        message: `You purchased ${item.name} for ${item.price} gold`,
+        message: `You purchased ${item.name} for $${item.price}`,
       };
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
+      // Session cleanup handled above when we abort it
       logger.error('Error purchasing item:', error);
       throw error;
     }
@@ -1099,5 +1277,118 @@ export class LocationService {
       logger.error('Error getting connected locations:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get hostile NPCs at a location that can be fought
+   * Filters by location name/type and excludes friendly NPC types
+   */
+  static async getHostileNPCsAtLocation(
+    locationId: string,
+    character: ICharacter
+  ): Promise<INPC[]> {
+    try {
+      const location = await Location.findById(locationId);
+      if (!location) {
+        return [];
+      }
+
+      // Determine location identifiers to match against NPC location field
+      const locationName = location.name;
+      const locationType = location.type || 'frontier';
+      const locationZone = location.zone || '';
+
+      // Hostile NPC types that can be fought
+      const hostileTypes = [
+        NPCType.OUTLAW,
+        NPCType.BANDIT,
+        NPCType.WILDLIFE,
+        NPCType.MONSTER,
+        NPCType.BOUNTY_TARGET,
+      ];
+
+      // Find NPCs that:
+      // 1. Match this location (by name, type, or zone)
+      // 2. Are hostile types
+      // 3. Are active
+      // 4. Are within reasonable level range for the character
+      const npcs = await NPC.find({
+        $or: [
+          { location: locationName },
+          { location: locationType },
+          { location: locationZone },
+          { location: { $regex: new RegExp(locationName.replace(/[^a-zA-Z0-9]/g, '.*'), 'i') } },
+        ],
+        type: { $in: hostileTypes },
+        isActive: true,
+        level: { $lte: character.level + 10 }, // Don't show NPCs more than 10 levels above player
+      })
+        .sort({ level: 1, difficulty: 1 })
+        .limit(20)
+        .lean() as unknown as INPC[];
+
+      // Transform NPCs to include computed fields for the client
+      const transformedNPCs = npcs.map(npc => ({
+        ...npc,
+        _id: (npc._id as any).toString(),
+        icon: this.getNPCIcon(npc.type),
+        title: this.getNPCTitle(npc),
+        baseStats: {
+          health: npc.maxHP,
+          attack: Math.floor(npc.level * 1.5 + npc.difficulty * 2),
+          defense: Math.floor(npc.level + npc.difficulty),
+        },
+        rewards: {
+          gold: Math.floor((npc.lootTable.goldMin + npc.lootTable.goldMax) / 2),
+          xp: npc.lootTable.xpReward,
+        },
+      }));
+
+      logger.debug(`Found ${transformedNPCs.length} hostile NPCs at ${locationName}`);
+
+      return transformedNPCs as any;
+    } catch (error) {
+      logger.error('Error getting hostile NPCs at location:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get icon for NPC type
+   */
+  private static getNPCIcon(type: NPCType): string {
+    switch (type) {
+      case NPCType.OUTLAW:
+        return '🤠';
+      case NPCType.BANDIT:
+        return '🦹';
+      case NPCType.WILDLIFE:
+        return '🐺';
+      case NPCType.MONSTER:
+        return '👹';
+      case NPCType.BOUNTY_TARGET:
+        return '💀';
+      default:
+        return '⚔️';
+    }
+  }
+
+  /**
+   * Get title for NPC based on level and type
+   */
+  private static getNPCTitle(npc: INPC): string {
+    if (npc.isBoss) {
+      return 'Boss';
+    }
+    if (npc.level >= 30) {
+      return 'Legendary';
+    }
+    if (npc.level >= 20) {
+      return 'Elite';
+    }
+    if (npc.level >= 10) {
+      return 'Veteran';
+    }
+    return 'Common';
   }
 }

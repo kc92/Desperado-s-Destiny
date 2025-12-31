@@ -350,7 +350,7 @@ export class MiningClaimService {
         const resource = MINING_RESOURCES[resourceId as keyof typeof MINING_RESOURCES];
         if (resource) {
           // Calculate quantity based on time, tier multiplier, and randomness
-          const baseQuantity = (baseYield.min + Math.random() * (baseYield.max - baseYield.min)) * hoursAccumulated;
+          const baseQuantity = SecureRNG.float(baseYield.min, baseYield.max, 2) * hoursAccumulated;
           const tierMultiplier = tierConfig.yieldMultiplier;
           const upgradeMultiplier = 1 + (claim.upgradeLevel * 0.1); // 10% per upgrade level
           // TERRITORY BONUS: Apply yield multiplier (Phase 2.2)

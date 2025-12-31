@@ -209,3 +209,35 @@ export function formatTimeAgo(date: Date): string {
 export function formatDistanceToNow(date: Date): string {
   return formatTimeAgo(date);
 }
+
+// =============================================================================
+// STAT MODIFIERS
+// =============================================================================
+
+/**
+ * Format stat modifier with sign and fixed decimals
+ * PRODUCTION FIX: Handles JavaScript floating point precision issues
+ * e.g. -1.9000000000000001 -> "-1.9"
+ * @param value - The modifier value (can be positive or negative)
+ * @param decimals - Number of decimal places (default 1)
+ * @returns Formatted string like "+2.5" or "-1.9"
+ */
+export function formatStatModifier(value: number, decimals: number = 1): string {
+  const sign = value > 0 ? '+' : '';
+  // Round to fix floating point precision
+  const multiplier = Math.pow(10, decimals);
+  const rounded = Math.round(value * multiplier) / multiplier;
+  return `${sign}${rounded.toFixed(decimals)}`;
+}
+
+/**
+ * Round a number to specific precision
+ * Use for calculations that need clean numbers
+ * @param value - Number to round
+ * @param decimals - Decimal places (default 2)
+ * @returns Rounded number
+ */
+export function roundToPrecision(value: number, decimals: number = 2): number {
+  const multiplier = Math.pow(10, decimals);
+  return Math.round(value * multiplier) / multiplier;
+}

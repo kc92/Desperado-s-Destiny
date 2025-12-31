@@ -13,6 +13,7 @@ import {
   formatTimeRemaining,
   calculateEnergyDeficit,
 } from '../utils/energy.utils';
+import { PremiumUtils } from '../utils/premium.utils';
 import logger from '../utils/logger';
 
 /**
@@ -72,8 +73,8 @@ export function requireEnergy(cost: number) {
       }
 
       // Check if user has premium subscription
-      // TODO: Get isPremium from user model when premium system is implemented
-      const isPremium = false;
+      const premiumBenefits = await PremiumUtils.getPremiumBenefits(req.user._id.toString());
+      const isPremium = premiumBenefits.isPremium;
 
       // Calculate current energy with regeneration
       const currentEnergy = calculateCurrentEnergy(character, isPremium);
@@ -152,7 +153,9 @@ export function checkEnergy(cost?: number) {
         return next();
       }
 
-      const isPremium = false; // TODO: Get from user model
+      // Get premium status from user's subscription
+      const premiumBenefits = await PremiumUtils.getPremiumBenefits(req.user._id.toString());
+      const isPremium = premiumBenefits.isPremium;
 
       const currentEnergy = calculateCurrentEnergy(character, isPremium);
 

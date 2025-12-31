@@ -1,6 +1,7 @@
 /**
  * Territory Page
  * Interactive map of Sangre Territory with location details and navigation
+ * Location name resolution via locationService API
  */
 
 import React, { useEffect, useState } from 'react';
@@ -8,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useActionStore } from '@/store/useActionStore';
 import { useTerritoryStore } from '@/store/useTerritoryStore';
+import { locationService } from '@/services/location.service';
 import { Card, Button } from '@/components/ui';
 import type { Territory as TerritoryData } from '@desperados/shared';
 // import { formatDistanceToNow } from 'date-fns';
@@ -35,6 +37,7 @@ export const Territory: React.FC = () => {
     currentCharacter,
     currentLocation,
     setLocation,
+    refreshCharacter,
   } = useCharacterStore();
   const {
     fetchActions,
@@ -52,6 +55,7 @@ export const Territory: React.FC = () => {
   const [selectedTerritory, setSelectedTerritory] = useState<TerritoryLocation | null>(null);
   const [travelTime, setTravelTime] = useState<number>(0);
   const [isTraveling, setIsTraveling] = useState(false);
+  const [resolvedLocationName, setResolvedLocationName] = useState<string | null>(null);
 
   // Convert Territory[] from store to TerritoryLocation[] for UI
   // This is a temporary mapping layer until we fully migrate to Territory types
@@ -74,13 +78,39 @@ export const Territory: React.FC = () => {
     }
   }, [territories, currentLocation, selectedTerritory]);
 
+  // Fetch location name from location service (same approach as PlayerSidebar)
+  useEffect(() => {
+    const fetchLocationName = async () => {
+      if (currentCharacter?.locationId) {
+        try {
+          const response = await locationService.getLocationById(currentCharacter.locationId);
+          if (response.success && response.data?.location) {
+            setResolvedLocationName(response.data.location.name);
+          } else {
+            setResolvedLocationName(null);
+          }
+        } catch {
+          setResolvedLocationName(null);
+        }
+      } else {
+        setResolvedLocationName(null);
+      }
+    };
+    fetchLocationName();
+  }, [currentCharacter?.locationId]);
+
   /**
    * Map Territory from store to TerritoryLocation for UI
    * This is a temporary adapter until we fully migrate to Territory types
+   *
+   * NOTE: Territory._id is used for the id field. This is the MongoDB ObjectId.
+   * Territory.id is a slug (like "red-gulch") which is NOT a valid MongoDB ObjectId.
+   * The travel endpoint requires a valid Location ObjectId.
    */
   function mapTerritoryToLocation(territory: TerritoryData): TerritoryLocation {
     return {
-      id: territory.id,
+      // Use _id (MongoDB ObjectId) not id (slug) for travel compatibility
+      id: territory._id,
       name: territory.name,
       type: 'town', // Default type - could be enhanced based on territory data
       faction: territory.faction,
@@ -159,21 +189,61 @@ export const Territory: React.FC = () => {
   const handleTravel = async (territory: TerritoryLocation) => {
     if (!currentCharacter || isTraveling) return;
 
-    const current = territories.find(t => t.name === currentLocation);
-    if (!current) return;
+    // Find current territory by ID (currentLocation is locationId, not name)
+    const current = territories.find(t => t.id === currentLocation);
 
-    const time = calculateTravelTime(current, territory);
+    // Calculate travel time if we have current location, otherwise use default
+    const time = current
+      ? calculateTravelTime(current, territory)
+      : 1000; // Default 1 second if no current location found
+
     setTravelTime(time);
     setIsTraveling(true);
 
-    // Simulate travel time
-    setTimeout(async () => {
-      setLocation(territory.name);
-      await fetchActions(territory.id);
-      setSelectedTerritory(territory);
+    try {
+      // Territory IDs are NOT Location IDs - they're different systems.
+      // First, find a Location that matches the territory name.
+      const locationsResponse = await locationService.getAllLocations();
+
+      if (!locationsResponse.success || !locationsResponse.data?.locations) {
+        console.error('Failed to fetch locations for travel');
+        return;
+      }
+
+      // Find a location with matching name (case-insensitive)
+      const targetLocation = locationsResponse.data.locations.find(
+        loc => loc.name.toLowerCase() === territory.name.toLowerCase()
+      );
+
+      if (!targetLocation) {
+        console.error(`No hub location found for territory: ${territory.name}`);
+        // TODO: Show user-friendly error toast
+        return;
+      }
+
+      // Travel to the matching Location, not the Territory
+      // Use _id (MongoDB ObjectId) since API returns _id, not virtual id
+      const locationId = (targetLocation as any)._id || targetLocation.id;
+      const response = await locationService.travel(locationId);
+
+      if (response.success) {
+        // Update local state
+        setLocation(targetLocation.name);
+
+        // Refresh character to get updated location from server
+        await refreshCharacter();
+
+        await fetchActions(locationId);
+        setSelectedTerritory(territory);
+      } else {
+        console.error('Travel failed:', response.error);
+      }
+    } catch (error) {
+      console.error('Travel error:', error);
+    } finally {
       setIsTraveling(false);
       setTravelTime(0);
-    }, Math.min(time, 3000)); // Cap at 3 seconds for demo
+    }
   };
 
   const getDangerColor = (level: number) => {
@@ -226,6 +296,23 @@ export const Territory: React.FC = () => {
     );
   }
 
+  // Resolve currentLocation (ObjectId) to location name
+  const currentLocationName = React.useMemo(() => {
+    if (!currentLocation) return 'Unknown';
+    // First try to find by ID (ObjectId)
+    const locationById = territories.find(t => t.id === currentLocation);
+    if (locationById) return locationById.name;
+    // Fallback: if currentLocation is already a name, use it directly
+    const locationByName = territories.find(t => t.name === currentLocation);
+    if (locationByName) return locationByName.name;
+    // Last resort: check if currentCharacter has location info
+    if (currentCharacter?.locationId) {
+      const charLocation = territories.find(t => t.id === currentCharacter.locationId);
+      if (charLocation) return charLocation.name;
+    }
+    return currentLocation; // Return as-is if nothing matches (will show ObjectId as fallback)
+  }, [currentLocation, territories, currentCharacter]);
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -236,7 +323,7 @@ export const Territory: React.FC = () => {
           </h1>
           <p className="text-desert-sand font-serif">
             Current Location: <span className="text-gold-light font-bold">
-              {currentLocation || 'Unknown'}
+              {resolvedLocationName || currentLocationName}
             </span>
           </p>
         </div>
@@ -286,7 +373,7 @@ export const Territory: React.FC = () => {
                         ? 'bg-gold-light/20 border-gold-light border'
                         : 'hover:bg-wood-grain/10'
                       }
-                      ${territory.name === currentLocation
+                      ${territory.id === currentLocation
                         ? 'ring-2 ring-green-600'
                         : ''
                       }
@@ -390,7 +477,7 @@ export const Territory: React.FC = () => {
                     </div>
                   )}
 
-                  {selectedTerritory.name !== currentLocation && (
+                  {selectedTerritory.id !== currentLocation && (
                     <Button
                       variant="primary"
                       onClick={() => handleTravel(selectedTerritory)}
@@ -412,7 +499,7 @@ export const Territory: React.FC = () => {
                     </Button>
                   )}
 
-                  {selectedTerritory.name === currentLocation && (
+                  {selectedTerritory.id === currentLocation && (
                     <div className="text-center text-green-600 font-bold">
                       📍 You are here
                     </div>

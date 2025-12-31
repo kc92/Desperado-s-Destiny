@@ -114,7 +114,7 @@ export const deposit = asyncHandler(
     res.status(200).json({
       success: true,
       data: {
-        message: `Deposited ${amount} gold into your vault`,
+        message: `Deposited $${amount} into your vault`,
         vaultBalance: result.vaultBalance,
         walletBalance: result.walletBalance
       }
@@ -157,7 +157,7 @@ export const withdraw = asyncHandler(
     res.status(200).json({
       success: true,
       data: {
-        message: `Withdrew ${amount} gold from your vault`,
+        message: `Withdrew $${amount} from your vault`,
         vaultBalance: result.vaultBalance,
         walletBalance: result.walletBalance
       }

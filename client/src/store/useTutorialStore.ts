@@ -408,6 +408,18 @@ export const useTutorialStore = create<TutorialState>()(
           return;
         }
 
+        // Check if current step has an action requirement that hasn't been met
+        const currentStep = section.steps[state.currentStep];
+        if (currentStep?.requiresAction && !state.canProceed()) {
+          // Cannot advance - action requirement not met
+          logger.info(`[Tutorial] Cannot advance: action "${currentStep.requiresAction}" not completed`, {
+            context: 'useTutorialStore.nextStep',
+            stepId: currentStep.id,
+            requiresAction: currentStep.requiresAction,
+          });
+          return;
+        }
+
         if (state.currentStep < section.steps.length - 1) {
           // More steps in this section
           set({

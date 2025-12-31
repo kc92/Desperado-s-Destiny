@@ -68,7 +68,7 @@ export class ResistanceService {
     if (resourcesCommitted < activityConfig.cost) {
       return {
         success: false,
-        message: `Insufficient resources. Need ${activityConfig.cost} gold`,
+        message: `Insufficient funds. Need $${activityConfig.cost}`,
       };
     }
 

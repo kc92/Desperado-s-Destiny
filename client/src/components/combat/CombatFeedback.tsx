@@ -50,8 +50,8 @@ export const CombatFeedback = React.forwardRef<CombatFeedbackHandle, CombatFeedb
 
     // Calculate spawn position for damage numbers
     const getSpawnPosition = useCallback((): { x: number; y: number } => {
-      if (!targetRef?.current) {
-        // Default to center of screen if no target
+      if (!targetRef?.current || typeof targetRef.current.getBoundingClientRect !== 'function') {
+        // Default to center of screen if no valid target
         return {
           x: window.innerWidth / 2 - 50,
           y: window.innerHeight / 2 - 100,

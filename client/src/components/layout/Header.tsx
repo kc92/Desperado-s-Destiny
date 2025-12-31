@@ -87,10 +87,6 @@ export const Header: React.FC = React.memo(() => {
                   </NavLink>
                 </span>
 
-                <NavLink to="/game/combat" exact onClick={() => handleNavLinkClick('navigate-combat', '/game/combat')}>
-                  Combat
-                </NavLink>
-
                 <NavLink to="/game/gang" exact onClick={() => handleNavLinkClick('navigate-gang', '/game/gang')}>
                   Gangs
                 </NavLink>

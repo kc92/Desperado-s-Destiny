@@ -383,7 +383,8 @@ export async function getJailStatus(req: AuthRequest, res: Response): Promise<vo
         jailedUntil: character.jailedUntil,
         remainingMinutes,
         bailCost,
-        wantedLevel: character.wantedLevel
+        wantedLevel: character.wantedLevel,
+        offense: character.jailOffense
       }
     });
   } catch (error) {

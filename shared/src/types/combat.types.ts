@@ -13,7 +13,10 @@ export enum NPCType {
   OUTLAW = 'OUTLAW',
   WILDLIFE = 'WILDLIFE',
   LAWMAN = 'LAWMAN',
-  BOSS = 'BOSS'
+  BOSS = 'BOSS',
+  BANDIT = 'BANDIT',
+  MONSTER = 'MONSTER',
+  BOUNTY_TARGET = 'BOUNTY_TARGET'
 }
 
 /**

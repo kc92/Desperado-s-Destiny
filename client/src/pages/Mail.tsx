@@ -240,7 +240,7 @@ export const Mail: React.FC = () => {
                         </span>
                         {mail.goldAttachment > 0 && !mail.goldClaimed && (
                           <span className="bg-gold-medium text-wood-darker px-2 py-0.5 rounded text-sm">
-                            {mail.goldAttachment} gold
+                            ${mail.goldAttachment}
                           </span>
                         )}
                         {!mail.isRead && (
@@ -300,7 +300,7 @@ export const Mail: React.FC = () => {
                         </span>
                         {mail.goldAttachment > 0 && (
                           <span className="bg-gold-medium text-wood-darker px-2 py-0.5 rounded text-sm">
-                            {mail.goldAttachment} gold
+                            ${mail.goldAttachment}
                             {mail.goldClaimed && ' (claimed)'}
                           </span>
                         )}
@@ -410,7 +410,7 @@ export const Mail: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium mb-1">
-              Gold Attachment (optional)
+              Dollar Attachment (optional)
             </label>
             <input
               type="number"
@@ -426,11 +426,11 @@ export const Mail: React.FC = () => {
               placeholder="0"
             />
             <p className="text-sm text-gray-500 mt-1">
-              Your gold: {currentCharacter.gold}
+              Your balance: ${currentCharacter.gold}
             </p>
             {goldAttachment > currentCharacter.gold && (
               <p className="text-sm text-red-400 mt-1">
-                Cannot exceed available gold
+                Cannot exceed available balance
               </p>
             )}
           </div>
@@ -468,10 +468,10 @@ export const Mail: React.FC = () => {
             {selectedMail.goldAttachment > 0 && !selectedMail.goldClaimed && (
               <div className="bg-gold-dark border border-gold-medium p-4 rounded">
                 <p className="mb-2">
-                  This mail has {selectedMail.goldAttachment} gold attached.
+                  This mail has ${selectedMail.goldAttachment} attached.
                 </p>
                 <Button onClick={() => handleClaimAttachment(selectedMail._id)}>
-                  Claim {selectedMail.goldAttachment} Gold
+                  Claim ${selectedMail.goldAttachment}
                 </Button>
               </div>
             )}
@@ -479,7 +479,7 @@ export const Mail: React.FC = () => {
             {selectedMail.goldAttachment > 0 && selectedMail.goldClaimed && (
               <div className="bg-wood-darker border border-wood-grain p-4 rounded">
                 <p className="text-gray-400">
-                  Gold attachment ({selectedMail.goldAttachment}) already claimed.
+                  Attachment (${selectedMail.goldAttachment}) already claimed.
                 </p>
               </div>
             )}
@@ -515,14 +515,14 @@ export const Mail: React.FC = () => {
         icon="📧"
       />
 
-      {/* Gold Claimed Toast */}
+      {/* Dollars Claimed Toast */}
       {goldClaimedMessage !== null && (
         <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
           <div className="bg-gold-medium text-wood-darker px-6 py-4 rounded-lg shadow-lg flex items-center gap-3">
             <span className="text-2xl">💰</span>
             <div>
-              <div className="font-bold">Gold Claimed!</div>
-              <div className="text-sm">You received {goldClaimedMessage} gold</div>
+              <div className="font-bold">Dollars Claimed!</div>
+              <div className="text-sm">You received ${goldClaimedMessage}</div>
             </div>
             <button
               onClick={() => setGoldClaimedMessage(null)}

@@ -9,6 +9,7 @@ import { Character, ICharacter } from '../models/Character.model';
 import { GamblingSession, IGamblingSession } from '../models/GamblingSession.model';
 import { GamblingHistory } from '../models/GamblingHistory.model';
 import { TransactionSource } from '../models/GoldTransaction.model';
+import { Item } from '../models/Item.model';
 import {
   CheatMethod,
   CheatResult,
@@ -64,7 +65,8 @@ export async function attemptCheat(
 
   // Calculate success and detection chances
   const skillLevel = getRelevantSkillLevel(character, method);
-  const itemBonus = 0; // TODO: Check for gambling items equipped
+  const cheatItemResult = await hasGamblingItemBonus(characterId, 'cheat');
+  const itemBonus = cheatItemResult.bonus;
 
   // Base detection chance
   let detectionChance = game.cheatDetectionBase;
@@ -172,7 +174,7 @@ export async function attemptCheat(
 
     // Jail time
     if (cheatAttempt.jailTime) {
-      character.sendToJail(cheatAttempt.jailTime);
+      character.sendToJail(cheatAttempt.jailTime, undefined, 'Cheating at Cards');
     }
 
     await character.save();
@@ -244,10 +246,58 @@ export async function hasGamblingItemBonus(
     return { hasItem: false, bonus: 0 };
   }
 
-  // TODO: Check character's inventory and equipment for gambling items
-  // This would integrate with the item system
+  // Collect all equipped item IDs
+  const equippedItemIds: string[] = [];
+  const equipment = character.equipment;
+  if (equipment.weapon) equippedItemIds.push(equipment.weapon);
+  if (equipment.head) equippedItemIds.push(equipment.head);
+  if (equipment.body) equippedItemIds.push(equipment.body);
+  if (equipment.feet) equippedItemIds.push(equipment.feet);
+  if (equipment.accessory) equippedItemIds.push(equipment.accessory);
 
-  return { hasItem: false, bonus: 0 };
+  if (equippedItemIds.length === 0) {
+    return { hasItem: false, bonus: 0 };
+  }
+
+  // Look up equipped items
+  const items = await Item.find({ itemId: { $in: equippedItemIds } });
+
+  let totalBonus = 0;
+  let bestItemId: string | undefined;
+
+  for (const item of items) {
+    if (!item.effects) continue;
+
+    for (const effect of item.effects) {
+      // Check for gambling-type effects
+      if (effect.type === 'gambling') {
+        totalBonus += effect.value;
+        if (!bestItemId) bestItemId = item.itemId;
+      }
+      // Check for special effects related to gambling (e.g., bluff bonus, cheating bonus)
+      if (effect.type === 'special' && effect.description) {
+        const desc = effect.description.toLowerCase();
+        if (itemType === 'cheat' && (desc.includes('cheat') || desc.includes('bluff'))) {
+          totalBonus += effect.value;
+          if (!bestItemId) bestItemId = item.itemId;
+        }
+        if (itemType === 'winRate' && (desc.includes('win') || desc.includes('gambling'))) {
+          totalBonus += effect.value;
+          if (!bestItemId) bestItemId = item.itemId;
+        }
+        if (itemType === 'detection' && desc.includes('detect')) {
+          totalBonus += effect.value;
+          if (!bestItemId) bestItemId = item.itemId;
+        }
+      }
+    }
+  }
+
+  return {
+    hasItem: totalBonus > 0,
+    bonus: totalBonus,
+    itemId: bestItemId
+  };
 }
 
 /**

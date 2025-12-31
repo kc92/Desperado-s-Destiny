@@ -179,7 +179,7 @@ export const TutorialOverlay: React.FC = () => {
 
     const calculatePosition = () => {
       const element = document.querySelector(currentStepData.target!);
-      if (!element) {
+      if (!element || typeof element.getBoundingClientRect !== 'function') {
         setSpotlightPosition(null);
         return;
       }

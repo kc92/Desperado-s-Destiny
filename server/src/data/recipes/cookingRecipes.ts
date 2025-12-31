@@ -18,6 +18,193 @@ export const cookingRecipes: CraftingRecipe[] = [
   // ============================================================================
   // NOVICE TIER (1-15)
   // ============================================================================
+
+  // -------------------------------------------------------------------------
+  // BASIC COOKING (Level 1-5) - Using Gathered Materials
+  // -------------------------------------------------------------------------
+  {
+    id: 'cook_cooked_meat',
+    name: 'Cooked Meat',
+    description: 'Simple cooked meat. Better than eating it raw.',
+    professionId: ProfessionId.COOKING,
+    requirements: {
+      professionId: ProfessionId.COOKING,
+      minLevel: 1,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'meat',
+        materialName: 'Meat',
+        category: MaterialCategory.MEAT,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'cooked_meat',
+      itemName: 'Cooked Meat',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 15,
+    difficulty: 2,
+    xpGain: 5,
+    learningSource: RecipeSource.TRAINER,
+    category: 'consumable',
+    tags: ['novice', 'food', 'basic']
+  },
+  {
+    id: 'cook_bone_broth',
+    name: 'Bone Broth',
+    description: 'Nutritious broth made from animal bones. Restores health slowly.',
+    professionId: ProfessionId.COOKING,
+    requirements: {
+      professionId: ProfessionId.COOKING,
+      minLevel: 2,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'bone',
+        materialName: 'Bone',
+        category: MaterialCategory.ANIMAL_PART,
+        quantity: 3
+      },
+      {
+        materialId: 'water',
+        materialName: 'Water',
+        category: MaterialCategory.MINERAL,
+        quantity: 2
+      },
+      {
+        materialId: 'salt',
+        materialName: 'Salt',
+        category: MaterialCategory.SPICE,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'bone_broth',
+      itemName: 'Bone Broth',
+      baseQuantity: 3,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 30,
+    difficulty: 4,
+    xpGain: 8,
+    learningSource: RecipeSource.TRAINER,
+    category: 'consumable',
+    tags: ['novice', 'soup', 'healing']
+  },
+  {
+    id: 'cook_hand_rolled_cigars',
+    name: 'Hand-Rolled Cigars',
+    description: 'Fine cigars hand-rolled from fresh tobacco. A frontier luxury.',
+    professionId: ProfessionId.COOKING,
+    requirements: {
+      professionId: ProfessionId.COOKING,
+      minLevel: 4,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'tobacco',
+        materialName: 'Tobacco',
+        category: MaterialCategory.VEGETABLE,
+        quantity: 3
+      }
+    ],
+    output: {
+      itemId: 'hand_rolled_cigars',
+      itemName: 'Hand-Rolled Cigars',
+      baseQuantity: 5,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 20,
+    difficulty: 5,
+    xpGain: 8,
+    learningSource: RecipeSource.TRAINER,
+    category: 'consumable',
+    tags: ['novice', 'tobacco', 'luxury']
+  },
+  {
+    id: 'cook_seasoned_meat',
+    name: 'Seasoned Meat',
+    description: 'Meat cooked with herbs for better flavor and health benefits.',
+    professionId: ProfessionId.COOKING,
+    requirements: {
+      professionId: ProfessionId.COOKING,
+      minLevel: 3,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'meat',
+        materialName: 'Meat',
+        category: MaterialCategory.MEAT,
+        quantity: 2
+      },
+      {
+        materialId: 'herbs',
+        materialName: 'Herbs',
+        category: MaterialCategory.SPICE,
+        quantity: 1
+      },
+      {
+        materialId: 'salt',
+        materialName: 'Salt',
+        category: MaterialCategory.SPICE,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'seasoned_meat',
+      itemName: 'Seasoned Meat',
+      baseQuantity: 2,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 25,
+    difficulty: 5,
+    xpGain: 10,
+    learningSource: RecipeSource.TRAINER,
+    category: 'consumable',
+    tags: ['novice', 'meat', 'seasoned']
+  },
+  {
+    id: 'cook_wood_chips',
+    name: 'Prepare Smoking Wood Chips',
+    description: 'Chop and season mesquite wood into smoking chips for BBQ.',
+    professionId: ProfessionId.COOKING,
+    requirements: {
+      professionId: ProfessionId.COOKING,
+      minLevel: 8,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'mesquite_wood',
+        materialName: 'Mesquite Wood',
+        category: MaterialCategory.WOOD,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'wood_chips',
+      itemName: 'Mesquite Wood Chips',
+      baseQuantity: 4,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 15,
+    difficulty: 6,
+    xpGain: 10,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'smoking', 'preparation']
+  },
+
+  // -------------------------------------------------------------------------
+  // TRADITIONAL NOVICE RECIPES (Level 1-15)
+  // -------------------------------------------------------------------------
   {
     id: 'cook_campfire_beans',
     name: 'Campfire Beans',

@@ -169,10 +169,10 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-3xl font-western text-desert-sand">
-                    {encounter.npc?.name}
+                    {encounter.npc?.name || 'Unknown Enemy'}
                   </h2>
                   <p className="text-sm text-desert-dust font-serif">
-                    Level {encounter.npc?.level} {encounter.npc?.type}
+                    Level {encounter.npc?.level ?? '?'} {encounter.npc?.type || 'Enemy'}
                     {encounter.npc?.isBoss && ' BOSS'}
                   </p>
                 </div>
@@ -238,7 +238,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
 
                   {/* NPC's turn */}
                   <div className="text-sm text-wood-medium font-serif">
-                    <span className="text-blood-red font-bold">{encounter.npc?.name}</span> drew{' '}
+                    <span className="text-blood-red font-bold">{encounter.npc?.name || 'Enemy'}</span> drew{' '}
                     <span className="font-bold">{formatHandRank(round.npcHandRank)}</span> for{' '}
                     <span className="text-blood-red font-bold">{round.npcDamage} damage</span>!
                   </div>
@@ -304,7 +304,7 @@ export const CombatArena: React.FC<CombatArenaProps> = ({
                     <div className="inline-block">
                       <PlayingCard
                         card={hasAbilities.peekedCard}
-                        isFlipped={true}
+                        isFlipped={false}
                         size="sm"
                       />
                     </div>

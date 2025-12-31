@@ -83,7 +83,7 @@ export const combatService = {
   async fleeCombat(encounterId: string): Promise<ApiResponse<{ result: FleeResult }>> {
     try {
       const response = await apiClient.post<ApiResponse<{ result: FleeResult }>>(
-        `/combat/${encounterId}/flee`
+        `/combat/flee/${encounterId}`
       );
       return response.data;
     } catch (error: any) {

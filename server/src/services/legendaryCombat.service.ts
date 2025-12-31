@@ -20,6 +20,7 @@ import { LegendaryCombatSession } from '../models/LegendaryCombatSession.model';
 import { getLegendaryById } from '../data/legendaryAnimals';
 import { awardLegendaryRewards } from './legendaryHunt.service';
 import logger from '../utils/logger';
+import { SkillService } from './skill.service';
 
 /**
  * Execute turn in legendary hunt
@@ -165,10 +166,12 @@ async function handlePlayerAction(
   const statusEffects: string[] = [];
   let phaseChange: number | undefined;
 
+  const effectiveCombat = SkillService.getEffectiveStat(character, 'combat');
+
   switch (request.action) {
     case 'attack':
       // Calculate damage
-      const baseDamage = character.stats.combat * 10;
+      const baseDamage = effectiveCombat * 10;
       const critRoll = SecureRNG.float(0, 1);
       const isCrit = critRoll <= (character.criticalChance || 0.1);
       damage = Math.floor(baseDamage * (isCrit ? 2 : 1));
@@ -200,7 +203,7 @@ async function handlePlayerAction(
     case 'special':
       // Use character special ability (simplified)
       action = 'Special Ability';
-      damage = Math.floor(character.stats.combat * 15);
+      damage = Math.floor(effectiveCombat * 15);
       session.legendaryHealth -= damage;
       session.totalDamageDone += damage;
       statusEffects.push('Used Special Ability');
@@ -271,7 +274,8 @@ async function handleLegendaryTurn(
         const finalDamage = Math.floor(baseDamage + (ability.damage || 0));
 
         // Apply to character (simplified - would check character defense)
-        const characterDefense = character.stats.combat * 5;
+        const charCombatStat = SkillService.getEffectiveStat(character, 'combat');
+        const characterDefense = charCombatStat * 5;
         const actualDamage = Math.max(1, finalDamage - characterDefense);
 
         damage = actualDamage;

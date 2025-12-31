@@ -278,7 +278,7 @@ export const Inventory: React.FC = () => {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-desert-stone">Sell Value:</span>
-                      <span className="text-gold-light">{item.sellPrice}g</span>
+                      <span className="text-gold-light">${item.sellPrice}</span>
                     </div>
                   </div>
 
@@ -371,7 +371,7 @@ export const Inventory: React.FC = () => {
             {/* Sell Value */}
             <div className="flex justify-between text-sm">
               <span className="text-desert-stone">Sell Value:</span>
-              <span className="text-gold-light">{selectedItem.item.sellPrice}g each</span>
+              <span className="text-gold-light">${selectedItem.item.sellPrice} each</span>
             </div>
 
             {/* Actions */}

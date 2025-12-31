@@ -113,7 +113,8 @@ MerchantStockSchema.statics.purchaseStock = async function (
   session?: ClientSession
 ): Promise<{ success: boolean; remainingStock: number }> {
   // First, ensure stock record exists
-  await this.getStock(merchantId, itemId, initialStock, session);
+  // Cast to IMerchantStockModel to access static methods
+  await (this as unknown as IMerchantStockModel).getStock(merchantId, itemId, initialStock, session);
 
   // Atomically decrement stock only if sufficient quantity exists
   const result = await this.findOneAndUpdate(

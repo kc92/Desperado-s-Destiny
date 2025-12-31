@@ -7,8 +7,26 @@
 
 import { Character } from '../models/Character.model';
 import { GoldTransaction, TransactionSource, TransactionType } from '../models/GoldTransaction.model';
+import { Item, ItemRarity } from '../models/Item.model';
 import { BALANCE_TARGETS, EXPLOIT_THRESHOLDS, getLevelTier } from '../config/economy.config';
 import logger from '../utils/logger';
+
+/**
+ * Expected price ranges by rarity for validation
+ */
+const RARITY_PRICE_RANGES: Record<ItemRarity, { min: number; max: number }> = {
+  common: { min: 1, max: 500 },
+  uncommon: { min: 50, max: 2000 },
+  rare: { min: 200, max: 10000 },
+  epic: { min: 1000, max: 50000 },
+  legendary: { min: 5000, max: 500000 }
+};
+
+/**
+ * Expected sell price ratio (sellPrice should be this fraction of price)
+ */
+const EXPECTED_SELL_RATIO = 0.5;
+const SELL_RATIO_TOLERANCE = 0.1; // Allow 10% deviation
 
 /**
  * Balance issue severity
@@ -325,9 +343,107 @@ export class BalanceValidationService {
   static async validateItemPricing(): Promise<BalanceIssue[]> {
     const issues: BalanceIssue[] = [];
 
-    // This would query Item model when items are seeded
-    // For now, return placeholder
-    // TODO: Implement when item seeding is complete
+    const items = await Item.find({}).lean();
+
+    if (items.length === 0) {
+      issues.push({
+        severity: BalanceIssueSeverity.INFO,
+        category: 'item_pricing',
+        description: 'No items found in database. Item seeding may be incomplete.',
+        recommendation: 'Run item seeding script to populate items'
+      });
+      return issues;
+    }
+
+    const criticalItems: string[] = [];
+    const warningItems: string[] = [];
+
+    for (const item of items) {
+      // CRITICAL: Sell price exceeds buy price (exploit prevention)
+      if (item.sellPrice > item.price) {
+        criticalItems.push(item.itemId);
+        issues.push({
+          severity: BalanceIssueSeverity.CRITICAL,
+          category: 'item_pricing',
+          description: `Item '${item.itemId}' has sellPrice (${item.sellPrice}) > price (${item.price}). Potential gold exploit!`,
+          metrics: { sellPrice: item.sellPrice, buyPrice: item.price, profit: item.sellPrice - item.price },
+          recommendation: 'Set sellPrice to 50% of price or less'
+        });
+      }
+
+      // WARNING: Missing or zero price
+      if (!item.price || item.price <= 0) {
+        warningItems.push(item.itemId);
+        issues.push({
+          severity: BalanceIssueSeverity.WARNING,
+          category: 'item_pricing',
+          description: `Item '${item.itemId}' has missing or zero price: ${item.price}`,
+          recommendation: 'Set a valid price based on rarity and level requirements'
+        });
+      }
+
+      // WARNING: Shop items with invalid prices
+      if (item.inShop && item.price < 1) {
+        warningItems.push(item.itemId);
+        issues.push({
+          severity: BalanceIssueSeverity.WARNING,
+          category: 'item_pricing',
+          description: `Shop item '${item.itemId}' has invalid price: ${item.price}`,
+          recommendation: 'Shop items should have positive prices'
+        });
+      }
+
+      // WARNING: Price outside expected range for rarity
+      const rarityRange = RARITY_PRICE_RANGES[item.rarity];
+      if (rarityRange && item.price > 0) {
+        if (item.price < rarityRange.min || item.price > rarityRange.max) {
+          issues.push({
+            severity: BalanceIssueSeverity.INFO,
+            category: 'item_pricing',
+            description: `Item '${item.itemId}' (${item.rarity}) price ${item.price} outside expected range [${rarityRange.min}-${rarityRange.max}]`,
+            metrics: { price: item.price, expectedMin: rarityRange.min, expectedMax: rarityRange.max },
+            recommendation: 'Review pricing relative to rarity tier'
+          });
+        }
+      }
+
+      // INFO: Sell ratio significantly off from expected 50%
+      if (item.price > 0) {
+        const actualRatio = item.sellPrice / item.price;
+        if (Math.abs(actualRatio - EXPECTED_SELL_RATIO) > SELL_RATIO_TOLERANCE && item.sellPrice <= item.price) {
+          issues.push({
+            severity: BalanceIssueSeverity.INFO,
+            category: 'item_pricing',
+            description: `Item '${item.itemId}' has unusual sell ratio: ${(actualRatio * 100).toFixed(0)}% (expected ~50%)`,
+            metrics: { sellPrice: item.sellPrice, buyPrice: item.price, ratio: actualRatio },
+            recommendation: 'Consider standardizing sell price to 50% of buy price'
+          });
+        }
+      }
+    }
+
+    // Summary issue if multiple problems found
+    if (criticalItems.length > 0) {
+      issues.unshift({
+        severity: BalanceIssueSeverity.CRITICAL,
+        category: 'item_pricing_summary',
+        description: `${criticalItems.length} items have sellPrice > price exploits`,
+        affectedCharacters: criticalItems.slice(0, 10), // Show first 10
+        recommendation: 'Fix pricing on all affected items immediately'
+      });
+    }
+
+    if (warningItems.length > 0) {
+      issues.unshift({
+        severity: BalanceIssueSeverity.WARNING,
+        category: 'item_pricing_summary',
+        description: `${warningItems.length} items have pricing warnings`,
+        affectedCharacters: [...new Set(warningItems)].slice(0, 10),
+        recommendation: 'Review and fix item pricing'
+      });
+    }
+
+    logger.info(`Item pricing validation complete: ${items.length} items checked, ${issues.length} issues found`);
 
     return issues;
   }

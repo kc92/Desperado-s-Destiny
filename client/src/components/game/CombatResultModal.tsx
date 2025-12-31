@@ -89,11 +89,11 @@ export const CombatResultModal: React.FC<CombatResultModalProps> = ({
                 </div>
               </div>
 
-              {/* Gold Gained */}
+              {/* Dollars Earned */}
               <div className="bg-gold-light/10 border-2 border-gold-dark/30 rounded-lg p-4">
-                <div className="text-sm text-wood-medium font-serif mb-1">Gold Earned</div>
+                <div className="text-sm text-wood-medium font-serif mb-1">Dollars Earned</div>
                 <div className="text-3xl font-western text-gold-dark">
-                  💰 {result.goldGained}
+                  💰 ${result.goldGained}
                 </div>
               </div>
 
@@ -184,14 +184,14 @@ export const CombatResultModal: React.FC<CombatResultModalProps> = ({
               </p>
             </div>
 
-            {/* Gold Lost */}
+            {/* Dollars Lost */}
             <div className="bg-blood-red/10 border-2 border-blood-red/30 rounded-lg p-4">
-              <div className="text-sm text-desert-dust font-serif mb-1">Gold Lost</div>
+              <div className="text-sm text-desert-dust font-serif mb-1">Dollars Lost</div>
               <div className="text-2xl font-western text-blood-crimson">
-                - {result.goldLost} 💰
+                - ${result.goldLost}
               </div>
               <p className="text-xs text-desert-dust font-serif italic mt-2">
-                (10% of your gold)
+                (10% death penalty)
               </p>
             </div>
 

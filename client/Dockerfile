@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for React Frontend
 # Stage 1: Development
-FROM node:18-alpine AS development
+FROM node:20-alpine AS development
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ EXPOSE 5173
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 # Stage 2: Build
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 

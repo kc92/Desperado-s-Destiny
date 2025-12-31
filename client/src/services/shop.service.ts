@@ -42,6 +42,13 @@ export interface ShopItem {
   tradeable?: boolean;
   consumable?: boolean;
   equipSlot?: 'weapon' | 'head' | 'chest' | 'legs' | 'feet' | 'hands' | 'accessory' | 'mount';
+  // Dynamic pricing fields (populated when world events affect prices)
+  currentPrice?: number; // Price with all modifiers applied
+  priceModifiers?: Array<{
+    source: string;
+    modifier: number;
+  }>;
+  priceTrend?: 'rising' | 'stable' | 'falling';
 }
 
 export interface InventoryItem {

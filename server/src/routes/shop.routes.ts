@@ -15,8 +15,8 @@ import {
   unequipItem,
   getEquipment
 } from '../controllers/shop.controller';
-import { requireAuth } from '../middleware/auth.middleware';
-import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { requireAuth, optionalAuth } from '../middleware/auth.middleware';
+import { requireCharacter, optionalCharacter } from '../middleware/characterOwnership.middleware';
 import { shopRateLimiter } from '../middleware/rateLimiter';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { preventItemDuplication, checkGoldDuplication, logEconomicTransaction } from '../middleware/antiExploit.middleware';
@@ -25,7 +25,9 @@ import { requireCsrfToken } from '../middleware/csrf.middleware';
 const router = Router();
 
 // Public routes - view shop items
-router.get('/', asyncHandler(getShopItems));
+// PRODUCTION FIX: Use optional auth/character to enable dynamic pricing for logged-in users
+// while still allowing unauthenticated users to browse the shop
+router.get('/', optionalAuth, optionalCharacter, asyncHandler(getShopItems));
 router.get('/items/:itemId', asyncHandler(getItem));
 
 // Protected routes - require authentication and character

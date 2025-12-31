@@ -88,6 +88,19 @@ export async function getCsrfToken(): Promise<string> {
   return response.csrfToken;
 }
 
+/**
+ * Refresh access token using refresh token cookie
+ * Returns true if refresh was successful, false otherwise
+ */
+export async function refreshAccessToken(): Promise<boolean> {
+  try {
+    await apiCall<{ success: boolean }>('post', '/auth/refresh');
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 const authService = {
   login,
   register,
@@ -98,6 +111,7 @@ const authService = {
   requestPasswordReset,
   resetPassword,
   getCsrfToken,
+  refreshAccessToken,
 };
 
 export default authService;

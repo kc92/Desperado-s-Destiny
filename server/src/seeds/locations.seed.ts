@@ -40,6 +40,21 @@ export const LOCATION_IDS = {
   THE_BADLANDS: new mongoose.Types.ObjectId('6501a0000000000000000036'),
   SACRED_HEART_MOUNTAINS: new mongoose.Types.ObjectId('6501a0000000000000000037'),
   DEAD_MANS_STRETCH: new mongoose.Types.ObjectId('6501a0000000000000000038'),
+  // New Buildings - Red Gulch
+  RED_GULCH_BANK: new mongoose.Types.ObjectId('6501a0000000000000000040'),
+  RED_GULCH_CHURCH: new mongoose.Types.ObjectId('6501a0000000000000000041'),
+  RED_GULCH_COURTHOUSE: new mongoose.Types.ObjectId('6501a0000000000000000042'),
+  RED_GULCH_SALOON: new mongoose.Types.ObjectId('6501a0000000000000000043'),
+  // New Buildings - The Frontera
+  FRONTERA_BANK: new mongoose.Types.ObjectId('6501a0000000000000000044'),
+  FRONTERA_CHAPEL: new mongoose.Types.ObjectId('6501a0000000000000000045'),
+  FRONTERA_CANTINA: new mongoose.Types.ObjectId('6501a0000000000000000046'),
+  // New Buildings - Whiskey Bend
+  WHISKEY_BEND_BANK: new mongoose.Types.ObjectId('6501a0000000000000000047'),
+  WHISKEY_BEND_CHAPEL: new mongoose.Types.ObjectId('6501a0000000000000000048'),
+  WHISKEY_BEND_SALOON: new mongoose.Types.ObjectId('6501a0000000000000000049'),
+  // New World Location
+  PERDITION: new mongoose.Types.ObjectId('6501a000000000000000004a'),
 };
 
 // Starting location IDs for each faction
@@ -438,7 +453,8 @@ const locationSeeds = [
       { targetLocationId: LOCATION_IDS.DUSTY_TRAIL.toString(), travelTime: 0, energyCost: 10, description: 'South to Dusty Trail' },
       { targetLocationId: LOCATION_IDS.ECHO_CAVES.toString(), travelTime: 0, energyCost: 8, description: 'North to Echo Caves' },
       { targetLocationId: LOCATION_IDS.COYOTES_CROSSROADS.toString(), travelTime: 0, energyCost: 12, description: 'South to Coyote\'s Crossroads' },
-      { targetLocationId: LOCATION_IDS.DEAD_MANS_STRETCH.toString(), travelTime: 0, energyCost: 10, description: 'South to Dead Man\'s Stretch' }
+      { targetLocationId: LOCATION_IDS.DEAD_MANS_STRETCH.toString(), travelTime: 0, energyCost: 10, description: 'South to Dead Man\'s Stretch' },
+      { targetLocationId: LOCATION_IDS.PERDITION.toString(), travelTime: 0, energyCost: 15, description: 'East to Perdition (Ghost Town)', requirements: { minLevel: 20 } }
     ],
     dangerLevel: 7,
     factionInfluence: { settlerAlliance: 30, nahiCoalition: 30, frontera: 40 },
@@ -1176,6 +1192,490 @@ const locationSeeds = [
     isUnlocked: true,
     isHidden: false,
     requirements: { minLevel: 8 }
+  },
+
+  // ============================================================================
+  // NEW BUILDINGS - RED GULCH
+  // ============================================================================
+
+  // ===== RED GULCH - First National Bank =====
+  {
+    _id: LOCATION_IDS.RED_GULCH_BANK,
+    parentId: LOCATION_IDS.RED_GULCH,
+    name: 'First National Bank',
+    description: 'The largest bank in Sangre Territory, built of solid stone with iron bars on every window. Armed guards patrol day and night. The vault is legendary - as is the challenge of robbing it.',
+    shortDescription: 'Settler bank with legendary vault',
+    type: 'bank',
+    region: 'town',
+    zone: ZONES.SETTLER_TERRITORY,
+    isZoneHub: false,
+    icon: '🏦',
+    atmosphere: 'Marble floors echo with footsteps. Tellers behind iron bars count money with practiced efficiency. Armed guards watch every entrance. The vault door gleams with polished brass.',
+    availableActions: [],
+    availableCrimes: ['Bank Heist', 'Pick Lock', 'The Counterfeit Ring'],
+    jobs: [],
+    shops: [],
+    npcs: [
+      {
+        id: 'bank-manager',
+        name: 'Cornelius Whitmore',
+        title: 'Bank Manager',
+        description: 'A thin, nervous man who counts every penny twice.',
+        faction: 'SETTLER_ALLIANCE',
+        dialogue: ['This bank has never been robbed.', 'Your money is safe with us.'],
+        quests: []
+      }
+    ],
+    connections: [],
+    dangerLevel: 3,
+    factionInfluence: { settlerAlliance: 95, nahiCoalition: 0, frontera: 5 },
+    isUnlocked: true,
+    isHidden: false
+  },
+
+  // ===== RED GULCH - Church =====
+  {
+    _id: LOCATION_IDS.RED_GULCH_CHURCH,
+    parentId: LOCATION_IDS.RED_GULCH,
+    name: 'Red Gulch Church',
+    description: 'A white-painted chapel with a modest steeple, offering spiritual comfort to the faithful and absolution to the guilty. Reverend Isaiah Crane preaches hellfire and redemption in equal measure.',
+    shortDescription: 'Town church for settlers',
+    type: 'church',
+    region: 'town',
+    zone: ZONES.SETTLER_TERRITORY,
+    isZoneHub: false,
+    icon: '⛪',
+    atmosphere: 'Sunlight streams through simple glass windows. Wooden pews creak under the weight of sinners seeking salvation. The organ plays on Sundays, and confessions are heard daily.',
+    availableActions: [],
+    availableCrimes: ["The Preacher's Ledger"],
+    jobs: [],
+    shops: [],
+    npcs: [
+      {
+        id: 'reverend-crane',
+        name: 'Reverend Isaiah Crane',
+        title: 'Town Preacher',
+        description: 'A gaunt man with burning eyes who speaks of sin and salvation with equal fervor.',
+        faction: 'SETTLER_ALLIANCE',
+        dialogue: ['The Lord sees all transgressions.', 'Redemption is possible for those who truly repent.'],
+        quests: ['seek-redemption']
+      }
+    ],
+    connections: [],
+    dangerLevel: 1,
+    factionInfluence: { settlerAlliance: 90, nahiCoalition: 5, frontera: 5 },
+    isUnlocked: true,
+    isHidden: false
+  },
+
+  // ===== RED GULCH - Courthouse =====
+  {
+    _id: LOCATION_IDS.RED_GULCH_COURTHOUSE,
+    parentId: LOCATION_IDS.RED_GULCH,
+    name: 'Red Gulch Courthouse',
+    description: 'The seat of official justice in Sangre Territory. Judge Harlan Blackwood presides over trials, land disputes, and hangings. Justice here is swift - and often for sale to the highest bidder.',
+    shortDescription: 'Territorial courthouse',
+    type: 'courthouse',
+    region: 'town',
+    zone: ZONES.SETTLER_TERRITORY,
+    isZoneHub: false,
+    icon: '⚖️',
+    atmosphere: 'The gavel echoes in the wood-paneled courtroom. Lawyers argue, witnesses sweat, and the accused pray. The gallows stand visible through the back window as a reminder of ultimate justice.',
+    availableActions: [],
+    availableCrimes: ["The Judge's Pocket", 'Forge Documents'],
+    jobs: [],
+    shops: [],
+    npcs: [
+      {
+        id: 'judge-blackwood',
+        name: 'Judge Harlan Blackwood',
+        title: 'Territorial Judge',
+        description: 'A portly man with a reputation for harsh sentences and expensive tastes.',
+        faction: 'SETTLER_ALLIANCE',
+        dialogue: ['Order in the court!', 'Justice will be served... one way or another.'],
+        quests: ['corrupt-justice']
+      },
+      {
+        id: 'clerk-waters',
+        name: 'Thomas Waters',
+        title: 'Court Clerk',
+        description: 'A mousy man who knows every legal loophole.',
+        dialogue: ['All documents must be filed in triplicate.', 'The judge is very... particular.'],
+        quests: []
+      }
+    ],
+    connections: [],
+    dangerLevel: 2,
+    factionInfluence: { settlerAlliance: 95, nahiCoalition: 0, frontera: 5 },
+    isUnlocked: true,
+    isHidden: false
+  },
+
+  // ===== RED GULCH - Dusty Rose Saloon =====
+  {
+    _id: LOCATION_IDS.RED_GULCH_SALOON,
+    parentId: LOCATION_IDS.RED_GULCH,
+    name: 'The Dusty Rose Saloon',
+    description: 'The finest drinking establishment in Red Gulch, complete with card tables, a piano player, and rooms upstairs. Serious gamblers gather in the back room for high-stakes games.',
+    shortDescription: 'Premier saloon with gambling',
+    type: 'saloon',
+    region: 'town',
+    zone: ZONES.SETTLER_TERRITORY,
+    isZoneHub: false,
+    icon: '🍺',
+    atmosphere: 'Smoke hangs in the air. Piano music mingles with laughter and curses. Cards shuffle endlessly. The bartender polishes glasses while keeping one eye on trouble.',
+    availableActions: [],
+    availableCrimes: ['Pickpocket Drunk', 'Rob Saloon', 'Bar Brawl'],
+    jobs: [
+      {
+        id: 'saloon-dealer',
+        name: 'Card Dealer',
+        description: 'Deal poker and faro in the gambling hall.',
+        energyCost: 12,
+        cooldownMinutes: 25,
+        rewards: { goldMin: 12, goldMax: 25, xp: 20, items: [] },
+        requirements: { minLevel: 3 }
+      }
+    ],
+    shops: [
+      {
+        id: 'dusty-rose-bar',
+        name: 'The Bar',
+        description: 'Fine whiskey and cold beer.',
+        shopType: 'tavern',
+        items: [
+          { itemId: 'whiskey-shot', name: 'Whiskey Shot', description: 'Burns going down', price: 2 },
+          { itemId: 'beer-mug', name: 'Cold Beer', description: 'Refreshing brew', price: 1 },
+          { itemId: 'whiskey-bottle', name: 'Whiskey Bottle', description: 'For the road', price: 12 }
+        ],
+        buyMultiplier: 0.5
+      }
+    ],
+    npcs: [
+      {
+        id: 'rose-proprietor',
+        name: 'Rosalie "Rose" Dumont',
+        title: 'Saloon Owner',
+        description: 'A shrewd businesswoman who sees everything that happens in her establishment.',
+        dialogue: ['Welcome to the Rose, honey.', 'We have tables in the back for serious players.'],
+        quests: ['card-shark-challenge']
+      }
+    ],
+    connections: [],
+    dangerLevel: 4,
+    factionInfluence: { settlerAlliance: 70, nahiCoalition: 10, frontera: 20 },
+    isUnlocked: true,
+    isHidden: false
+  },
+
+  // ============================================================================
+  // NEW BUILDINGS - THE FRONTERA
+  // ============================================================================
+
+  // ===== FRONTERA - Bank =====
+  {
+    _id: LOCATION_IDS.FRONTERA_BANK,
+    parentId: LOCATION_IDS.THE_FRONTERA,
+    name: 'Banco de la Frontera',
+    description: 'A bank that operates outside the law, holding ill-gotten gains for outlaws and smugglers. The vault contains fortunes in stolen gold. Robbing it would make you an enemy of every criminal in the territory.',
+    shortDescription: 'Outlaw bank for stolen fortunes',
+    type: 'bank',
+    region: 'outlaw_territory',
+    zone: ZONES.OUTLAW_TERRITORY,
+    isZoneHub: false,
+    icon: '🏦',
+    atmosphere: 'Armed men watch every corner. The clientele includes the most dangerous outlaws in the territory. Money changes hands with no questions asked.',
+    availableActions: [],
+    availableCrimes: ['Bank Heist', 'Pick Lock', 'The Counterfeit Ring'],
+    jobs: [],
+    shops: [],
+    npcs: [
+      {
+        id: 'banker-morales',
+        name: 'Diego Morales',
+        title: 'Bank Keeper',
+        description: 'A former accountant who now launders money for the worst criminals.',
+        faction: 'FRONTERA',
+        dialogue: ['Discretion is our specialty.', 'Your deposits are... protected.'],
+        quests: []
+      }
+    ],
+    connections: [],
+    dangerLevel: 7,
+    factionInfluence: { settlerAlliance: 5, nahiCoalition: 5, frontera: 90 },
+    isUnlocked: true,
+    isHidden: false
+  },
+
+  // ===== FRONTERA - Mission Chapel =====
+  {
+    _id: LOCATION_IDS.FRONTERA_CHAPEL,
+    parentId: LOCATION_IDS.THE_FRONTERA,
+    name: 'Mission Chapel',
+    description: 'A burned and abandoned Spanish mission, now used by those seeking darker blessings. The priests fled years ago. Now only shadows worship here.',
+    shortDescription: 'Ruined church for dark dealings',
+    type: 'church',
+    region: 'outlaw_territory',
+    zone: ZONES.OUTLAW_TERRITORY,
+    isZoneHub: false,
+    icon: '🕯️',
+    atmosphere: 'Scorch marks cover the walls. The altar is broken. Candles flicker in the darkness. Those who pray here pray to different gods than the missionaries intended.',
+    availableActions: [],
+    availableCrimes: ["The Preacher's Ledger"],
+    jobs: [],
+    shops: [],
+    npcs: [
+      {
+        id: 'padre-sombra',
+        name: 'Padre Sombra',
+        title: 'Fallen Priest',
+        description: 'A defrocked priest who lost his faith but not his knowledge of sacred texts.',
+        dialogue: ['God abandoned this place.', 'Some sins cannot be forgiven.'],
+        quests: ['dark-confession']
+      }
+    ],
+    connections: [],
+    dangerLevel: 5,
+    factionInfluence: { settlerAlliance: 0, nahiCoalition: 10, frontera: 90 },
+    isUnlocked: true,
+    isHidden: false
+  },
+
+  // ===== FRONTERA - El Cantina del Diablo =====
+  {
+    _id: LOCATION_IDS.FRONTERA_CANTINA,
+    parentId: LOCATION_IDS.THE_FRONTERA,
+    name: 'El Cantina del Diablo',
+    description: 'The wildest cantina in the territory. High-stakes gambling, dangerous patrons, and tequila that could strip paint. This is where outlaws come to spend their ill-gotten gains.',
+    shortDescription: 'Notorious outlaw cantina',
+    type: 'saloon',
+    region: 'outlaw_territory',
+    zone: ZONES.OUTLAW_TERRITORY,
+    isZoneHub: false,
+    icon: '💀',
+    atmosphere: 'Mariachi music competes with gunfire outside. Tequila flows like water. Cards and dice fly across tables. Everyone is armed. No one asks questions.',
+    availableActions: [],
+    availableCrimes: ['Pickpocket Drunk', 'Rob Saloon', 'Bar Brawl'],
+    jobs: [
+      {
+        id: 'cantina-dealer',
+        name: 'Card Dealer',
+        description: 'Deal for outlaws - and hope they lose gracefully.',
+        energyCost: 15,
+        cooldownMinutes: 25,
+        rewards: { goldMin: 18, goldMax: 35, xp: 25, items: [] },
+        requirements: { minLevel: 5 }
+      }
+    ],
+    shops: [
+      {
+        id: 'cantina-bar',
+        name: 'The Bar',
+        description: 'Tequila and mezcal.',
+        shopType: 'tavern',
+        items: [
+          { itemId: 'tequila-shot', name: 'Tequila Shot', description: 'Fire in a glass', price: 3 },
+          { itemId: 'mezcal', name: 'Mezcal', description: 'With the worm', price: 5 },
+          { itemId: 'tequila-bottle', name: 'Tequila Bottle', description: 'For the brave', price: 15 }
+        ],
+        buyMultiplier: 0.6
+      }
+    ],
+    npcs: [
+      {
+        id: 'cantina-owner',
+        name: 'La Vibora',
+        title: 'Cantina Matron',
+        description: 'A scarred woman who runs the cantina with an iron fist.',
+        faction: 'FRONTERA',
+        dialogue: ['Pay your debts or pay with blood.', 'The tables in the back are for serious gamblers only.'],
+        quests: ['high-stakes-challenge']
+      }
+    ],
+    connections: [],
+    dangerLevel: 7,
+    factionInfluence: { settlerAlliance: 5, nahiCoalition: 5, frontera: 90 },
+    isUnlocked: true,
+    isHidden: false
+  },
+
+  // ============================================================================
+  // NEW BUILDINGS - WHISKEY BEND
+  // ============================================================================
+
+  // ===== WHISKEY BEND - Bank =====
+  {
+    _id: LOCATION_IDS.WHISKEY_BEND_BANK,
+    parentId: LOCATION_IDS.WHISKEY_BEND,
+    name: 'Whiskey Bend Savings & Loan',
+    description: 'A bank that caters to gamblers, holding winnings and providing loans at outrageous interest. Many desperate men have lost everything here.',
+    shortDescription: 'Gambling town bank',
+    type: 'bank',
+    region: 'frontier',
+    zone: ZONES.FRONTIER,
+    isZoneHub: false,
+    icon: '🏦',
+    atmosphere: 'Winners deposit their hauls. Losers beg for loans. The interest rates are criminal, but so is everything else in Whiskey Bend.',
+    availableActions: [],
+    availableCrimes: ['Bank Heist', 'Pick Lock', 'The Counterfeit Ring'],
+    jobs: [],
+    shops: [],
+    npcs: [
+      {
+        id: 'banker-griggs',
+        name: 'Mortimer Griggs',
+        title: 'Bank Owner',
+        description: 'A loan shark in respectable clothing.',
+        dialogue: ['Your collateral is... acceptable.', 'The interest is quite reasonable.'],
+        quests: []
+      }
+    ],
+    connections: [],
+    dangerLevel: 4,
+    factionInfluence: { settlerAlliance: 50, nahiCoalition: 5, frontera: 45 },
+    isUnlocked: true,
+    isHidden: false
+  },
+
+  // ===== WHISKEY BEND - Chapel =====
+  {
+    _id: LOCATION_IDS.WHISKEY_BEND_CHAPEL,
+    parentId: LOCATION_IDS.WHISKEY_BEND,
+    name: 'Gamblers Chapel',
+    description: 'A small chapel where gamblers pray for luck before their games. The collection plate is always full - whether from gratitude or desperation.',
+    shortDescription: 'Chapel for lucky gamblers',
+    type: 'church',
+    region: 'frontier',
+    zone: ZONES.FRONTIER,
+    isZoneHub: false,
+    icon: '🙏',
+    atmosphere: 'Candles flicker before a well-worn statue of Lady Luck. Gamblers cross themselves before heading to the tables. The preacher has learned not to judge.',
+    availableActions: [],
+    availableCrimes: ["The Preacher's Ledger"],
+    jobs: [],
+    shops: [],
+    npcs: [
+      {
+        id: 'padre-fortune',
+        name: 'Father Fortunato',
+        title: 'Chapel Priest',
+        description: 'A pragmatic priest who blesses gambling hands.',
+        dialogue: ['The Lord helps those who help themselves.', 'A donation might improve your luck...'],
+        quests: []
+      }
+    ],
+    connections: [],
+    dangerLevel: 2,
+    factionInfluence: { settlerAlliance: 60, nahiCoalition: 5, frontera: 35 },
+    isUnlocked: true,
+    isHidden: false
+  },
+
+  // ===== WHISKEY BEND - Lucky Lady Saloon =====
+  {
+    _id: LOCATION_IDS.WHISKEY_BEND_SALOON,
+    parentId: LOCATION_IDS.WHISKEY_BEND,
+    name: 'The Lucky Lady Saloon',
+    description: 'The heart of Whiskey Bend, where serious gamblers come to test their luck. Every game of chance known to man is played here, from poker to faro to roulette.',
+    shortDescription: 'Premier gambling hall',
+    type: 'saloon',
+    region: 'frontier',
+    zone: ZONES.FRONTIER,
+    isZoneHub: false,
+    icon: '🎲',
+    atmosphere: 'The click of chips and rattle of dice never stops. Fortunes are won and lost between breaths. The air is thick with cigar smoke and desperation.',
+    availableActions: [],
+    availableCrimes: ['Pickpocket Drunk', 'Rob Saloon', 'Bar Brawl'],
+    jobs: [
+      {
+        id: 'lucky-lady-dealer',
+        name: 'Professional Dealer',
+        description: 'Deal at the finest tables in the territory.',
+        energyCost: 12,
+        cooldownMinutes: 25,
+        rewards: { goldMin: 15, goldMax: 30, xp: 25, items: [] },
+        requirements: { minLevel: 5 }
+      },
+      {
+        id: 'lucky-lady-bouncer',
+        name: 'Floor Security',
+        description: 'Keep the peace among sore losers.',
+        energyCost: 15,
+        cooldownMinutes: 30,
+        rewards: { goldMin: 18, goldMax: 28, xp: 25, items: [] },
+        requirements: { minLevel: 8 }
+      }
+    ],
+    shops: [
+      {
+        id: 'lucky-lady-bar',
+        name: 'The Bar',
+        description: 'Drinks to celebrate or drown sorrows.',
+        shopType: 'tavern',
+        items: [
+          { itemId: 'champagne', name: 'Champagne', description: 'For winners', price: 25 },
+          { itemId: 'whiskey-premium', name: 'Premium Whiskey', description: 'Top shelf', price: 8 },
+          { itemId: 'beer-mug', name: 'Cold Beer', description: 'For the masses', price: 1 }
+        ],
+        buyMultiplier: 0.5
+      }
+    ],
+    npcs: [
+      {
+        id: 'lucky-lady-owner',
+        name: 'Victoria "Lady Luck" Ashton',
+        title: 'Casino Owner',
+        description: 'An elegant woman who never gambles - she always wins.',
+        dialogue: ['Welcome to the Lucky Lady.', 'The house always wins, eventually.'],
+        quests: ['tournament-champion']
+      }
+    ],
+    connections: [],
+    dangerLevel: 5,
+    factionInfluence: { settlerAlliance: 50, nahiCoalition: 5, frontera: 45 },
+    isUnlocked: true,
+    isHidden: false
+  },
+
+  // ============================================================================
+  // NEW WORLD LOCATION - PERDITION GHOST TOWN
+  // ============================================================================
+
+  // ===== PERDITION - Ghost Town =====
+  {
+    _id: LOCATION_IDS.PERDITION,
+    name: 'Perdition',
+    description: 'Once a thriving mining town until the vein ran dry and something worse was unearthed in the deep tunnels. Now abandoned, its buildings decay under the desert sun. Locals say the Warden of Perdition still walks these streets, eternally punishing those who dare trespass.',
+    shortDescription: 'Haunted ghost town',
+    type: 'ghost_town',
+    region: 'devils_canyon',
+    zone: ZONES.SANGRE_CANYON,
+    isZoneHub: false,
+    icon: '👻',
+    atmosphere: 'Wind howls through empty buildings. Doors creak on rusted hinges. Shadows move in abandoned windows. The silence is broken only by the distant clank of chains from the old prison.',
+    availableActions: [],
+    availableCrimes: ['Ghost Town Heist'],
+    jobs: [],
+    shops: [],
+    npcs: [
+      {
+        id: 'old-prospector-ghost',
+        name: 'The Last Prospector',
+        title: 'Restless Spirit',
+        description: 'A ghostly miner who warns travelers away - or lures them to their doom.',
+        dialogue: ['Turn back... nothing but death here...', 'The Warden never forgives...'],
+        quests: ['confront-the-warden']
+      }
+    ],
+    connections: [
+      { targetLocationId: LOCATION_IDS.SANGRE_CANYON.toString(), travelTime: 0, energyCost: 15, description: 'West to Sangre Canyon' },
+      { targetLocationId: LOCATION_IDS.GOLDFINGERS_MINE.toString(), travelTime: 0, energyCost: 12, description: 'North to Goldfinger\'s Mine' }
+    ],
+    dangerLevel: 8,
+    factionInfluence: { settlerAlliance: 10, nahiCoalition: 30, frontera: 60 },
+    isUnlocked: true,
+    isHidden: false,
+    requirements: { minLevel: 20 }
   }
 ];
 

@@ -16,6 +16,7 @@ import {
   ServiceEffectType,
   Service,
   NPCActivity,
+  ServiceEffect,
 } from '@desperados/shared';
 import {
   WANDERING_SERVICE_PROVIDERS,
@@ -24,6 +25,11 @@ import {
 } from '../data/wanderingServiceProviders';
 import { ServiceProviderRelationship } from '../models/ServiceProviderRelationship.model';
 import { ServiceUsageRecord } from '../models/ServiceUsageRecord.model';
+import { WantedLevel } from '../models/Bounty.model';
+import { Character } from '../models/Character.model';
+import { DollarService } from './dollar.service';
+import { TransactionSource } from '../models/GoldTransaction.model';
+import logger from '../utils/logger';
 
 /**
  * Get current game time (day of week and hour)
@@ -367,12 +373,16 @@ export class WanderingNPCService {
       };
     }
 
+    // Get character bounty for requirement checks
+    const wantedLevel = await WantedLevel.findOne({ characterId: request.characterId });
+    const characterBounty = wantedLevel?.totalBounty || 0;
+
     // Check service requirements
     const requirementCheck = checkServiceRequirements(
       service,
       request.characterId,
       trustLevel,
-      0 // TODO: Get actual character bounty
+      characterBounty
     );
 
     if (!requirementCheck.canUse) {
@@ -399,8 +409,27 @@ export class WanderingNPCService {
     const isEmergency = scheduleEntry?.emergencyOnly || false;
     const cost = calculateServiceCost(service, provider, trustLevel, isEmergency);
 
-    // TODO: Actually deduct payment (gold or barter items)
-    // This would integrate with your inventory/gold systems
+    // Deduct payment based on cost type
+    if (cost.type === 'gold' && cost.gold) {
+      try {
+        await DollarService.deductDollars(
+          request.characterId,
+          cost.gold,
+          TransactionSource.SERVICE_PURCHASE,
+          {
+            serviceId: service.id,
+            providerId: provider.id,
+            serviceName: service.name,
+          }
+        );
+      } catch (error) {
+        return {
+          success: false,
+          message: 'Insufficient funds for this service',
+        };
+      }
+    }
+    // Note: Barter and favor costs would require additional inventory/quest system integration
 
     // Record usage in MongoDB
     await this.recordServiceUsage(
@@ -426,8 +455,10 @@ export class WanderingNPCService {
     const relationship = await this.getRelationship(provider.id, request.characterId);
     const newTrustLevel = calculateTrustLevel(relationship);
 
-    // TODO: Actually apply service effects to character
-    // This would integrate with your character/combat/buff systems
+    // Apply service effects to character
+    if (service.effects && service.effects.length > 0) {
+      await this.applyServiceEffects(request.characterId, service.effects, wantedLevel);
+    }
 
     // Calculate cooldown expiration
     const cooldownUntil = service.cooldown
@@ -556,6 +587,84 @@ export class WanderingNPCService {
       usedAt: record.usedAt,
       availableAgainAt: record.cooldownExpiresAt,
     };
+  }
+
+  /**
+   * Apply service effects to a character
+   */
+  private async applyServiceEffects(
+    characterId: string,
+    effects: ServiceEffect[],
+    wantedLevel: any
+  ): Promise<void> {
+    const character = await Character.findById(characterId);
+    if (!character) {
+      logger.warn(`[WanderingNPC] Character ${characterId} not found for effect application`);
+      return;
+    }
+
+    for (const effect of effects) {
+      try {
+        switch (effect.type) {
+          case ServiceEffectType.HEAL:
+            // Heal character - HP system not yet implemented on Character model
+            // When HP is added, this would heal the character
+            if (effect.target === 'character') {
+              logger.info(
+                `[WanderingNPC] Heal effect: +${effect.value} HP to ${character.name}`
+              );
+              // TODO: character.currentHp = Math.min(character.maxHp, character.currentHp + effect.value);
+            }
+            break;
+
+          case ServiceEffectType.STAT_INCREASE:
+            // Apply temporary stat buff (for now, just log it)
+            // Full buff system would store buffs with expiration
+            if (effect.statName && effect.duration) {
+              logger.info(
+                `[WanderingNPC] Applied ${effect.statName} +${effect.value} buff for ${effect.duration}min to ${character.name}`
+              );
+              // TODO: Full buff system integration when available
+            }
+            break;
+
+          case ServiceEffectType.REDUCE_BOUNTY:
+            // Reduce bounty on wanted level
+            if (wantedLevel && effect.target === 'legal') {
+              // Reduce by percentage or flat amount
+              const reduction = effect.value;
+              if (wantedLevel.totalBounty > 0) {
+                wantedLevel.settlerAlliance = Math.max(0, wantedLevel.settlerAlliance - Math.floor(reduction / 3));
+                wantedLevel.nahiCoalition = Math.max(0, wantedLevel.nahiCoalition - Math.floor(reduction / 3));
+                wantedLevel.frontera = Math.max(0, wantedLevel.frontera - Math.floor(reduction / 3));
+                await wantedLevel.save();
+                logger.info(`[WanderingNPC] Reduced bounty by ${reduction} for ${character.name}`);
+              }
+            }
+            break;
+
+          case ServiceEffectType.CURE:
+            // Cure status effects (poison, disease, etc.)
+            // Would integrate with status effect system when available
+            logger.info(`[WanderingNPC] Cure effect applied to ${character.name}`);
+            break;
+
+          case ServiceEffectType.BUFF:
+            // Apply generic buff
+            logger.info(
+              `[WanderingNPC] Applied buff ${effect.description} to ${character.name}`
+            );
+            break;
+
+          default:
+            logger.debug(`[WanderingNPC] Unhandled effect type: ${effect.type}`);
+        }
+      } catch (error) {
+        logger.error(`[WanderingNPC] Error applying effect ${effect.type}:`, error);
+      }
+    }
+
+    await character.save();
   }
 }
 

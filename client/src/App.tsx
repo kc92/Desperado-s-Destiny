@@ -21,15 +21,18 @@ import {
   GlobalErrorDisplay,
   GameErrorFallback,
   DuelErrorFallback,
-  CombatErrorFallback,
+  // CombatErrorFallback, // Removed - Combat uses inline error handling
   GangErrorFallback,
   MarketplaceErrorFallback,
   PropertiesErrorFallback,
   SkillsErrorFallback,
-  ActionsErrorFallback,
+  StatsErrorFallback,
+  // ActionsErrorFallback, // Removed - Phase 7: Location-Specific Actions
   MailErrorFallback,
   SettingsErrorFallback,
   ProfileErrorFallback,
+  CraftingErrorFallback,
+  GatheringErrorFallback,
 } from '@/components/errors';
 import { AnimationPreferencesProvider } from '@/contexts';
 
@@ -44,10 +47,13 @@ const CharacterSelect = lazy(() => import('@/pages/CharacterSelect').then(m => (
 const Game = lazy(() => import('@/pages/Game').then(m => ({ default: m.Game })));
 const Town = lazy(() => import('@/pages/Town'));
 const Location = lazy(() => import('@/pages/Location').then(m => ({ default: m.Location })));
-const Actions = lazy(() => import('@/pages/Actions').then(m => ({ default: m.Actions })));
+// Actions page removed - Phase 7: Location-Specific Actions
+// const Actions = lazy(() => import('@/pages/Actions').then(m => ({ default: m.Actions })));
 const ActionChallenge = lazy(() => import('@/pages/ActionChallenge').then(m => ({ default: m.ActionChallenge })));
 const Skills = lazy(() => import('@/pages/Skills').then(m => ({ default: m.Skills })));
-const Combat = lazy(() => import('@/pages/Combat').then(m => ({ default: m.Combat })));
+const Stats = lazy(() => import('@/pages/Stats').then(m => ({ default: m.Stats })));
+// Combat page removed - Phase 7: Location-Specific Combat
+// const Combat = lazy(() => import('@/pages/Combat').then(m => ({ default: m.Combat })));
 const Crimes = lazy(() => import('@/pages/Crimes').then(m => ({ default: m.Crimes })));
 const Territory = lazy(() => import('@/pages/Territory').then(m => ({ default: m.Territory })));
 const Gang = lazy(() => import('@/pages/Gang').then(m => ({ default: m.Gang })));
@@ -84,6 +90,7 @@ const Bank = lazy(() => import('@/pages/Bank').then(m => ({ default: m.Bank })))
 const Fishing = lazy(() => import('@/pages/Fishing').then(m => ({ default: m.Fishing })));
 const Hunting = lazy(() => import('@/pages/Hunting').then(m => ({ default: m.Hunting })));
 const Crafting = lazy(() => import('@/pages/Crafting').then(m => ({ default: m.Crafting })));
+const Gathering = lazy(() => import('@/pages/Gathering').then(m => ({ default: m.Gathering })));
 const Companion = lazy(() => import('@/pages/Companion').then(m => ({ default: m.Companion })));
 const Duel = lazy(() => import('@/pages/Duel').then(m => ({ default: m.Duel })));
 const DuelArena = lazy(() => import('@/pages/DuelArena'));
@@ -92,6 +99,7 @@ const TrainRobbery = lazy(() => import('@/pages/TrainRobbery').then(m => ({ defa
 const Stagecoach = lazy(() => import('@/pages/Stagecoach').then(m => ({ default: m.Stagecoach })));
 const StagecoachAmbush = lazy(() => import('@/pages/StagecoachAmbush').then(m => ({ default: m.StagecoachAmbush })));
 const WorldMap = lazy(() => import('@/pages/WorldMap').then(m => ({ default: m.WorldMap })));
+const TeamCardGame = lazy(() => import('@/pages/TeamCardGame').then(m => ({ default: m.TeamCardGame })));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const ArtAssetDashboard = lazy(() => import('@/pages/admin/ArtAssetDashboard').then(m => ({ default: m.ArtAssetDashboard })));
 const StatusDashboard = lazy(() => import('@/pages/StatusDashboard').then(m => ({ default: m.StatusDashboard })));
@@ -236,22 +244,21 @@ function App() {
                 } />
                 <Route path="town" element={<Town />} />
                 <Route path="location" element={<Location />} />
-                <Route path="actions" element={
-                  <ErrorBoundary fallback={<ActionsErrorFallback />}>
-                    <Actions />
-                  </ErrorBoundary>
-                } />
+                {/* Actions page removed - redirects to Location (Phase 7: Location-Specific Actions) */}
+                <Route path="actions" element={<Navigate to="/game/location" replace />} />
                 <Route path="action-challenge" element={<ActionChallenge />} />
                 <Route path="skills" element={
                   <ErrorBoundary fallback={<SkillsErrorFallback />}>
                     <Skills />
                   </ErrorBoundary>
                 } />
-                <Route path="combat" element={
-                  <ErrorBoundary fallback={<CombatErrorFallback />}>
-                    <Combat />
+                <Route path="stats" element={
+                  <ErrorBoundary fallback={<StatsErrorFallback />}>
+                    <Stats />
                   </ErrorBoundary>
                 } />
+                {/* Combat page removed - redirects to Location (Phase 7: Location-Specific Combat) */}
+                <Route path="combat" element={<Navigate to="/game/location" replace />} />
                 <Route path="crimes" element={<Crimes />} />
                 <Route path="territory" element={<Territory />} />
                 <Route path="gang" element={
@@ -311,7 +318,16 @@ function App() {
                 <Route path="bank" element={<Bank />} />
                 <Route path="fishing" element={<Fishing />} />
                 <Route path="hunting" element={<Hunting />} />
-                <Route path="crafting" element={<Crafting />} />
+                <Route path="crafting" element={
+                  <ErrorBoundary fallback={<CraftingErrorFallback />}>
+                    <Crafting />
+                  </ErrorBoundary>
+                } />
+                <Route path="gathering" element={
+                  <ErrorBoundary fallback={<GatheringErrorFallback />}>
+                    <Gathering />
+                  </ErrorBoundary>
+                } />
                 <Route path="companions" element={<Companion />} />
                 <Route path="duel" element={
                   <ErrorBoundary fallback={<DuelErrorFallback />}>
@@ -324,6 +340,7 @@ function App() {
                 <Route path="stagecoach" element={<Stagecoach />} />
                 <Route path="stagecoach-ambush" element={<StagecoachAmbush />} />
                 <Route path="world-map" element={<WorldMap />} />
+                <Route path="card-games" element={<TeamCardGame />} />
               </Route>
 
               {/* Character Selection - Standalone Protected Route */}

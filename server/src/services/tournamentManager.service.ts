@@ -59,6 +59,8 @@ export async function createTournamentFromTemplate(
     blindLevels: blindStructure,
     currentBlindLevel: 0,
     blindDuration: blindStructure[0].duration,
+    blindScheduleId: template.blindScheduleId,
+    prizeStructureId: template.prizeStructureId,
 
     minPlayers: template.minPlayers,
     maxPlayers: template.maxPlayers,
@@ -196,7 +198,7 @@ export async function startTournament(tournamentId: string): Promise<PokerTourna
 
   // Calculate next blind increase
   tournament.nextBlindIncrease = getNextBlindIncreaseTime(
-    'standard', // TODO: Get from template
+    tournament.blindScheduleId || 'standard',
     tournament.startedAt,
     tournament.currentBlindLevel
   );
@@ -357,7 +359,7 @@ async function checkTournamentComplete(tournamentId: string): Promise<void> {
 async function awardPrizes(tournament: any): Promise<void> {
   const prizeDistribution = calculatePrizeDistribution(
     tournament.prizePool,
-    'championship' // TODO: Get from template
+    tournament.prizeStructureId || 'medium'
   );
 
   for (const [placement, amount] of prizeDistribution) {
@@ -401,7 +403,7 @@ export async function increaseBlindLevel(tournamentId: string): Promise<void> {
   // Set next blind increase time
   if (tournament.startedAt) {
     tournament.nextBlindIncrease = getNextBlindIncreaseTime(
-      'standard', // TODO: Get from template
+      tournament.blindScheduleId || 'standard',
       tournament.startedAt,
       tournament.currentBlindLevel
     );

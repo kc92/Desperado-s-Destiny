@@ -18,6 +18,7 @@ import { ActionType, SkillCategory } from '@desperados/shared';
 import type { Action } from '@desperados/shared';
 import { DeckGame, GameState, DeckGameResult, ActionResult } from '@/components/game/deckgames';
 import { api } from '@/services/api';
+import { locationService } from '@/services/location.service';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { logger } from '@/services/logger.service';
 import { dispatchJobCompleted } from '@/utils/tutorialEvents';
@@ -89,6 +90,7 @@ export const Actions: React.FC = () => {
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
   const [actionResult, setActionResult] = useState<any>(null);
   const [isPerforming, setIsPerforming] = useState(false);
+  const [locationName, setLocationName] = useState<string>('Loading...');
 
   // Deck game state
   const [activeGame, setActiveGame] = useState<{
@@ -140,6 +142,28 @@ export const Actions: React.FC = () => {
       fetchSkills(); // Fetch skills for gating checks
     }
   }, [currentCharacter, fetchActions, fetchSkills]);
+
+  // Fetch location name when currentLocation changes
+  useEffect(() => {
+    const fetchLocationName = async () => {
+      if (currentCharacter?.currentLocation) {
+        try {
+          const response = await locationService.getLocationById(currentCharacter.currentLocation);
+          if (response.success && response.data?.location) {
+            setLocationName(response.data.location.name);
+          } else {
+            setLocationName('Unknown Location');
+          }
+        } catch (error) {
+          logger.warn('Failed to fetch location name', { error });
+          setLocationName('Unknown Location');
+        }
+      } else {
+        setLocationName('Unknown Location');
+      }
+    };
+    fetchLocationName();
+  }, [currentCharacter?.currentLocation]);
 
   const handleAttemptAction = async (action: Action) => {
     if (!currentCharacter || isPerforming) return;
@@ -261,6 +285,14 @@ export const Actions: React.FC = () => {
       refreshCharacter();
       fetchActions(currentCharacter.currentLocation);
     }
+
+    // Sync energy store with server result for immediate UI feedback
+    const energyStore = useEnergyStore.getState();
+    if (result.actionResult?.energyRemaining !== undefined) {
+      energyStore.updateEnergy(result.actionResult.energyRemaining);
+    } else if ((result.actionResult as { character?: { energy?: number } })?.character?.energy !== undefined) {
+      energyStore.updateEnergy((result.actionResult as { character?: { energy?: number } }).character!.energy!);
+    }
   };
 
   // Handle game forfeit
@@ -321,7 +353,7 @@ export const Actions: React.FC = () => {
               </h1>
               <p className="text-desert-sand font-serif mt-1">
                 Current Location: <span className="text-gold-light font-bold">
-                  {currentCharacter.currentLocation || 'Unknown'}
+                  {locationName}
                 </span>
               </p>
               {isJailed && (
@@ -430,7 +462,7 @@ export const Actions: React.FC = () => {
                             )}
                             <div className="flex flex-wrap gap-3 text-xs">
                               <span>⚡ {(action.energyRequired ?? action.energyCost) || 0} energy</span>
-                              <span>💰 {action.baseReward || action.rewards?.gold || 0} gold</span>
+                              <span>💰 ${action.baseReward || action.rewards?.gold || 0}</span>
                               {action.statUsed && <span>📊 {action.statUsed.toUpperCase()}</span>}
                               <span>🎯 {getSuccessRate(action)}% success</span>
                               {(action.cooldown ?? 0) > 0 && (
@@ -612,7 +644,7 @@ export const Actions: React.FC = () => {
                   <div className="space-y-2 text-sm">
                     {actionResult.rewards.gold && (
                       <div className="flex justify-between">
-                        <span>Gold Earned:</span>
+                        <span>Earned:</span>
                         <span className="text-gold-light">
                           +${actionResult.rewards.gold}
                         </span>

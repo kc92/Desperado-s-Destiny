@@ -1235,7 +1235,8 @@ function resolveCombatDuelGame(
   }
 
   // Calculate rewards based on opponent difficulty and performance
-  const difficultyMult = 1 + ((state.opponentDifficulty || 1) * 0.2);
+  // PRODUCTION FIX: Round to avoid floating point precision issues (e.g., 1.2000000000000002)
+  const difficultyMult = Math.round((1 + ((state.opponentDifficulty || 1) * 0.2)) * 100) / 100;
   const baseGold = playerWon ? Math.floor((30 + (state.opponentDifficulty || 1) * 15) * difficultyMult * suitBonus.multiplier) : 0;
   const baseXP = playerWon ? Math.floor((20 + (state.opponentDifficulty || 1) * 8) * suitBonus.multiplier) : fled ? 5 : 10;
 
@@ -1577,8 +1578,9 @@ function resolvePressYourLuckGame(
   let score = baseScore + skillBonusScore;
 
   // Calculate tier multiplier
-  const skillBonus = (state.characterSuitBonus || 0) * 0.02;
-  const effectiveCards = state.hand.length + (suitMatches * 0.5) + skillBonus;
+  // PRODUCTION FIX: Round to avoid floating point precision issues
+  const skillBonus = Math.round((state.characterSuitBonus || 0) * 0.02 * 100) / 100;
+  const effectiveCards = Math.round((state.hand.length + (suitMatches * 0.5) + skillBonus) * 100) / 100;
   let tierMultiplier = 0.5;
   let tierName = 'Cautious';
 
@@ -1725,6 +1727,653 @@ function resolveFaroGame(
     suitMatches,
     suitBonus,
     mitigation: success ? undefined : { damageReduction: Math.min(0.4, suitMatches * 0.1) }
+  };
+}
+
+
+/**
+ * Three-Card Monte - Track the card
+ * A classic con game of perception vs sleight of hand
+ *
+ * Rules:
+ * - Player draws 3 cards face up, then they're "shuffled"
+ * - Success based on memory/perception skill vs difficulty
+ * - Higher skill = better chance of tracking the right card
+ * - Suit matches add bonus multipliers
+ */
+function resolveThreeCardMonteGame(
+  state: GameState,
+  suitMatches: number,
+  suitBonus: { multiplier: number; specialEffect?: string }
+): GameResult {
+  // Calculate perception score based on hand
+  const cardValues = state.hand.map(card => {
+    if (card.rank === Rank.ACE) return 14;
+    if (card.rank === Rank.KING) return 13;
+    if (card.rank === Rank.QUEEN) return 12;
+    if (card.rank === Rank.JACK) return 11;
+    return card.rank as number;
+  });
+
+  // Get skill modifiers - perception/cunning based
+  const modifiers = calculateSkillModifiers(state.characterSuitBonus || 0, state.difficulty);
+
+  // Find the "winning" card (highest value in this abstraction)
+  const targetValue = Math.max(...cardValues);
+  const targetIndex = cardValues.indexOf(targetValue);
+
+  // Calculate tracking success based on skill
+  // Base success = 33% (random guess) + skill bonus
+  const baseSuccessChance = 0.33 + (modifiers.cardBonus / 100);
+  const difficultyPenalty = state.difficulty * 0.08; // Harder = more shuffling
+  const successChance = Math.min(0.95, Math.max(0.15, baseSuccessChance - difficultyPenalty));
+
+  // Simulate the tracking attempt
+  const trackedCorrectly = SecureRNG.chance(successChance);
+
+  // Score based on outcome
+  let score = 0;
+  let handName = '';
+
+  if (trackedCorrectly) {
+    // Successfully tracked the card
+    score = 150 + modifiers.cardBonus;
+    const targetName = targetValue === 14 ? 'Ace' :
+                       targetValue === 13 ? 'King' :
+                       targetValue === 12 ? 'Queen' :
+                       targetValue === 11 ? 'Jack' : `${targetValue}`;
+    handName = `Found the ${targetName}!`;
+  } else {
+    // Lost track of the card
+    score = 25;
+    handName = 'Lost the trail...';
+  }
+
+  // Apply suit bonus to score
+  const finalScore = Math.floor(score * suitBonus.multiplier);
+
+  // Threshold for success
+  const threshold = 50 + (state.difficulty * 20);
+  const success = finalScore >= threshold;
+
+  // Build feedback
+  const feedbackParts: string[] = [];
+  if (modifiers.cardBonus > 0) {
+    feedbackParts.push(`Perception +${modifiers.cardBonus}`);
+  }
+  const feedbackStr = feedbackParts.length > 0 ? ` (${feedbackParts.join(', ')})` : '';
+
+  return {
+    success,
+    score: finalScore,
+    handName: handName + feedbackStr,
+    suitMatches,
+    suitBonus: {
+      ...suitBonus,
+      specialEffect: trackedCorrectly ? 'Sharp Eyes!' : 'Sleight of Hand!'
+    },
+    mitigation: success ? undefined : { damageReduction: Math.min(0.3, suitMatches * 0.1) }
+  };
+}
+
+/**
+ * War of Attrition - Endurance contest
+ * Compare cards over multiple rounds, last player standing wins
+ *
+ * Rules:
+ * - Draw 5 cards and compare totals
+ * - Higher total scores more points
+ * - Endurance (spirit) skill helps sustain advantage
+ * - Pairs and matching cards provide bonus
+ */
+function resolveWarOfAttritionGame(
+  state: GameState,
+  suitMatches: number,
+  suitBonus: { multiplier: number; specialEffect?: string }
+): GameResult {
+  // Calculate total card strength
+  const cardValues = state.hand.map(card => {
+    if (card.rank === Rank.ACE) return 14;
+    if (card.rank === Rank.KING) return 13;
+    if (card.rank === Rank.QUEEN) return 12;
+    if (card.rank === Rank.JACK) return 11;
+    return card.rank as number;
+  });
+
+  const totalStrength = cardValues.reduce((sum, val) => sum + val, 0);
+
+  // Get skill modifiers - endurance/spirit based
+  const modifiers = calculateSkillModifiers(state.characterSuitBonus || 0, state.difficulty);
+
+  // Count pairs for bonus
+  const rankCounts: Record<number, number> = {};
+  cardValues.forEach(val => {
+    rankCounts[val] = (rankCounts[val] || 0) + 1;
+  });
+  const pairs = Object.values(rankCounts).filter(c => c >= 2).length;
+  const pairBonus = pairs * 15;
+
+  // Simulate opponent strength based on difficulty
+  const opponentBase = 30 + (state.difficulty * 8);
+  const opponentStrength = opponentBase + SecureRNG.range(0, 15);
+
+  // Calculate final score
+  const playerScore = totalStrength + modifiers.cardBonus + pairBonus;
+  const adjustedScore = Math.floor(playerScore * suitBonus.multiplier);
+
+  const success = adjustedScore > opponentStrength;
+
+  // Build hand description
+  const avgStrength = Math.floor(totalStrength / state.hand.length);
+  let handName = `Strength: ${totalStrength}`;
+  if (pairs > 0) {
+    handName += ` (${pairs} pair${pairs > 1 ? 's' : ''})`;
+  }
+
+  // Special effect
+  let specialEffect = suitBonus.specialEffect;
+  if (success && adjustedScore > opponentStrength * 1.5) {
+    specialEffect = 'Overwhelming Victory!';
+  } else if (!success && opponentStrength > adjustedScore * 1.5) {
+    specialEffect = 'Crushed!';
+  }
+
+  return {
+    success,
+    score: adjustedScore,
+    handName,
+    suitMatches,
+    suitBonus: { ...suitBonus, specialEffect },
+    mitigation: success ? undefined : { damageReduction: Math.min(0.35, suitMatches * 0.1 + 0.05) }
+  };
+}
+
+/**
+ * Solitaire Race - Time-based puzzle
+ * Clear cards in ascending sequence as fast as possible
+ *
+ * Rules:
+ * - Draw cards and try to form ascending sequences
+ * - Longer sequences = more points
+ * - Speed (fewer draws) = bonus points
+ * - Skill helps identify sequences faster
+ */
+function resolveSolitaireRaceGame(
+  state: GameState,
+  suitMatches: number,
+  suitBonus: { multiplier: number; specialEffect?: string }
+): GameResult {
+  // Get card values and sort
+  const cardValues = state.hand.map(card => {
+    if (card.rank === Rank.ACE) return 1; // Ace low for sequences
+    if (card.rank === Rank.KING) return 13;
+    if (card.rank === Rank.QUEEN) return 12;
+    if (card.rank === Rank.JACK) return 11;
+    return card.rank as number;
+  }).sort((a, b) => a - b);
+
+  // Find longest ascending sequence
+  let currentSeq = 1;
+  let longestSeq = 1;
+  for (let i = 1; i < cardValues.length; i++) {
+    if (cardValues[i] === cardValues[i - 1] + 1) {
+      currentSeq++;
+      longestSeq = Math.max(longestSeq, currentSeq);
+    } else if (cardValues[i] !== cardValues[i - 1]) {
+      currentSeq = 1;
+    }
+  }
+
+  // Get skill modifiers - craft/precision based
+  const modifiers = calculateSkillModifiers(state.characterSuitBonus || 0, state.difficulty);
+
+  // Base score from sequences
+  let baseScore = longestSeq * 40;
+
+  // Speed bonus - fewer cards drawn = faster completion
+  const cardsUsed = state.hand.length;
+  const maxCards = 10;
+  const speedBonus = Math.max(0, (maxCards - cardsUsed) * 10);
+
+  // Apply skill bonus
+  const totalScore = baseScore + speedBonus + modifiers.cardBonus;
+  const finalScore = Math.floor(totalScore * suitBonus.multiplier);
+
+  // Threshold based on difficulty
+  const threshold = 60 + (state.difficulty * 25);
+  const success = finalScore >= threshold;
+
+  // Build hand description
+  let handName = `Sequence: ${longestSeq}`;
+  if (speedBonus > 0) {
+    handName += ` (+${speedBonus} speed)`;
+  }
+
+  // Special effects
+  let specialEffect = suitBonus.specialEffect;
+  if (longestSeq >= 5) {
+    specialEffect = 'Perfect Run!';
+  } else if (longestSeq >= 4) {
+    specialEffect = 'Strong Sequence';
+  }
+
+  return {
+    success,
+    score: finalScore,
+    handName,
+    suitMatches,
+    suitBonus: { ...suitBonus, specialEffect },
+    mitigation: success ? undefined : { damageReduction: Math.min(0.3, suitMatches * 0.1) }
+  };
+}
+
+/**
+ * Texas Hold'em - Strategic poker with community cards
+ * Build best 5-card hand from 7 cards (2 hole + 5 community)
+ *
+ * Rules:
+ * - Evaluate best possible poker hand from available cards
+ * - Strategic positioning and bluffing skill matters
+ * - Higher skill = better hand reading and betting
+ */
+function resolveTexasHoldemGame(
+  state: GameState,
+  suitMatches: number,
+  suitBonus: { multiplier: number; specialEffect?: string }
+): GameResult {
+  // For abstraction, we simulate 2 hole + up to 5 community cards
+  // The hand contains all cards to evaluate
+  const allCards = state.hand;
+
+  // Evaluate the best 5-card poker hand
+  const { handName: pokerHand, score: pokerScore } = evaluatePokerHand(allCards);
+
+  // Get skill modifiers
+  const modifiers = calculateSkillModifiers(state.characterSuitBonus || 0, state.difficulty);
+
+  // Apply skill bonus (reading opponents, strategic betting)
+  const strategicBonus = Math.floor(modifiers.cardBonus * 1.2); // Hold'em rewards strategy more
+  const adjustedScore = pokerScore + modifiers.cardBonus + strategicBonus;
+
+  // Threshold based on difficulty
+  const threshold = 150 + (state.difficulty * 75);
+  const success = adjustedScore >= threshold;
+
+  // Build feedback
+  const feedbackParts: string[] = [];
+  if (strategicBonus > 0) {
+    feedbackParts.push(`Strategy +${strategicBonus}`);
+  }
+  if (modifiers.cardBonus > 0) {
+    feedbackParts.push(`Skill +${modifiers.cardBonus}`);
+  }
+  const feedbackStr = feedbackParts.length > 0 ? ` (${feedbackParts.join(', ')})` : '';
+
+  // Final score with suit bonus
+  const finalScore = Math.floor(adjustedScore * suitBonus.multiplier);
+
+  return {
+    success,
+    score: finalScore,
+    handName: pokerHand + feedbackStr,
+    suitMatches,
+    suitBonus: {
+      ...suitBonus,
+      specialEffect: pokerScore >= 600 ? 'Monster Hand!' : suitBonus.specialEffect
+    },
+    mitigation: success ? undefined : { damageReduction: Math.min(0.4, suitMatches * 0.1) }
+  };
+}
+
+/**
+ * Rummy - Set collection
+ * Collect sets and runs of cards for investigation
+ *
+ * Rules:
+ * - Groups of 3+ same rank = set bonus
+ * - Runs of 3+ consecutive same suit = run bonus
+ * - More complete collections = higher score
+ * - Investigation (cunning) skill helps find patterns
+ */
+function resolveRummyGame(
+  state: GameState,
+  suitMatches: number,
+  suitBonus: { multiplier: number; specialEffect?: string }
+): GameResult {
+  // Count ranks for sets
+  const rankCounts: Record<string, number> = {};
+  // Count suit runs
+  const suitCards: Record<string, number[]> = {
+    [CardSuit.SPADES]: [],
+    [CardSuit.HEARTS]: [],
+    [CardSuit.CLUBS]: [],
+    [CardSuit.DIAMONDS]: []
+  };
+
+  state.hand.forEach(card => {
+    rankCounts[card.rank] = (rankCounts[card.rank] || 0) + 1;
+
+    const value = card.rank === Rank.ACE ? 1 :
+                  card.rank === Rank.KING ? 13 :
+                  card.rank === Rank.QUEEN ? 12 :
+                  card.rank === Rank.JACK ? 11 :
+                  card.rank as number;
+    suitCards[card.suit].push(value);
+  });
+
+  // Score sets (3+ of same rank)
+  let setScore = 0;
+  let setCount = 0;
+  Object.values(rankCounts).forEach(count => {
+    if (count >= 4) {
+      setScore += 120;
+      setCount++;
+    } else if (count >= 3) {
+      setScore += 60;
+      setCount++;
+    }
+  });
+
+  // Score runs (3+ consecutive in same suit)
+  let runScore = 0;
+  let longestRun = 0;
+  Object.values(suitCards).forEach(values => {
+    if (values.length < 3) return;
+    values.sort((a, b) => a - b);
+
+    let currentRun = 1;
+    for (let i = 1; i < values.length; i++) {
+      if (values[i] === values[i - 1] + 1) {
+        currentRun++;
+      } else {
+        if (currentRun >= 3) {
+          runScore += currentRun * 25;
+          longestRun = Math.max(longestRun, currentRun);
+        }
+        currentRun = 1;
+      }
+    }
+    if (currentRun >= 3) {
+      runScore += currentRun * 25;
+      longestRun = Math.max(longestRun, currentRun);
+    }
+  });
+
+  // Get skill modifiers - investigation/cunning
+  const modifiers = calculateSkillModifiers(state.characterSuitBonus || 0, state.difficulty);
+
+  // Total score
+  const baseScore = setScore + runScore + modifiers.cardBonus;
+  const finalScore = Math.floor(baseScore * suitBonus.multiplier);
+
+  // Threshold
+  const threshold = 50 + (state.difficulty * 30);
+  const success = finalScore >= threshold;
+
+  // Build hand description
+  const parts: string[] = [];
+  if (setCount > 0) parts.push(`${setCount} set${setCount > 1 ? 's' : ''}`);
+  if (longestRun >= 3) parts.push(`run of ${longestRun}`);
+  const handName = parts.length > 0 ? parts.join(', ') : 'No melds';
+
+  // Special effect
+  let specialEffect = suitBonus.specialEffect;
+  if (setCount >= 2 && longestRun >= 4) {
+    specialEffect = 'Perfect Collection!';
+  } else if (setCount >= 2 || longestRun >= 5) {
+    specialEffect = 'Strong Melds';
+  }
+
+  return {
+    success,
+    score: finalScore,
+    handName,
+    suitMatches,
+    suitBonus: { ...suitBonus, specialEffect },
+    mitigation: success ? undefined : { damageReduction: Math.min(0.35, suitMatches * 0.1) }
+  };
+}
+
+/**
+ * Euchre - Team partnership game
+ * Trick-taking with trump suit emphasis
+ *
+ * Rules:
+ * - Hand evaluated for trick-taking potential
+ * - Trump suit cards (relevant suit) are worth more
+ * - Balanced distribution of suits helps
+ * - Social/teamwork skill improves coordination
+ */
+function resolveEuchreGame(
+  state: GameState,
+  suitMatches: number,
+  suitBonus: { multiplier: number; specialEffect?: string }
+): GameResult {
+  // In Euchre, trump suit matters heavily
+  const trumpSuit = state.relevantSuit?.toLowerCase() || 'spades';
+
+  // Score cards - trump cards worth double
+  let trickPotential = 0;
+  let trumpCount = 0;
+
+  state.hand.forEach(card => {
+    const baseValue = card.rank === Rank.ACE ? 14 :
+                      card.rank === Rank.KING ? 13 :
+                      card.rank === Rank.QUEEN ? 12 :
+                      card.rank === Rank.JACK ? 11 :
+                      card.rank as number;
+
+    if (card.suit.toLowerCase() === trumpSuit) {
+      // Trump cards are worth double, Jacks even more (Right/Left Bower)
+      if (card.rank === Rank.JACK) {
+        trickPotential += baseValue * 3; // Right bower
+      } else {
+        trickPotential += baseValue * 2;
+      }
+      trumpCount++;
+    } else if (card.rank === Rank.JACK) {
+      // Left bower (Jack of same color)
+      trickPotential += baseValue * 1.5;
+    } else {
+      trickPotential += baseValue;
+    }
+  });
+
+  // Get skill modifiers - social/teamwork
+  const modifiers = calculateSkillModifiers(state.characterSuitBonus || 0, state.difficulty);
+
+  // Coordination bonus (skill represents working with partner)
+  const coordinationBonus = Math.floor(modifiers.cardBonus * 0.8);
+
+  // Total score
+  const baseScore = trickPotential + coordinationBonus + modifiers.cardBonus;
+  const finalScore = Math.floor(baseScore * suitBonus.multiplier);
+
+  // Threshold - Euchre is team-based so slightly easier
+  const threshold = 45 + (state.difficulty * 18);
+  const success = finalScore >= threshold;
+
+  // Build hand description
+  let handName = `Trick Power: ${Math.floor(trickPotential)}`;
+  if (trumpCount > 0) {
+    handName += ` (${trumpCount} trump)`;
+  }
+
+  // Special effects
+  let specialEffect = suitBonus.specialEffect;
+  if (trumpCount >= 4) {
+    specialEffect = 'Trump Domination!';
+  } else if (trumpCount >= 2 && trickPotential > 60) {
+    specialEffect = 'Strong Partnership';
+  }
+
+  return {
+    success,
+    score: finalScore,
+    handName,
+    suitMatches,
+    suitBonus: { ...suitBonus, specialEffect },
+    mitigation: success ? undefined : { damageReduction: Math.min(0.4, suitMatches * 0.12) }
+  };
+}
+
+/**
+ * Cribbage - Counting and math game
+ * Score points through specific card combinations
+ *
+ * Rules:
+ * - Pairs: 2 points per pair
+ * - Runs of 3+: 1 point per card in run
+ * - 15s: 2 points for each combo totaling 15
+ * - Flush: 4-5 points for same suit
+ * - Nobs: 1 point for Jack of starter suit
+ * - Math/craft skill helps optimize counting
+ */
+function resolveCribbageGame(
+  state: GameState,
+  suitMatches: number,
+  suitBonus: { multiplier: number; specialEffect?: string }
+): GameResult {
+  // Convert cards to numeric values
+  const cardData = state.hand.map(card => ({
+    value: card.rank === Rank.ACE ? 1 :
+           card.rank === Rank.KING ? 10 :
+           card.rank === Rank.QUEEN ? 10 :
+           card.rank === Rank.JACK ? 10 :
+           Math.min(10, card.rank as number),
+    rank: card.rank === Rank.ACE ? 1 :
+          card.rank === Rank.KING ? 13 :
+          card.rank === Rank.QUEEN ? 12 :
+          card.rank === Rank.JACK ? 11 :
+          card.rank as number,
+    suit: card.suit,
+    isJack: card.rank === Rank.JACK
+  }));
+
+  let cribbageScore = 0;
+  const scoringDetails: string[] = [];
+
+  // Count pairs
+  const rankCounts: Record<number, number> = {};
+  cardData.forEach(c => {
+    rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1;
+  });
+
+  Object.values(rankCounts).forEach(count => {
+    if (count === 2) {
+      cribbageScore += 2;
+      scoringDetails.push('Pair');
+    } else if (count === 3) {
+      cribbageScore += 6; // 3 pairs possible in trips
+      scoringDetails.push('Three of a Kind');
+    } else if (count === 4) {
+      cribbageScore += 12; // 6 pairs possible in quads
+      scoringDetails.push('Four of a Kind');
+    }
+  });
+
+  // Find 15s (all combinations that sum to 15)
+  const values = cardData.map(c => c.value);
+  let fifteenCount = 0;
+
+  // Check all 2-card combinations
+  for (let i = 0; i < values.length; i++) {
+    for (let j = i + 1; j < values.length; j++) {
+      if (values[i] + values[j] === 15) fifteenCount++;
+      // Check 3-card combinations
+      for (let k = j + 1; k < values.length; k++) {
+        if (values[i] + values[j] + values[k] === 15) fifteenCount++;
+        // Check 4-card combinations
+        for (let l = k + 1; l < values.length; l++) {
+          if (values[i] + values[j] + values[k] + values[l] === 15) fifteenCount++;
+          // Check 5-card combinations
+          for (let m = l + 1; m < values.length; m++) {
+            if (values[i] + values[j] + values[k] + values[l] + values[m] === 15) fifteenCount++;
+          }
+        }
+      }
+    }
+  }
+
+  if (fifteenCount > 0) {
+    cribbageScore += fifteenCount * 2;
+    scoringDetails.push(`${fifteenCount} Fifteen${fifteenCount > 1 ? 's' : ''}`);
+  }
+
+  // Check for runs
+  const ranks = cardData.map(c => c.rank).sort((a, b) => a - b);
+  const uniqueRanks = [...new Set(ranks)];
+
+  for (let len = uniqueRanks.length; len >= 3; len--) {
+    for (let i = 0; i <= uniqueRanks.length - len; i++) {
+      const slice = uniqueRanks.slice(i, i + len);
+      let isRun = true;
+      for (let j = 1; j < slice.length; j++) {
+        if (slice[j] !== slice[j - 1] + 1) {
+          isRun = false;
+          break;
+        }
+      }
+      if (isRun) {
+        // Count multiplicity for double/triple runs
+        const multiplier = slice.reduce((mult, rank) => mult * (rankCounts[rank] || 1), 1);
+        cribbageScore += len * multiplier;
+        if (multiplier > 1) {
+          scoringDetails.push(`Double Run of ${len}`);
+        } else {
+          scoringDetails.push(`Run of ${len}`);
+        }
+        break; // Only count longest run
+      }
+    }
+  }
+
+  // Check for flush
+  const suitCounts: Record<string, number> = {};
+  cardData.forEach(c => {
+    suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1;
+  });
+
+  const flushSuit = Object.entries(suitCounts).find(([, count]) => count >= 4);
+  if (flushSuit) {
+    cribbageScore += flushSuit[1];
+    scoringDetails.push(`Flush ${flushSuit[1]}`);
+  }
+
+  // Get skill modifiers - math/craft
+  const modifiers = calculateSkillModifiers(state.characterSuitBonus || 0, state.difficulty);
+
+  // Apply skill bonus (better counting)
+  const countingBonus = Math.floor(modifiers.cardBonus * 0.5);
+
+  // Total score
+  const baseScore = cribbageScore * 8 + countingBonus + modifiers.cardBonus;
+  const finalScore = Math.floor(baseScore * suitBonus.multiplier);
+
+  // Threshold
+  const threshold = 50 + (state.difficulty * 25);
+  const success = finalScore >= threshold;
+
+  // Build hand description
+  const handName = scoringDetails.length > 0
+    ? `${cribbageScore} pts: ${scoringDetails.slice(0, 3).join(', ')}`
+    : 'No scoring combos';
+
+  // Special effects
+  let specialEffect = suitBonus.specialEffect;
+  if (cribbageScore >= 20) {
+    specialEffect = 'Perfect Hand!';
+  } else if (cribbageScore >= 12) {
+    specialEffect = 'Strong Count';
+  }
+
+  return {
+    success,
+    score: finalScore,
+    handName,
+    suitMatches,
+    suitBonus: { ...suitBonus, specialEffect },
+    mitigation: success ? undefined : { damageReduction: Math.min(0.35, suitMatches * 0.1) }
   };
 }
 
@@ -1933,10 +2582,10 @@ export function applyRewardModifiers(
   if (state.wagerMultiplier && state.wagerMultiplier > 1) {
     if (success) {
       goldMultiplier *= state.wagerMultiplier;
-      breakdown.push(`Wager ${state.wagerTier}: ${state.wagerMultiplier}x gold`);
+      breakdown.push(`Wager ${state.wagerTier}: ${state.wagerMultiplier}x`);
     } else {
       // On loss, wager amount is already deducted - no additional penalty to rewards
-      breakdown.push(`Wager lost: -${state.wagerAmount} gold`);
+      breakdown.push(`Wager lost: -$${state.wagerAmount}`);
     }
   }
 
@@ -1950,7 +2599,7 @@ export function applyRewardModifiers(
   // === HOT HAND (only on success) ===
   if (success && state.hotHandActive) {
     goldMultiplier *= 1.2;
-    breakdown.push('Hot Hand: 1.2x gold');
+    breakdown.push('Hot Hand: 1.2x $');
   }
 
   // === UNDERDOG BONUS (built into success chance, not rewards) ===
@@ -2296,17 +2945,20 @@ export function resolveGame(state: GameState): GameResult {
     // New card game expansion
     case 'faro':
       return resolveFaroGame(state, suitMatches, suitBonus);
-
-    // TODO: Add remaining new game types
     case 'threeCardMonte':
+      return resolveThreeCardMonteGame(state, suitMatches, suitBonus);
     case 'solitaireRace':
+      return resolveSolitaireRaceGame(state, suitMatches, suitBonus);
     case 'texasHoldem':
+      return resolveTexasHoldemGame(state, suitMatches, suitBonus);
     case 'rummy':
+      return resolveRummyGame(state, suitMatches, suitBonus);
     case 'warOfAttrition':
+      return resolveWarOfAttritionGame(state, suitMatches, suitBonus);
     case 'euchre':
+      return resolveEuchreGame(state, suitMatches, suitBonus);
     case 'cribbage':
-      // Temporary fallback - implement these resolvers
-      return resolveFaroGame(state, suitMatches, suitBonus);
+      return resolveCribbageGame(state, suitMatches, suitBonus);
 
     default:
       return {

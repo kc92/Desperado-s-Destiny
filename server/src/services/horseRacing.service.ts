@@ -2,18 +2,13 @@ import { ObjectId } from 'mongodb';
 import { Horse, HorseDocument } from '../models/Horse.model';
 import {
   HorseRace,
-  // HorseShow, // TODO: Add to shared types
-  // RaceResultResponse, // TODO: Add to shared types
-  // ShowResultResponse, // TODO: Add to shared types
+  HorseShow,
+  RaceResultResponse,
+  ShowResultResponse,
   HorseSkill
 } from '@desperados/shared';
 import { getBondLevel, calculateBondMultiplier } from './horseBond.service';
 import { SecureRNG } from './base/SecureRNG';
-
-// TODO: Add these types to @desperados/shared
-type HorseShow = any;
-type RaceResultResponse = any;
-type ShowResultResponse = any;
 
 // ============================================================================
 // RACING SYSTEM

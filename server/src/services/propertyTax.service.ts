@@ -21,6 +21,8 @@ import {
   GangBankAccountType,
 } from '@desperados/shared';
 import logger from '../utils/logger';
+import { NotificationService } from './notification.service';
+import { NotificationType } from '../models/Notification.model';
 
 /**
  * Options for service methods that support transactions
@@ -71,6 +73,12 @@ export class PropertyTaxService {
     // Calculate property value estimate
     const propertyValue = gangBase.tier * 10000; // Simple estimate
 
+    // Get weekly income from gang economy (from latest financial report)
+    const economyQuery = GangEconomy.findOne({ gangId: gangBase.gangId });
+    if (session) economyQuery.session(session);
+    const gangEconomy = await economyQuery;
+    const weeklyIncome = gangEconomy?.weeklyReport?.income?.businessIncome || gangBase.tier * 1000; // Fallback based on tier
+
     // Check for existing tax record (use session if provided)
     const existingTaxQuery = PropertyTax.findOne({ propertyId: gangBaseId });
     if (session) existingTaxQuery.session(session);
@@ -83,9 +91,12 @@ export class PropertyTaxService {
       existingTax.propertyTier = gangBase.tier;
       existingTax.specialTaxType = specialTaxType;
       existingTax.location = gangBase.location.region;
-      existingTax.condition = 100; // TODO: Track actual condition
+      existingTax.condition = 100; // Gang bases don't track condition directly
       existingTax.workerCount = gangBase.defense.guards.length;
-      existingTax.workerLevel = 1; // TODO: Calculate average guard level
+      const guards = gangBase.defense.guards;
+      existingTax.workerLevel = guards.length > 0
+        ? Math.round(guards.reduce((sum, g) => sum + (g.level ?? 1), 0) / guards.length)
+        : 1;
 
       // Recalculate taxes
       const calculation = existingTax.calculateTotalTax();
@@ -107,7 +118,7 @@ export class PropertyTaxService {
         size: propertySize,
         value: propertyValue,
         tier: gangBase.tier,
-        weeklyIncome: 0, // TODO: Calculate from business income
+        weeklyIncome,
         condition: 100,
         workerCount: gangBase.defense.guards.length,
         workerLevel: 1,
@@ -234,7 +245,7 @@ export class PropertyTaxService {
 
         await character.deductDollars(
           amountToDeduct,
-          TransactionSource.GANG_DEPOSIT, // TODO: Add TAX_PAYMENT source
+          TransactionSource.TAX_PAYMENT,
           { propertyId, taxType: 'property_tax', currencyType: 'DOLLAR' }
         );
       }
@@ -493,8 +504,27 @@ export class PropertyTaxService {
     let remindersSent = 0;
 
     for (const taxRecord of taxRecords) {
-      // TODO: Send notification via NotificationService
-      remindersSent++;
+      try {
+        if (taxRecord.ownerType === 'character') {
+          // Direct notification to character owner
+          await NotificationService.sendNotification(
+            taxRecord.ownerId,
+            NotificationType.SYSTEM,
+            `Property tax of ${taxRecord.taxCalculation.totalTax} dollars is due tomorrow for ${taxRecord.propertyType}`,
+            { link: '/properties/taxes' }
+          );
+          remindersSent++;
+        } else if (taxRecord.ownerType === 'gang') {
+          // Notify gang leader (gang members would need Gang model lookup)
+          // For now, log the reminder - full implementation would query gang for leader
+          logger.info(
+            `Tax reminder for gang ${taxRecord.ownerId}: ${taxRecord.taxCalculation.totalTax} due`
+          );
+          remindersSent++;
+        }
+      } catch (error) {
+        logger.error(`Failed to send tax reminder for property ${taxRecord.propertyId}:`, error);
+      }
     }
 
     logger.info(`Sent ${remindersSent} tax due reminders`);

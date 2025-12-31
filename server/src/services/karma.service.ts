@@ -16,6 +16,7 @@ import { DivineManifestation, IDivineManifestation, ManifestationType, DeityName
 import { DeityAttention } from '../models/DeityAttention.model';
 import deityDecisionService from './deityDecision.service';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 // ============================================================================
 // KARMA RULES - Maps actions to karma dimension changes
@@ -630,7 +631,7 @@ class KarmaService {
    * Determine which deity (if any) witnesses an action
    */
   private determineWitness(witnessChance: number): 'GAMBLER' | 'OUTLAW_KING' | 'BOTH' | 'NONE' {
-    const roll = Math.random();
+    const roll = SecureRNG.float(0, 1, 4);
 
     if (roll > witnessChance) {
       return 'NONE';
@@ -642,7 +643,7 @@ class KarmaService {
     }
 
     // Random selection between deities
-    return Math.random() < 0.5 ? 'GAMBLER' : 'OUTLAW_KING';
+    return SecureRNG.chance(0.5) ? 'GAMBLER' : 'OUTLAW_KING';
   }
 
   /**

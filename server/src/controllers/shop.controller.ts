@@ -11,11 +11,51 @@ import { ItemType } from '../models/Item.model';
 /**
  * Get all shop items
  * GET /api/shop
+ *
+ * PRODUCTION FIX: Now includes dynamic prices based on character location
+ * Returns both base price and current price (with all modifiers applied)
  */
 export const getShopItems = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const type = req.query.type as ItemType | undefined;
     const items = await ShopService.getShopItems(type);
+
+    // If character is available, calculate dynamic prices
+    if (req.character && req.character.currentLocation) {
+      const { DynamicPricingService } = await import('../services/dynamicPricing.service');
+      const locationId = req.character.currentLocation.toString();
+
+      const itemsWithPrices = await Promise.all(
+        items.map(async (item) => {
+          try {
+            const priceData = await DynamicPricingService.getItemPrice(
+              item.itemId,
+              locationId,
+              'buy'
+            );
+            return {
+              ...item.toObject(),
+              currentPrice: priceData.currentPrice,
+              priceModifiers: priceData.modifiers,
+              priceTrend: priceData.trend
+            };
+          } catch {
+            // Fallback to base price if dynamic pricing fails
+            return {
+              ...item.toObject(),
+              currentPrice: item.price,
+              priceModifiers: [],
+              priceTrend: 'stable' as const
+            };
+          }
+        })
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: { items: itemsWithPrices }
+      });
+    }
 
     res.status(200).json({
       success: true,

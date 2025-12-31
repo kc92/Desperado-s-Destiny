@@ -171,7 +171,8 @@ export const loginRateLimiter = createRateLimiter({
     );
   },
   skip: () => {
-    return process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development'; // Skip in test/dev
+    // SECURITY: Only skip in test mode. Use SKIP_RATE_LIMIT=true for local dev if needed
+    return process.env.NODE_ENV === 'test' || process.env.SKIP_RATE_LIMIT === 'true';
   },
 });
 
@@ -221,7 +222,7 @@ export const authRateLimiter = loginRateLimiter;
 export const apiRateLimiter = createRateLimiter({
   prefix: 'api',
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // 200 requests per window - allows normal gameplay
+  max: 500, // 500 requests per window - allows normal gameplay with headroom
   message: 'Too many API requests, please try again later',
   handler: (req, _res) => {
     logger.warn(`API rate limit exceeded for IP: ${req.ip}`);
@@ -232,7 +233,8 @@ export const apiRateLimiter = createRateLimiter({
     );
   },
   skip: () => {
-    return process.env.NODE_ENV === 'test'; // SECURITY: Only skip rate limiting in test mode
+    // Skip in test mode or when SKIP_RATE_LIMIT is set for development
+    return process.env.NODE_ENV === 'test' || process.env.SKIP_RATE_LIMIT === 'true';
   },
 });
 

@@ -16,6 +16,7 @@ import { CharacterKarma, ICharacterKarma } from '../models/CharacterKarma.model'
 import { DeityAttention, DeityName } from '../models/DeityAttention.model';
 import { DivineManifestation, ManifestationType } from '../models/DivineManifestation.model';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 // ============================================================================
 // OMEN DEFINITIONS
@@ -308,7 +309,7 @@ class DeityOmenService {
     if (filtered.length === 0) return null;
 
     // Random selection from filtered omens
-    return filtered[Math.floor(Math.random() * filtered.length)];
+    return SecureRNG.select(filtered);
   }
 
   /**
@@ -391,7 +392,7 @@ class DeityOmenService {
     const baseChance = 0.08; // 8%
     const chance = attention.calculateInterventionChance(baseChance);
 
-    if (Math.random() > chance) {
+    if (!SecureRNG.chance(chance)) {
       return null;
     }
 

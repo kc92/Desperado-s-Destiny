@@ -56,16 +56,29 @@ export const useAuthStore = create<AuthStore>()((set) => ({
     try {
       const user = await authService.login(credentials);
 
-      // Initialize socket connection
-      socketService.connect();
-
-      // Fetch CSRF token for secure form submissions
+      // Initialize socket connection (await to ensure connection before proceeding)
       try {
-        const csrfToken = await authService.getCsrfToken();
-        useCsrfStore.getState().setToken(csrfToken);
-      } catch (csrfError) {
-        // Non-fatal: continue without CSRF token, will be fetched on demand
-        console.warn('Failed to fetch CSRF token after login');
+        await socketService.connect();
+      } catch (socketError) {
+        // Non-fatal: user can still use the app, socket will auto-reconnect
+        console.warn('Socket connection failed, will retry automatically:', socketError);
+      }
+
+      // Fetch CSRF token with retry for secure form submissions
+      let csrfRetries = 3;
+      while (csrfRetries > 0) {
+        try {
+          const csrfToken = await authService.getCsrfToken();
+          useCsrfStore.getState().setToken(csrfToken);
+          break;
+        } catch (csrfError) {
+          csrfRetries--;
+          if (csrfRetries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            console.warn('Failed to fetch CSRF token after login (will retry on demand)');
+          }
+        }
       }
 
       set({
@@ -100,16 +113,29 @@ export const useAuthStore = create<AuthStore>()((set) => ({
     try {
       const user = await authService.register(credentials);
 
-      // Initialize socket connection (same as login)
-      socketService.connect();
-
-      // Fetch CSRF token for secure form submissions
+      // Initialize socket connection (await to ensure connection before proceeding)
       try {
-        const csrfToken = await authService.getCsrfToken();
-        useCsrfStore.getState().setToken(csrfToken);
-      } catch (csrfError) {
-        // Non-fatal: continue without CSRF token, will be fetched on demand
-        console.warn('Failed to fetch CSRF token after registration');
+        await socketService.connect();
+      } catch (socketError) {
+        // Non-fatal: user can still use the app, socket will auto-reconnect
+        console.warn('Socket connection failed, will retry automatically:', socketError);
+      }
+
+      // Fetch CSRF token with retry for secure form submissions
+      let csrfRetries = 3;
+      while (csrfRetries > 0) {
+        try {
+          const csrfToken = await authService.getCsrfToken();
+          useCsrfStore.getState().setToken(csrfToken);
+          break;
+        } catch (csrfError) {
+          csrfRetries--;
+          if (csrfRetries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            console.warn('Failed to fetch CSRF token after registration (will retry on demand)');
+          }
+        }
       }
 
       set({
@@ -188,16 +214,29 @@ export const useAuthStore = create<AuthStore>()((set) => ({
       const result = await authService.verifySession();
 
       if (result.valid && result.user) {
-        // Initialize socket connection
-        socketService.connect();
-
-        // Fetch CSRF token for secure form submissions
+        // Initialize socket connection (await to ensure connection before proceeding)
         try {
-          const csrfToken = await authService.getCsrfToken();
-          useCsrfStore.getState().setToken(csrfToken);
-        } catch (csrfError) {
-          // Non-fatal: continue without CSRF token, will be fetched on demand
-          console.warn('Failed to fetch CSRF token during session restore');
+          await socketService.connect();
+        } catch (socketError) {
+          // Non-fatal: user can still use the app, socket will auto-reconnect
+          console.warn('Socket connection failed during session restore, will retry automatically:', socketError);
+        }
+
+        // Fetch CSRF token with retry for secure form submissions
+        let csrfRetries = 3;
+        while (csrfRetries > 0) {
+          try {
+            const csrfToken = await authService.getCsrfToken();
+            useCsrfStore.getState().setToken(csrfToken);
+            break;
+          } catch (csrfError) {
+            csrfRetries--;
+            if (csrfRetries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              console.warn('Failed to fetch CSRF token during session restore (will retry on demand)');
+            }
+          }
         }
 
         // Set Sentry user context for error tracking (session restored)

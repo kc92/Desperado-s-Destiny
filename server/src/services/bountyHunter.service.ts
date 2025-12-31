@@ -29,6 +29,7 @@ import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
 import karmaService from './karma.service';
 import { safeAchievementUpdate } from '../utils/achievementUtils';
+import { NPCTrust } from '../models/NPCTrust.model';
 
 /**
  * Mongoose model for hunter encounters
@@ -341,7 +342,7 @@ export class BountyHunterService {
       }
 
       // Check if hunter can be hired by this character
-      const canHire = this.canCharacterHireHunter(hunter, employer);
+      const canHire = await this.canCharacterHireHunter(hunter, employer);
       if (!canHire.allowed) {
         await session.abortTransaction();
         session.endSession();
@@ -655,10 +656,10 @@ export class BountyHunterService {
   /**
    * Helper: Check if character can hire hunter
    */
-  private static canCharacterHireHunter(
+  private static async canCharacterHireHunter(
     hunter: BountyHunter,
     character: any
-  ): { allowed: boolean; reason?: string } {
+  ): Promise<{ allowed: boolean; reason?: string }> {
     if (!hunter.hireConfig) {
       return { allowed: false, reason: 'Hunter is not available for hire' };
     }
@@ -700,8 +701,17 @@ export class BountyHunterService {
 
     // Check trust requirements
     if (minTrustRequired && minTrustRequired > 0) {
-      // TODO: Check NPC trust level when that system is implemented
-      // For now, assume trust is met
+      // Check NPC trust level using NPCTrust model
+      const trustLevel = await NPCTrust.getTrustLevel(
+        character._id.toString(),
+        hunter.id
+      );
+      if (trustLevel < minTrustRequired) {
+        return {
+          allowed: false,
+          reason: `Requires ${minTrustRequired} trust with ${hunter.name} (current: ${trustLevel})`
+        };
+      }
     }
 
     return { allowed: true };

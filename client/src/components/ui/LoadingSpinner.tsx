@@ -5,11 +5,13 @@
 
 import React from 'react';
 
-interface LoadingSpinnerProps {
+export interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   color?: string;
   fullScreen?: boolean;
   text?: string;
+  /** Additional CSS classes */
+  className?: string;
 }
 
 const sizeStyles = {
@@ -26,11 +28,12 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   color = 'border-gold-medium',
   fullScreen = false,
   text = 'Loading...',
+  className = '',
 }) => {
   const sizeStyle = sizeStyles[size];
 
   const spinner = (
-    <div className="flex flex-col items-center justify-center gap-4">
+    <div className={`flex flex-col items-center justify-center gap-4 ${className}`}>
       {/* Spinning border */}
       <div
         className={`${sizeStyle} ${color} border-t-transparent rounded-full animate-spin`}

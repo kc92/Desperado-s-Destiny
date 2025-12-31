@@ -120,6 +120,9 @@ export enum TransactionSource {
   BOUNTY_PAYOFF = 'BOUNTY_PAYOFF',
   HIRE_HUNTER = 'HIRE_HUNTER',
 
+  // Wandering NPC service sources
+  SERVICE_PURCHASE = 'SERVICE_PURCHASE',
+
   // Companion sources
   COMPANION_PURCHASE = 'COMPANION_PURCHASE',
   COMPANION_CARE = 'COMPANION_CARE',
@@ -247,6 +250,9 @@ export enum TransactionSource {
   DEEP_MINING_REPAIR = 'DEEP_MINING_REPAIR',
   GANG_PROTECTION_FEE = 'GANG_PROTECTION_FEE',
   RECIPE_LEARNING = 'RECIPE_LEARNING',
+
+  // Devil deal sources (Cosmic Horror)
+  DEVIL_DEAL = 'DEVIL_DEAL',
 }
 
 /**

@@ -6,8 +6,8 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export type QuestType = 'main' | 'side' | 'daily' | 'weekly' | 'event';
-export type QuestStatus = 'available' | 'active' | 'completed' | 'failed';
-export type ObjectiveType = 'kill' | 'collect' | 'visit' | 'crime' | 'skill' | 'gold' | 'level' | 'deliver';
+export type QuestStatus = 'available' | 'active' | 'completing' | 'completed' | 'failed';
+export type ObjectiveType = 'kill' | 'collect' | 'visit' | 'visit_location' | 'crime' | 'skill' | 'gold' | 'level' | 'deliver' | 'dollars';
 
 /**
  * Quest objective
@@ -170,7 +170,7 @@ const CharacterQuestSchema = new Schema<ICharacterQuest>(
     },
     status: {
       type: String,
-      enum: ['available', 'active', 'completed', 'failed'],
+      enum: ['available', 'active', 'completing', 'completed', 'failed'],
       default: 'active'
     },
     objectives: [{

@@ -20,6 +20,7 @@ import { TransactionSource } from '../models/GoldTransaction.model';
 import { calculateUpgradeCost, canUpgrade } from '../utils/gangUpgrades';
 import logger from '../utils/logger';
 import karmaService from './karma.service';
+import { AppError } from '../utils/errors';
 
 export class GangService {
   /**
@@ -53,11 +54,12 @@ export class GangService {
       }
 
       if (character.level < GANG_CREATION.MIN_LEVEL) {
-        throw new Error(`Character must be level ${GANG_CREATION.MIN_LEVEL} or higher to create a gang`);
+        throw new AppError(`Character must be level ${GANG_CREATION.MIN_LEVEL} or higher to create a gang`, 400);
       }
 
       if (character.dollars < GANG_CREATION.COST) {
-        throw new Error(`Insufficient dollars. Need ${GANG_CREATION.COST}, have ${character.dollars}`);
+        // PRODUCTION FIX: Use AppError to preserve user-facing message through sanitization
+        throw new AppError(`Insufficient dollars. Need ${GANG_CREATION.COST}, have ${character.dollars}`, 400);
       }
 
       const existingGang = await Gang.findOne({
@@ -65,17 +67,17 @@ export class GangService {
         isActive: true,
       }).session(session);
       if (existingGang) {
-        throw new Error('Character is already in a gang');
+        throw new AppError('Character is already in a gang', 400);
       }
 
       const nameTaken = await Gang.isNameTaken(name);
       if (nameTaken) {
-        throw new Error('Gang name is already taken');
+        throw new AppError('Gang name is already taken', 400);
       }
 
       const tagTaken = await Gang.isTagTaken(tag);
       if (tagTaken) {
-        throw new Error('Gang tag is already taken');
+        throw new AppError('Gang tag is already taken', 400);
       }
 
       const { DollarService } = await import('./dollar.service');

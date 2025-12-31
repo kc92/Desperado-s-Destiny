@@ -31,6 +31,26 @@ interface GetActionHistoryResponse {
 }
 
 /**
+ * Response for filtered location actions
+ * Phase 7: Location-Specific Actions System
+ */
+interface FilteredLocationActionsResponse {
+  actions: {
+    crimes: Action[];
+    combat: Action[];
+    craft: Action[];
+    social: Action[];
+    global: Action[];
+  };
+  location: {
+    id: string;
+    name: string;
+    type: string;
+  } | null;
+  totalCount: number;
+}
+
+/**
  * Action Service - Handles all action-related API calls
  */
 export const actionService = {
@@ -137,6 +157,28 @@ export const actionService = {
       return {
         success: false,
         error: error.message || 'Failed to load action history',
+      };
+    }
+  },
+
+  /**
+   * Get filtered actions at current location
+   * Returns actions categorized by type (crimes, combat, craft, social, global)
+   * Crimes are filtered by character's CUNNING skill level
+   *
+   * Phase 7: Location-Specific Actions System
+   */
+  async getFilteredLocationActions(): Promise<ApiResponse<FilteredLocationActionsResponse>> {
+    try {
+      const response = await apiClient.get<ApiResponse<FilteredLocationActionsResponse>>(
+        '/locations/current/actions/filtered'
+      );
+      return response.data;
+    } catch (error: any) {
+      logger.error('Failed to get filtered location actions', error as Error, { context: 'actionService.getFilteredLocationActions' });
+      return {
+        success: false,
+        error: error.message || 'Failed to load location actions',
       };
     }
   },

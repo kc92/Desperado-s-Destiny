@@ -18,6 +18,240 @@ export const alchemyRecipes: CraftingRecipe[] = [
   // ============================================================================
   // NOVICE TIER (1-15)
   // ============================================================================
+
+  // -------------------------------------------------------------------------
+  // BASIC REMEDIES (Level 1-5) - Using Gathered Materials
+  // -------------------------------------------------------------------------
+  {
+    id: 'alc_medicinal_poultice',
+    name: 'Medicinal Poultice',
+    description: 'A simple poultice made from medicinal roots. Effective at treating wounds.',
+    professionId: ProfessionId.ALCHEMY,
+    requirements: {
+      professionId: ProfessionId.ALCHEMY,
+      minLevel: 1,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'medicinal_root',
+        materialName: 'Medicinal Root',
+        category: MaterialCategory.HERB,
+        quantity: 2
+      },
+      {
+        materialId: 'water',
+        materialName: 'Water',
+        category: MaterialCategory.MINERAL,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'medicinal_poultice',
+      itemName: 'Medicinal Poultice',
+      baseQuantity: 2,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 20,
+    difficulty: 3,
+    xpGain: 8,
+    learningSource: RecipeSource.TRAINER,
+    category: 'consumable',
+    tags: ['novice', 'healing', 'basic']
+  },
+  {
+    id: 'alc_herbal_tea',
+    name: 'Herbal Tea',
+    description: 'A calming tea that restores energy and minor health.',
+    professionId: ProfessionId.ALCHEMY,
+    requirements: {
+      professionId: ProfessionId.ALCHEMY,
+      minLevel: 2,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'herbs',
+        materialName: 'Herbs',
+        category: MaterialCategory.HERB,
+        quantity: 2
+      },
+      {
+        materialId: 'water',
+        materialName: 'Water',
+        category: MaterialCategory.MINERAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'herbal_tea',
+      itemName: 'Herbal Tea',
+      baseQuantity: 3,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 15,
+    difficulty: 2,
+    xpGain: 6,
+    learningSource: RecipeSource.TRAINER,
+    category: 'consumable',
+    tags: ['novice', 'drink', 'energy']
+  },
+  {
+    id: 'alc_poison_coating',
+    name: 'Poison Coating',
+    description: 'A basic toxin to coat weapons. Causes damage over time.',
+    professionId: ProfessionId.ALCHEMY,
+    requirements: {
+      professionId: ProfessionId.ALCHEMY,
+      minLevel: 4,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'poison_herb',
+        materialName: 'Poison Herb',
+        category: MaterialCategory.HERB,
+        quantity: 2
+      },
+      {
+        materialId: 'animal_fat',
+        materialName: 'Animal Fat',
+        category: MaterialCategory.ANIMAL_PART,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'poison_coating',
+      itemName: 'Poison Coating',
+      baseQuantity: 3,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 25,
+    difficulty: 6,
+    xpGain: 10,
+    learningSource: RecipeSource.TRAINER,
+    category: 'consumable',
+    tags: ['novice', 'poison', 'weapon']
+  },
+  {
+    id: 'alc_rare_essence',
+    name: 'Rare Flower Essence',
+    description: 'Distilled essence from rare flowers. Used in advanced alchemy.',
+    professionId: ProfessionId.ALCHEMY,
+    requirements: {
+      professionId: ProfessionId.ALCHEMY,
+      minLevel: 6,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.CAULDRON,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'rare_flower',
+        materialName: 'Rare Flower',
+        category: MaterialCategory.HERB,
+        quantity: 3
+      },
+      {
+        materialId: 'water',
+        materialName: 'Water',
+        category: MaterialCategory.MINERAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'rare_essence',
+      itemName: 'Rare Flower Essence',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 40,
+    difficulty: 10,
+    xpGain: 15,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'essence', 'component']
+  },
+  {
+    id: 'alc_tallow_candle',
+    name: 'Tallow Candle',
+    description: 'A simple candle made from animal fat. Provides light in darkness.',
+    professionId: ProfessionId.ALCHEMY,
+    requirements: {
+      professionId: ProfessionId.ALCHEMY,
+      minLevel: 2,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'animal_fat',
+        materialName: 'Animal Fat',
+        category: MaterialCategory.ANIMAL_PART,
+        quantity: 2
+      },
+      {
+        materialId: 'cloth',
+        materialName: 'Cloth',
+        category: MaterialCategory.FABRIC,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'tallow_candle',
+      itemName: 'Tallow Candle',
+      baseQuantity: 4,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 15,
+    difficulty: 2,
+    xpGain: 5,
+    learningSource: RecipeSource.TRAINER,
+    category: 'utility',
+    tags: ['novice', 'light', 'basic']
+  },
+  {
+    id: 'alc_pine_tar',
+    name: 'Pine Tar',
+    description: 'Sticky tar made from pine resin. Used as an adhesive and waterproofing.',
+    professionId: ProfessionId.ALCHEMY,
+    requirements: {
+      professionId: ProfessionId.ALCHEMY,
+      minLevel: 5,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'pine_resin',
+        materialName: 'Pine Resin',
+        category: MaterialCategory.HERB,
+        quantity: 3
+      },
+      {
+        materialId: 'charcoal',
+        materialName: 'Charcoal',
+        category: MaterialCategory.MINERAL,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'pine_tar',
+      itemName: 'Pine Tar',
+      baseQuantity: 2,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 30,
+    difficulty: 6,
+    xpGain: 10,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'adhesive', 'component']
+  },
+
+  // -------------------------------------------------------------------------
+  // TRADITIONAL NOVICE POTIONS (Level 1-15)
+  // -------------------------------------------------------------------------
   {
     id: 'alc_healing_salve',
     name: 'Healing Salve',

@@ -52,6 +52,14 @@ export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
       return;
     }
 
+    // Defensive check: ensure element has getBoundingClientRect method
+    if (typeof element.getBoundingClientRect !== 'function') {
+      console.warn('[TutorialSpotlight] Element lacks getBoundingClientRect:', effectiveSelector);
+      setSpotlightRect(null);
+      setIsVisible(false);
+      return;
+    }
+
     const rect = element.getBoundingClientRect();
     setSpotlightRect({
       top: rect.top - padding,

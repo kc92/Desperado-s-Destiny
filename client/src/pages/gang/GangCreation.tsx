@@ -298,7 +298,7 @@ export function GangCreation() {
                     {name} <span className="text-lg">[{tag}]</span>
                   </div>
                   <div className="mt-2 text-sm text-amber-800">
-                    Level 1 | 0 gold in bank | Base perks active
+                    Level 1 | $0 in bank | Base perks active
                   </div>
                 </div>
               </Card>

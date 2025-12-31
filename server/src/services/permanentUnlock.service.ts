@@ -8,6 +8,7 @@ import { AccountUnlocks, IAccountUnlocks } from '../models/AccountUnlocks.model'
 import { Character } from '../models/Character.model';
 import { User } from '../models/User.model';
 import { Achievement } from '../models/Achievement.model';
+import { Gang } from '../models/Gang.model';
 import {
   PermanentUnlock,
   UnlockRequirement,
@@ -17,7 +18,8 @@ import {
   UnlockEffect,
   ClaimUnlockResponse,
   EarnedUnlock,
-  UnlockCategory
+  UnlockCategory,
+  GangRole
 } from '@desperados/shared';
 import { allUnlocks, getUnlockById } from '../data/unlocks';
 
@@ -156,8 +158,7 @@ async function evaluateRequirement(
 
     case UnlockRequirementType.LEGACY_TIER: {
       const user = await User.findById(objectId);
-      // TODO: Add legacyTier to User model
-      const currentTier = (user as any)?.legacyTier || 0;
+      const currentTier = user?.legacyTier || 0;
       const requiredTier = requirement.legacyTier || 0;
 
       return {
@@ -185,8 +186,7 @@ async function evaluateRequirement(
 
     case UnlockRequirementType.GOLD_EARNED: {
       const user = await User.findById(objectId);
-      // TODO: Add totalGoldEarned to User model
-      const totalGold = (user as any)?.totalGoldEarned || 0;
+      const totalGold = user?.totalGoldEarned || 0;
       const requiredGold = requirement.minValue || 0;
 
       return {
@@ -200,8 +200,7 @@ async function evaluateRequirement(
 
     case UnlockRequirementType.CRIMES_COMMITTED: {
       const user = await User.findById(objectId);
-      // TODO: Add totalCrimesCommitted to User model
-      const totalCrimes = (user as any)?.totalCrimesCommitted || 0;
+      const totalCrimes = user?.totalCrimesCommitted || 0;
       const requiredCrimes = requirement.minValue || 0;
 
       return {
@@ -215,8 +214,7 @@ async function evaluateRequirement(
 
     case UnlockRequirementType.DUELS_WON: {
       const user = await User.findById(objectId);
-      // TODO: Add totalDuelsWon to User model
-      const totalDuels = (user as any)?.totalDuelsWon || 0;
+      const totalDuels = user?.totalDuelsWon || 0;
       const requiredDuels = requirement.minValue || 0;
 
       return {
@@ -230,8 +228,7 @@ async function evaluateRequirement(
 
     case UnlockRequirementType.TIME_PLAYED: {
       const user = await User.findById(objectId);
-      // TODO: Add totalTimePlayed to User model
-      const timePlayed = (user as any)?.totalTimePlayed || 0;
+      const timePlayed = user?.totalTimePlayed || 0;
       const requiredTime = requirement.minValue || 0;
 
       return {
@@ -244,16 +241,42 @@ async function evaluateRequirement(
     }
 
     case UnlockRequirementType.GANG_RANK: {
-      const characters = await Character.find({ userId: objectId }).select('gangRank').lean();
-      // TODO: Add gangRank to Character model (or calculate from gang membership)
-      const maxGangRank = Math.max(...characters.map(c => (c as any).gangRank || 0), 0);
+      // Map gang roles to numeric ranks: LEADER=3, OFFICER=2, MEMBER=1, None=0
+      const roleToRank: Record<string, number> = {
+        [GangRole.LEADER]: 3,
+        [GangRole.OFFICER]: 2,
+        [GangRole.MEMBER]: 1
+      };
+
+      const characters = await Character.find({ userId: objectId }).select('_id').lean();
+      const characterIds = characters.map(c => c._id);
+
+      // Find all gangs where any of the user's characters are members
+      const gangs = await Gang.find({
+        'members.characterId': { $in: characterIds },
+        isActive: true
+      }).select('members').lean();
+
+      // Calculate highest rank across all characters
+      let maxGangRank = 0;
+      for (const gang of gangs) {
+        for (const member of gang.members) {
+          if (characterIds.some(id => id.toString() === member.characterId.toString())) {
+            const rank = roleToRank[member.role] || 0;
+            if (rank > maxGangRank) {
+              maxGangRank = rank;
+            }
+          }
+        }
+      }
+
       const requiredRank = requirement.minValue || 0;
 
       return {
         unlockId: '',
         currentValue: maxGangRank,
         requiredValue: requiredRank,
-        percentage: Math.min(100, (maxGangRank / requiredRank) * 100),
+        percentage: Math.min(100, requiredRank > 0 ? (maxGangRank / requiredRank) * 100 : 0),
         requirementsMet: maxGangRank >= requiredRank
       };
     }
@@ -537,8 +560,7 @@ export async function syncLegacyUnlocks(userId: string): Promise<void> {
     throw new Error('User not found');
   }
 
-  // TODO: Add legacyTier to User model
-  const legacyTier = (user as any).legacyTier || 0;
+  const legacyTier = user.legacyTier || 0;
 
   // Grant unlocks for all legacy tiers up to current tier
   const legacyUnlocks = allUnlocks.filter(

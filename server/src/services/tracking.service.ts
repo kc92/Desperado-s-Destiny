@@ -7,6 +7,7 @@
 import mongoose from 'mongoose';
 import { Character } from '../models/Character.model';
 import { HuntingTrip } from '../models/HuntingTrip.model';
+import { AnimalCompanion } from '../models/AnimalCompanion.model';
 import { getAnimalDefinition } from '../data/huntableAnimals';
 import { getHuntingGround } from '../data/huntingGrounds';
 import { HuntingService } from './hunting.service';
@@ -118,8 +119,12 @@ export class TrackingService {
       // Get tracking bonus from skills
       const trackingBonus = HuntingService.getTrackingBonus(character);
 
-      // TODO: Get companion bonus if active
-      const companionBonus = 0;
+      // Get companion bonus if active
+      const activeCompanion = await AnimalCompanion.findOne({
+        ownerId: character._id,
+        isActive: true,
+      }).session(session);
+      const companionBonus = activeCompanion?.trackingBonus || 0;
 
       // Calculate total bonus
       const totalBonus = trackingBonus + companionBonus;

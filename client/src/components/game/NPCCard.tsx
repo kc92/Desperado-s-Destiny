@@ -24,6 +24,9 @@ const NPC_TYPE_COLORS: Record<NPCType, { badge: string; border: string }> = {
   [NPCType.WILDLIFE]: { badge: 'bg-green-700 text-white', border: 'border-green-700' },
   [NPCType.LAWMAN]: { badge: 'bg-blue-700 text-white', border: 'border-blue-700' },
   [NPCType.BOSS]: { badge: 'bg-gold-dark text-wood-dark', border: 'border-gold-dark' },
+  [NPCType.BANDIT]: { badge: 'bg-amber-700 text-white', border: 'border-amber-700' },
+  [NPCType.MONSTER]: { badge: 'bg-purple-700 text-white', border: 'border-purple-700' },
+  [NPCType.BOUNTY_TARGET]: { badge: 'bg-orange-600 text-white', border: 'border-orange-600' },
 };
 
 // NPC type emojis
@@ -32,6 +35,9 @@ const NPC_TYPE_EMOJI: Record<NPCType, string> = {
   [NPCType.WILDLIFE]: '🐺',
   [NPCType.LAWMAN]: '⭐',
   [NPCType.BOSS]: '💀',
+  [NPCType.BANDIT]: '🦹',
+  [NPCType.MONSTER]: '👹',
+  [NPCType.BOUNTY_TARGET]: '🎯',
 };
 
 // Rarity colors
@@ -157,7 +163,7 @@ export const NPCCard: React.FC<NPCCardProps> = React.memo(({
             <div className="flex items-center gap-1">
               <span className="text-blue-600">⭐</span>
               <span className="text-wood-dark font-serif">
-                {npc.lootTable.xpMin}-{npc.lootTable.xpMax} XP
+                {npc.lootTable.xpMin ?? npc.lootTable.xpReward ?? 0}-{npc.lootTable.xpMax ?? npc.lootTable.xpReward ?? 0} XP
               </span>
             </div>
           </div>

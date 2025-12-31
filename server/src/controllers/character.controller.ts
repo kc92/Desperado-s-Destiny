@@ -187,6 +187,13 @@ export async function getCharacter(req: CharacterRequest, res: Response): Promis
 
     // Regenerate energy before returning
     EnergyService.regenerateEnergy(character);
+
+    // Add any missing skills to existing characters (for skill system updates)
+    const updatedSkills = SkillService.addMissingSkills(character.skills as any);
+    if (updatedSkills.length > character.skills.length) {
+      character.skills = updatedSkills as any;
+    }
+
     await character.save();
 
     res.status(200).json({

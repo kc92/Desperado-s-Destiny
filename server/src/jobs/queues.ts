@@ -12,6 +12,7 @@
  */
 
 import Bull, { Queue, Job, JobOptions } from 'bull';
+import * as Sentry from '@sentry/node';
 import { config } from '../config';
 import logger from '../utils/logger';
 
@@ -63,6 +64,8 @@ export const QUEUE_NAMES = {
   COMPETITION_UPDATE: 'competition-update', // Phase 14.3: Competition System
   PROTECTION_PAYMENT: 'protection-payment', // Phase 15: Gang Businesses
   ECONOMY_TICK: 'economy-tick', // Phase R2: Economy Foundation
+  // PRODUCTION FIX: Dead Letter Queue for permanently failed jobs
+  DEAD_LETTER: 'dead-letter-queue',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -241,7 +244,10 @@ function getOrCreateQueue(name: QueueName): Queue {
       logger.error(`Queue ${name} error:`, error);
     });
 
-    queue.on('failed', (job, error) => {
+    queue.on('failed', async (job, error) => {
+      const maxAttempts = job.opts.attempts || 1;
+      const isPermamentFailure = job.attemptsMade >= maxAttempts;
+
       // PHASE 5 FIX: Enhanced job failure logging with full context
       logger.error(`Job ${job.id} in queue ${name} failed:`, {
         jobId: job.id,
@@ -250,7 +256,8 @@ function getOrCreateQueue(name: QueueName): Queue {
         error: error.message,
         stack: error.stack,
         attempts: job.attemptsMade,
-        maxAttempts: job.opts.attempts || 1,
+        maxAttempts,
+        isPermanentFailure: isPermamentFailure,
         inputData: job.data,
         processedOn: job.processedOn,
         finishedOn: job.finishedOn,
@@ -258,6 +265,46 @@ function getOrCreateQueue(name: QueueName): Queue {
         returnvalue: job.returnvalue,
         timestamp: new Date(job.timestamp).toISOString(),
       });
+
+      // PRODUCTION FIX: Move permanently failed jobs to Dead Letter Queue
+      if (isPermamentFailure && name !== QUEUE_NAMES.DEAD_LETTER) {
+        try {
+          const dlq = getDeadLetterQueue();
+          await dlq.add('failed-job', {
+            originalQueue: name,
+            originalJobId: job.id,
+            originalJobName: job.name,
+            originalData: job.data,
+            error: error.message,
+            stack: error.stack,
+            attempts: job.attemptsMade,
+            failedAt: new Date().toISOString(),
+          }, {
+            removeOnComplete: false, // Keep DLQ jobs for review
+            removeOnFail: false,
+            attempts: 1, // Don't retry DLQ entries
+          });
+          logger.warn(`Moved permanently failed job ${job.id} to Dead Letter Queue`);
+
+          // Report to Sentry for critical job failures
+          Sentry.captureException(error, {
+            tags: {
+              component: 'job-queue',
+              queue: name,
+              jobName: job.name || 'unknown',
+              severity: 'critical'
+            },
+            extra: {
+              jobId: job.id,
+              attempts: job.attemptsMade,
+              inputData: job.data,
+              message: 'Job moved to Dead Letter Queue after exhausting all retries'
+            }
+          });
+        } catch (dlqError) {
+          logger.error('Failed to move job to Dead Letter Queue:', dlqError);
+        }
+      }
     });
 
     queue.on('completed', (job, result) => {
@@ -276,6 +323,14 @@ function getOrCreateQueue(name: QueueName): Queue {
   }
 
   return queues.get(name)!;
+}
+
+/**
+ * PRODUCTION FIX: Get the Dead Letter Queue for failed jobs
+ * This queue stores jobs that failed all retry attempts for later review
+ */
+function getDeadLetterQueue(): Queue {
+  return getOrCreateQueue(QUEUE_NAMES.DEAD_LETTER);
 }
 
 /**
@@ -388,6 +443,10 @@ export const Queues = {
   // Phase R2: Economy Foundation - Economy Tick
   get economyTick() {
     return getOrCreateQueue(QUEUE_NAMES.ECONOMY_TICK);
+  },
+  // PRODUCTION FIX: Dead Letter Queue for failed jobs
+  get deadLetter() {
+    return getDeadLetterQueue();
   },
 };
 

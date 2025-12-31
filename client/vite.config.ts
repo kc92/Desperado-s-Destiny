@@ -1,3 +1,4 @@
+// Force refresh: 2025-12-28T12:00
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -9,13 +10,16 @@ const sharedPath = fs.existsSync(path.resolve(__dirname, '../shared'))
   ? path.resolve(__dirname, '../shared')
   : path.resolve(__dirname, './shared');
 
+// Determine API target: use Docker service name if VITE_API_URL is set (Docker), otherwise localhost
+const apiTarget = process.env.VITE_API_URL || 'http://localhost:5001';
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     visualizer({
       filename: './dist/stats.html',
-      open: true,
+      open: false, // PRODUCTION FIX: false to prevent CI build hangs on headless servers
       gzipSize: true,
       brotliSize: true,
     }),
@@ -72,7 +76,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5001',
+        target: apiTarget,
         changeOrigin: true,
         secure: false,
         cookieDomainRewrite: 'localhost', // Rewrite cookie domain
@@ -98,7 +102,7 @@ export default defineConfig({
         },
       },
       '/socket.io': {
-        target: 'http://localhost:5001',
+        target: apiTarget,
         ws: true,
         changeOrigin: true,
       },

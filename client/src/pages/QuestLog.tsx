@@ -107,12 +107,52 @@ export const QuestLog: React.FC = () => {
     }
   };
 
-  const renderRewards = (rewards: QuestReward) => {
+  const renderRewards = (rewards: QuestReward | any[] | undefined) => {
     const rewardElements: JSX.Element[] = [];
 
+    if (!rewards) return rewardElements;
+
+    // Handle array format from server: [{ type: 'gold', amount: 100 }]
+    if (Array.isArray(rewards)) {
+      rewards.forEach((reward, idx) => {
+        const type = reward.type?.toLowerCase();
+        const amount = reward.amount ?? reward.value ?? 0;
+
+        if (type === 'gold') {
+          rewardElements.push(
+            <span key={`gold-${idx}`} className="text-gold-light">${amount}</span>
+          );
+        } else if (type === 'xp' || type === 'experience') {
+          rewardElements.push(
+            <span key={`xp-${idx}`} className="text-blue-400">{amount} XP</span>
+          );
+        } else if (type === 'reputation' || type === 'rep') {
+          rewardElements.push(
+            <span key={`rep-${idx}`} className="text-green-400">+{amount} Rep</span>
+          );
+        } else if (type === 'skillpoints' || type === 'skill') {
+          rewardElements.push(
+            <span key={`skill-${idx}`} className="text-purple-400">{amount} Skill Points</span>
+          );
+        } else if (type === 'item') {
+          rewardElements.push(
+            <span key={`item-${idx}`} className="text-purple-400">
+              {reward.name || reward.itemId} x{reward.quantity || 1}
+            </span>
+          );
+        } else if (type === 'title') {
+          rewardElements.push(
+            <span key={`title-${idx}`} className="text-orange-400">Title: {reward.name || amount}</span>
+          );
+        }
+      });
+      return rewardElements;
+    }
+
+    // Handle object format: { gold: 100, experience: 50 }
     if (rewards.gold) {
       rewardElements.push(
-        <span key="gold" className="text-gold-light">{rewards.gold} Gold</span>
+        <span key="gold" className="text-gold-light">${rewards.gold}</span>
       );
     }
     if (rewards.experience) {
@@ -209,7 +249,7 @@ export const QuestLog: React.FC = () => {
               <Card
                 key={quest._id}
                 variant="leather"
-                className="p-4 cursor-pointer hover:border-gold-light/50 transition-colors"
+                className="p-4 cursor-pointer hover:border-gold-light/50 hover:bg-leather-dark/30 hover:shadow-lg hover:scale-[1.01] transition-all duration-200"
                 onClick={() => setSelectedQuest(quest)}
               >
                 <div className="flex justify-between items-start mb-3">
@@ -283,7 +323,7 @@ export const QuestLog: React.FC = () => {
               <Card
                 key={quest.questId}
                 variant="wood"
-                className="p-4 cursor-pointer hover:border-gold-light/50 transition-colors"
+                className="p-4 cursor-pointer hover:border-gold-light/50 hover:bg-wood-dark/30 hover:shadow-lg hover:scale-[1.01] transition-all duration-200"
                 onClick={() => setSelectedQuest(quest)}
               >
                 <div className="flex justify-between items-start mb-2">
@@ -358,6 +398,7 @@ export const QuestLog: React.FC = () => {
           isOpen={true}
           onClose={() => setSelectedQuest(null)}
           title={isQuestDefinition(selectedQuest) ? selectedQuest.name : (selectedQuest.definition?.name || selectedQuest.questId)}
+          className="!z-[10000]"
         >
           <div className="space-y-4">
             {/* Type Badge */}

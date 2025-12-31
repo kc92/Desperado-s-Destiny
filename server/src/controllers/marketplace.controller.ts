@@ -301,7 +301,7 @@ export const placeBid = asyncHandler(
 
     res.status(200).json({
       success: true,
-      message: `Bid of ${amount} gold placed successfully`,
+      message: `Bid of $${amount} placed successfully`,
       data: {
         listing,
         yourBid: parseInt(amount, 10),
@@ -324,7 +324,7 @@ export const buyNow = asyncHandler(
 
     res.status(200).json({
       success: true,
-      message: `Purchased ${result.listing.item.name} for ${result.totalPaid} gold`,
+      message: `Purchased ${result.listing.item.name} for $${result.totalPaid}`,
       data: {
         listing: result.listing,
         totalPaid: result.totalPaid,

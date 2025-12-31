@@ -7,6 +7,8 @@ import { create } from 'zustand';
 import type { Action, ActionResult } from '@desperados/shared';
 import { actionService } from '@/services/action.service';
 import { logger } from '@/services/logger.service';
+import { useCharacterStore } from './useCharacterStore';
+import { useEnergyStore } from './useEnergyStore';
 
 interface ActionStore {
   // State
@@ -81,16 +83,30 @@ export const useActionStore = create<ActionStore>((set) => ({
 
       if (response.success && response.data) {
         const result = response.data.result;
+        // Extended result properties from server response
+        const extResult = result as typeof result & { actionType?: string; challengeSuccess?: boolean; actionId?: string; energyRemaining?: number };
 
         // Dispatch game-event-item-crafted for successful crafting actions
-        if (result.action.type === 'CRAFT' && result.success) {
-            window.dispatchEvent(new CustomEvent('game-event-item-crafted', { detail: { recipeId: result.action.id } }));
+        if (extResult.actionType === 'CRAFT' && extResult.challengeSuccess) {
+            window.dispatchEvent(new CustomEvent('game-event-item-crafted', { detail: { recipeId: extResult.actionId } }));
         }
 
         set({
           currentChallenge: result,
           isChallengingAction: false,
         });
+
+        // Refresh character state to update sidebar (Gold, XP, Energy)
+        const characterStore = useCharacterStore.getState();
+        if (characterStore.currentCharacter) {
+          await characterStore.refreshCharacter();
+        }
+
+        // Also sync energy store for real-time energy display
+        const energyStore = useEnergyStore.getState();
+        if (extResult.energyRemaining !== undefined) {
+          energyStore.updateEnergy(extResult.energyRemaining);
+        }
 
         return result;
       } else {

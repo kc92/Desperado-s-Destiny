@@ -9,30 +9,54 @@ import { EnergyService } from '../services/energy.service';
 import deityDreamService from '../services/deityDream.service';
 import logger from '../utils/logger';
 import { sanitizeErrorMessage } from '../utils/errors';
+import { ENERGY } from '@desperados/shared';
 
 export class EnergyController {
   /**
    * GET /api/energy/status
    * Get current energy status for authenticated character
+   *
+   * FIX: Now uses non-mutating EnergyService.getStatus() and returns
+   * response format that matches client's expected EnergyStatus interface
    */
   static async getStatus(req: Request, res: Response): Promise<void> {
     try {
-      const character = req.character!;
+      const characterId = req.character!._id.toString();
+      const isPremium = (req.character as any)?.isPremium || false;
 
-      // Regenerate energy before returning status
-      EnergyService.regenerateEnergy(character);
+      // Use the proper non-mutating getStatus method
+      const status = await EnergyService.getStatus(characterId);
 
-      const timeUntilFull = await EnergyService.getTimeUntilFullEnergy(character);
+      // Calculate regen rate per minute (FREE_REGEN_PER_HOUR / 60)
+      const baseRegenPerMinute = ENERGY.FREE_REGEN_PER_HOUR / 60;
+      const regenRate = isPremium ? baseRegenPerMinute * 1.5 : baseRegenPerMinute;
 
+      // Calculate next regen timestamp (1 minute from now if not full)
+      const nextRegenAt = status.currentEnergy >= status.maxEnergy
+        ? new Date().toISOString()
+        : new Date(Date.now() + 60000).toISOString();
+
+      // Return response in format expected by client's useEnergy hook
       res.json({
         success: true,
         data: {
-          currentEnergy: Math.floor(character.energy),
-          maxEnergy: character.maxEnergy,
-          lastUpdate: character.lastEnergyUpdate,
-          timeUntilFullMs: timeUntilFull,
-          timeUntilFullMinutes: Math.ceil(timeUntilFull / 60000),
-          isFull: character.energy >= character.maxEnergy
+          energy: {
+            current: Math.floor(status.currentEnergy),
+            max: status.maxEnergy,
+            regenRate: regenRate, // energy per minute
+            lastUpdate: status.lastUpdate.toISOString(),
+            nextRegenAt: nextRegenAt,
+            bonuses: [], // TODO: Implement energy bonuses from items/buffs
+            totalBonusRegen: 0,
+            isExhausted: status.currentEnergy <= 0
+          },
+          // Also include legacy format for backwards compatibility
+          currentEnergy: Math.floor(status.currentEnergy),
+          maxEnergy: status.maxEnergy,
+          lastUpdate: status.lastUpdate,
+          timeUntilFullMs: status.timeUntilFull,
+          timeUntilFullMinutes: Math.ceil(status.timeUntilFull / 60000),
+          isFull: status.currentEnergy >= status.maxEnergy
         }
       });
     } catch (error) {
@@ -165,27 +189,45 @@ export class EnergyController {
   /**
    * POST /api/energy/regenerate
    * Force regeneration calculation and return updated energy
+   *
+   * FIX: Now uses atomic EnergyService.getStatus() and returns response format
+   * that matches client's expected RegenResult interface
    */
   static async regenerate(req: Request, res: Response): Promise<void> {
     try {
-      const character = req.character!;
+      const characterId = req.character!._id.toString();
 
-      // Calculate regeneration
-      const regenAmount = await EnergyService.calculateRegenAmount(character);
+      // Get current status (calculates regen without mutating)
+      const beforeStatus = await EnergyService.getStatus(characterId);
 
-      // Apply regeneration
-      EnergyService.regenerateEnergy(character);
+      // If there's regen to apply, do it atomically
+      if (beforeStatus.regeneratedEnergy > 0) {
+        // Grant the regenerated energy to persist it
+        await EnergyService.grant(characterId, beforeStatus.regeneratedEnergy, false);
+      }
 
-      // Save the character
-      await character.save();
+      // Get updated status
+      const afterStatus = await EnergyService.getStatus(characterId);
+
+      // Calculate next regen timestamp
+      const nextRegenAt = afterStatus.currentEnergy >= afterStatus.maxEnergy
+        ? new Date().toISOString()
+        : new Date(Date.now() + 60000).toISOString();
 
       res.json({
         success: true,
         data: {
-          regenerated: Math.floor(regenAmount),
-          currentEnergy: Math.floor(character.energy),
-          maxEnergy: character.maxEnergy,
-          lastUpdate: character.lastEnergyUpdate
+          regen: {
+            energyGained: Math.floor(beforeStatus.regeneratedEnergy),
+            currentEnergy: Math.floor(afterStatus.currentEnergy),
+            maxEnergy: afterStatus.maxEnergy,
+            nextRegenAt: nextRegenAt
+          },
+          // Legacy format for backwards compatibility
+          regenerated: Math.floor(beforeStatus.regeneratedEnergy),
+          currentEnergy: Math.floor(afterStatus.currentEnergy),
+          maxEnergy: afterStatus.maxEnergy,
+          lastUpdate: afterStatus.lastUpdate
         }
       });
     } catch (error) {

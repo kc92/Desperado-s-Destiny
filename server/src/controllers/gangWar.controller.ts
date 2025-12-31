@@ -111,7 +111,7 @@ export class GangWarController {
       res.status(200).json({
         success: true,
         data: { war },
-        message: `Contributed ${amount} gold to war`,
+        message: `Contributed $${amount} to war`,
       });
     } catch (error) {
       logger.error('Error contributing to war:', error);

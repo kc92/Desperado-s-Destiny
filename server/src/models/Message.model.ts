@@ -10,10 +10,10 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
  * Chat room types
  */
 export enum RoomType {
-  GLOBAL = 'GLOBAL',
-  FACTION = 'FACTION',
-  GANG = 'GANG',
-  WHISPER = 'WHISPER'
+  GLOBAL = 'global',
+  FACTION = 'faction',
+  GANG = 'gang',
+  WHISPER = 'whisper'
 }
 
 /**

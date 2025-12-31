@@ -13,6 +13,8 @@ import { CrowdService } from '../services/crowd.service';
 import { ScheduleService } from '../services/schedule.service';
 import { processGameAction, resolveActionGame } from '../services/actionDeck.service';
 import { PlayerAction, getAvailableActions } from '../services/deckGames';
+import { QuestService } from '../services/quest.service';
+import logger from '../utils/logger';
 
 /**
  * Get all locations
@@ -296,6 +298,17 @@ export const travelToLocation = asyncHandler(
     character.lastActive = new Date();
     await character.save();
 
+    // Trigger quest objectives for location visits
+    // Trigger with ObjectId for direct matches
+    QuestService.onLocationVisited(character._id.toString(), targetLocationId).catch(err =>
+      logger.warn('Quest location trigger failed', { error: err.message, characterId: character._id, locationId: targetLocationId })
+    );
+    // Also trigger with slug format (location:red-gulch) for quest matching
+    const locationSlug = targetLocation.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+    QuestService.onLocationVisited(character._id.toString(), `location:${locationSlug}`).catch(err =>
+      logger.warn('Quest location slug trigger failed', { error: err.message, characterId: character._id, locationSlug })
+    );
+
     // Get connected locations for response
     const connectedIds = targetLocation.connections.map(c => c.targetLocationId);
     const connectedLocations = await Location.find({
@@ -346,6 +359,55 @@ export const getCurrentLocationActions = asyncHandler(
     res.status(200).json({
       success: true,
       data: { actions },
+    });
+  }
+);
+
+/**
+ * Get available actions at current location filtered by location type
+ * Returns actions categorized by type (crimes, combat, craft, social, global)
+ * Crimes are filtered by character's CUNNING skill level
+ *
+ * GET /api/locations/current/actions/filtered
+ *
+ * Phase 7: Location-Specific Actions System
+ */
+export const getFilteredLocationActions = asyncHandler(
+  async (req: Request, res: Response) => {
+    const character = req.character;
+
+    if (!character) {
+      return res.status(401).json({
+        success: false,
+        message: 'No character selected',
+      });
+    }
+
+    const actions = await LocationService.getActionsForLocationByType(
+      character.currentLocation,
+      character
+    );
+
+    // Get location info for context
+    const mongoose = await import('mongoose');
+    let location;
+    if (mongoose.Types.ObjectId.isValid(character.currentLocation)) {
+      location = await Location.findById(character.currentLocation).lean();
+    } else {
+      location = await Location.findOne({ id: character.currentLocation }).lean();
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        actions,
+        location: location ? {
+          id: (location as any)._id,
+          name: location.name,
+          type: location.type,
+        } : null,
+        totalCount: actions.crimes.length + actions.combat.length + actions.craft.length + actions.social.length + actions.global.length,
+      },
     });
   }
 );
@@ -777,6 +839,28 @@ export const enterBuilding = asyncHandler(
     characterDoc.lastActive = new Date();
     await characterDoc.save();
 
+    // Trigger quest objectives for building visits
+    // Use building type/name as additional identifier for quest matching
+    const buildingType = building.type || 'building';
+    const buildingSlug = building.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+
+    // Trigger with ObjectId
+    QuestService.onLocationVisited(characterDoc._id.toString(), building._id.toString()).catch(err =>
+      logger.warn('Quest building trigger failed', { error: err.message, characterId: characterDoc._id, buildingId: building._id })
+    );
+    // Trigger with building type for quests like "visit saloon"
+    QuestService.onLocationVisited(characterDoc._id.toString(), `building:${buildingType}`).catch(err =>
+      logger.warn('Quest building type trigger failed', { error: err.message, characterId: characterDoc._id, buildingType })
+    );
+    // Trigger with building name slug for specific building quests
+    QuestService.onLocationVisited(characterDoc._id.toString(), `building:${buildingSlug}`).catch(err =>
+      logger.warn('Quest building name trigger failed', { error: err.message, characterId: characterDoc._id, buildingSlug })
+    );
+    // Also trigger as location:slug for quest targets that use location: prefix
+    QuestService.onLocationVisited(characterDoc._id.toString(), `location:${buildingSlug}`).catch(err =>
+      logger.warn('Quest location building trigger failed', { error: err.message, characterId: characterDoc._id, buildingSlug })
+    );
+
     // Get crowd state for this building
     const crowdState = await CrowdService.getCrowdLevel(building._id.toString());
     const crowdEffects = crowdState
@@ -963,6 +1047,34 @@ export const getZoneAwareTravel = asyncHandler(
   }
 );
 
+/**
+ * Get hostile NPCs at current location
+ * Returns NPCs that can be fought at the current location
+ * GET /api/locations/current/hostiles
+ */
+export const getLocationHostiles = asyncHandler(
+  async (req: Request, res: Response) => {
+    const character = req.character;
+
+    if (!character) {
+      return res.status(401).json({
+        success: false,
+        message: 'No character selected',
+      });
+    }
+
+    const npcs = await LocationService.getHostileNPCsAtLocation(
+      character.currentLocation,
+      character
+    );
+
+    res.status(200).json({
+      success: true,
+      data: { npcs },
+    });
+  }
+);
+
 export default {
   getAllLocations,
   getLocationById,
@@ -971,6 +1083,7 @@ export default {
   getTownBuildings,
   travelToLocation,
   getCurrentLocationActions,
+  getFilteredLocationActions,
   getCurrentLocationJobs,
   performJob,
   startJob,
@@ -983,4 +1096,5 @@ export default {
   exitBuilding,
   getBuildingDetails,
   getZoneAwareTravel,
+  getLocationHostiles,
 };

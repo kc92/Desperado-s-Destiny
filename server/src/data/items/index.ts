@@ -33,6 +33,7 @@ import { goldSinkItems } from './gold_sink_items';
 import { greenhornGear } from './greenhorn_gear';
 import { heartOfTerritoryGear } from './heart_of_territory_gear';
 import { legendsGear } from './legends_gear';
+import { actionRewardItems } from './action_rewards';
 
 /**
  * All items in the game
@@ -68,6 +69,7 @@ export const allItems: Partial<IItem>[] = [
   ...ALL_FRONTIER_JUSTICE_ITEMS,  // Phase 19.3: Frontier Justice items (L16-25)
   ...heartOfTerritoryGear,  // Phase 19.4: Heart of the Territory items (L26-35)
   ...legendsGear,     // Phase 19.5: Legends of the West items (L36-45)
+  ...actionRewardItems,  // Action reward items (crime loot, combat drops, boss drops)
 ];
 
 /**
@@ -99,7 +101,7 @@ export function getItemById(itemId: string): Partial<IItem> | undefined {
 }
 
 // Export individual categories
-export { weapons, armor, consumables, materials, diasporaWeapons, diasporaArmor, diasporaConsumables, frontierGear, ALL_FRONTIER_JUSTICE_ITEMS, huntingGear, fishingGear, craftingGear, nativeGear, contestedLandsGear, defenderGear, supportGear, debufferGear, gamblingGear, horseRacingGear, gatheringMaterials, refinedMaterials, components, craftingTools, tieredGear, milestoneItems, goldSinkItems, greenhornGear, heartOfTerritoryGear, legendsGear };
+export { weapons, armor, consumables, materials, diasporaWeapons, diasporaArmor, diasporaConsumables, frontierGear, ALL_FRONTIER_JUSTICE_ITEMS, huntingGear, fishingGear, craftingGear, nativeGear, contestedLandsGear, defenderGear, supportGear, debufferGear, gamblingGear, horseRacingGear, gatheringMaterials, refinedMaterials, components, craftingTools, tieredGear, milestoneItems, goldSinkItems, greenhornGear, heartOfTerritoryGear, legendsGear, actionRewardItems };
 
 // Export count for validation
 export const itemCounts = {

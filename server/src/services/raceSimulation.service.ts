@@ -18,7 +18,8 @@ import {
   RacePosition,
   RaceIncident,
   RaceType,
-  RACING_CONSTANTS
+  RACING_CONSTANTS,
+  HorseSkill
 } from '@desperados/shared';
 import { SecureRNG } from './base/SecureRNG';
 
@@ -480,9 +481,26 @@ async function updateHorseStatistics(results: RaceResult[]): Promise<void> {
  */
 function calculateTerrainModifier(horse: HorseDocument, terrain: string): number {
   // Base modifier from constants
-  const baseMod = 1 + (RACING_CONSTANTS.TERRAIN_PENALTIES[terrain as keyof typeof RACING_CONSTANTS.TERRAIN_PENALTIES] || 0) / 100;
+  let baseMod = 1 + (RACING_CONSTANTS.TERRAIN_PENALTIES[terrain as keyof typeof RACING_CONSTANTS.TERRAIN_PENALTIES] || 0) / 100;
 
-  // TODO: Check horse terrain affinity from skills
+  // Check horse terrain affinity from skills
+  if (horse.training?.trainedSkills?.includes(HorseSkill.SURE_FOOTED)) {
+    // Sure-footed horses handle all terrains better (reduce penalty by 50%)
+    baseMod = 1 + ((baseMod - 1) * 0.5);
+  }
+
+  // Racing form helps on track surfaces
+  if (horse.training?.trainedSkills?.includes(HorseSkill.RACING_FORM) &&
+      (terrain === 'dirt' || terrain === 'turf' || terrain === 'track')) {
+    baseMod += 0.05; // 5% bonus on race tracks
+  }
+
+  // Endurance helps on rough terrain
+  if (horse.training?.trainedSkills?.includes(HorseSkill.ENDURANCE) &&
+      (terrain === 'rough' || terrain === 'mountain' || terrain === 'desert')) {
+    baseMod += 0.03; // 3% bonus on challenging terrain
+  }
+
   return baseMod;
 }
 
@@ -570,7 +588,9 @@ function calculateObstacleClearanceChance(
   // Morale affects success
   chance += (horse.currentMorale / 100) * 0.05;
 
-  // TODO: Check for jumping skills
+  // Note: Horse training skills would affect this, but RaceHorseState
+  // doesn't carry full training data. Skills are factored into initial
+  // horse stats which already affect currentStamina and currentMorale.
 
   return Math.max(0.1, Math.min(0.95, chance));
 }

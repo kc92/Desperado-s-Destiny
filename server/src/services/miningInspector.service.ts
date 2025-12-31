@@ -24,6 +24,7 @@ import {
   BASE_INSPECTION_CHANCE,
 } from '@desperados/shared';
 import { IllegalMiningService } from './illegalMining.service';
+import { SecureRNG } from './base/SecureRNG';
 
 /**
  * Inspector patrol result
@@ -108,7 +109,7 @@ export class MiningInspectorService {
         // Calculate inspection chance based on suspicion
         const inspectionChance = this.calculateInspectionChance(claim);
 
-        if (Math.random() * 100 >= inspectionChance) {
+        if (SecureRNG.range(0, 99) >= inspectionChance) {
           continue; // No inspection this round
         }
 
@@ -158,7 +159,7 @@ export class MiningInspectorService {
     try {
       // Check if claim is discovered
       const discoveryChance = this.calculateDiscoveryChance(claim, inspector);
-      result.claimDiscovered = Math.random() * 100 < discoveryChance;
+      result.claimDiscovered = SecureRNG.range(0, 99) < discoveryChance;
 
       if (!result.claimDiscovered) {
         // Claim not found - passed inspection
@@ -200,7 +201,7 @@ export class MiningInspectorService {
 
       } else if (claim.suspicionLevel >= SUSPICION_THRESHOLDS.ACTIVE_SEARCH.min) {
         // Active search level - citation with possible arrest
-        const severityRoll = Math.random() * 100;
+        const severityRoll = SecureRNG.range(0, 99);
 
         if (severityRoll < 30) {
           // Arrest
@@ -224,7 +225,7 @@ export class MiningInspectorService {
 
       } else if (claim.suspicionLevel >= SUSPICION_THRESHOLDS.SUSPICIOUS.min) {
         // Suspicious level - warning or citation
-        const severityRoll = Math.random() * 100;
+        const severityRoll = SecureRNG.range(0, 99);
 
         if (severityRoll < 50) {
           result.result = InspectionResult.CITATION;
@@ -377,41 +378,41 @@ export class MiningInspectorService {
     let corruptibility: number;
 
     // Higher alert levels get tougher inspectors
-    const typeRoll = Math.random() * 100;
+    const typeRoll = SecureRNG.range(0, 99);
 
     if (alertLevel === SuspicionLevel.WARRANT_ISSUED) {
       if (typeRoll < 30) {
         type = InspectorType.FEDERAL_AGENT;
         namePool = FEDERAL_AGENT_NAMES;
-        thoroughness = 85 + Math.random() * 15; // 85-100
+        thoroughness = SecureRNG.range(85, 100); // 85-100
         corruptibility = 0; // Cannot be bribed
       } else {
         type = InspectorType.MARSHAL;
         namePool = MARSHAL_NAMES;
-        thoroughness = 70 + Math.random() * 20; // 70-90
-        corruptibility = 20 + Math.random() * 30; // 20-50
+        thoroughness = SecureRNG.range(70, 90); // 70-90
+        corruptibility = SecureRNG.range(20, 50); // 20-50
       }
     } else if (alertLevel === SuspicionLevel.ACTIVE_SEARCH) {
       if (typeRoll < 50) {
         type = InspectorType.MARSHAL;
         namePool = MARSHAL_NAMES;
-        thoroughness = 60 + Math.random() * 25; // 60-85
-        corruptibility = 30 + Math.random() * 30; // 30-60
+        thoroughness = SecureRNG.range(60, 85); // 60-85
+        corruptibility = SecureRNG.range(30, 60); // 30-60
       } else {
         type = InspectorType.INSPECTOR;
         namePool = INSPECTOR_NAMES;
-        thoroughness = 50 + Math.random() * 25; // 50-75
-        corruptibility = 40 + Math.random() * 40; // 40-80
+        thoroughness = SecureRNG.range(50, 75); // 50-75
+        corruptibility = SecureRNG.range(40, 80); // 40-80
       }
     } else {
       // SUSPICIOUS or UNKNOWN
       type = InspectorType.INSPECTOR;
       namePool = INSPECTOR_NAMES;
-      thoroughness = 30 + Math.random() * 30; // 30-60
-      corruptibility = 50 + Math.random() * 40; // 50-90
+      thoroughness = SecureRNG.range(30, 60); // 30-60
+      corruptibility = SecureRNG.range(50, 90); // 50-90
     }
 
-    const name = namePool[Math.floor(Math.random() * namePool.length)];
+    const name = SecureRNG.select(namePool);
 
     return { type, name, thoroughness, corruptibility };
   }

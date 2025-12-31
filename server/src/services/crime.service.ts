@@ -217,7 +217,7 @@ export class CrimeService {
           jailTimeMinutes = Math.max(1, Math.floor(props.jailTimeOnFailure * territoryJailReduction));
           // Pass bailCost from action if available
           const bailCost = props.bailCost || undefined;
-          character.sendToJail(jailTimeMinutes, bailCost);
+          character.sendToJail(jailTimeMinutes, bailCost, action.name);
           wasJailed = true;
         }
 
@@ -503,6 +503,7 @@ export class CrimeService {
   /**
    * Pay bail to escape jail early
    * Costs dollars based on wanted level
+   * Uses a single atomic findOneAndUpdate to avoid WriteConflict issues
    */
   static async payBail(characterId: string): Promise<{
     success: boolean;
@@ -510,22 +511,16 @@ export class CrimeService {
     dollarsSpent?: number;
     message?: string;
   }> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      const character = await Character.findById(characterId).session(session);
+      // First, get character to calculate bail cost and validate
+      const character = await Character.findById(characterId);
 
       if (!character) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'Character not found' };
       }
 
       // Check if actually jailed
       if (!character.isCurrentlyJailed()) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'Character is not jailed' };
       }
 
@@ -534,35 +529,30 @@ export class CrimeService {
         ? character.lastBailCost
         : character.wantedLevel * 50;
 
-      // Check if character has enough dollars
-      if (!character.hasDollars(bailCost)) {
-        await session.abortTransaction();
-        session.endSession();
-        return {
-          success: false,
-          error: `Insufficient dollars. Need ${bailCost} dollars, have ${character.dollars}.`
-        };
-      }
-
-      // Deduct dollars using DollarService (transaction-safe)
-      const { DollarService } = await import('./dollar.service');
-      await DollarService.deductDollars(
-        character._id as any,
-        bailCost,
-        TransactionSource.BAIL_PAYMENT,
+      // Single atomic update: deduct dollars AND release from jail
+      // The $gte check ensures we have enough dollars (prevents double-spending)
+      const result = await Character.findOneAndUpdate(
         {
-          wantedLevel: character.wantedLevel,
-          description: `Paid ${bailCost} dollars bail to escape jail (Wanted Level: ${character.wantedLevel})`,
+          _id: characterId,
+          $or: [
+            { dollars: { $gte: bailCost } },
+            { dollars: { $exists: false }, gold: { $gte: bailCost } }
+          ]
         },
-        session
+        {
+          $inc: { dollars: -bailCost, gold: -bailCost },
+          $set: { isJailed: false, jailedUntil: null }
+        },
+        { new: true }
       );
 
-      // Release from jail
-      character.releaseFromJail();
-      await character.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
+      if (!result) {
+        // Either character not found or insufficient funds
+        return {
+          success: false,
+          error: `Insufficient dollars. Need ${bailCost} dollars, have ${character.dollars ?? character.gold ?? 0}.`
+        };
+      }
 
       logger.info(`Character ${characterId} paid ${bailCost} dollars bail and was released`);
 
@@ -572,8 +562,6 @@ export class CrimeService {
         message: `You paid ${bailCost} dollars and walked free. The sheriff tips his hat as you leave.`
       };
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       logger.error('Error paying bail:', error);
       throw error;
     }
@@ -582,6 +570,7 @@ export class CrimeService {
   /**
    * Lay low to reduce wanted level
    * Costs time OR dollars
+   * Uses a single atomic findOneAndUpdate to avoid WriteConflict issues
    */
   static async layLow(
     characterId: string,
@@ -592,73 +581,81 @@ export class CrimeService {
     newWantedLevel?: number;
     costPaid?: string;
   }> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      const character = await Character.findById(characterId).session(session);
+      // First, get character to validate
+      const character = await Character.findById(characterId);
 
       if (!character) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'Character not found' };
       }
 
       // Check if has wanted level
       if (character.wantedLevel === 0) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'No wanted level to reduce' };
       }
 
-      if (useDollars) {
-        const dollarsCost = 50;
+      const dollarsCost = 50;
+      let updateResult;
 
-        // Check if character has enough dollars
-        if (!character.hasDollars(dollarsCost)) {
-          await session.abortTransaction();
-          session.endSession();
+      if (useDollars) {
+        // Single atomic update: deduct dollars AND reduce wanted level
+        // The $gte check ensures we have enough dollars
+        updateResult = await Character.findOneAndUpdate(
+          {
+            _id: characterId,
+            wantedLevel: { $gt: 0 },
+            $or: [
+              { dollars: { $gte: dollarsCost } },
+              { dollars: { $exists: false }, gold: { $gte: dollarsCost } }
+            ]
+          },
+          [
+            { $set: {
+              dollars: { $subtract: ['$dollars', dollarsCost] },
+              gold: { $subtract: ['$gold', dollarsCost] },
+              wantedLevel: { $max: [0, { $subtract: ['$wantedLevel', 1] }] }
+            }},
+            { $set: {
+              bountyAmount: { $multiply: ['$wantedLevel', 100] }
+            }}
+          ],
+          { new: true }
+        );
+
+        if (!updateResult) {
           return {
             success: false,
-            error: `Insufficient dollars. Need ${dollarsCost} dollars, have ${character.dollars}.`
+            error: `Insufficient dollars. Need ${dollarsCost} dollars, have ${character.dollars ?? character.gold ?? 0}.`
           };
         }
-
-        // Deduct dollars using DollarService (transaction-safe)
-        const { DollarService } = await import('./dollar.service');
-        await DollarService.deductDollars(
-          character._id as any,
-          dollarsCost,
-          TransactionSource.LAY_LOW_PAYMENT,
-          {
-            wantedLevel: character.wantedLevel,
-            description: `Paid ${dollarsCost} dollars to lay low and reduce wanted level`,
-          },
-          session
-        );
       } else {
-        // Time cost: 30 minutes (could implement actual waiting time)
-        // For MVP, we'll just apply the reduction immediately
-        // In production, this could work like skill training
+        // Time cost only - just reduce wanted level (no dollars involved)
+        updateResult = await Character.findOneAndUpdate(
+          { _id: characterId, wantedLevel: { $gt: 0 } },
+          [
+            { $set: {
+              wantedLevel: { $max: [0, { $subtract: ['$wantedLevel', 1] }] }
+            }},
+            { $set: {
+              bountyAmount: { $multiply: ['$wantedLevel', 100] }
+            }}
+          ],
+          { new: true }
+        );
+
+        if (!updateResult) {
+          return { success: false, error: 'Failed to reduce wanted level' };
+        }
       }
 
-      // Reduce wanted level by 1
-      character.decreaseWantedLevel(1);
-      await character.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
-
-      logger.info(`Character ${characterId} laid low, wanted level reduced to ${character.wantedLevel}`);
+      logger.info(`Character ${characterId} laid low, wanted level reduced to ${updateResult.wantedLevel}`);
 
       return {
         success: true,
-        newWantedLevel: character.wantedLevel,
+        newWantedLevel: updateResult.wantedLevel,
         costPaid: useDollars ? '50 dollars' : '30 minutes'
       };
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       logger.error('Error laying low:', error);
       throw error;
     }
@@ -742,7 +739,7 @@ export class CrimeService {
       const bountyAmount = target.bountyAmount;
 
       // Jail the target
-      target.sendToJail(jailTimeMinutes);
+      target.sendToJail(jailTimeMinutes, undefined, 'Arrested by Bounty Hunter');
       target.wantedLevel = 0;
       target.bountyAmount = 0;
       target.lastArrestTime = new Date();

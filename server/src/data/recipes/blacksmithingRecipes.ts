@@ -18,6 +18,415 @@ export const blacksmithingRecipes: CraftingRecipe[] = [
   // ============================================================================
   // NOVICE TIER (1-15)
   // ============================================================================
+
+  // -------------------------------------------------------------------------
+  // SMELTING/REFINING RECIPES (Level 1-5) - Core Material Processing
+  // -------------------------------------------------------------------------
+  {
+    id: 'bs_smelt_iron_bar',
+    name: 'Smelt Iron Bar',
+    description: 'Smelt raw iron ore into usable iron bars. The foundation of blacksmithing.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 1,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'iron_ore',
+        materialName: 'Iron Ore',
+        category: MaterialCategory.METAL_ORE,
+        quantity: 3
+      },
+      {
+        materialId: 'coal',
+        materialName: 'Coal',
+        category: MaterialCategory.MINERAL,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'iron_bar',
+      itemName: 'Iron Bar',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 20,
+    difficulty: 3,
+    xpGain: 8,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'smelting', 'refining', 'basic']
+  },
+  {
+    id: 'bs_smelt_silver_bar',
+    name: 'Smelt Silver Bar',
+    description: 'Refine silver ore into gleaming silver bars for fine metalwork.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 5,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'silver_ore',
+        materialName: 'Silver Ore',
+        category: MaterialCategory.METAL_ORE,
+        quantity: 4
+      },
+      {
+        materialId: 'coal',
+        materialName: 'Coal',
+        category: MaterialCategory.MINERAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'silver_bar',
+      itemName: 'Silver Bar',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 30,
+    difficulty: 8,
+    xpGain: 12,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'smelting', 'refining', 'precious']
+  },
+  {
+    id: 'bs_smelt_gold_bar',
+    name: 'Smelt Gold Bar',
+    description: 'Transform gold nuggets and ore into pure gold bars.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 8,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'gold_ore',
+        materialName: 'Gold Ore',
+        category: MaterialCategory.METAL_ORE,
+        quantity: 3
+      },
+      {
+        materialId: 'gold_nugget',
+        materialName: 'Gold Nugget',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 2
+      },
+      {
+        materialId: 'coal',
+        materialName: 'Coal',
+        category: MaterialCategory.MINERAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'gold_bar',
+      itemName: 'Gold Bar',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 40,
+    difficulty: 12,
+    xpGain: 18,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'smelting', 'refining', 'precious']
+  },
+  {
+    id: 'bs_forge_steel_bar',
+    name: 'Forge Steel Bar',
+    description: 'Combine iron bars with additional carbon to create stronger steel.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 12,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'iron_bar',
+        materialName: 'Iron Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 2
+      },
+      {
+        materialId: 'coal',
+        materialName: 'Coal',
+        category: MaterialCategory.MINERAL,
+        quantity: 3
+      }
+    ],
+    output: {
+      itemId: 'steel_bar',
+      itemName: 'Steel Bar',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 45,
+    difficulty: 15,
+    xpGain: 20,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'smelting', 'refining', 'steel']
+  },
+  {
+    id: 'bs_salvage_metal_scrap',
+    name: 'Salvage Metal Scrap',
+    description: 'Melt down scrap metal to recover usable iron.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 1,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'metal_scrap',
+        materialName: 'Metal Scrap',
+        category: MaterialCategory.METAL_ORE,
+        quantity: 4
+      },
+      {
+        materialId: 'coal',
+        materialName: 'Coal',
+        category: MaterialCategory.MINERAL,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'iron_bar',
+      itemName: 'Iron Bar',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 25,
+    difficulty: 4,
+    xpGain: 7,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'salvage', 'recycling']
+  },
+  {
+    id: 'bs_salvage_broken_weapon',
+    name: 'Salvage Broken Weapon',
+    description: 'Break down a damaged weapon for usable metal parts.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 5,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'broken_weapon',
+        materialName: 'Broken Weapon',
+        category: MaterialCategory.METAL_ORE,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'iron_bar',
+      itemName: 'Iron Bar',
+      baseQuantity: 2,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 35,
+    difficulty: 8,
+    xpGain: 12,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'salvage', 'recycling']
+  },
+  {
+    id: 'bs_craft_wood_handle',
+    name: 'Carve Wood Handle',
+    description: 'Shape raw wood into a usable tool handle.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 2,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'wood',
+        materialName: 'Wood',
+        category: MaterialCategory.WOOD,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'wood_handle',
+      itemName: 'Wooden Handle',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 15,
+    difficulty: 3,
+    xpGain: 5,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'woodworking', 'component']
+  },
+  {
+    id: 'bs_craft_hardwood_handle',
+    name: 'Carve Hardwood Handle',
+    description: 'Shape quality hardwood into a durable tool handle.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 10,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'hardwood',
+        materialName: 'Hardwood',
+        category: MaterialCategory.WOOD,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'hardwood_handle',
+      itemName: 'Hardwood Handle',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 25,
+    difficulty: 12,
+    xpGain: 15,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'woodworking', 'component', 'quality']
+  },
+  {
+    id: 'bs_craft_stone_block',
+    name: 'Cut Stone Block',
+    description: 'Shape rough stone into building blocks.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 3,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'stone',
+        materialName: 'Stone',
+        category: MaterialCategory.MINERAL,
+        quantity: 4
+      }
+    ],
+    output: {
+      itemId: 'stone_block',
+      itemName: 'Stone Block',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 20,
+    difficulty: 5,
+    xpGain: 8,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'stonework', 'building']
+  },
+  {
+    id: 'bs_craft_rope',
+    name: 'Twist Rope',
+    description: 'Create strong rope from hemp fibers.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 1,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'hemp',
+        materialName: 'Hemp',
+        category: MaterialCategory.FABRIC,
+        quantity: 3
+      }
+    ],
+    output: {
+      itemId: 'rope',
+      itemName: 'Rope',
+      baseQuantity: 2,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 15,
+    difficulty: 2,
+    xpGain: 5,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'cordage', 'utility']
+  },
+  {
+    id: 'bs_polish_gemstone',
+    name: 'Polish Gemstone',
+    description: 'Cut and polish a rough gemstone into a valuable gem.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 15,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'gemstone_rough',
+        materialName: 'Rough Gemstone',
+        category: MaterialCategory.MINERAL,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'gemstone_polished',
+      itemName: 'Polished Gemstone',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 45,
+    difficulty: 18,
+    xpGain: 25,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'jewelry', 'precious']
+  },
+
+  // -------------------------------------------------------------------------
+  // TRADITIONAL NOVICE ITEMS (Level 1-15)
+  // -------------------------------------------------------------------------
   {
     id: 'bs_iron_horseshoe',
     name: 'Iron Horseshoe',

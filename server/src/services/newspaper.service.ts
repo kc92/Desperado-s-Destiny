@@ -17,8 +17,13 @@ import {
 } from '@desperados/shared';
 import { NewsArticleModel } from '../models/NewsArticle.model';
 import { NewsSubscriptionModel } from '../models/NewsSubscription.model';
+import { Character } from '../models/Character.model';
+import { NotificationType } from '../models/Notification.model';
 import { headlineGeneratorService } from './headlineGenerator.service';
 import { getAllNewspapers, getNewspaperById, NEWSPAPERS } from '../data/newspapers';
+import { NotificationService } from './notification.service';
+import { BountyService } from './bounty.service';
+import { BountyFaction } from '@desperados/shared';
 import logger from '../utils/logger';
 
 export class NewspaperService {
@@ -369,10 +374,25 @@ export class NewspaperService {
 
     const newspaper = getNewspaperById(newspaperId);
 
-    // TODO: Implement notification and mail delivery
-    // This will be integrated when mail and notification services are available
+    // Send notifications to all subscribers
+    for (const subscription of subscriptions) {
+      try {
+        await NotificationService.createNotification(
+          subscription.characterId.toString(),
+          NotificationType.SYSTEM,
+          `${newspaper?.name || 'Newspaper'}: New Article`,
+          article.headline,
+          `/news/${newspaperId}`
+        );
+      } catch (error) {
+        logger.error(`Failed to notify subscriber ${subscription.characterId}`, {
+          error: error instanceof Error ? error.message : error
+        });
+      }
+    }
+
     logger.info(
-      `[Newspaper] Article published: ${article.headline} - ${subscriptions.length} subscribers`
+      `[Newspaper] Article published: ${article.headline} - ${subscriptions.length} subscribers notified`
     );
   }
 
@@ -388,8 +408,24 @@ export class NewspaperService {
 
     const newspaper = getNewspaperById(edition.newspaperId);
 
-    // TODO: Implement mail delivery
-    // This will be integrated when mail service is available
+    // Send notifications for edition delivery
+    // Note: Full mail delivery would require a system sender concept
+    for (const subscription of subscriptions) {
+      try {
+        await NotificationService.createNotification(
+          subscription.characterId.toString(),
+          NotificationType.SYSTEM,
+          `${newspaper?.name || 'Newspaper'}: Edition #${edition.editionNumber}`,
+          `New edition available with ${edition.articles.length} articles`,
+          `/news/${edition.newspaperId}/edition/${edition.editionNumber}`
+        );
+      } catch (error) {
+        logger.error(`Failed to notify subscriber ${subscription.characterId}`, {
+          error: error instanceof Error ? error.message : error
+        });
+      }
+    }
+
     logger.info(
       `[Newspaper] Edition #${edition.editionNumber} published to ${subscriptions.length} subscribers`
     );
@@ -439,14 +475,44 @@ export class NewspaperService {
     for (const characterId of article.involvedCharacters) {
       const effect = article.reputationEffects.get(characterId.toString());
       if (effect) {
-        // TODO: Apply to character's reputation
-        // await reputationService.modifyReputation(characterId, effect);
+        try {
+          const character = await Character.findById(characterId);
+          if (character && character.factionReputation) {
+            // Apply reputation effects to faction standings
+            // Positive effect = good reputation, negative = bad
+            if (effect > 0) {
+              character.factionReputation.settlerAlliance = Math.min(
+                100,
+                character.factionReputation.settlerAlliance + Math.floor(effect / 3)
+              );
+            } else {
+              character.factionReputation.settlerAlliance = Math.max(
+                -100,
+                character.factionReputation.settlerAlliance + Math.floor(effect / 3)
+              );
+            }
+            await character.save();
+          }
+        } catch (error) {
+          logger.error(`Failed to apply reputation effect for ${characterId}`, {
+            error: error instanceof Error ? error.message : error
+          });
+        }
       }
     }
 
     if (article.bountyIncrease && article.involvedCharacters.length > 0) {
-      // TODO: Increase bounty for involved characters
-      // await bountyService.increaseBounty(article.involvedCharacters[0], article.bountyIncrease);
+      try {
+        await BountyService.addCrimeBounty(
+          article.involvedCharacters[0].toString(),
+          'Newspaper Expose',
+          BountyFaction.SETTLER_ALLIANCE
+        );
+      } catch (error) {
+        logger.error(`Failed to increase bounty from newspaper article`, {
+          error: error instanceof Error ? error.message : error
+        });
+      }
     }
   }
 

@@ -3,6 +3,9 @@
  *
  * Manages supply/demand mechanics and dynamic pricing for the economy system
  * Integrates with world events and provides real-time price adjustments
+ *
+ * SCALABILITY FIX: Converted from in-memory Map to Redis cache
+ * for multi-instance consistency
  */
 
 import mongoose from 'mongoose';
@@ -10,6 +13,7 @@ import { ItemTransaction } from '../models/ItemTransaction.model';
 import { Item } from '../models/Item.model';
 import { WorldEventService } from './worldEvent.service';
 import { Location } from '../models/Location.model';
+import { getRedisClient, isRedisConnected } from '../config/redis';
 import logger from '../utils/logger';
 
 interface PriceModifier {
@@ -64,11 +68,16 @@ const DEMAND_THRESHOLDS = {
 
 // Cache for price data (5 minute TTL)
 interface CachedPriceData extends ItemPriceData {
-  cachedAt: Date;
+  cachedAt: string;
 }
 
-const priceCache = new Map<string, CachedPriceData>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// Redis cache prefix for price data
+const PRICE_CACHE_PREFIX = 'price:';
+const CACHE_TTL_SECONDS = 5 * 60; // 5 minutes
+
+// In-memory fallback cache when Redis is unavailable
+const fallbackCache = new Map<string, CachedPriceData>();
+const CACHE_TTL_MS = CACHE_TTL_SECONDS * 1000;
 
 export class DynamicPricingService {
   /**
@@ -80,11 +89,34 @@ export class DynamicPricingService {
     transactionType: 'buy' | 'sell'
   ): Promise<ItemPriceData> {
     const cacheKey = `${itemId}:${locationId}:${transactionType}`;
+    const redisCacheKey = `${PRICE_CACHE_PREFIX}${cacheKey}`;
 
-    // Check cache
-    const cached = priceCache.get(cacheKey);
-    if (cached && (Date.now() - cached.cachedAt.getTime()) < CACHE_TTL_MS) {
-      logger.debug(`Price cache hit for ${cacheKey}`);
+    // Check Redis cache first (shared across instances)
+    if (isRedisConnected()) {
+      try {
+        const redis = getRedisClient();
+        const cachedJson = await redis.get(redisCacheKey);
+        if (cachedJson) {
+          const cached: CachedPriceData = JSON.parse(cachedJson);
+          logger.debug(`Redis price cache hit for ${cacheKey}`);
+          return {
+            basePrice: cached.basePrice,
+            currentPrice: cached.currentPrice,
+            modifiers: cached.modifiers,
+            supplyLevel: cached.supplyLevel,
+            demandLevel: cached.demandLevel,
+            trend: cached.trend,
+          };
+        }
+      } catch (redisError) {
+        logger.warn('Redis cache read failed, checking fallback:', redisError);
+      }
+    }
+
+    // Fallback to in-memory cache if Redis unavailable
+    const cached = fallbackCache.get(cacheKey);
+    if (cached && (Date.now() - new Date(cached.cachedAt).getTime()) < CACHE_TTL_MS) {
+      logger.debug(`Fallback price cache hit for ${cacheKey}`);
       return {
         basePrice: cached.basePrice,
         currentPrice: cached.currentPrice,
@@ -163,11 +195,25 @@ export class DynamicPricingService {
       trend,
     };
 
-    // Cache the result
-    priceCache.set(cacheKey, {
+    // Cache the result to Redis (shared across instances)
+    const cachedData: CachedPriceData = {
       ...priceData,
-      cachedAt: new Date(),
-    });
+      cachedAt: new Date().toISOString(),
+    };
+
+    if (isRedisConnected()) {
+      try {
+        const redis = getRedisClient();
+        await redis.setEx(redisCacheKey, CACHE_TTL_SECONDS, JSON.stringify(cachedData));
+        logger.debug(`Cached price data to Redis: ${cacheKey}`);
+      } catch (redisError) {
+        logger.warn('Redis cache write failed, using fallback:', redisError);
+        fallbackCache.set(cacheKey, cachedData);
+      }
+    } else {
+      // Fallback to in-memory cache
+      fallbackCache.set(cacheKey, cachedData);
+    }
 
     return priceData;
   }
@@ -192,11 +238,21 @@ export class DynamicPricingService {
         timestamp: new Date(),
       });
 
-      // Clear cache for this item/location
+      // Clear cache for this item/location (both Redis and fallback)
       const buyKey = `${itemId}:${locationId}:buy`;
       const sellKey = `${itemId}:${locationId}:sell`;
-      priceCache.delete(buyKey);
-      priceCache.delete(sellKey);
+
+      if (isRedisConnected()) {
+        try {
+          const redis = getRedisClient();
+          await redis.del(`${PRICE_CACHE_PREFIX}${buyKey}`);
+          await redis.del(`${PRICE_CACHE_PREFIX}${sellKey}`);
+        } catch (redisError) {
+          logger.warn('Redis cache invalidation failed:', redisError);
+        }
+      }
+      fallbackCache.delete(buyKey);
+      fallbackCache.delete(sellKey);
 
       logger.debug(`Recorded ${transactionType} transaction: ${quantity}x ${itemId} at ${locationId}`);
     } catch (error) {
@@ -346,19 +402,56 @@ export class DynamicPricingService {
 
   /**
    * Clear price cache (useful for testing or admin commands)
+   * Clears both Redis and fallback caches
    */
-  static clearCache(): void {
-    priceCache.clear();
+  static async clearCache(): Promise<void> {
+    // Clear Redis cache with pattern matching
+    if (isRedisConnected()) {
+      try {
+        const redis = getRedisClient();
+        const keys = await redis.keys(`${PRICE_CACHE_PREFIX}*`);
+        if (keys.length > 0) {
+          await redis.del(keys);
+          logger.info(`Cleared ${keys.length} price cache entries from Redis`);
+        }
+      } catch (redisError) {
+        logger.warn('Failed to clear Redis price cache:', redisError);
+      }
+    }
+
+    // Clear fallback cache
+    fallbackCache.clear();
     logger.info('Price cache cleared');
   }
 
   /**
    * Get cache statistics (for monitoring)
+   * Returns stats from both Redis and fallback caches
    */
-  static getCacheStats(): { size: number; keys: string[] } {
+  static async getCacheStats(): Promise<{
+    redisSize: number;
+    redisKeys: string[];
+    fallbackSize: number;
+    fallbackKeys: string[];
+  }> {
+    let redisSize = 0;
+    let redisKeys: string[] = [];
+
+    if (isRedisConnected()) {
+      try {
+        const redis = getRedisClient();
+        redisKeys = await redis.keys(`${PRICE_CACHE_PREFIX}*`);
+        redisSize = redisKeys.length;
+      } catch (redisError) {
+        logger.warn('Failed to get Redis cache stats:', redisError);
+      }
+    }
+
     return {
-      size: priceCache.size,
-      keys: Array.from(priceCache.keys()),
+      redisSize,
+      redisKeys,
+      fallbackSize: fallbackCache.size,
+      fallbackKeys: Array.from(fallbackCache.keys()),
     };
   }
 }

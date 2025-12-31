@@ -6,6 +6,7 @@
  */
 
 import mongoose from 'mongoose';
+import { SecureRNG } from './base/SecureRNG';
 import {
   CattleDrive,
   ICattleDrive,
@@ -615,7 +616,7 @@ export class CattleDriveService {
         }
 
         const skillLevel = character.stats?.cunning || 5;
-        const roll = Math.random() * 10 + skillLevel;
+        const roll = SecureRNG.float(0, 10, 1) + skillLevel;
         isSuccess = roll >= choice.skillCheck.difficulty + 5;
       }
 
@@ -829,7 +830,7 @@ export class CattleDriveService {
       }
 
       let eventTriggered: DriveEvent | undefined;
-      if (Math.random() < eventChance) {
+      if (SecureRNG.chance(eventChance)) {
         const event = getRandomEvent();
         const eventExpiry = new Date(now.getTime() + 2 * 60 * 60 * 1000); // 2 hours
         drive.pendingEvent = {
@@ -912,7 +913,7 @@ export class CattleDriveService {
         // Simplified skill check: compare skill level to difficulty
         // In a real implementation, this would use the skill system
         const skillLevel = character.stats?.cunning || 5; // Default fallback
-        const roll = Math.random() * 10 + skillLevel;
+        const roll = SecureRNG.float(0, 10, 1) + skillLevel;
         isSuccess = roll >= choice.skillCheck.difficulty + 5;
       }
 

@@ -100,7 +100,8 @@ export const useGangWars = (gangId?: string): UseGangWarsReturn => {
   // Fetch available territories for war
   const fetchAvailableTerritories = useCallback(async () => {
     try {
-      const response = await api.get<{ data: { territories: Territory[] } }>('/territory');
+      // PRODUCTION FIX: Use correct endpoint /territories (plural) instead of /territory
+      const response = await api.get<{ data: { territories: Territory[] } }>('/territories');
       setAvailableTerritories(response.data.data.territories || []);
     } catch (err: any) {
       logger.error('Fetch territories error', err as Error, { context: 'useGangWars' });

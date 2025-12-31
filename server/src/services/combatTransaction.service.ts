@@ -18,6 +18,7 @@ import { QuestService } from './quest.service';
 import { DeathService } from './death.service';
 import { JailService } from './jail.service';
 import { SecureRNG } from './base/SecureRNG';
+import * as Sentry from '@sentry/node';
 import logger from '../utils/logger';
 
 // =============================================================================
@@ -310,14 +311,50 @@ export class CombatTransactionService {
       `Combat rewards awarded to ${character.name}: ${loot.gold} gold, ${loot.xp} XP, ${loot.items.length} items`
     );
 
-    // 4. Update quest progress (fire-and-forget after transaction commits)
-    // These are called outside the transaction via QuestService's internal error handling
-    Promise.all([
-      QuestService.onEnemyDefeated(character._id.toString(), npc.type || 'enemy'),
-      ...loot.items.map((itemId) =>
-        QuestService.onItemCollected(character._id.toString(), itemId, 1)
-      ),
-    ]).catch((err) => logger.error('Quest update failed after combat victory:', err));
+    // 4. Update quest progress (async, with proper error handling)
+    // PRODUCTION FIX: Added Sentry alerting for quest update failures
+    // These are intentionally outside the main transaction to not block combat completion
+    this.updateQuestProgressAsync(character._id.toString(), npc.type || 'enemy', loot.items);
+  }
+
+  /**
+   * PRODUCTION FIX: Update quest progress with proper error handling
+   * Separated from main transaction to avoid blocking combat completion
+   * Errors are logged and reported to Sentry for monitoring
+   */
+  private static async updateQuestProgressAsync(
+    characterId: string,
+    npcType: string,
+    lootItems: string[]
+  ): Promise<void> {
+    try {
+      await Promise.all([
+        QuestService.onEnemyDefeated(characterId, npcType),
+        ...lootItems.map((itemId) =>
+          QuestService.onItemCollected(characterId, itemId, 1)
+        ),
+      ]);
+    } catch (error) {
+      // Log error with full context
+      logger.error('Quest update failed after combat victory:', error);
+
+      // Report to Sentry for monitoring and alerting
+      Sentry.captureException(error, {
+        tags: {
+          component: 'combatTransaction',
+          operation: 'questUpdate'
+        },
+        extra: {
+          characterId,
+          npcType,
+          lootItemCount: lootItems.length,
+          message: 'Quest progress update failed after successful combat. Player may need manual quest update.'
+        }
+      });
+
+      // Note: We intentionally don't rethrow here - combat was successful,
+      // quest updates are secondary. The error is logged and monitored.
+    }
   }
 
   /**
@@ -360,7 +397,7 @@ export class CombatTransactionService {
       );
 
       logger.info(
-        `Death penalty applied to ${character.name}: lost ${deathPenalty.goldLost} gold, ${deathPenalty.xpLost} XP`
+        `Death penalty applied to ${character.name}: lost $${deathPenalty.goldLost}, ${deathPenalty.xpLost} XP`
       );
 
       return {

@@ -1,11 +1,45 @@
 /**
  * Application Entry Point
  * Initializes React application and mounts to DOM
+ * @build 2025-12-31-playtest
  */
 
 // Initialize Sentry error tracking FIRST - before any other imports
+import * as Sentry from '@sentry/react';
 import { initializeSentry } from './config/sentry';
 initializeSentry();
+
+/**
+ * PRODUCTION FIX: Global error handlers for unhandled errors
+ * These catch errors that escape React's error boundaries
+ */
+
+// Handle unhandled promise rejections (async errors)
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[Global] Unhandled promise rejection:', event.reason);
+  Sentry.captureException(event.reason instanceof Error ? event.reason : new Error(String(event.reason)), {
+    tags: { errorType: 'unhandledRejection' },
+    extra: { promise: event.promise }
+  });
+});
+
+// Handle uncaught errors
+window.addEventListener('error', (event) => {
+  // Ignore ResizeObserver errors - they're benign and spammy
+  if (event.message?.includes('ResizeObserver')) {
+    return;
+  }
+
+  console.error('[Global] Uncaught error:', event.error || event.message);
+  Sentry.captureException(event.error || new Error(event.message), {
+    tags: { errorType: 'uncaughtError' },
+    extra: {
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno
+    }
+  });
+});
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -25,19 +59,27 @@ if (import.meta.env.DEV) {
   (window as any).__tutorial = {
     getState: () => useTutorialStore.getState(),
     reset: () => useTutorialStore.getState().resetTutorial(),
-    forceStart: () => {
+    forceStart: (sectionId?: string, type?: 'core' | 'deep_dive', factionIdOverride?: string) => {
       const tutorialStore = useTutorialStore.getState();
       const character = useCharacterStore.getState().currentCharacter;
-      const factionId = character?.faction || 'SETTLER_ALLIANCE';
-      const factionMap: Record<string, string> = {
-        'SETTLER_ALLIANCE': 'intro_settler',
-        'NAHI_COALITION': 'intro_nahi',
-        'FRONTERA': 'intro_frontera',
-      };
-      const section = factionMap[factionId] || 'intro_settler';
-      tutorialStore.resetTutorial();
-      tutorialStore.startTutorial(section, 'core', factionId);
-      console.log('[Tutorial] Force started! Section:', section, 'Faction:', factionId);
+      const detectedFaction = factionIdOverride || character?.faction || 'SETTLER_ALLIANCE';
+
+      if (sectionId) {
+        // Start from specific section without full reset
+        tutorialStore.startTutorial(sectionId, type || 'core', detectedFaction);
+        console.log('[Tutorial] Force started at section:', sectionId, 'Type:', type || 'core');
+      } else {
+        // Default behavior: reset and start from beginning
+        const factionMap: Record<string, string> = {
+          'SETTLER_ALLIANCE': 'intro_settler',
+          'NAHI_COALITION': 'intro_nahi',
+          'FRONTERA': 'intro_frontera',
+        };
+        const section = factionMap[detectedFaction] || 'intro_settler';
+        tutorialStore.resetTutorial();
+        tutorialStore.startTutorial(section, 'core', detectedFaction);
+        console.log('[Tutorial] Force started from beginning! Section:', section, 'Faction:', detectedFaction);
+      }
     },
     skip: () => {
       // Set tutorialCompleted to true to skip
@@ -78,10 +120,10 @@ try {
 } catch (error) {
   logger.error('Failed to initialize application', error as Error, { context: 'main.tsx' });
 
-  // Report to Sentry if available
-  if (window.Sentry) {
-    window.Sentry.captureException(error instanceof Error ? error : new Error(String(error)));
-  }
+  // Report to Sentry
+  Sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
+    tags: { errorType: 'initializationError' }
+  });
 
   // Show user-friendly error message
   document.body.innerHTML = `

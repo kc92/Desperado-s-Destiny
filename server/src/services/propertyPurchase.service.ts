@@ -7,9 +7,13 @@
 
 import { Property, IProperty } from '../models/Property.model';
 import { PropertyLoan, IPropertyLoan } from '../models/PropertyLoan.model';
+import { PropertyAuction, IPropertyAuction } from '../models/PropertyAuction.model';
 import { Character } from '../models/Character.model';
+import { Location } from '../models/Location.model';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import { DollarService } from './dollar.service';
+import { NotificationService } from './notification.service';
+import { getUpgradeById } from '../data/propertyUpgrades';
 import mongoose from 'mongoose';
 import {
   PROPERTY_TIER_INFO,
@@ -62,7 +66,7 @@ export class PropertyPurchaseService {
 
     const properties = await Property.find(query);
 
-    return properties.map((prop) => this.propertyToListing(prop));
+    return Promise.all(properties.map((prop) => this.propertyToListing(prop)));
   }
 
   /**
@@ -70,15 +74,18 @@ export class PropertyPurchaseService {
    */
   static async getForeclosedListings(): Promise<PropertyListing[]> {
     const properties = await Property.find({ status: 'foreclosed' });
-    return properties.map((prop) => this.propertyToListing(prop));
+    return Promise.all(properties.map((prop) => this.propertyToListing(prop)));
   }
 
   /**
    * Convert property to listing
    */
-  private static propertyToListing(property: IProperty): PropertyListing {
+  private static async propertyToListing(property: IProperty): Promise<PropertyListing> {
     const typeInfo = PROPERTY_TYPE_INFO[property.propertyType];
     const sizeInfo = PROPERTY_SIZE_INFO[property.size];
+
+    // Lookup location name
+    const location = await Location.findById(property.locationId).select('name');
 
     return {
       _id: property._id.toString(),
@@ -86,7 +93,7 @@ export class PropertyPurchaseService {
       name: property.name,
       description: typeInfo.description,
       locationId: property.locationId,
-      locationName: property.locationId, // TODO: Lookup location name
+      locationName: location?.name ?? 'Unknown Location',
       size: property.size,
       tier: property.tier,
       price: property.purchasePrice,
@@ -219,9 +226,109 @@ export class PropertyPurchaseService {
   /**
    * Place bid on auction property
    */
-  static async placeBid(request: PropertyBidRequest): Promise<void> {
-    // TODO: Implement auction system
-    throw new Error('Auction system not yet implemented');
+  static async placeBid(request: PropertyBidRequest): Promise<{
+    auction: IPropertyAuction;
+    previousBidder?: { id: string; name: string };
+  }> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Get character
+      const character = await Character.findById(request.characterId).session(session);
+      if (!character) {
+        throw new Error('Character not found');
+      }
+
+      // Find active auction for property
+      const auction = await PropertyAuction.findByPropertyId(request.listingId);
+      if (!auction) {
+        throw new Error('Auction not found for this property');
+      }
+
+      // Check auction is active
+      if (!auction.isActive()) {
+        throw new Error('Auction is not currently active');
+      }
+
+      // Check character has sufficient funds for bid
+      if (character.dollars < request.bidAmount) {
+        throw new Error(`Insufficient funds. You have $${character.dollars} but bid requires $${request.bidAmount}`);
+      }
+
+      // Check bid meets minimum requirements
+      const minimumBid = auction.getMinimumNextBid();
+      if (request.bidAmount < minimumBid) {
+        throw new Error(`Bid must be at least $${minimumBid}. Current high bid is $${auction.currentBid}`);
+      }
+
+      // Check bidder can bid (not already high bidder, not original owner bidding against themselves)
+      const bidderId = new mongoose.Types.ObjectId(request.characterId);
+      if (!auction.canBid(bidderId)) {
+        throw new Error('You cannot place a bid at this time');
+      }
+
+      // Store previous bidder for notification
+      const previousBidder = auction.currentBidderId
+        ? { id: auction.currentBidderId.toString(), name: auction.currentBidderName || 'Unknown' }
+        : undefined;
+
+      // Place the bid - this validates and updates the auction
+      auction.placeBid(bidderId, character.name, request.bidAmount);
+
+      await auction.save({ session });
+
+      // Notify previous high bidder they were outbid
+      if (previousBidder) {
+        await NotificationService.sendNotification(
+          previousBidder.id,
+          'auction_outbid',
+          `You have been outbid on ${auction.propertyName}! New high bid: $${request.bidAmount}`,
+          {
+            link: `/properties/auction/${auction._id}`,
+            auctionId: auction._id.toString(),
+            propertyName: auction.propertyName,
+            newBidAmount: request.bidAmount
+          }
+        );
+      }
+
+      // Notify bidder of successful bid
+      await NotificationService.sendNotification(
+        request.characterId,
+        'auction_bid_placed',
+        `Your bid of $${request.bidAmount} on ${auction.propertyName} has been placed. You are the current high bidder!`,
+        {
+          link: `/properties/auction/${auction._id}`,
+          auctionId: auction._id.toString(),
+          propertyName: auction.propertyName,
+          bidAmount: request.bidAmount
+        }
+      );
+
+      await session.commitTransaction();
+
+      return { auction, previousBidder };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  /**
+   * Get active auctions
+   */
+  static async getActiveAuctions(): Promise<IPropertyAuction[]> {
+    return PropertyAuction.findActiveAuctions();
+  }
+
+  /**
+   * Get auction by property ID
+   */
+  static async getAuctionByProperty(propertyId: string): Promise<IPropertyAuction | null> {
+    return PropertyAuction.findByPropertyId(propertyId);
   }
 
   /**
@@ -351,14 +458,15 @@ export class PropertyPurchaseService {
         session
       );
 
-      // Add upgrade
+      // Add upgrade - get category from upgrade definition
+      const upgradeDef = getUpgradeById(request.upgradeType);
       const upgrade: PropertyUpgrade = {
         upgradeId: `upgrade_${Date.now()}`,
         upgradeType: request.upgradeType as any,
-        category: 'capacity' as UpgradeCategory, // TODO: Get from upgrade definition
+        category: upgradeDef?.category ?? ('capacity' as UpgradeCategory),
         installedAt: new Date(),
         level: 1,
-        maxLevel: 5,
+        maxLevel: upgradeDef?.maxLevel ?? 5,
       };
 
       property.addUpgrade(upgrade);

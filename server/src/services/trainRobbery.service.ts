@@ -33,6 +33,7 @@ import { EnergyService } from './energy.service';
 import logger from '../utils/logger';
 import { robberyStateManager, pursuitStateManager } from './base/StateManager';
 import { SecureRNG } from './base/SecureRNG';
+import { SkillService } from './skill.service';
 
 export class TrainRobberyService {
   /**
@@ -50,7 +51,8 @@ export class TrainRobberyService {
     }
 
     // Check cunning requirement
-    if (character.stats.cunning < TRAIN_CONSTANTS.SCOUTING.CUNNING_REQUIRED) {
+    const effectiveCunning = SkillService.getEffectiveStat(character, 'cunning');
+    if (effectiveCunning < TRAIN_CONSTANTS.SCOUTING.CUNNING_REQUIRED) {
       throw new Error(
         `Scouting requires at least ${TRAIN_CONSTANTS.SCOUTING.CUNNING_REQUIRED} Cunning`
       );
@@ -66,7 +68,7 @@ export class TrainRobberyService {
     await EnergyService.spendEnergy(character._id.toString(), TRAIN_CONSTANTS.SCOUTING.ENERGY_COST, 'scout_train');
 
     // Generate intelligence based on character's cunning
-    const cunningBonus = character.stats.cunning / 10;
+    const cunningBonus = effectiveCunning / 10;
     const baseAccuracy = 0.6 + cunningBonus * 0.1;
 
     // Determine guard count (with some randomness)
@@ -84,10 +86,10 @@ export class TrainRobberyService {
 
     // Generate vulnerabilities based on cunning
     const vulnerabilities: string[] = [];
-    if (character.stats.cunning >= 7) {
+    if (effectiveCunning >= 7) {
       vulnerabilities.push('Guard rotation pattern identified at 2-hour intervals');
     }
-    if (character.stats.cunning >= 5) {
+    if (effectiveCunning >= 5) {
       vulnerabilities.push('Safe located in second-to-last car');
     }
     if (schedule.securityLevel < 5) {
@@ -331,7 +333,7 @@ export class TrainRobberyService {
           });
 
           if (captured) {
-            character.sendToJail(180, 500); // 3 hours, $500 bail
+            character.sendToJail(180, 500, 'Train Robbery'); // 3 hours, $500 bail
             character.increaseWantedLevel(2);
           } else if (injured) {
             // Apply injury effects (simplified)
@@ -411,7 +413,7 @@ export class TrainRobberyService {
       }
 
       if (captured) {
-        character.sendToJail(240, 1000); // 4 hours, $1000 bail
+        character.sendToJail(240, 1000, 'Train Robbery'); // 4 hours, $1000 bail
         character.increaseWantedLevel(TRAIN_CONSTANTS.WANTED_INCREASES[schedule.trainType]);
       } else {
         // Not captured but still increase wanted level

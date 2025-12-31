@@ -20,6 +20,7 @@ import {
 } from '../models/PlayerInfluenceContribution.model';
 import { Character } from '../models/Character.model';
 import { Gang } from '../models/Gang.model';
+import { Territory } from '../models/Territory.model';
 import logger from '../utils/logger';
 
 /**
@@ -127,8 +128,11 @@ export class InfluenceLeaderboardService {
         factionId
       );
 
-      // Calculate territories controlled (placeholder - needs territory control system)
-      const territoriesControlled = 0; // TODO: Implement when territory control is connected
+      // Calculate territories controlled by this faction (where a gang controls it)
+      const territoriesControlled = await Territory.countDocuments({
+        faction: factionId,
+        controllingGangId: { $ne: null },
+      });
 
       // Calculate weekly growth
       const weeklyGrowth = this.calculateWeeklyGrowth(topContributors);
@@ -317,14 +321,66 @@ export class InfluenceLeaderboardService {
   }
 
   /**
-   * Get recent territory flip events
+   * Get recent territory flip events from conquest history
    */
   static async getRecentTerritoryFlips(
     limit: number = 20
   ): Promise<TerritoryFlipEvent[]> {
-    // TODO: Implement when territory flip tracking is added
-    // For now, return empty array
-    return [];
+    try {
+      // Get all territories with conquest history
+      const territories = await Territory.find({
+        'conquestHistory.0': { $exists: true },
+      }).lean();
+
+      // Flatten all conquest events across territories
+      const allFlips: Array<{
+        territoryId: string;
+        territoryName: string;
+        faction: string;
+        conquest: {
+          gangId: string;
+          gangName: string;
+          conqueredAt: Date;
+          capturePoints: number;
+        };
+      }> = [];
+
+      for (const territory of territories) {
+        for (const conquest of territory.conquestHistory || []) {
+          allFlips.push({
+            territoryId: territory.id,
+            territoryName: territory.name,
+            faction: territory.faction,
+            conquest: {
+              gangId: conquest.gangId?.toString() || '',
+              gangName: conquest.gangName,
+              conqueredAt: conquest.conqueredAt,
+              capturePoints: conquest.capturePoints,
+            },
+          });
+        }
+      }
+
+      // Sort by conquest date descending and take limit
+      allFlips.sort((a, b) =>
+        new Date(b.conquest.conqueredAt).getTime() - new Date(a.conquest.conqueredAt).getTime()
+      );
+      const recentFlips = allFlips.slice(0, limit);
+
+      // Map to TerritoryFlipEvent format
+      return recentFlips.map(flip => ({
+        territoryId: flip.territoryId,
+        territoryName: flip.territoryName,
+        previousFaction: null, // Not tracked in conquest history
+        newFaction: flip.faction as FactionId,
+        flipTime: new Date(flip.conquest.conqueredAt),
+        triggeringAction: undefined,
+        finalInfluenceScores: new Map<FactionId, number>(),
+      }));
+    } catch (error) {
+      logger.error('Error getting recent territory flips:', error);
+      return [];
+    }
   }
 
   /**

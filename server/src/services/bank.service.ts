@@ -165,7 +165,7 @@ export class BankService {
           throw new AppError('Vault tier has already changed. Please refresh and try again.', 400);
         }
         if (upgradeCost > 0 && currentChar && currentChar.gold < upgradeCost) {
-          throw new AppError(`Insufficient gold. Need ${upgradeCost} gold to upgrade.`, 400);
+          throw new AppError(`Insufficient funds. Need $${upgradeCost} to upgrade.`, 400);
         }
         throw new AppError('Upgrade failed. Please try again.', 400);
       }

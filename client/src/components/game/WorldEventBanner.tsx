@@ -127,6 +127,10 @@ export const WorldEventBanner: React.FC<WorldEventBannerProps> = ({ className = 
   }
 
   const currentEvent = events[currentIndex];
+
+  // Safety check for race condition where currentIndex might be out of bounds
+  if (!currentEvent) return null;
+
   const icon = EVENT_ICONS[currentEvent.type] || '⚡';
   const colorClass = EVENT_COLORS[currentEvent.type] || 'text-gold-light';
 

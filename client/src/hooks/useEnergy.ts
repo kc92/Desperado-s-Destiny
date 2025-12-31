@@ -246,9 +246,29 @@ export const useEnergy = (): UseEnergyReturn => {
     setError(null);
   }, []);
 
-  // Computed values
-  const currentEnergy = energyStatus?.current ?? 0;
-  const maxEnergy = energyStatus?.max ?? 100;
+  // Computed values with client-side interpolation
+  // FIX: Calculate current energy based on time elapsed since lastUpdate
+  const computedEnergy = (() => {
+    if (!energyStatus) return 0;
+
+    const storedEnergy = energyStatus.current;
+    const max = energyStatus.max;
+
+    // If at or above max, no need to interpolate
+    if (storedEnergy >= max) return max;
+
+    // Calculate energy gained since last update
+    const lastUpdateTime = new Date(energyStatus.lastUpdate).getTime();
+    const elapsedMs = Date.now() - lastUpdateTime;
+    const regenPerMs = (energyStatus.regenRate + energyStatus.totalBonusRegen) / 60000; // per millisecond
+    const regenGained = elapsedMs * regenPerMs;
+
+    // Return interpolated energy, capped at max
+    return Math.min(storedEnergy + regenGained, max);
+  })();
+
+  const currentEnergy = energyStatus ? Math.floor(computedEnergy) : 0;
+  const maxEnergy = energyStatus?.max ?? 150;
   const energyPercent = maxEnergy > 0 ? Math.round((currentEnergy / maxEnergy) * 100) : 0;
 
   // Calculate time to full energy (in seconds)
@@ -265,19 +285,25 @@ export const useEnergy = (): UseEnergyReturn => {
       // Skip if another sync is in progress
       if (syncInProgressRef.current) return;
 
-      // Only sync if we have energy state and aren't at max
-      if (energyStatus && energyStatus.current < energyStatus.max) {
-        syncInProgressRef.current = true;
-        try {
+      // FIX: Sync regardless of energyStatus being null - this helps recover from API errors
+      syncInProgressRef.current = true;
+      try {
+        // If we don't have energyStatus yet, fetch it
+        if (!energyStatus) {
+          await fetchStatus();
+        } else if (energyStatus.current < energyStatus.max) {
+          // Only regenerate if not at max
           await regenerate();
-        } finally {
-          syncInProgressRef.current = false;
         }
+      } catch (err) {
+        logger.error('Energy sync failed', err as Error, { context: 'useEnergy' });
+      } finally {
+        syncInProgressRef.current = false;
       }
     }, 30000); // Sync every 30 seconds for better accuracy
 
     return () => clearInterval(interval);
-  }, [energyStatus, regenerate]);
+  }, [energyStatus, regenerate, fetchStatus]);
 
   return {
     energyStatus,

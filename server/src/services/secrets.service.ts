@@ -15,8 +15,10 @@ import {
 import { Character, ICharacter } from '../models/Character.model';
 import { CharacterQuest } from '../models/Quest.model';
 import { Achievement } from '../models/Achievement.model';
+import { NPCTrust } from '../models/NPCTrust.model';
 import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
 import { DollarService } from './dollar.service';
+import { AchievementService } from './achievement.service';
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
 
@@ -141,10 +143,12 @@ export class SecretsService {
   ): Promise<boolean> {
     switch (requirement.type) {
       case 'npc_trust':
-        // TODO: Implement NPC trust system tracking
-        // For now, return true to allow testing
-        // In production: check character's trust level with the NPC
-        return true;
+        if (!requirement.npcId || requirement.trustLevel === undefined) return false;
+        const npcTrustLevel = await NPCTrust.getTrustLevel(
+          character._id.toString(),
+          requirement.npcId
+        );
+        return npcTrustLevel >= requirement.trustLevel;
 
       case 'quest_complete':
         if (!requirement.questId) return false;
@@ -202,10 +206,9 @@ export class SecretsService {
         return skillLevel >= requirement.skillLevel;
 
       case 'location_visit':
-        // TODO: Implement location visit tracking
-        // For now, return true to allow testing
-        // In production: track how many times character has visited each location
-        return true;
+        if (!requirement.locationId || requirement.visitCount === undefined) return false;
+        const locationVisitCount = character.visitedLocations?.get(requirement.locationId) ?? 0;
+        return locationVisitCount >= requirement.visitCount;
 
       default:
         return false;
@@ -355,13 +358,10 @@ export class SecretsService {
           // Achievements granted through achievement system
           if (reward.achievementType) {
             try {
-              // Dynamic import to avoid circular dependency
-              // TODO: Implement achievement service
-              // const { AchievementService } = await import('./achievement.service');
-              // await AchievementService.checkAndGrantAchievement(
-              //   character._id.toString(),
-              //   reward.achievementType
-              // );
+              await AchievementService.grantAchievement(
+                character._id.toString(),
+                reward.achievementType
+              );
             } catch (error) {
               // Don't fail reward granting if achievement fails
               logger.error('Failed to grant achievement from secret', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });

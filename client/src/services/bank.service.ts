@@ -8,30 +8,35 @@ import api from './api';
 // ===== Types =====
 
 export interface VaultTier {
-  id: number;
+  tier: string;
   name: string;
   description: string;
-  maxCapacity: number;
-  interestRate: number;
+  capacity: number | string; // string for 'Unlimited'
   upgradeCost: number;
+  interestRate?: number;
+  features?: string[];
   requirements?: {
     minLevel?: number;
     minReputation?: number;
   };
-  features: string[];
 }
 
+/**
+ * Vault info returned from server
+ * Note: Server returns flat structure with tier as string
+ */
 export interface Vault {
-  tier: VaultTier;
-  currentBalance: number;
-  maxCapacity: number;
+  tier: string;
+  tierName: string;
+  balance: number;
+  capacity: number; // -1 represents unlimited
   availableSpace: number;
-  interestAccrued: number;
-  lastInterestPaid?: string;
-  depositHistory: VaultTransaction[];
-  withdrawHistory: VaultTransaction[];
-  createdAt: string;
-  updatedAt: string;
+  nextTier: string | null;
+  upgradeCost: number;
+  // Optional fields for future expansion
+  interestAccrued?: number;
+  depositHistory?: VaultTransaction[];
+  withdrawHistory?: VaultTransaction[];
 }
 
 export interface VaultTransaction {
@@ -54,9 +59,8 @@ export interface BankStats {
 
 export interface VaultInfoResponse {
   vault: Vault;
-  characterGold: number;
-  canUpgrade: boolean;
-  nextTier?: VaultTier;
+  characterGold?: number;
+  canUpgrade?: boolean;
 }
 
 export interface DepositRequest {
@@ -64,11 +68,9 @@ export interface DepositRequest {
 }
 
 export interface DepositResponse {
-  success: boolean;
-  deposited: number;
-  newVaultBalance: number;
-  newCharacterGold: number;
   message: string;
+  vaultBalance: number;
+  walletBalance: number;
 }
 
 export interface WithdrawRequest {
@@ -76,20 +78,14 @@ export interface WithdrawRequest {
 }
 
 export interface WithdrawResponse {
-  success: boolean;
-  withdrawn: number;
-  newVaultBalance: number;
-  newCharacterGold: number;
   message: string;
+  vaultBalance: number;
+  walletBalance: number;
 }
 
 export interface UpgradeResponse {
-  success: boolean;
-  oldTier: VaultTier;
-  newTier: VaultTier;
-  cost: number;
-  newCharacterGold: number;
   message: string;
+  vault: Vault;
 }
 
 // ===== Bank Service =====

@@ -5,6 +5,8 @@
  * Sprint 7: Mid-Game Content - Cattle Drives (L30 unlock)
  */
 
+import { SecureRNG } from '../../services/base/SecureRNG';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -472,8 +474,7 @@ export function getAvailableRoutes(level: number): DriveRouteConfig[] {
  * Get a random event for a drive
  */
 export function getRandomEvent(): DriveEvent {
-  const index = Math.floor(Math.random() * DRIVE_EVENTS.length);
-  return DRIVE_EVENTS[index];
+  return SecureRNG.select(DRIVE_EVENTS);
 }
 
 /**

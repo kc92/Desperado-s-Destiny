@@ -12,7 +12,9 @@
 
 import mongoose, { ClientSession } from 'mongoose';
 import { Business, IBusiness } from '../models/Business.model';
-import { Gang } from '../models/Gang.model';
+import { Gang, IGang } from '../models/Gang.model';
+import { NotificationService } from './notification.service';
+import { NotificationType } from '../models/Notification.model';
 import { GangEconomy, IGangEconomy } from '../models/GangEconomy.model';
 import { Property } from '../models/Property.model';
 import { BusinessService } from './business.service';
@@ -639,11 +641,44 @@ export class GangBusinessService {
         timestamp: new Date(),
       };
 
-      // For now, just log the event - can integrate with NotificationService later
+      // Log the event
       logger.info(`[GangBusiness] Event: ${eventType}`, notification);
 
-      // TODO: Integrate with NotificationService once notification types are extended
-      // For each member, create appropriate notification
+      // Notify gang officers about business events
+      const gangWithMembers = gang as IGang;
+      const officerIds = gangWithMembers.members
+        ?.filter(m => m.role === 'leader' || m.role === 'officer')
+        .map(m => m.characterId) || [];
+
+      const eventDescriptions: Record<GangBusinessEventType, string> = {
+        [GangBusinessEventType.BUSINESS_PURCHASED]: `Gang purchased ${notification.businessName || 'a business'}`,
+        [GangBusinessEventType.BUSINESS_TRANSFERRED]: `${notification.businessName || 'Business'} transferred to gang`,
+        [GangBusinessEventType.BUSINESS_SOLD]: `Gang sold ${notification.businessName || 'a business'}`,
+        [GangBusinessEventType.REVENUE_COLLECTED]: `Collected ${notification.amount || 0} from businesses`,
+        [GangBusinessEventType.MANAGER_ASSIGNED]: `Manager assigned to ${notification.businessName || 'a business'}`,
+        [GangBusinessEventType.PROTECTION_OFFERED]: `Protection offered for ${notification.businessName || 'a business'}`,
+        [GangBusinessEventType.PROTECTION_ACCEPTED]: `Protection accepted for ${notification.businessName || 'a business'}`,
+        [GangBusinessEventType.PROTECTION_REFUSED]: `Protection refused for ${notification.businessName || 'a business'}`,
+        [GangBusinessEventType.PROTECTION_SUSPENDED]: `Protection suspended for ${notification.businessName || 'a business'}`,
+        [GangBusinessEventType.PROTECTION_TERMINATED]: `Protection terminated for ${notification.businessName || 'a business'}`,
+        [GangBusinessEventType.PROTECTION_PAYMENT_RECEIVED]: `Received ${notification.amount || 0} protection payment`,
+        [GangBusinessEventType.PROTECTION_PAYMENT_MISSED]: `Missed protection payment for ${notification.businessName || 'a business'}`,
+      };
+
+      const message = eventDescriptions[eventType] || `Gang business event: ${eventType}`;
+
+      for (const officerId of officerIds) {
+        try {
+          await NotificationService.sendNotification(
+            officerId.toString(),
+            NotificationType.SYSTEM,
+            message,
+            { link: '/gang/businesses' }
+          );
+        } catch (notifError) {
+          logger.debug(`[GangBusiness] Failed to notify officer ${officerId}:`, notifError);
+        }
+      }
     } catch (error) {
       logger.error('[GangBusiness] Failed to send notification:', error);
     }

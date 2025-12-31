@@ -340,6 +340,50 @@ export const SKILLS: Record<string, SkillDefinition> = {
     maxLevel: 50,
     baseTrainingTime: TIME.HOUR * 1.5,
     icon: '🪵'
+  },
+
+  // ============================================
+  // GENERIC SKILLS (for recipe requirements)
+  // ============================================
+  CRAFT: {
+    id: 'craft',
+    name: 'Crafting',
+    description: 'General crafting ability covering all craft disciplines',
+    suit: DestinySuit.DIAMONDS,
+    category: SkillCategory.CRAFT,
+    maxLevel: 50,
+    baseTrainingTime: TIME.HOUR,
+    icon: '🔨'
+  },
+  SPIRIT: {
+    id: 'spirit',
+    name: 'Spirit',
+    description: 'General spiritual ability for rituals and healing',
+    suit: DestinySuit.HEARTS,
+    category: SkillCategory.SPIRIT,
+    maxLevel: 50,
+    baseTrainingTime: TIME.HOUR,
+    icon: '💫'
+  },
+  CUNNING: {
+    id: 'cunning',
+    name: 'Cunning',
+    description: 'General cunning ability for deception and stealth',
+    suit: DestinySuit.SPADES,
+    category: SkillCategory.CUNNING,
+    maxLevel: 50,
+    baseTrainingTime: TIME.HOUR,
+    icon: '🎭'
+  },
+  COMBAT: {
+    id: 'combat',
+    name: 'Combat',
+    description: 'General combat ability for fighting',
+    suit: DestinySuit.CLUBS,
+    category: SkillCategory.COMBAT,
+    maxLevel: 50,
+    baseTrainingTime: TIME.HOUR,
+    icon: '⚔️'
   }
 };
 

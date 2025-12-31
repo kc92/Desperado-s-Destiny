@@ -12,6 +12,7 @@
 import { Types } from 'mongoose';
 import { CharacterKarma, IBlessing, ICurse } from '../models/CharacterKarma.model';
 import logger from '../utils/logger';
+import { SecureRNG } from './base/SecureRNG';
 
 // ============================================================================
 // EFFECT TYPES
@@ -346,7 +347,7 @@ class KarmaEffectsService {
 
     // Add variance if wild spirit is active
     if (effects.damage_variance > 0) {
-      const variance = (Math.random() * 2 - 1) * effects.damage_variance / 100;
+      const variance = SecureRNG.float(-1, 1, 4) * effects.damage_variance / 100;
       damage *= (1 + variance);
     }
 

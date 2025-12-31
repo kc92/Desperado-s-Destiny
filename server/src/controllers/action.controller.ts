@@ -24,7 +24,9 @@ import logger from '../utils/logger';
 import mongoose from 'mongoose';
 import { CrimeService } from '../services/crime.service';
 import { DollarService } from '../services/dollar.service';
+import { CharacterProgressionService } from '../services/characterProgression.service';
 import { TransactionSource, CurrencyType } from '../models/GoldTransaction.model';
+import { InventoryService } from '../services/inventory.service';
 
 /**
  * Calculate skill bonuses from character stats to suit scores
@@ -94,14 +96,15 @@ function calculateRegeneratedEnergy(
  * Uses atomic energy deduction to prevent race conditions
  */
 export async function performChallenge(req: AuthRequest, res: Response): Promise<void> {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
+  const session = disableTransactions ? null : await mongoose.startSession();
+  if (session) session.startTransaction();
 
   try {
     const userId = req.user?._id;
 
     if (!userId) {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
       res.status(401).json({
         success: false,
         error: 'Authentication required'
@@ -113,7 +116,7 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
 
     // Validate input
     if (!actionId || !characterId) {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
       res.status(400).json({
         success: false,
         error: 'Missing required fields: actionId and characterId'
@@ -124,7 +127,7 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
     // Find and validate action
     const action = await Action.findById(actionId);
     if (!action || !action.isActive) {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
       res.status(404).json({
         success: false,
         error: 'Action not found'
@@ -133,12 +136,12 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
     }
 
     // First, get character info for validation and ownership check
-    const characterCheck = await Character.findById(characterId)
-      .select('userId name energy lastEnergyUpdate maxEnergy stats level experience')
-      .session(session);
+    const characterQuery = Character.findById(characterId)
+      .select('userId name energy lastEnergyUpdate maxEnergy stats level experience');
+    const characterCheck = session ? await characterQuery.session(session) : await characterQuery;
 
     if (!characterCheck) {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
       res.status(404).json({
         success: false,
         error: 'Character not found'
@@ -148,7 +151,7 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
 
     // Verify character ownership
     if (characterCheck.userId.toString() !== userId) {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
       res.status(403).json({
         success: false,
         error: 'You do not own this character'
@@ -167,7 +170,7 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
 
     // Quick check if we have enough energy (this is a soft check, atomic update does the real check)
     if (Math.floor(regeneratedEnergy) < action.energyCost) {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
       res.status(400).json({
         success: false,
         error: 'Insufficient energy',
@@ -202,12 +205,12 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
       },
       {
         new: true,
-        session
+        ...(session && { session })
       }
     );
 
     if (!energyUpdateResult) {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
       res.status(400).json({
         success: false,
         error: 'Failed to deduct energy. Please try again.'
@@ -251,12 +254,13 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
         items: action.rewards.items || []
       };
 
-      // Award XP using atomic operation
+      // Award XP using CharacterProgressionService (handles level-ups)
       if (rewardsGained.xp > 0) {
-        await Character.findByIdAndUpdate(
+        await CharacterProgressionService.addExperience(
           characterId,
-          { $inc: { experience: rewardsGained.xp } },
-          { session }
+          rewardsGained.xp,
+          `action:${action.name}`,
+          session || undefined
         );
       }
 
@@ -277,11 +281,28 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
             description: `Earned ${rewardsGained.gold} dollars from successful ${action.name}`,
             currencyType: CurrencyType.DOLLAR,
           },
-          session
+          session || undefined
         );
       }
 
-      // TODO: Add items to inventory when item system is implemented
+      // Add items to inventory
+      if (rewardsGained.items && rewardsGained.items.length > 0) {
+        const itemsToAdd = rewardsGained.items.map(itemId => ({
+          itemId,
+          quantity: 1
+        }));
+
+        await InventoryService.addItems(
+          character._id.toString(),
+          itemsToAdd,
+          {
+            type: 'other',
+            id: action._id.toString(),
+            name: action.name
+          },
+          session || undefined
+        );
+      }
     } else {
       // No rewards on failure
       rewardsGained = {
@@ -306,10 +327,10 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
       timestamp: new Date()
     });
 
-    await actionResult.save({ session });
+    await actionResult.save(session ? { session } : {});
 
     // Commit transaction
-    await session.commitTransaction();
+    if (session) await session.commitTransaction();
 
     logger.info(
       `Action performed: ${action.name} by character ${character.name} (${character._id}) - ${success ? 'SUCCESS' : 'FAILURE'}`
@@ -325,38 +346,82 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
       }
     }
 
-    // Return result
+    // Calculate margin (difference between score and target) for frontend display
+    const targetScore = action.difficulty * COMBAT_CONSTANTS.DIFFICULTY_MULTIPLIER;
+    const margin = totalScore - targetScore;
+
+    // Transform suitBonuses from object to array format (matches shared types contract)
+    const suitBonusArray = [
+      { suit: 'SPADES', bonus: suitBonuses.spades },
+      { suit: 'HEARTS', bonus: suitBonuses.hearts },
+      { suit: 'CLUBS', bonus: suitBonuses.clubs },
+      { suit: 'DIAMONDS', bonus: suitBonuses.diamonds }
+    ];
+
+    // Return result matching ActionResult interface from shared types
     res.status(200).json({
       success: true,
       data: {
         result: {
-          actionName: action.name,
-          actionType: action.type,
-          cardsDrawn,
-          handRank: handEvaluation.rank,
-          handDescription: handEvaluation.description,
-          handScore: handEvaluation.score,
-          suitBonuses,
+          // Full action object (required for action.targetScore, action.id on frontend)
+          action: action.toSafeObject(),
+
+          // Cards - renamed from cardsDrawn to match contract
+          hand: cardsDrawn,
+
+          // Hand evaluation - nested object format matching HandEvaluation interface
+          handEvaluation: {
+            rank: handEvaluation.rank,
+            score: handEvaluation.score,
+            description: handEvaluation.description,
+            primaryCards: handEvaluation.primaryCards || [],
+            kickers: handEvaluation.kickers || []
+          },
+
+          // Suit bonuses - array format matching contract
+          suitBonuses: suitBonusArray,
+
+          // Scores
           totalScore,
-          difficultyThreshold,
-          challengeSuccess: success,
-          rewardsGained,
-          energyRemaining: Math.floor(character.energy),
+
+          // Success indicator - renamed from challengeSuccess
+          success,
+
+          // Margin - required by frontend for victory/defeat display
+          margin,
+
+          // Rewards - renamed from rewardsGained, undefined if failed
+          rewards: success ? {
+            xp: rewardsGained.xp,
+            gold: rewardsGained.gold,
+            items: rewardsGained.items
+          } : undefined,
+
+          // Energy information
+          energySpent: action.energyCost,
+          energyRemaining: Math.floor(newEnergy),
+
+          // Character state (kept for backwards compatibility)
           characterLevel: character.level,
-          characterXP: character.experience,
-          crimeResolution
+          characterXP: character.experience + (success ? rewardsGained.xp : 0),
+
+          // Crime resolution (unchanged)
+          crimeResolution,
+
+          // Timestamp
+          timestamp: new Date()
         }
       }
     });
   } catch (error) {
-    await session.abortTransaction();
+    if (session) await session.abortTransaction();
     logger.error('Error performing action challenge:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to perform action'
     });
   } finally {
-    session.endSession();
+    if (session) session.endSession();
   }
 }
 

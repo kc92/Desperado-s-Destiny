@@ -119,6 +119,7 @@ const defaultSettings: ChatSettings = {
   profanityFilterEnabled: false,
   showOnlineUsers: true,
   fontSize: 'medium',
+  isMinimized: false,
 };
 
 /**
@@ -262,7 +263,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ connectionStatus: status });
     });
 
-    // Socket connection is managed by useAuthStore
+    // Set initial connection status (callback only fires on CHANGES, not initial state)
+    set({ connectionStatus: socketService.getConnectionStatus() });
+
+    // Ensure socket is connected (backup in case auth store didn't connect)
+    // This handles edge cases where checkAuth() doesn't complete
+    if (!socketService.isConnected()) {
+      socketService.connect().catch((error) => {
+        logger.warn('Chat socket connection failed, will retry on room join', { error });
+      });
+    }
+
     // Use tracked listeners to prevent memory leaks
 
     addTrackedListener('chat:message', (message) => {
@@ -340,7 +351,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     addTrackedListener('chat:history', (data) => {
       const roomKey = getRoomKey(data.roomType, data.roomId);
-      const messages = new Map(state.messages);
+      const currentState = get(); // Use current state, not stale closure state
+      const messages = new Map(currentState.messages);
       const existingMessages = messages.get(roomKey) || [];
 
       const newMessages = [...data.messages, ...existingMessages];
@@ -355,7 +367,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     addTrackedListener('chat:typing', (data) => {
       const roomKey = getRoomKey(data.roomType, data.roomId);
-      const typingUsers = new Map(state.typingUsers);
+      const currentState = get(); // Use current state, not stale closure state
+      const typingUsers = new Map(currentState.typingUsers);
       const roomTyping = typingUsers.get(roomKey) || [];
 
       if (data.isTyping) {
@@ -386,7 +399,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     addTrackedListener('chat:user_joined', (data) => {
       const roomKey = getRoomKey(data.roomType, data.roomId);
-      const onlineUsers = new Map(state.onlineUsers);
+      const currentState = get(); // Use current state, not stale closure state
+      const onlineUsers = new Map(currentState.onlineUsers);
       const roomUsers = onlineUsers.get(roomKey) || [];
 
       if (!roomUsers.find((u) => u.userId === data.user.userId)) {
@@ -397,7 +411,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     addTrackedListener('chat:user_left', (data) => {
       const roomKey = getRoomKey(data.roomType, data.roomId);
-      const onlineUsers = new Map(state.onlineUsers);
+      const currentState = get(); // Use current state, not stale closure state
+      const onlineUsers = new Map(currentState.onlineUsers);
       const roomUsers = onlineUsers.get(roomKey) || [];
 
       onlineUsers.set(roomKey, roomUsers.filter((u) => u.userId !== data.userId));
@@ -406,13 +421,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     addTrackedListener('chat:online_users', (data) => {
       const roomKey = getRoomKey(data.roomType, data.roomId);
-      const onlineUsers = new Map(state.onlineUsers);
+      const currentState = get(); // Use current state, not stale closure state
+      const onlineUsers = new Map(currentState.onlineUsers);
       onlineUsers.set(roomKey, data.users);
       set({ onlineUsers });
     });
 
     addTrackedListener('user:online', (user) => {
-      const whispers = new Map(state.whispers);
+      const currentState = get(); // Use current state, not stale closure state
+      const whispers = new Map(currentState.whispers);
       const whisper = whispers.get(user.userId);
       if (whisper) {
         whispers.set(user.userId, { ...whisper, isOnline: true });
@@ -421,7 +438,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
 
     addTrackedListener('user:offline', (data) => {
-      const whispers = new Map(state.whispers);
+      const currentState = get(); // Use current state, not stale closure state
+      const whispers = new Map(currentState.whispers);
       const whisper = whispers.get(data.userId);
       if (whisper) {
         whispers.set(data.userId, { ...whisper, isOnline: false });
@@ -457,12 +475,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   /**
    * Cleanup chat system
-   * Properly removes all socket listeners to prevent memory leaks
+   * Properly removes socket listeners but DOES NOT disconnect socket
+   * Socket should remain connected for the session - managed by auth store
    */
   cleanup: () => {
     const state = get();
 
-    logger.debug('Cleaning up chat system', { initId: state._initializationId });
+    logger.debug('Cleaning up chat system listeners', { initId: state._initializationId });
 
     // Clear typing timers
     typingTimers.forEach((timer) => clearTimeout(timer));
@@ -471,19 +490,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Remove all tracked socket listeners to prevent memory leaks
     removeAllTrackedListeners();
 
-    // Disconnect socket
-    socketService.disconnect();
+    // NOTE: Do NOT disconnect socket here - it should persist across navigation
+    // Socket connection is managed by auth store at app level
+    // Only disconnect when user logs out
 
-    // Reset state including initialization flags
+    // Reset chat state but keep messages/whispers for UX continuity
     set({
-      messages: new Map(),
       activeRoom: null,
-      onlineUsers: new Map(),
       typingUsers: new Map(),
-      unreadCounts: new Map(),
-      whispers: new Map(),
-      connectionStatus: 'disconnected',
-      mutedUntil: null,
       isLoadingHistory: false,
       isSendingMessage: false,
       error: null,
@@ -498,9 +512,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   joinRoom: async (type: RoomType, id: string) => {
     const state = get();
 
+    // PRODUCTION FIX: Wait for socket connection instead of failing immediately
     if (!socketService.isConnected()) {
-      set({ error: 'Not connected to chat server' });
-      throw new Error('Not connected to chat server');
+      const connected = await socketService.waitForConnection(5000);
+      if (!connected) {
+        set({ error: 'Connection timeout - please refresh' });
+        throw new Error('Connection timeout');
+      }
     }
 
     if (state.activeRoom?.type === type && state.activeRoom?.id === id) {
@@ -617,6 +635,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         roomId,
         content: trimmedContent,
         recipientId,
+        _clientId: clientId, // Include clientId for message confirmation
       });
 
       if (!emitSuccess) {
@@ -682,6 +701,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       roomId: failedMessage.roomId,
       content: failedMessage.content,
       recipientId: failedMessage.recipientId,
+      _clientId: clientId, // Include clientId for message confirmation
     });
 
     if (!emitSuccess) {

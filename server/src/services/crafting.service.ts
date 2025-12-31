@@ -39,6 +39,39 @@ import { SecureRNG } from './base/SecureRNG';
 import { safeAchievementUpdate } from '../utils/achievementUtils';
 
 // ============================================================================
+// HELPER: Normalize recipe ingredients/materials to common format
+// ============================================================================
+
+interface NormalizedIngredient {
+  itemId: string;
+  quantity: number;
+}
+
+/**
+ * Normalizes recipe materials/ingredients to a common format
+ * Handles both old schema (ingredients) and new schema (materials)
+ */
+function normalizeRecipeIngredients(recipe: any): NormalizedIngredient[] {
+  // If recipe has ingredients array (old schema / MongoDB Recipe model)
+  if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
+    return recipe.ingredients.map((ing: any) => ({
+      itemId: ing.itemId,
+      quantity: ing.quantity
+    }));
+  }
+
+  // If recipe has materials array (new schema / CraftingRecipe type)
+  if (recipe.materials && Array.isArray(recipe.materials)) {
+    return recipe.materials.map((mat: any) => ({
+      itemId: mat.materialId || mat.itemId,
+      quantity: mat.quantity
+    }));
+  }
+
+  return [];
+}
+
+// ============================================================================
 // CRAFTING SERVICE CLASS
 // ============================================================================
 
@@ -189,13 +222,15 @@ export class CraftingService {
       }
 
       // PHASE 4 FIX: Actually check materials in inventory (was hardcoded to true)
+      // Use normalized ingredients to handle both schema formats
+      const normalizedIngredients = normalizeRecipeIngredients(recipe);
       const missingMaterials: string[] = [];
-      for (const material of recipe.materials) {
-        const totalNeeded = material.quantity * quantity;
-        const inventoryItem = character.inventory.find(i => i.itemId === material.materialId);
+      for (const ingredient of normalizedIngredients) {
+        const totalNeeded = ingredient.quantity * quantity;
+        const inventoryItem = character.inventory.find(i => i.itemId === ingredient.itemId);
         if (!inventoryItem || inventoryItem.quantity < totalNeeded) {
           missingMaterials.push(
-            `${material.materialName || material.materialId}: need ${totalNeeded}, have ${inventoryItem?.quantity || 0}`
+            `${ingredient.itemId}: need ${totalNeeded}, have ${inventoryItem?.quantity || 0}`
           );
         }
       }
@@ -333,42 +368,57 @@ export class CraftingService {
         }
       }
 
-      // Deduct materials from inventory
-      for (const ingredient of recipeDoc.ingredients) {
-        const inventoryItem = character.inventory.find(i => i.itemId === ingredient.itemId);
-        if (inventoryItem) {
-          inventoryItem.quantity -= ingredient.quantity;
-          if (inventoryItem.quantity <= 0) {
-            character.inventory = character.inventory.filter(i => i.itemId !== ingredient.itemId);
+      // Use transaction for atomic inventory operations
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        // Deduct materials from inventory
+        for (const ingredient of recipeDoc.ingredients) {
+          const inventoryItem = character.inventory.find(i => i.itemId === ingredient.itemId);
+          if (inventoryItem) {
+            inventoryItem.quantity -= ingredient.quantity;
+            if (inventoryItem.quantity <= 0) {
+              character.inventory = character.inventory.filter(i => i.itemId !== ingredient.itemId);
+            }
           }
         }
+
+        // Add crafted item to inventory
+        const existingItem = character.inventory.find(i => i.itemId === recipeDoc.output.itemId);
+        if (existingItem) {
+          existingItem.quantity += recipeDoc.output.quantity;
+        } else {
+          character.inventory.push({
+            itemId: recipeDoc.output.itemId,
+            quantity: recipeDoc.output.quantity,
+            acquiredAt: new Date()
+          });
+        }
+
+        // Save character with updated inventory within transaction
+        await character.save({ session });
+        await session.commitTransaction();
+
+        return {
+          success: true,
+          itemsCrafted: [{
+            itemId: recipeDoc.output.itemId,
+            quantity: recipeDoc.output.quantity,
+            quality: 'common'
+          }],
+          xpGained: recipeDoc.xpReward,
+          timeTaken: recipeDoc.craftTime
+        };
+      } catch (txError) {
+        await session.abortTransaction();
+        return {
+          success: false,
+          error: `Crafting failed: ${txError}`
+        };
+      } finally {
+        session.endSession();
       }
-
-      // Add crafted item to inventory
-      const existingItem = character.inventory.find(i => i.itemId === recipeDoc.output.itemId);
-      if (existingItem) {
-        existingItem.quantity += recipeDoc.output.quantity;
-      } else {
-        character.inventory.push({
-          itemId: recipeDoc.output.itemId,
-          quantity: recipeDoc.output.quantity,
-          acquiredAt: new Date()
-        });
-      }
-
-      // Save character with updated inventory
-      await character.save();
-
-      return {
-        success: true,
-        itemsCrafted: [{
-          itemId: recipeDoc.output.itemId,
-          quantity: recipeDoc.output.quantity,
-          quality: 'common'
-        }],
-        xpGained: recipeDoc.xpReward,
-        timeTaken: recipeDoc.craftTime
-      };
     }
 
     // Handle the full version (characterId, request, recipe)
@@ -408,29 +458,18 @@ export class CraftingService {
         return response;
       }
 
-      // Check materials in inventory
-      for (const material of craftingRecipe.materials) {
-        const totalNeeded = material.quantity * request.quantity;
-        const inventoryItem = character.inventory.find(i => i.itemId === material.materialId);
+      // Check materials in inventory (normalized for both schema formats)
+      const normalizedMaterials = normalizeRecipeIngredients(craftingRecipe);
+      for (const ingredient of normalizedMaterials) {
+        const totalNeeded = ingredient.quantity * request.quantity;
+        const inventoryItem = character.inventory.find(i => i.itemId === ingredient.itemId);
         if (!inventoryItem || inventoryItem.quantity < totalNeeded) {
-          response.message = `Insufficient materials: ${material.materialId} (need ${totalNeeded}, have ${inventoryItem?.quantity || 0})`;
+          response.message = `Insufficient materials: ${ingredient.itemId} (need ${totalNeeded}, have ${inventoryItem?.quantity || 0})`;
           return response;
         }
       }
 
-      // Deduct materials from inventory
-      for (const material of craftingRecipe.materials) {
-        const totalNeeded = material.quantity * request.quantity;
-        const inventoryItem = character.inventory.find(i => i.itemId === material.materialId);
-        if (inventoryItem) {
-          inventoryItem.quantity -= totalNeeded;
-          if (inventoryItem.quantity <= 0) {
-            character.inventory = character.inventory.filter(i => i.itemId !== material.materialId);
-          }
-        }
-      }
-
-      // Calculate quality
+      // Calculate quality (before transaction - no DB writes)
       const qualityCalc = this.calculateQuality(
         character,
         profile,
@@ -438,7 +477,7 @@ export class CraftingService {
         request.toolQuality || CraftingToolQuality.BASIC
       );
 
-      // Calculate XP
+      // Calculate XP (before transaction - no DB writes)
       const xpCalc = this.calculateXP(
         profile,
         craftingRecipe,
@@ -446,7 +485,7 @@ export class CraftingService {
         request.toolQuality || CraftingToolQuality.BASIC
       );
 
-      // Create crafted items
+      // Create crafted items (before transaction - no DB writes)
       const items: CraftedItem[] = [];
       for (let i = 0; i < request.quantity; i++) {
         const item: CraftedItem = {
@@ -468,93 +507,119 @@ export class CraftingService {
         items.push(item);
       }
 
-      // Add XP to profession
-      const totalXP = xpCalc.totalXP * request.quantity;
-      const oldLevel = profession.level;
-      const oldTier = profession.tier;
+      // ===== BEGIN TRANSACTION: All DB writes are atomic =====
+      const session = await mongoose.startSession();
+      session.startTransaction();
 
-      await profile.addProfessionXP(craftingRecipe.professionId, totalXP);
+      try {
+        // Deduct materials from inventory
+        for (const ingredient of normalizedMaterials) {
+          const totalNeeded = ingredient.quantity * request.quantity;
+          const inventoryItem = character.inventory.find(i => i.itemId === ingredient.itemId);
+          if (inventoryItem) {
+            inventoryItem.quantity -= totalNeeded;
+            if (inventoryItem.quantity <= 0) {
+              character.inventory = character.inventory.filter(i => i.itemId !== ingredient.itemId);
+            }
+          }
+        }
 
-      // Reload to get updated profession
-      await profile.save();
-      const updatedProfession = profile.professions.get(craftingRecipe.professionId);
-      const newLevel = updatedProfession?.level || oldLevel;
-      const newTier = updatedProfession?.tier || oldTier;
+        // Add XP to profession
+        const totalXP = xpCalc.totalXP * request.quantity;
+        const oldLevel = profession.level;
+        const oldTier = profession.tier;
 
-      // Update crafting stats
-      profile.craftingStats.totalCrafts += request.quantity;
-      if (qualityCalc.resultingQuality === CraftingQuality.MASTERWORK) {
-        profile.craftingStats.totalMasterworks += request.quantity;
+        await profile.addProfessionXP(craftingRecipe.professionId, totalXP);
+
+        // Update crafting stats
+        profile.craftingStats.totalCrafts += request.quantity;
+        if (qualityCalc.resultingQuality === CraftingQuality.MASTERWORK) {
+          profile.craftingStats.totalMasterworks += request.quantity;
+        }
+        if (qualityCalc.resultingQuality === CraftingQuality.LEGENDARY) {
+          profile.craftingStats.totalLegendaries += request.quantity;
+        }
+        if (qualityCalc.criticalChance > 0) {
+          profile.craftingStats.totalCriticals += 1;
+          response.criticalSuccess = true;
+        }
+
+        // Track materials used
+        for (const ingredient of normalizedMaterials) {
+          const currentUsed = profile.craftingStats.materialsUsed.get(ingredient.itemId) || 0;
+          profile.craftingStats.materialsUsed.set(
+            ingredient.itemId,
+            currentUsed + (ingredient.quantity * request.quantity)
+          );
+        }
+
+        // Add crafted items to character inventory
+        const totalItemsToAdd = craftingRecipe.output.baseQuantity * request.quantity;
+        const existingItem = character.inventory.find(i => i.itemId === craftingRecipe.output.itemId);
+        if (existingItem) {
+          existingItem.quantity += totalItemsToAdd;
+        } else {
+          character.inventory.push({
+            itemId: craftingRecipe.output.itemId,
+            quantity: totalItemsToAdd,
+            acquiredAt: new Date()
+          });
+        }
+
+        // Save both character and profile within transaction
+        await character.save({ session });
+        await profile.save({ session });
+
+        // Commit the transaction
+        await session.commitTransaction();
+
+        // Get updated profession data (after commit)
+        const updatedProfession = profile.professions.get(craftingRecipe.professionId);
+        const newLevel = updatedProfession?.level || oldLevel;
+        const newTier = updatedProfession?.tier || oldTier;
+
+        // Achievement tracking (outside transaction - fire-and-forget)
+        const characterIdStr = charId.toString();
+        safeAchievementUpdate(characterIdStr, 'first_craft', request.quantity, 'crafting:craft');
+        safeAchievementUpdate(characterIdStr, 'crafter_10', request.quantity, 'crafting:craft');
+        safeAchievementUpdate(characterIdStr, 'crafter_50', request.quantity, 'crafting:craft');
+        safeAchievementUpdate(characterIdStr, 'crafter_100', request.quantity, 'crafting:craft');
+
+        // Track high-quality crafts (masterwork or legendary)
+        if (qualityCalc.resultingQuality === CraftingQuality.MASTERWORK ||
+            qualityCalc.resultingQuality === CraftingQuality.LEGENDARY) {
+          safeAchievementUpdate(characterIdStr, 'quality_crafter', request.quantity, 'crafting:quality');
+        }
+
+        // Calculate time
+        const baseTime = craftingRecipe.baseCraftTime;
+        const toolMultiplier = this.getToolSpeedMultiplier(request.toolQuality || CraftingToolQuality.BASIC);
+        const timeTaken = (baseTime / toolMultiplier) * request.quantity;
+
+        // Build success response
+        response.success = true;
+        response.itemsCrafted = items;
+        response.xpGained = totalXP;
+        response.timeTaken = timeTaken;
+        response.message = `Successfully crafted ${request.quantity}x ${craftingRecipe.name}`;
+
+        if (newLevel > oldLevel) {
+          response.newLevel = newLevel;
+          response.message += ` - Level up! You are now ${craftingRecipe.professionId} level ${newLevel}`;
+        }
+
+        if (newTier !== oldTier) {
+          response.newTier = newTier;
+          response.message += ` - You are now a ${newTier}!`;
+        }
+      } catch (txError) {
+        // Abort transaction on any error - no materials lost, no items created
+        await session.abortTransaction();
+        response.message = `Crafting failed (transaction rolled back): ${txError}`;
+      } finally {
+        session.endSession();
       }
-      if (qualityCalc.resultingQuality === CraftingQuality.LEGENDARY) {
-        profile.craftingStats.totalLegendaries += request.quantity;
-      }
-      if (qualityCalc.criticalChance > 0) {
-        profile.craftingStats.totalCriticals += 1;
-        response.criticalSuccess = true;
-      }
-
-      // Track materials used
-      for (const material of craftingRecipe.materials) {
-        const currentUsed = profile.craftingStats.materialsUsed.get(material.materialId) || 0;
-        profile.craftingStats.materialsUsed.set(
-          material.materialId,
-          currentUsed + (material.quantity * request.quantity)
-        );
-      }
-
-      // Add crafted items to character inventory
-      const totalItemsToAdd = craftingRecipe.output.baseQuantity * request.quantity;
-      const existingItem = character.inventory.find(i => i.itemId === craftingRecipe.output.itemId);
-      if (existingItem) {
-        existingItem.quantity += totalItemsToAdd;
-      } else {
-        character.inventory.push({
-          itemId: craftingRecipe.output.itemId,
-          quantity: totalItemsToAdd,
-          acquiredAt: new Date()
-        });
-      }
-
-      // Save character with updated inventory
-      await character.save();
-
-      await profile.save();
-
-      // Achievement tracking: Crafting achievements
-      const characterIdStr = charId.toString();
-      safeAchievementUpdate(characterIdStr, 'first_craft', request.quantity, 'crafting:craft');
-      safeAchievementUpdate(characterIdStr, 'crafter_10', request.quantity, 'crafting:craft');
-      safeAchievementUpdate(characterIdStr, 'crafter_50', request.quantity, 'crafting:craft');
-      safeAchievementUpdate(characterIdStr, 'crafter_100', request.quantity, 'crafting:craft');
-
-      // Track high-quality crafts (masterwork or legendary)
-      if (qualityCalc.resultingQuality === CraftingQuality.MASTERWORK ||
-          qualityCalc.resultingQuality === CraftingQuality.LEGENDARY) {
-        safeAchievementUpdate(characterIdStr, 'quality_crafter', request.quantity, 'crafting:quality');
-      }
-
-      // Calculate time
-      const baseTime = craftingRecipe.baseCraftTime;
-      const toolMultiplier = this.getToolSpeedMultiplier(request.toolQuality || CraftingToolQuality.BASIC);
-      const timeTaken = (baseTime / toolMultiplier) * request.quantity;
-
-      // Build response
-      response.success = true;
-      response.itemsCrafted = items;
-      response.xpGained = totalXP;
-      response.timeTaken = timeTaken;
-      response.message = `Successfully crafted ${request.quantity}x ${craftingRecipe.name}`;
-
-      if (newLevel > oldLevel) {
-        response.newLevel = newLevel;
-        response.message += ` - Level up! You are now ${craftingRecipe.professionId} level ${newLevel}`;
-      }
-
-      if (newTier !== oldTier) {
-        response.newTier = newTier;
-        response.message += ` - You are now a ${newTier}!`;
-      }
+      // ===== END TRANSACTION =====
 
     } catch (error) {
       response.message = `Crafting failed: ${error}`;
@@ -948,11 +1013,25 @@ export class CraftingService {
    */
   static async getAvailableRecipes(characterId: string): Promise<any[]> {
     const Recipe = (await import('../models/Recipe.model')).Recipe;
+    const Character = (await import('../models/Character.model')).Character;
 
-    // For now, return all unlocked recipes
-    // TODO: Filter by character's skill levels and unlocked recipes
+    const character = await Character.findById(characterId);
+    if (!character) {
+      return [];
+    }
+
+    // Get all unlocked recipes
     const recipes = await Recipe.find({ isUnlocked: true });
-    return recipes;
+
+    // Filter by character's skill levels
+    return recipes.filter(recipe => {
+      const requiredSkill = recipe.skillRequired;
+      if (!requiredSkill || !requiredSkill.skillId) {
+        return true; // No skill requirement
+      }
+      const characterSkillLevel = character.getSkillLevel(requiredSkill.skillId);
+      return characterSkillLevel >= requiredSkill.level;
+    });
   }
 
   /**
@@ -992,9 +1071,12 @@ export class CraftingService {
       };
     }
 
-    // Check skill requirement
+    // Check skill requirement - look up skill from character's skills array
     const skillRequired = recipe.skillRequired;
-    const characterSkill = (character as any)[skillRequired.skillId] || 0;
+    const characterSkillEntry = character.skills?.find(
+      (s: any) => s.skillId === skillRequired.skillId
+    );
+    const characterSkill = characterSkillEntry?.level || 0;
 
     if (characterSkill < skillRequired.level) {
       return {
@@ -1006,25 +1088,22 @@ export class CraftingService {
     }
 
     // PHASE 4 FIX: Actually check materials in inventory (was hardcoded to true)
+    // Use normalized ingredients to handle both schema formats
+    const normalizedIngredients = normalizeRecipeIngredients(recipe);
     const missingMaterials: Array<{ ingredientId: string; needed: number; have: number }> = [];
 
-    if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
-      for (const ingredient of recipe.ingredients) {
-        const ingredientId = ingredient.itemId || ingredient.ingredientId;
-        const quantityNeeded = ingredient.quantity || 1;
+    for (const ingredient of normalizedIngredients) {
+      const inventoryItem = character.inventory.find(
+        (i: any) => i.itemId === ingredient.itemId
+      );
+      const quantityHave = inventoryItem?.quantity || 0;
 
-        const inventoryItem = character.inventory.find(
-          (i: any) => i.itemId === ingredientId
-        );
-        const quantityHave = inventoryItem?.quantity || 0;
-
-        if (quantityHave < quantityNeeded) {
-          missingMaterials.push({
-            ingredientId,
-            needed: quantityNeeded,
-            have: quantityHave
-          });
-        }
+      if (quantityHave < ingredient.quantity) {
+        missingMaterials.push({
+          ingredientId: ingredient.itemId,
+          needed: ingredient.quantity,
+          have: quantityHave
+        });
       }
     }
 

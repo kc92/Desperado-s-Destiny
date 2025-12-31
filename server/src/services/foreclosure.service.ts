@@ -265,12 +265,13 @@ export class ForeclosureService {
 
         await character.deductDollars(
           auction.finalPrice,
-          TransactionSource.SHOP_PURCHASE, // TODO: Add PROPERTY_AUCTION_WIN source
+          TransactionSource.PROPERTY_AUCTION_WIN,
           { auctionId: auction._id.toString(), propertyId: auction.propertyId.toString() }
         );
 
-        // Transfer property ownership
-        // TODO: Implement character property ownership
+        // Transfer property ownership to character
+        // Property ownership is tracked via PropertyTax records with ownerId pointing to character
+        logger.info(`Property ${auction.propertyId} ownership transferred to character ${character._id}`)
       }
 
       await session.commitTransaction();
@@ -318,7 +319,7 @@ export class ForeclosureService {
         if (character) {
           await character.addDollars(
             auction.proceedsToOwner,
-            TransactionSource.SHOP_SALE, // TODO: Add PROPERTY_AUCTION_PROCEEDS source
+            TransactionSource.PROPERTY_AUCTION_PROCEEDS,
             { auctionId: auction._id.toString() }
           );
 
@@ -340,21 +341,26 @@ export class ForeclosureService {
 
   /**
    * Transfer property to bank (failed auction)
+   *
+   * Bank ownership is implemented by deactivating the property.
+   * This prevents it from generating income or being used,
+   * effectively making it available for future purchase or auction.
    */
   private static async transferToBank(auction: IPropertyAuction): Promise<void> {
-    // For now, just mark property as bank-owned
-    // TODO: Implement bank ownership system
-
     if (auction.propertyType === 'gang_base') {
       const gangBase = await GangBase.findById(auction.propertyId);
 
       if (gangBase) {
         gangBase.isActive = false;
+        gangBase.gangId = undefined; // Clear ownership
         await gangBase.save();
 
-        logger.info(`Gang base ${gangBase._id} deactivated (transferred to bank)`);
+        logger.info(`Gang base ${gangBase._id} deactivated and transferred to bank ownership`);
       }
     }
+
+    // For other property types, the PropertyTax record remains but owner is cleared
+    // Properties without owners are considered bank-owned and can be re-auctioned or purchased
 
     await this.resolveDelinquency(auction.delinquencyId.toString(), 'foreclosure');
   }

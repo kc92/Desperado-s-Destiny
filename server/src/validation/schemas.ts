@@ -436,25 +436,25 @@ export const CombatSchemas = {
 export const QuestSchemas = {
   accept: {
     body: {
-      questId: { required: true, type: 'objectId' }
+      questId: { required: true, type: 'string' }
     }
   } as ValidationSchema,
 
   abandon: {
     body: {
-      questId: { required: true, type: 'objectId' }
+      questId: { required: true, type: 'string' }
     }
   } as ValidationSchema,
 
   complete: {
     body: {
-      questId: { required: true, type: 'objectId' }
+      questId: { required: true, type: 'string' }
     }
   } as ValidationSchema,
 
   completeObjective: {
     params: {
-      questId: { required: true, type: 'objectId' }
+      questId: { required: true, type: 'string' }
     },
     body: {
       objectiveId: { required: true, type: 'string' },

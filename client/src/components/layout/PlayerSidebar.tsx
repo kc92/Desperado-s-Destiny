@@ -11,11 +11,15 @@ import { useEnergy } from '@/hooks/useEnergy';
 import { useDeath } from '@/hooks/useDeath';
 import { useKarma } from '@/hooks/useKarma';
 import { useDuels } from '@/hooks/useDuels';
+// useFateMarks imported for FateMarksDisplay context - kept for future use
+// import { useFateMarks } from '@/hooks/useFateMarks';
+import { FateMarksDisplay } from '@/components/danger/FateMarksDisplay';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useMailStore } from '@/store/useMailStore';
 import { factionToDisplay } from '@/types';
 import { Tooltip } from '@/components/ui';
 import { Link } from 'react-router-dom';
+import { locationService } from '@/services/location.service';
 
 type TabType = 'stats' | 'skills' | 'effects';
 
@@ -36,6 +40,7 @@ const formatTimeToFull = (seconds: number): string => {
 export const PlayerSidebar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('stats');
   const [countdownSeconds, setCountdownSeconds] = useState(0);
+  const [locationName, setLocationName] = useState<string>('Loading...');
   const { currentCharacter } = useCharacterStore();
   const { skills, skillData, fetchSkills } = useSkillStore();
   const energyState = useEnergyStore((state) => state.energy);
@@ -47,9 +52,24 @@ export const PlayerSidebar: React.FC = () => {
   const mailUnreadCount = useMailStore((state) => state.unreadCount);
 
   // Extract energy values with fallbacks
-  const energy = energyState?.currentEnergy ?? currentCharacter?.energy ?? 0;
-  const maxEnergy = energyState?.maxEnergy ?? currentCharacter?.maxEnergy ?? 100;
-  const regenRate = energyState?.regenRate ?? 5;
+  // FIX: Use useEnergy hook's computed values which include client-side interpolation
+  const { currentEnergy: hookEnergy, maxEnergy: hookMaxEnergy } = useEnergy();
+
+  // Prefer hook values (which include real-time interpolation), fall back to store, then character
+  const energy = hookEnergy > 0 ? hookEnergy : (energyState?.currentEnergy ?? currentCharacter?.energy ?? 0);
+  const maxEnergy = hookMaxEnergy > 0 ? hookMaxEnergy : (energyState?.maxEnergy ?? currentCharacter?.maxEnergy ?? 150);
+  // Regen rate: 30 energy/hour = 0.5/min for free, 45/hour = 0.75/min for premium
+  const regenRate = energyState?.regenRate ?? 0.5;
+
+  // FIX: Force re-render every 10 seconds to update interpolated energy display
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const ticker = setInterval(() => {
+      setTick(t => t + 1);
+    }, 10000); // Update display every 10 seconds
+
+    return () => clearInterval(ticker);
+  }, []);
 
   // Fetch energy, death status, and duel stats on mount
   useEffect(() => {
@@ -81,11 +101,32 @@ export const PlayerSidebar: React.FC = () => {
     }
   }, [skillData.length, fetchSkills]);
 
+  // Fetch location name when locationId changes
+  useEffect(() => {
+    const fetchLocationName = async () => {
+      if (currentCharacter?.locationId) {
+        try {
+          const response = await locationService.getLocationById(currentCharacter.locationId);
+          if (response.success && response.data?.location) {
+            setLocationName(response.data.location.name);
+          } else {
+            setLocationName('Unknown');
+          }
+        } catch {
+          setLocationName('Unknown');
+        }
+      } else {
+        setLocationName('Unknown');
+      }
+    };
+    fetchLocationName();
+  }, [currentCharacter?.locationId]);
+
   if (!currentCharacter) {
     return null;
   }
 
-  const xpForNextLevel = currentCharacter.level * 100; // Simple formula
+  const xpForNextLevel = 100 * Math.pow(currentCharacter.level, 2); // Exponential formula matching server
   const xpProgress = (currentCharacter.experience / xpForNextLevel) * 100;
   const factionDisplay = factionToDisplay(currentCharacter.faction);
 
@@ -165,6 +206,9 @@ export const PlayerSidebar: React.FC = () => {
               <span className="text-green-400">Full</span>
             )}
           </div>
+
+          {/* Fate Marks Display - Near Energy Bar */}
+          <FateMarksDisplay className="mt-2" />
         </div>
 
         {/* XP Bar */}
@@ -183,9 +227,9 @@ export const PlayerSidebar: React.FC = () => {
           </div>
         </div>
 
-        {/* Gold */}
+        {/* Dollars */}
         <div className="flex items-center justify-between bg-wood-dark/50 rounded px-3 py-2">
-          <span className="text-desert-sand text-sm">Gold</span>
+          <span className="text-desert-sand text-sm">Dollars</span>
           <span className="text-gold-light font-bold text-lg">
             ${currentCharacter.gold?.toLocaleString() || 0}
           </span>
@@ -422,7 +466,7 @@ export const PlayerSidebar: React.FC = () => {
       <div className="p-3 border-t border-wood-light/30 bg-wood-dark/50">
         <div className="text-xs text-desert-sand/70">Current Location</div>
         <div className="text-sm text-gold-light truncate font-bold">
-          {currentCharacter.currentLocation || 'Unknown'}
+          {locationName}
         </div>
       </div>
     </aside>
@@ -576,14 +620,18 @@ const QuickLinksSection: React.FC<QuickLinksSectionProps> = ({
   const [isExpanded, setIsExpanded] = useState(true);
 
   const quickLinks: QuickLinkItem[] = [
-    { label: 'Actions', path: '/actions', icon: '⚡' },
-    { label: 'Crimes', path: '/crimes', icon: '🔪' },
-    { label: 'Gang', path: '/gang', icon: '👥' },
-    { label: 'Territory', path: '/territory', icon: '🗺️' },
-    { label: 'Mail', path: '/mail', icon: '✉️', badge: mailUnread },
-    { label: 'Quests', path: '/quests', icon: '📜' },
-    { label: 'Shop', path: '/shop', icon: '🏪' },
-    { label: 'Settings', path: '/settings', icon: '⚙️' },
+    { label: 'Location', path: '/game/location', icon: '📍' },
+    { label: 'Inventory', path: '/game/inventory', icon: '🎒' },
+    { label: 'Crafting', path: '/game/crafting', icon: '🔨' },
+    { label: 'Gathering', path: '/game/gathering', icon: '⛏️' },
+    { label: 'Crimes', path: '/game/crimes', icon: '🔪' },
+    { label: 'Gang', path: '/game/gang', icon: '👥' },
+    { label: 'Territory', path: '/game/territory', icon: '🗺️' },
+    { label: 'Mail', path: '/game/mail', icon: '✉️', badge: mailUnread },
+    { label: 'Quests', path: '/game/quests', icon: '📜' },
+    { label: 'Leaderboard', path: '/game/leaderboard', icon: '🏆' },
+    { label: 'Shop', path: '/game/shop', icon: '🏪' },
+    { label: 'Settings', path: '/game/settings', icon: '⚙️' },
   ];
 
   return (
@@ -665,7 +713,7 @@ const EffectCard: React.FC<EffectCardProps> = ({
         <span className={`${accentColor} text-xs font-bold capitalize`}>{name}</span>
         {(power || severity) && (
           <span className="text-xs text-desert-sand/50">
-            {isBlessing ? `+${power}` : `-${severity}`}
+            {isBlessing ? `+${Math.round(power || 0)}` : `-${Math.round(severity || 0)}`}
           </span>
         )}
       </div>

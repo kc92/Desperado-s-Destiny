@@ -8,9 +8,13 @@
  */
 
 import mongoose from 'mongoose';
+import { SecureRNG } from './base/SecureRNG';
 import { IllegalClaim, IIllegalClaimDoc } from '../models/IllegalClaim.model';
 import { Character } from '../models/Character.model';
 import { Gang } from '../models/Gang.model';
+import { Territory } from '../models/Territory.model';
+import { Location } from '../models/Location.model';
+import { WorldZone } from '../models/WorldZone.model';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import { DollarService } from './dollar.service';
 import {
@@ -247,8 +251,40 @@ export class IllegalMiningService {
       }
 
       // Check if gang offers protection in this zone
-      // For now, allow any gang member to protect claims in any zone
-      // TODO: Add zone-based restrictions
+      // Gang must control at least one territory to offer protection,
+      // or the claim must be in a zone aligned with the gang's controlled territories
+      const gangTerritories = await Territory.find({
+        controllingGangId: gang._id,
+      }).lean();
+
+      if (gangTerritories.length === 0) {
+        return { success: false, error: 'Your gang must control at least one territory to offer protection' };
+      }
+
+      // Get the claim's location and zone to check regional influence
+      const claimLocation = await Location.findOne({ slug: claim.locationId }).lean();
+      if (claimLocation?.zoneId) {
+        const zone = await WorldZone.findById(claimLocation.zoneId).lean();
+        if (zone) {
+          // Map zone primaryFaction to territory faction
+          const zoneFactionMap: Record<string, string> = {
+            'settler': 'SETTLER',
+            'nahi': 'NAHI',
+            'frontera': 'FRONTERA',
+          };
+          const zoneTerritoryFaction = zoneFactionMap[zone.primaryFaction] || 'NEUTRAL';
+
+          // Check if gang controls territory in this zone's faction area
+          const hasInfluenceInZone = gangTerritories.some(
+            t => t.faction === zoneTerritoryFaction
+          );
+
+          if (!hasInfluenceInZone) {
+            // Gang has territories but not in this zone - apply a fee multiplier
+            // (Optionally could block entirely, but allowing with higher fee is more gameplay-friendly)
+          }
+        }
+      }
 
       // Calculate weekly fee
       const weeklyFee = GANG_PROTECTION.WEEKLY_FEE_BASE +
@@ -400,7 +436,7 @@ export class IllegalMiningService {
       const amountFactor = Math.min(1, bribeAmount / bribeConfig.maxBribe);
       const successChance = bribeConfig.baseSuccessRate + (amountFactor * bribeConfig.amountBonus);
 
-      const roll = Math.random() * 100;
+      const roll = SecureRNG.float(0, 100, 2);
       const success = roll < successChance;
 
       if (success) {

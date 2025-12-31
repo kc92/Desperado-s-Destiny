@@ -178,7 +178,7 @@ export const EnergyDisplay: React.FC<EnergyDisplayProps> = React.memo(({
       {/* Regeneration info */}
       <div className="mt-2 flex justify-between items-center text-xs">
         <span className="text-desert-stone italic">
-          Regenerates at {regenRate}/hour
+          Regenerates at {Math.round(regenRate)}/hour
         </span>
         <span className={`font-semibold ${current >= max ? 'text-green-500' : 'text-desert-sand'}`}>
           {current >= max ? 'Full Energy' : `Full in ${formatTime(timeUntilFull)}`}
@@ -188,7 +188,7 @@ export const EnergyDisplay: React.FC<EnergyDisplayProps> = React.memo(({
       {/* Tooltip information */}
       <div className="sr-only">
         Energy: {displayCurrent} out of {max}.
-        {current < max && ` Regenerating at ${regenRate} per hour. Full in ${formatTime(timeUntilFull)}.`}
+        {current < max && ` Regenerating at ${Math.round(regenRate)} per hour. Full in ${formatTime(timeUntilFull)}.`}
         {isPremium && ' Premium player.'}
       </div>
     </div>

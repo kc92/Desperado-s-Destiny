@@ -6,6 +6,7 @@
  */
 
 import { ContractType, ContractDifficulty, SkillRequirement, SkillXpReward } from '../../models/DailyContract.model';
+import { SecureRNG } from '../../services/base/SecureRNG';
 
 // =============================================================================
 // TYPES
@@ -284,24 +285,21 @@ export function getAvailablePremiumContracts(level: number): PremiumContractTemp
  * Get a random mystery for investigation contracts
  */
 export function getRandomMystery(): MysteryTemplate {
-  const index = Math.floor(Math.random() * MYSTERY_TEMPLATES.length);
-  return MYSTERY_TEMPLATES[index];
+  return SecureRNG.select(MYSTERY_TEMPLATES);
 }
 
 /**
  * Get a random target NPC
  */
 export function getRandomTargetNPC(): TargetNPCTemplate {
-  const index = Math.floor(Math.random() * TARGET_NPC_TEMPLATES.length);
-  return TARGET_NPC_TEMPLATES[index];
+  return SecureRNG.select(TARGET_NPC_TEMPLATES);
 }
 
 /**
  * Get a random target location
  */
 export function getRandomTargetLocation(): TargetLocationTemplate {
-  const index = Math.floor(Math.random() * TARGET_LOCATION_TEMPLATES.length);
-  return TARGET_LOCATION_TEMPLATES[index];
+  return SecureRNG.select(TARGET_LOCATION_TEMPLATES);
 }
 
 /**
@@ -309,12 +307,8 @@ export function getRandomTargetLocation(): TargetLocationTemplate {
  */
 export function getRandomFactionPair(): { factionA: string; factionB: string } {
   const factions = ['Settler Alliance', 'Nahi Coalition', 'Frontera'];
-  const a = Math.floor(Math.random() * factions.length);
-  let b = Math.floor(Math.random() * factions.length);
-  while (b === a) {
-    b = Math.floor(Math.random() * factions.length);
-  }
-  return { factionA: factions[a], factionB: factions[b] };
+  const shuffled = SecureRNG.shuffle([...factions]);
+  return { factionA: shuffled[0], factionB: shuffled[1] };
 }
 
 /**

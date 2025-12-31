@@ -29,6 +29,7 @@ import { CURRENCY_CONSTANTS } from '@desperados/shared';
 import logger from '../utils/logger';
 import { DollarService } from './dollar.service';
 import { ResourceService, ResourceType } from './resource.service';
+import { SecureRNG } from './base/SecureRNG';
 
 interface ExchangeRates {
   gold: {
@@ -363,21 +364,21 @@ export class CurrencyExchangeService {
       case PriceEventType.GOLD_RUSH:
         updates.push({
           resourceType: CurrencyType.GOLD_RESOURCE,
-          multiplier: 1 + (0.15 + Math.random() * 0.10) // +15-25%
+          multiplier: 1 + SecureRNG.float(0.15, 0.25, 2) // +15-25%
         });
         break;
 
       case PriceEventType.SILVER_STRIKE:
         updates.push({
           resourceType: CurrencyType.SILVER_RESOURCE,
-          multiplier: 1 + (0.10 + Math.random() * 0.10) // +10-20%
+          multiplier: 1 + SecureRNG.float(0.10, 0.20, 2) // +10-20%
         });
         break;
 
       case PriceEventType.MINE_COLLAPSE:
         updates.push(
-          { resourceType: CurrencyType.GOLD_RESOURCE, multiplier: 1 + (0.05 + Math.random() * 0.10) },
-          { resourceType: CurrencyType.SILVER_RESOURCE, multiplier: 1 + (0.05 + Math.random() * 0.10) }
+          { resourceType: CurrencyType.GOLD_RESOURCE, multiplier: 1 + SecureRNG.float(0.05, 0.15, 2) },
+          { resourceType: CurrencyType.SILVER_RESOURCE, multiplier: 1 + SecureRNG.float(0.05, 0.15, 2) }
         );
         break;
 
@@ -390,9 +391,9 @@ export class CurrencyExchangeService {
 
       case PriceEventType.MARKET_FLOOD:
         if (affectedResource === 'gold') {
-          updates.push({ resourceType: CurrencyType.GOLD_RESOURCE, multiplier: 0.80 + Math.random() * 0.10 });
+          updates.push({ resourceType: CurrencyType.GOLD_RESOURCE, multiplier: SecureRNG.float(0.80, 0.90, 2) });
         } else if (affectedResource === 'silver') {
-          updates.push({ resourceType: CurrencyType.SILVER_RESOURCE, multiplier: 0.80 + Math.random() * 0.10 });
+          updates.push({ resourceType: CurrencyType.SILVER_RESOURCE, multiplier: SecureRNG.float(0.80, 0.90, 2) });
         } else {
           updates.push(
             { resourceType: CurrencyType.GOLD_RESOURCE, multiplier: 0.85 },
@@ -403,9 +404,9 @@ export class CurrencyExchangeService {
 
       case PriceEventType.NEW_VEIN_FOUND:
         if (affectedResource === 'gold') {
-          updates.push({ resourceType: CurrencyType.GOLD_RESOURCE, multiplier: 0.85 + Math.random() * 0.10 });
+          updates.push({ resourceType: CurrencyType.GOLD_RESOURCE, multiplier: SecureRNG.float(0.85, 0.95, 2) });
         } else {
-          updates.push({ resourceType: CurrencyType.SILVER_RESOURCE, multiplier: 0.85 + Math.random() * 0.10 });
+          updates.push({ resourceType: CurrencyType.SILVER_RESOURCE, multiplier: SecureRNG.float(0.85, 0.95, 2) });
         }
         break;
 
@@ -417,8 +418,8 @@ export class CurrencyExchangeService {
         break;
 
       case PriceEventType.DAILY_FLUCTUATION:
-        const goldFlux = 1 + (Math.random() * 0.10 - 0.05); // +/- 5%
-        const silverFlux = 1 + (Math.random() * 0.10 - 0.05);
+        const goldFlux = 1 + SecureRNG.float(-0.05, 0.05, 2); // +/- 5%
+        const silverFlux = 1 + SecureRNG.float(-0.05, 0.05, 2);
         updates.push(
           { resourceType: CurrencyType.GOLD_RESOURCE, multiplier: goldFlux },
           { resourceType: CurrencyType.SILVER_RESOURCE, multiplier: silverFlux }

@@ -87,7 +87,7 @@ export function validateWorkshopAccess(
         const goldRequired = requirement.value as number;
         if (character.gold < goldRequired) {
           errors.push(
-            `Requires ${goldRequired} gold (you have ${character.gold})`
+            `Requires $${goldRequired} (you have $${character.gold})`
           );
         }
         break;
@@ -221,7 +221,7 @@ export async function requestWorkshopAccess(
       success: false,
       workshopId: request.workshopId,
       accessGranted: false,
-      message: `Insufficient funds. Required: ${cost} gold, you have: ${character.gold} gold`,
+      message: `Insufficient funds. Required: $${cost}, you have: $${character.gold}`,
       cost
     };
   }
@@ -231,7 +231,7 @@ export async function requestWorkshopAccess(
     workshopId: request.workshopId,
     accessGranted: true,
     message: cost > 0
-      ? `Access granted! ${cost} gold has been charged.`
+      ? `Access granted! $${cost} has been charged.`
       : 'Access granted!',
     cost,
     expiresAt,

@@ -96,7 +96,9 @@ export class SubscriptionService {
   }
 
   /**
-   * Subscribe to a plan (placeholder for Stripe integration)
+   * Subscribe to a plan
+   * Note: Payment should be confirmed via PaymentService before calling this method
+   * This method activates the subscription after successful payment confirmation
    */
   static async subscribe(
     userId: string,
@@ -117,8 +119,8 @@ export class SubscriptionService {
         throw new AppError('Invalid plan', 400);
       }
 
-      // TODO: Integrate Stripe payment processing here
-      // For now, just activate the subscription
+      // Payment is confirmed in SubscriptionController.confirmPayment before this is called
+      // This method just activates the subscription
 
       const expiresAt = new Date();
       if (plan.interval === 'month') {

@@ -13,8 +13,11 @@ export {
   MarketplaceErrorFallback,
   PropertiesErrorFallback,
   SkillsErrorFallback,
+  StatsErrorFallback,
   ActionsErrorFallback,
   MailErrorFallback,
   SettingsErrorFallback,
   ProfileErrorFallback,
+  CraftingErrorFallback,
+  GatheringErrorFallback,
 } from './PageErrorFallback';

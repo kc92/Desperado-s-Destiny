@@ -135,7 +135,7 @@ export const placeBounty = asyncHandler(async (req: Request, res: Response) => {
   if (!amount || typeof amount !== 'number' || amount < 100) {
     return res.status(HttpStatus.BAD_REQUEST).json({
       success: false,
-      error: 'Amount must be at least 100 gold',
+      error: 'Amount must be at least $100',
     });
   }
 
@@ -157,7 +157,7 @@ export const placeBounty = asyncHandler(async (req: Request, res: Response) => {
         reason: bounty.reason,
         expiresAt: bounty.expiresAt,
       },
-      message: `Bounty of ${amount} gold placed on ${bounty.targetName}`,
+      message: `Bounty of $${amount} placed on ${bounty.targetName}`,
     });
   } catch (error: any) {
     logger.error('Error placing bounty:', error);

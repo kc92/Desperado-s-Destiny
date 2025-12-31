@@ -64,7 +64,7 @@ export const ChatWindow = React.memo(function ChatWindow({
     clearError,
   } = useChatStore();
 
-  const [isMinimized, setIsMinimized] = useState(false);
+  const isMinimized = settings.isMinimized;
   const [isOnlineUsersVisible, setIsOnlineUsersVisible] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedWhisper, setSelectedWhisper] = useState<string | null>(null);
@@ -88,22 +88,8 @@ export const ChatWindow = React.memo(function ChatWindow({
   const initializedRef = useRef(false);
   const mountIdRef = useRef<string | null>(null);
 
-  // Initialize chat ONCE when component mounts (with StrictMode protection)
+  // Cleanup on unmount
   useEffect(() => {
-    // Skip if already initialized by this mount
-    if (initializedRef.current) {
-      return;
-    }
-
-    if (user && currentCharacter) {
-      // Generate unique mount ID for this effect invocation
-      mountIdRef.current = crypto.randomUUID();
-      initializedRef.current = true;
-
-      initialize();
-      joinRoom(RoomType.GLOBAL, defaultRoom);
-    }
-
     return () => {
       // Only cleanup if this is still our mount (prevents StrictMode cleanup race)
       if (mountIdRef.current && initializedRef.current) {
@@ -113,7 +99,25 @@ export const ChatWindow = React.memo(function ChatWindow({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only initialize once - don't reinitialize on every character update
+  }, []);
+
+  // Initialize chat when user AND currentCharacter become available
+  // This handles async loading where user/character aren't ready on first render
+  useEffect(() => {
+    // Skip if already initialized
+    if (initializedRef.current) {
+      return;
+    }
+
+    // Wait for both user and currentCharacter to be available
+    if (user && currentCharacter) {
+      mountIdRef.current = crypto.randomUUID();
+      initializedRef.current = true;
+
+      initialize();
+      joinRoom(RoomType.GLOBAL, defaultRoom);
+    }
+  }, [user, currentCharacter, initialize, joinRoom, defaultRoom]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -258,7 +262,7 @@ export const ChatWindow = React.memo(function ChatWindow({
   if (isMinimized) {
     return (
       <button
-        onClick={() => setIsMinimized(false)}
+        onClick={() => updateSettings({ isMinimized: false })}
         className="fixed bottom-4 right-4 bg-wood-dark text-western-text-light px-4 py-3 rounded-lg shadow-wood hover:bg-wood-medium transition-colors z-40 flex items-center gap-2"
         aria-label="Open chat"
       >
@@ -324,7 +328,7 @@ export const ChatWindow = React.memo(function ChatWindow({
             </button>
 
             <button
-              onClick={() => setIsMinimized(true)}
+              onClick={() => updateSettings({ isMinimized: true })}
               className="p-2 text-western-text-light hover:text-gold-light transition-colors"
               aria-label="Minimize chat"
               title="Minimize"

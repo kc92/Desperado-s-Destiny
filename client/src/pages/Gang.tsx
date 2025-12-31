@@ -797,11 +797,13 @@ const _getRoleColor = (role: string) => {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-wood-dark mb-1">
+            <label htmlFor="gangName" className="block text-sm font-medium text-wood-dark mb-1">
               Gang Name
             </label>
             <div className="relative">
               <input
+                id="gangName"
+                name="gangName"
                 type="text"
                 value={createForm.name}
                 onChange={(e) => {
@@ -845,11 +847,13 @@ const _getRoleColor = (role: string) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-wood-dark mb-1">
+            <label htmlFor="gangTag" className="block text-sm font-medium text-wood-dark mb-1">
               Tag (3-4 letters)
             </label>
             <div className="relative">
               <input
+                id="gangTag"
+                name="gangTag"
                 type="text"
                 value={createForm.tag}
                 onChange={(e) => {
@@ -880,10 +884,12 @@ const _getRoleColor = (role: string) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-wood-dark mb-1">
+            <label htmlFor="gangDescription" className="block text-sm font-medium text-wood-dark mb-1">
               Description
             </label>
             <textarea
+              id="gangDescription"
+              name="gangDescription"
               value={createForm.description}
               onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
               className="w-full px-3 py-2 border rounded"
@@ -893,8 +899,10 @@ const _getRoleColor = (role: string) => {
           </div>
 
           <div className="flex gap-4">
-            <label className="flex items-center">
+            <label htmlFor="gangRecruiting" className="flex items-center">
               <input
+                id="gangRecruiting"
+                name="gangRecruiting"
                 type="checkbox"
                 checked={createForm.isRecruiting}
                 onChange={(e) => setCreateForm({ ...createForm, isRecruiting: e.target.checked })}

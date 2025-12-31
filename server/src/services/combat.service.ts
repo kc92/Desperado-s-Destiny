@@ -66,21 +66,18 @@ export class CombatService {
 
   /**
    * Calculate character's maximum HP
-   * Formula: Base 100 + (level * 5) + (combat skills * 2) + (premium bonus)
+   * Formula: Base 100 + (level * 5) + combat skill bonus (with diminishing returns) + (premium bonus)
+   *
+   * BALANCE FIX: Now uses same diminishing returns as damage calculation
+   * This ensures HP and damage scale consistently with skill investment
    */
   static async getCharacterMaxHP(character: ICharacter): Promise<number> {
     const baseHP = 100;
     const levelBonus = character.level * 5;
 
-    // Get Combat skill levels (skills that boost combat)
-    let combatSkillBonus = 0;
-    for (const skill of character.skills) {
-      // Use SkillCategory for type-safe skill detection
-      const skillDef = SKILLS[skill.skillId.toUpperCase()];
-      if (skillDef && skillDef.category === SkillCategory.COMBAT) {
-        combatSkillBonus += skill.level * 2;
-      }
-    }
+    // Use the same diminishing returns calculation as damage
+    // This ensures HP scales consistently with skill investment
+    const combatSkillBonus = this.getCombatSkillBonus(character);
 
     const baseTotal = baseHP + levelBonus + combatSkillBonus;
 
@@ -682,7 +679,7 @@ export class CombatService {
 
     return {
       success: true,
-      roundState: this.convertToRoundState(currentRound),
+      roundState: null, // Round complete - client should call startTurn for next round
       encounter: encounter as any,
       combatEnded: false
     };
@@ -2601,8 +2598,8 @@ export class CombatService {
 
     // Generate Jesse's bluff
     const attacks = ['physical', 'special', 'ultimate'];
-    const claimedAttack = attacks[Math.floor(Math.random() * attacks.length)];
-    const actualAttack = attacks[Math.floor(Math.random() * attacks.length)];
+    const claimedAttack = SecureRNG.select(attacks);
+    const actualAttack = SecureRNG.select(attacks);
     const isBluff = claimedAttack !== actualAttack;
 
     // Evaluate player's hand for detection bonuses
@@ -2647,7 +2644,7 @@ export class CombatService {
       } else if (isBluff) {
         // Spades give accuracy bonus
         const detectChance = hasSpadesMajority ? 0.75 : 0.5;
-        if (Math.random() < detectChance) {
+        if (SecureRNG.chance(detectChance)) {
           result = 'correct_call';
           jesseVulnerable = true;
           narrative = `You read Jesse correctly! ${hasSpadesMajority ? 'Your spades revealed his intentions. ' : ''}He was bluffing - claimed ${claimedAttack} but planned ${actualAttack}. +50% damage!`;
@@ -2897,7 +2894,7 @@ export class CombatService {
     const suits: ('spades' | 'hearts' | 'clubs' | 'diamonds')[] = ['spades', 'hearts', 'clubs', 'diamonds'];
     const trail: ('spades' | 'hearts' | 'clubs' | 'diamonds')[] = [];
     for (let i = 0; i < 3; i++) {
-      trail.push(suits[Math.floor(Math.random() * suits.length)]);
+      trail.push(SecureRNG.select(suits));
     }
     return trail;
   }
@@ -2910,7 +2907,7 @@ export class CombatService {
     const { HandRank } = require('@desperados/shared');
 
     // Weighted distribution favoring better hands
-    const roll = Math.random();
+    const roll = SecureRNG.float(0, 1, 4);
     if (roll < 0.05) return HandRank.HIGH_CARD;
     if (roll < 0.20) return HandRank.PAIR;
     if (roll < 0.40) return HandRank.TWO_PAIR;

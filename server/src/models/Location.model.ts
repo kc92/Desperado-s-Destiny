@@ -168,7 +168,7 @@ const LocationShopSchema = new Schema(
     shopType: {
       type: String,
       required: true,
-      enum: ['general', 'weapons', 'armor', 'medicine', 'black_market', 'specialty'],
+      enum: ['general', 'weapons', 'armor', 'medicine', 'black_market', 'specialty', 'tavern'],
     },
     items: [ShopItemSchema],
     buyMultiplier: { type: Number, default: 0.5 },
@@ -289,6 +289,7 @@ const LocationSchema = new Schema<ILocation>(
         'shrine',
         // Red Gulch expansion buildings
         'government',
+        'courthouse',
         'mining_office',
         'elite_club',
         'labor_exchange',
@@ -303,6 +304,7 @@ const LocationSchema = new Schema<ILocation>(
         'service',
         // High-level zone types
         'wasteland',
+        'ghost_town',
       ] as LocationType[],
     },
     region: {

@@ -806,6 +806,59 @@ export class AchievementService {
     }
   }
 
+  /**
+   * Check if a character has completed a specific achievement
+   */
+  static async hasAchievement(characterId: string, achievementType: string): Promise<boolean> {
+    const achievement = await Achievement.findOne({
+      characterId,
+      achievementType,
+      completed: true,
+    });
+    return !!achievement;
+  }
+
+  /**
+   * Grant an achievement directly (for special achievements not tracked by progress)
+   */
+  static async grantAchievement(characterId: string, achievementType: string): Promise<boolean> {
+    try {
+      const achievement = await Achievement.findOne({
+        characterId,
+        achievementType,
+      });
+
+      if (!achievement) {
+        logger.warn(`Achievement ${achievementType} not found for character ${characterId}`);
+        return false;
+      }
+
+      if (achievement.completed) {
+        return true; // Already has it
+      }
+
+      achievement.progress = achievement.target;
+      achievement.completed = true;
+      achievement.completedAt = new Date();
+      await achievement.save();
+
+      logger.info('Achievement granted!', {
+        characterId,
+        achievementType,
+        title: achievement.title,
+      });
+
+      return true;
+    } catch (error) {
+      logger.error('Failed to grant achievement', {
+        characterId,
+        achievementType,
+        error: error instanceof Error ? error.message : error,
+      });
+      return false;
+    }
+  }
+
   // =========================================================================
   // INTERNAL METHODS
   // Core progress tracking logic

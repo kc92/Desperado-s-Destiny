@@ -4,10 +4,11 @@ import logger from '../utils/logger';
 
 /**
  * MongoDB connection options
+ * Pool sizes scaled for production to handle thousands of concurrent users
  */
 const mongooseOptions: mongoose.ConnectOptions = {
-  maxPoolSize: 10,
-  minPoolSize: 2,
+  maxPoolSize: config.isProduction ? 50 : 10,
+  minPoolSize: config.isProduction ? 10 : 2,
   socketTimeoutMS: 45000,
   serverSelectionTimeoutMS: 5000,
   family: 4, // Use IPv4, skip trying IPv6

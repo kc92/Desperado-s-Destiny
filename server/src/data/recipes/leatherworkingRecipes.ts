@@ -18,6 +18,127 @@ export const leatherworkingRecipes: CraftingRecipe[] = [
   // ============================================================================
   // NOVICE TIER (1-15)
   // ============================================================================
+
+  // -------------------------------------------------------------------------
+  // LEATHER PROCESSING RECIPES (Level 1-10) - Core Material Processing
+  // -------------------------------------------------------------------------
+  {
+    id: 'lw_tan_raw_hide',
+    name: 'Tan Raw Hide',
+    description: 'Process raw animal hide into usable tanned leather. The foundation of leatherworking.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 1,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.LEATHER_WORKBENCH,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'raw_hide',
+        materialName: 'Raw Hide',
+        category: MaterialCategory.ANIMAL_PART,
+        quantity: 2
+      },
+      {
+        materialId: 'salt',
+        materialName: 'Salt',
+        category: MaterialCategory.MINERAL,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'tanned_leather',
+      itemName: 'Tanned Leather',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 30,
+    difficulty: 3,
+    xpGain: 8,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'tanning', 'processing', 'basic']
+  },
+  {
+    id: 'lw_thick_leather',
+    name: 'Craft Thick Leather',
+    description: 'Layer and treat tanned leather to create thicker, more durable material.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 8,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.LEATHER_WORKBENCH,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'tanned_leather',
+        materialName: 'Tanned Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 3
+      },
+      {
+        materialId: 'animal_fat',
+        materialName: 'Animal Fat',
+        category: MaterialCategory.ANIMAL_PART,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'thick_leather',
+      itemName: 'Thick Leather',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 45,
+    difficulty: 10,
+    xpGain: 14,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'processing', 'reinforced']
+  },
+  {
+    id: 'lw_craft_leather_strip',
+    name: 'Cut Leather Strips',
+    description: 'Cut tanned leather into useful strips for binding and lacing.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 3,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'tanned_leather',
+        materialName: 'Tanned Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'leather_strip',
+      itemName: 'Leather Strip',
+      baseQuantity: 4,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 15,
+    difficulty: 4,
+    xpGain: 6,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'cutting', 'component']
+  },
+
+  // -------------------------------------------------------------------------
+  // TRADITIONAL NOVICE ITEMS (Level 1-15)
+  // -------------------------------------------------------------------------
   {
     id: 'lw_simple_belt',
     name: 'Simple Leather Belt',
