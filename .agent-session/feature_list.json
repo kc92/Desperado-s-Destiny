@@ -62,7 +62,8 @@
       "name": "Balance XP pacing",
       "description": "XP too fast - Level 10 in ~10 crimes. Single crime with suit matches yielded +330 XP (30 base x 1.5x multiplier). Reduce multiplier effects or base XP.",
       "priority": "P1",
-      "status": "pending",
+      "status": "completed",
+      "completed_at": "2026-01-01",
       "acceptance_criteria": [
         "XP multiplier reduced from 1.5x to 1.2x",
         "Level 10 requires ~30-50 crimes",
@@ -70,9 +71,12 @@
       ],
       "files": [
         "shared/src/constants/index.ts",
+        "shared/src/constants/criminalSkills.constants.ts",
         "server/src/services/crime.service.ts",
         "server/src/services/actionDeck.service.ts"
-      ]
+      ],
+      "test_file": "server/tests/actionDeck/xpBalance.test.ts",
+      "summary": "context_summaries/task-004-summary.md"
     }
   ]
 }

@@ -1,13 +1,13 @@
 {
-  "session_id": "session-2025-12-31",
-  "started_at": "2025-12-31T00:00:00Z",
+  "session_id": "session-2026-01-01",
+  "started_at": "2026-01-01T00:00:00Z",
   "current_task": null,
   "current_phase": null,
   "current_rpi_step": null,
-  "context_utilization_estimate": 0.45,
-  "last_checkpoint": "checkpoint-002-skills-feedback",
+  "context_utilization_estimate": 0.55,
+  "last_checkpoint": "checkpoint-004-xp-balance",
   "last_commit": null,
-  "checkpoints": ["checkpoint-001-gathering-fix", "checkpoint-002-skills-feedback"],
+  "checkpoints": ["checkpoint-001-gathering-fix", "checkpoint-002-skills-feedback", "checkpoint-004-xp-balance"],
   "phase_results": {
     "task-001-RED": {
       "completed_at": "2025-12-31",
@@ -32,7 +32,19 @@
     "task-002-REFACTOR": {
       "completed_at": "2025-12-31",
       "notes": "Code follows existing patterns, no changes needed"
+    },
+    "task-004-RED": {
+      "completed_at": "2026-01-01",
+      "test_file": "server/tests/actionDeck/xpBalance.test.ts"
+    },
+    "task-004-GREEN": {
+      "completed_at": "2026-01-01",
+      "fix_file": "server/src/services/actionDeck.service.ts:72-85,247-309"
+    },
+    "task-004-REFACTOR": {
+      "completed_at": "2026-01-01",
+      "notes": "XP fixes already clean, added criminal skills system"
     }
   },
-  "notes": "Task-002 COMPLETE. Ready for task-003 (card accessibility) or task-004 (XP pacing)."
+  "notes": "Task-004 COMPLETE. Only task-003 (card accessibility - P2) remains."
 }
