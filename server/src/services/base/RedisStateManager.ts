@@ -219,23 +219,51 @@ export abstract class RedisStateManager<T> {
   }
 
   /**
+   * Scan keys matching pattern using non-blocking SCAN cursor
+   * Safe for production - doesn't block Redis server
+   *
+   * @param pattern - Redis key pattern to match
+   * @param batchSize - Number of keys per SCAN iteration (default: 100)
+   * @yields Batches of matching keys
+   */
+  protected async *scanKeys(pattern: string, batchSize = 100): AsyncGenerator<string[]> {
+    if (!isRedisConnected()) {
+      throw new Error('Redis not connected');
+    }
+
+    const client = getRedisClient();
+    let cursor = 0;
+
+    do {
+      const result = await client.scan(cursor, {
+        MATCH: pattern,
+        COUNT: batchSize,
+      });
+      cursor = result.cursor;
+      if (result.keys.length > 0) {
+        yield result.keys;
+      }
+    } while (cursor !== 0);
+  }
+
+  /**
    * Get all state IDs matching this manager's prefix
-   * WARNING: Use sparingly in production - KEYS command is O(N)
-   * Consider using SCAN for large datasets
+   * Uses SCAN for non-blocking iteration - safe for production
    *
    * @returns Array of IDs (without prefix)
    */
   async getAllIds(): Promise<string[]> {
     try {
-      if (!isRedisConnected()) {
-        throw new Error('Redis not connected');
+      const pattern = `${this.keyPrefix}*`;
+      const allIds: string[] = [];
+
+      for await (const keyBatch of this.scanKeys(pattern)) {
+        for (const key of keyBatch) {
+          allIds.push(key.replace(this.keyPrefix, ''));
+        }
       }
 
-      const client = getRedisClient();
-      const pattern = `${this.keyPrefix}*`;
-      const keys = await client.keys(pattern);
-
-      return keys.map(key => key.replace(this.keyPrefix, ''));
+      return allIds;
     } catch (error) {
       logger.error(`[RedisState] Failed to get all IDs:`, error);
       throw error;
@@ -244,6 +272,7 @@ export abstract class RedisStateManager<T> {
 
   /**
    * Delete all state entries for this manager
+   * Uses SCAN for non-blocking key discovery, then batch deletes
    * WARNING: Use with caution - destructive operation
    */
   async deleteAll(): Promise<number> {
@@ -254,15 +283,20 @@ export abstract class RedisStateManager<T> {
 
       const client = getRedisClient();
       const pattern = `${this.keyPrefix}*`;
-      const keys = await client.keys(pattern);
+      let totalDeleted = 0;
 
-      if (keys.length === 0) {
-        return 0;
+      // Process in batches to avoid blocking and memory issues
+      for await (const keyBatch of this.scanKeys(pattern)) {
+        if (keyBatch.length > 0) {
+          const deleted = await client.del(keyBatch);
+          totalDeleted += deleted;
+        }
       }
 
-      const deleted = await client.del(keys);
-      logger.warn(`[RedisState] Deleted ${deleted} entries with prefix ${this.keyPrefix}`);
-      return deleted;
+      if (totalDeleted > 0) {
+        logger.warn(`[RedisState] Deleted ${totalDeleted} entries with prefix ${this.keyPrefix}`);
+      }
+      return totalDeleted;
     } catch (error) {
       logger.error(`[RedisState] Failed to delete all:`, error);
       throw error;

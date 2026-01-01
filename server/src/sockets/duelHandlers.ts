@@ -14,6 +14,7 @@ import { DuelService } from '../services/duel.service';
 import { DuelStateManager, ActiveDuelState } from '../services/duelStateManager.service';
 import { DuelTimerManager } from '../services/duelTimerManager.service';
 import { DisconnectTimerManager } from '../services/disconnectTimerManager.service';
+import { AnimationTimerManager, AnimationType } from '../services/animationTimerManager.service';
 import { emitToRoom, getSocketIO } from '../config/socket';
 import { Character } from '../models/Character.model';
 import { Duel, DuelStatus, DuelType } from '../models/Duel.model';
@@ -88,32 +89,29 @@ interface EmotePayload {
 const DISCONNECT_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes to reconnect
 const EARLY_DISCONNECT_PENALTY_PERCENT = 10; // 10% wager penalty for early disconnect
 
-// H8 FIX: Track animation timers to prevent leaks when duels are cancelled
-// NOTE: Disconnect timers are now Redis-backed via DisconnectTimerManager
-// Maps duelId to array of active animation timers
-const animationTimers = new Map<string, NodeJS.Timeout[]>();
+// H8 FIX: Animation timers are now Redis-backed via AnimationTimerManager
+// This enables horizontal scaling and crash recovery for animation sequences
 
 /**
- * Register an animation timer for a duel (for cleanup tracking)
+ * Schedule an animation timer using Redis
+ * @param duelId - Duel identifier
+ * @param animationType - Type of animation (dealing, reveal, round_transition)
+ * @param delayMs - Delay in milliseconds
  */
-function registerAnimationTimer(duelId: string, timer: NodeJS.Timeout): void {
-  const timers = animationTimers.get(duelId) || [];
-  timers.push(timer);
-  animationTimers.set(duelId, timers);
+async function scheduleAnimationTimer(
+  duelId: string,
+  animationType: AnimationType,
+  delayMs: number
+): Promise<void> {
+  await AnimationTimerManager.scheduleAnimation(duelId, animationType, delayMs);
 }
 
 /**
  * Clear all animation timers for a duel
  */
-function clearAnimationTimers(duelId: string): void {
-  const timers = animationTimers.get(duelId);
-  if (timers) {
-    for (const timer of timers) {
-      clearTimeout(timer);
-    }
-    animationTimers.delete(duelId);
-    logger.debug(`Cleared ${timers.length} animation timer(s) for duel ${duelId}`);
-  }
+async function clearAnimationTimers(duelId: string): Promise<void> {
+  await AnimationTimerManager.cancelAllAnimations(duelId);
+  logger.debug(`Cleared animation timers for duel ${duelId}`);
 }
 
 // =============================================================================
@@ -126,20 +124,21 @@ function clearAnimationTimers(duelId: string): void {
 let disconnectPollingInitialized = false;
 
 /**
+ * Flag to track if animation timer polling is initialized
+ */
+let animationPollingInitialized = false;
+
+/**
  * Graceful shutdown handler - clean up all timers and resources
  */
 function handleGracefulShutdown(): void {
   logger.info('Duel handlers: Starting graceful shutdown...');
 
-  // Clear all animation timers (in-memory only)
-  let animationCount = 0;
-  for (const timers of animationTimers.values()) {
-    for (const timer of timers) {
-      clearTimeout(timer);
-      animationCount++;
-    }
+  // Stop the animation timer manager polling (Redis-backed)
+  if (animationPollingInitialized) {
+    AnimationTimerManager.stopPolling();
+    animationPollingInitialized = false;
   }
-  animationTimers.clear();
 
   // Stop the turn timer manager polling
   if (timerPollingInitialized) {
@@ -153,7 +152,7 @@ function handleGracefulShutdown(): void {
     disconnectPollingInitialized = false;
   }
 
-  logger.info(`Duel handlers: Cleaned up ${animationCount} animation timer(s) during shutdown. Redis-backed timers persist.`);
+  logger.info('Duel handlers: Graceful shutdown complete. Redis-backed timers persist for crash recovery.');
 }
 
 // Register shutdown handlers
@@ -192,17 +191,18 @@ function getDuelRoomName(duelId: string): string {
 
 /**
  * Get socket for a character
+ *
+ * SCALABILITY FIX: Uses room-based lookup instead of iterating all sockets.
+ * Since users join `user:${characterId}` room on connection, we can query
+ * just that room for O(1) lookup instead of O(n) iteration.
  */
 async function getSocketForCharacter(characterId: string): Promise<string | null> {
   try {
     const io = getSocketIO();
-    const sockets = await io.fetchSockets();
-
-    for (const socket of sockets) {
-      const authSocket = socket as unknown as AuthenticatedSocket;
-      if (authSocket.data?.characterId === characterId) {
-        return socket.id;
-      }
+    // O(1) room lookup instead of O(n) socket iteration
+    const socketsInRoom = await io.in(`user:${characterId}`).fetchSockets();
+    if (socketsInRoom.length > 0) {
+      return socketsInRoom[0].id;
     }
     return null;
   } catch (error) {
@@ -412,6 +412,114 @@ async function clearTurnTimer(duelId: string): Promise<void> {
   await DuelTimerManager.cancelTimeout(duelId);
   // Also cancel warning timer
   await DuelTimerManager.cancelTimeout(`${duelId}:warning`);
+}
+
+/**
+ * Handle animation timer completion - called by AnimationTimerManager polling
+ * Routes to the appropriate handler based on animation type
+ */
+async function handleAnimationComplete(duelId: string, animationType: AnimationType): Promise<void> {
+  try {
+    logger.debug(`Animation complete: ${animationType} for duel ${duelId}`);
+
+    switch (animationType) {
+      case 'dealing':
+        await handleDealingAnimationComplete(duelId);
+        break;
+      case 'reveal':
+        await handleRevealAnimationComplete(duelId);
+        break;
+      case 'round_transition':
+        await handleRoundTransitionComplete(duelId);
+        break;
+      default:
+        logger.warn(`Unknown animation type: ${animationType}`);
+    }
+  } catch (error) {
+    logger.error(`Error handling animation complete for ${duelId}:`, error);
+    const roomName = getDuelRoomName(duelId);
+    emitToRoom(roomName, 'duel:error', {
+      message: 'Animation processing failed',
+      code: 'ANIMATION_FAILED'
+    });
+  }
+}
+
+/**
+ * Handle dealing animation completion - transition to card selection phase
+ */
+async function handleDealingAnimationComplete(duelId: string): Promise<void> {
+  const state = await DuelStateManager.getState(duelId);
+  if (!state) {
+    logger.warn(`Dealing animation complete but no state found for duel ${duelId}`);
+    return;
+  }
+
+  const roomName = getDuelRoomName(duelId);
+
+  // Update phase
+  state.phase = DuelPhase.SELECTION;
+  state.turnPlayerId = state.challengerId;
+  state.turnStartedAt = Date.now();
+  await DuelStateManager.setState(duelId, state);
+
+  // Deal cards to challenger
+  if (state.challengerSocketId) {
+    const challengerGameState = await DuelService.getDuelGameState(duelId, state.challengerId);
+    const io = getSocketIO();
+    io.to(state.challengerSocketId).emit('duel:cards_dealt', {
+      cards: challengerGameState?.hand || [],
+      roundNumber: state.roundNumber
+    });
+  }
+
+  // Deal cards to challenged
+  if (state.challengedSocketId) {
+    const challengedGameState = await DuelService.getDuelGameState(duelId, state.challengedId);
+    const io = getSocketIO();
+    io.to(state.challengedSocketId).emit('duel:cards_dealt', {
+      cards: challengedGameState?.hand || [],
+      roundNumber: state.roundNumber
+    });
+  }
+
+  // Start turn timer
+  await startTurnTimer(duelId, state.turnTimeLimit);
+
+  // Emit turn start
+  emitToRoom(roomName, 'duel:turn_start', {
+    playerId: state.turnPlayerId,
+    phase: state.phase,
+    timeLimit: state.turnTimeLimit,
+    availableActions: ['hold', 'draw']
+  });
+
+  logger.debug(`Dealing animation complete, moved to selection phase for duel ${duelId}`);
+}
+
+/**
+ * Handle reveal animation completion - process round results
+ */
+async function handleRevealAnimationComplete(duelId: string): Promise<void> {
+  const state = await DuelStateManager.getState(duelId);
+  if (!state) {
+    logger.warn(`Reveal animation complete but no state found for duel ${duelId}`);
+    return;
+  }
+
+  // Both states should be resolved, get results from service
+  await DuelService.processDuelAction(duelId, state.challengerId, { type: 'draw' });
+  // The duel service handles winner determination internally
+
+  logger.debug(`Reveal animation complete, processed results for duel ${duelId}`);
+}
+
+/**
+ * Handle round transition animation completion (if needed for future use)
+ */
+async function handleRoundTransitionComplete(duelId: string): Promise<void> {
+  // Reserved for future round transition animations
+  logger.debug(`Round transition complete for duel ${duelId}`);
 }
 
 // =============================================================================
@@ -645,55 +753,8 @@ async function startDuelGame(duelId: string, state: ActiveDuelState): Promise<vo
     });
 
     // Brief delay for dealing animation, then move to selection
-    // H8 FIX: Track timer to prevent leaks if duel is cancelled during animation
-    // FIX: Wrap async callback with try/catch to prevent silent failures
-    const dealingTimer = setTimeout(() => {
-      (async () => {
-        try {
-          state.phase = DuelPhase.SELECTION;
-          state.turnPlayerId = state.challengerId;
-          state.turnStartedAt = Date.now();
-
-          // Deal cards to challenger
-          if (state.challengerSocketId) {
-            const challengerGameState = await DuelService.getDuelGameState(duelId, state.challengerId);
-            const io = getSocketIO();
-            io.to(state.challengerSocketId).emit('duel:cards_dealt', {
-              cards: challengerGameState?.hand || [],
-              roundNumber: state.roundNumber
-            });
-          }
-
-          // Deal cards to challenged
-          if (state.challengedSocketId) {
-            const challengedGameState = await DuelService.getDuelGameState(duelId, state.challengedId);
-            const io = getSocketIO();
-            io.to(state.challengedSocketId).emit('duel:cards_dealt', {
-              cards: challengedGameState?.hand || [],
-              roundNumber: state.roundNumber
-            });
-          }
-
-          // Start turn timer
-          await startTurnTimer(duelId, state.turnTimeLimit);
-
-          // Emit turn start
-          emitToRoom(roomName, 'duel:turn_start', {
-            playerId: state.turnPlayerId,
-            phase: state.phase,
-            timeLimit: state.turnTimeLimit,
-            availableActions: ['hold', 'draw']
-          });
-        } catch (error) {
-          logger.error('Error in dealing timer callback', { duelId, error: error instanceof Error ? error.message : error });
-          emitToRoom(roomName, 'duel:error', {
-            message: 'Failed to deal cards',
-            code: 'DEALING_FAILED'
-          });
-        }
-      })();
-    }, 2000); // 2 second dealing animation
-    registerAnimationTimer(duelId, dealingTimer);
+    // Uses Redis-backed animation timers for horizontal scaling and crash recovery
+    await scheduleAnimationTimer(duelId, 'dealing', 2000);
 
     logger.info(`Duel game started: ${duelId}`);
 
@@ -918,23 +979,8 @@ async function handleRevealPhase(duelId: string, state: ActiveDuelState): Promis
   });
 
   // After reveal animation, determine winner
-  // SECURITY FIX: Properly handle async operation in setTimeout using IIFE pattern
-  // H8 FIX: Track timer to prevent leaks if duel is cancelled during animation
-  const revealTimer = setTimeout(() => {
-    (async () => {
-      try {
-        // Both states should be resolved, get results from service
-        await DuelService.processDuelAction(duelId, state.challengerId, { type: 'draw' });
-        // The duel service handles winner determination internally
-      } catch (error) {
-        logger.error('Failed to process duel action in reveal phase', {
-          duelId,
-          error: error instanceof Error ? error.message : error
-        });
-      }
-    })();
-  }, 3500); // 3.5 second reveal animation
-  registerAnimationTimer(duelId, revealTimer);
+  // Uses Redis-backed animation timers for horizontal scaling and crash recovery
+  await scheduleAnimationTimer(duelId, 'reveal', 3500);
 }
 
 /**
@@ -1090,10 +1136,11 @@ async function handleBet(
     }
 
     // Send passive perception hints to opponent after betting action
+    // SCALABILITY FIX: Use O(1) Map lookup instead of O(n) fetchSockets().find()
     const opponentSocketId = isChallenger ? state.challengedSocketId : state.challengerSocketId;
     if (opponentSocketId) {
       const io = getSocketIO();
-      const opponentSocket = (await io.fetchSockets()).find(s => s.id === opponentSocketId);
+      const opponentSocket = io.sockets.sockets.get(opponentSocketId);
       if (opponentSocket) {
         const opponentId = isChallenger ? state.challengedId : state.challengerId;
         await sendPassivePerceptionHints(
@@ -1521,6 +1568,13 @@ export function registerDuelHandlers(socket: Socket): void {
     DisconnectTimerManager.startPolling(handleDisconnectTimeout);
     disconnectPollingInitialized = true;
     logger.info('DisconnectTimerManager polling initialized');
+  }
+
+  // Initialize animation timer polling if not already started (one-time setup)
+  if (!animationPollingInitialized) {
+    AnimationTimerManager.startPolling(handleAnimationComplete);
+    animationPollingInitialized = true;
+    logger.info('AnimationTimerManager polling initialized');
   }
 
   // Register event handlers

@@ -3,7 +3,7 @@
  * Available actions, tasks, and challenges for the player
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useActionStore } from '@/store/useActionStore';
@@ -64,15 +64,29 @@ export const Actions: React.FC = () => {
 
   const isLoading = isActionLoading || isSkillLoading;
 
-  // Helper to get character's skill level for a category
-  const getSkillLevelForCategory = (category: SkillCategory): number => {
-    // Find the skill that matches this category
-    const skill = skills.find(s => s.category === category);
-    if (!skill) return 1;
+  // Memoized skill level lookup map - O(1) lookups instead of O(n²)
+  // Converts skills + skillData arrays into a category -> level map
+  const skillLevelByCategory = useMemo(() => {
+    const levelMap = new Map<SkillCategory, number>();
 
-    // Find the character's data for this skill
-    const data = skillData.find(sd => sd.skillId === skill.id);
-    return data?.level || 1;
+    // Build a skillId -> level map first
+    const skillIdToLevel = new Map<string, number>();
+    for (const sd of skillData) {
+      skillIdToLevel.set(sd.skillId, sd.level);
+    }
+
+    // Map category -> level
+    for (const skill of skills) {
+      const level = skillIdToLevel.get(skill.id) || 1;
+      levelMap.set(skill.category as SkillCategory, level);
+    }
+
+    return levelMap;
+  }, [skills, skillData]);
+
+  // Helper to get character's skill level for a category - now O(1)
+  const getSkillLevelForCategory = (category: SkillCategory): number => {
+    return skillLevelByCategory.get(category) || 1;
   };
 
   // Check if an action is unlocked based on skill requirements

@@ -20,4 +20,13 @@ export {
   ProfileErrorFallback,
   CraftingErrorFallback,
   GatheringErrorFallback,
+  // Production hardening - additional page fallbacks
+  CrimesErrorFallback,
+  CompanionErrorFallback,
+  FishingErrorFallback,
+  HuntingErrorFallback,
+  TownErrorFallback,
+  BankErrorFallback,
+  ShopErrorFallback,
+  InventoryErrorFallback,
 } from './PageErrorFallback';

@@ -3,7 +3,7 @@
  * User preferences and account management
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCharacterStore } from '@/store/useCharacterStore';
@@ -36,6 +36,18 @@ export const Settings: React.FC = () => {
   const [activeSection, setActiveSection] = useState<SettingsSection>('account');
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // Ref to track message auto-hide timer for cleanup
+  const messageTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup message timer on unmount
+  useEffect(() => {
+    return () => {
+      if (messageTimerRef.current) {
+        clearTimeout(messageTimerRef.current);
+      }
+    };
+  }, []);
 
   // 2FA state
   const [twoFactorStatus, setTwoFactorStatus] = useState<TwoFactorStatusResponse | null>(null);
@@ -90,6 +102,10 @@ export const Settings: React.FC = () => {
   const handleSaveNotifications = async () => {
     setIsSaving(true);
     setMessage(null);
+    // Clear any existing timer
+    if (messageTimerRef.current) {
+      clearTimeout(messageTimerRef.current);
+    }
     try {
       await api.put('/auth/preferences', { notifications });
       setMessage({ text: 'Notification preferences saved!', type: 'success' });
@@ -97,13 +113,17 @@ export const Settings: React.FC = () => {
       setMessage({ text: error.response?.data?.error || 'Failed to save preferences', type: 'error' });
     } finally {
       setIsSaving(false);
-      setTimeout(() => setMessage(null), 3000);
+      messageTimerRef.current = setTimeout(() => setMessage(null), 3000);
     }
   };
 
   const handleSavePrivacy = async () => {
     setIsSaving(true);
     setMessage(null);
+    // Clear any existing timer
+    if (messageTimerRef.current) {
+      clearTimeout(messageTimerRef.current);
+    }
     try {
       await api.put('/auth/preferences', { privacy });
       setMessage({ text: 'Privacy settings saved!', type: 'success' });
@@ -111,7 +131,7 @@ export const Settings: React.FC = () => {
       setMessage({ text: error.response?.data?.error || 'Failed to save settings', type: 'error' });
     } finally {
       setIsSaving(false);
-      setTimeout(() => setMessage(null), 3000);
+      messageTimerRef.current = setTimeout(() => setMessage(null), 3000);
     }
   };
 
@@ -123,6 +143,10 @@ export const Settings: React.FC = () => {
 
     setIsDisabling2FA(true);
     setMessage(null);
+    // Clear any existing timer
+    if (messageTimerRef.current) {
+      clearTimeout(messageTimerRef.current);
+    }
     try {
       await twoFactorService.disable(disablePassword);
       setTwoFactorStatus({ enabled: false, pendingSetup: false });
@@ -132,7 +156,7 @@ export const Settings: React.FC = () => {
       setMessage({ text: error.message || 'Failed to disable 2FA', type: 'error' });
     } finally {
       setIsDisabling2FA(false);
-      setTimeout(() => setMessage(null), 3000);
+      messageTimerRef.current = setTimeout(() => setMessage(null), 3000);
     }
   };
 

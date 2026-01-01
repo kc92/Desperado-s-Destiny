@@ -142,3 +142,35 @@ export function CraftingErrorFallback(props: Omit<PageErrorFallbackProps, 'pageN
 export function GatheringErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
   return <PageErrorFallback {...props} pageName="Gathering" backPath="/game" backLabel="Back to Game" />;
 }
+
+export function CrimesErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
+  return <PageErrorFallback {...props} pageName="Crimes" backPath="/game" backLabel="Back to Game" />;
+}
+
+export function CompanionErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
+  return <PageErrorFallback {...props} pageName="Companion" backPath="/game" backLabel="Back to Game" />;
+}
+
+export function FishingErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
+  return <PageErrorFallback {...props} pageName="Fishing" backPath="/game" backLabel="Back to Game" />;
+}
+
+export function HuntingErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
+  return <PageErrorFallback {...props} pageName="Hunting" backPath="/game" backLabel="Back to Game" />;
+}
+
+export function TownErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
+  return <PageErrorFallback {...props} pageName="Town" backPath="/game" backLabel="Back to Game" />;
+}
+
+export function BankErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
+  return <PageErrorFallback {...props} pageName="Bank" backPath="/game" backLabel="Back to Game" />;
+}
+
+export function ShopErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
+  return <PageErrorFallback {...props} pageName="Shop" backPath="/game" backLabel="Back to Game" />;
+}
+
+export function InventoryErrorFallback(props: Omit<PageErrorFallbackProps, 'pageName'>) {
+  return <PageErrorFallback {...props} pageName="Inventory" backPath="/game" backLabel="Back to Game" />;
+}

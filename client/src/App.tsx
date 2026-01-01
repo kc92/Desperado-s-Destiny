@@ -33,6 +33,15 @@ import {
   ProfileErrorFallback,
   CraftingErrorFallback,
   GatheringErrorFallback,
+  // Production hardening - additional page fallbacks
+  CrimesErrorFallback,
+  CompanionErrorFallback,
+  FishingErrorFallback,
+  HuntingErrorFallback,
+  TownErrorFallback,
+  BankErrorFallback,
+  ShopErrorFallback,
+  InventoryErrorFallback,
 } from '@/components/errors';
 import { AnimationPreferencesProvider } from '@/contexts';
 
@@ -242,7 +251,11 @@ function App() {
                     <Game />
                   </ErrorBoundary>
                 } />
-                <Route path="town" element={<Town />} />
+                <Route path="town" element={
+                  <ErrorBoundary fallback={<TownErrorFallback />}>
+                    <Town />
+                  </ErrorBoundary>
+                } />
                 <Route path="location" element={<Location />} />
                 {/* Actions page removed - redirects to Location (Phase 7: Location-Specific Actions) */}
                 <Route path="actions" element={<Navigate to="/game/location" replace />} />
@@ -259,7 +272,11 @@ function App() {
                 } />
                 {/* Combat page removed - redirects to Location (Phase 7: Location-Specific Combat) */}
                 <Route path="combat" element={<Navigate to="/game/location" replace />} />
-                <Route path="crimes" element={<Crimes />} />
+                <Route path="crimes" element={
+                  <ErrorBoundary fallback={<CrimesErrorFallback />}>
+                    <Crimes />
+                  </ErrorBoundary>
+                } />
                 <Route path="territory" element={<Territory />} />
                 <Route path="gang" element={
                   <ErrorBoundary fallback={<GangErrorFallback />}>
@@ -273,7 +290,11 @@ function App() {
                   </ErrorBoundary>
                 } />
                 <Route path="friends" element={<Friends />} />
-                <Route path="inventory" element={<Inventory />} />
+                <Route path="inventory" element={
+                  <ErrorBoundary fallback={<InventoryErrorFallback />}>
+                    <Inventory />
+                  </ErrorBoundary>
+                } />
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="profile/:name" element={
                   <ErrorBoundary fallback={<ProfileErrorFallback />}>
@@ -286,7 +307,11 @@ function App() {
                   </ErrorBoundary>
                 } />
                 <Route path="settings/2fa-setup" element={<TwoFactorSetup />} />
-                <Route path="shop" element={<Shop />} />
+                <Route path="shop" element={
+                  <ErrorBoundary fallback={<ShopErrorFallback />}>
+                    <Shop />
+                  </ErrorBoundary>
+                } />
                 <Route path="deck-guide" element={<DeckGuide />} />
                 <Route path="quests" element={<QuestLog />} />
                 <Route path="help" element={<Help />} />
@@ -315,9 +340,21 @@ function App() {
                     <Marketplace />
                   </ErrorBoundary>
                 } />
-                <Route path="bank" element={<Bank />} />
-                <Route path="fishing" element={<Fishing />} />
-                <Route path="hunting" element={<Hunting />} />
+                <Route path="bank" element={
+                  <ErrorBoundary fallback={<BankErrorFallback />}>
+                    <Bank />
+                  </ErrorBoundary>
+                } />
+                <Route path="fishing" element={
+                  <ErrorBoundary fallback={<FishingErrorFallback />}>
+                    <Fishing />
+                  </ErrorBoundary>
+                } />
+                <Route path="hunting" element={
+                  <ErrorBoundary fallback={<HuntingErrorFallback />}>
+                    <Hunting />
+                  </ErrorBoundary>
+                } />
                 <Route path="crafting" element={
                   <ErrorBoundary fallback={<CraftingErrorFallback />}>
                     <Crafting />
@@ -328,7 +365,11 @@ function App() {
                     <Gathering />
                   </ErrorBoundary>
                 } />
-                <Route path="companions" element={<Companion />} />
+                <Route path="companions" element={
+                  <ErrorBoundary fallback={<CompanionErrorFallback />}>
+                    <Companion />
+                  </ErrorBoundary>
+                } />
                 <Route path="duel" element={
                   <ErrorBoundary fallback={<DuelErrorFallback />}>
                     <Duel />

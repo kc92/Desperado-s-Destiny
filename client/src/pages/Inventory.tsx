@@ -3,7 +3,7 @@
  * Display character inventory items with western theme
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useShop, InventoryItemWithDetails, ItemRarity, Equipment } from '@/hooks/useShop';
@@ -58,6 +58,18 @@ export const Inventory: React.FC = () => {
   const [actionMessage, setActionMessage] = useState<{ text: string; success: boolean } | null>(null);
   const [isActioning, setIsActioning] = useState(false);
 
+  // Ref for action message auto-hide timer (prevents memory leaks on unmount)
+  const messageTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup message timer on unmount
+  useEffect(() => {
+    return () => {
+      if (messageTimerRef.current) {
+        clearTimeout(messageTimerRef.current);
+      }
+    };
+  }, []);
+
   const { isActive, getCurrentStep } = useTutorialStore();
 
   useEffect(() => {
@@ -75,7 +87,8 @@ export const Inventory: React.FC = () => {
     setIsActioning(true);
     const result = await useItem(invItem.item.itemId);
     setActionMessage({ text: result.message, success: result.success });
-    setTimeout(() => setActionMessage(null), 3000);
+    if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+    messageTimerRef.current = setTimeout(() => setActionMessage(null), 3000);
     setIsActioning(false);
     if (result.success) {
       setSelectedItem(null);
@@ -91,7 +104,8 @@ export const Inventory: React.FC = () => {
     setIsActioning(true);
     const result = await sellItem(invItem.item.itemId, quantity);
     setActionMessage({ text: result.message, success: result.success });
-    setTimeout(() => setActionMessage(null), 3000);
+    if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+    messageTimerRef.current = setTimeout(() => setActionMessage(null), 3000);
     setIsActioning(false);
     if (result.success) {
       setSelectedItem(null);
@@ -103,7 +117,8 @@ export const Inventory: React.FC = () => {
     setIsActioning(true);
     const result = await equipItem(invItem.item.itemId);
     setActionMessage({ text: result.message, success: result.success });
-    setTimeout(() => setActionMessage(null), 3000);
+    if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+    messageTimerRef.current = setTimeout(() => setActionMessage(null), 3000);
     setIsActioning(false);
     if (result.success) {
       setSelectedItem(null);
@@ -115,7 +130,8 @@ export const Inventory: React.FC = () => {
     setIsActioning(true);
     const result = await unequipItem(slot);
     setActionMessage({ text: result.message, success: result.success });
-    setTimeout(() => setActionMessage(null), 3000);
+    if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+    messageTimerRef.current = setTimeout(() => setActionMessage(null), 3000);
     setIsActioning(false);
   };
 
