@@ -47,7 +47,8 @@
       "name": "Fix card onClick accessibility",
       "description": "Card components don't respond to click tool; require JavaScript .click(). Accessibility issue for interactive cards.",
       "priority": "P2",
-      "status": "pending",
+      "status": "completed",
+      "completed_at": "2026-01-01",
       "acceptance_criteria": [
         "Cards respond to native click events",
         "Keyboard navigation works (Enter/Space)",
@@ -55,7 +56,10 @@
       ],
       "files": [
         "client/src/components/ui/Card.tsx"
-      ]
+      ],
+      "test_file": "client/src/components/ui/Card.test.tsx",
+      "summary": "context_summaries/task-003-summary.md",
+      "notes": "Component was already accessible - added tests to document and prevent regression"
     },
     {
       "id": "task-004",
