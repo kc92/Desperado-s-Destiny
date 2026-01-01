@@ -102,6 +102,10 @@ export interface Action {
   requiredSkillCategory?: SkillCategory;
   /** Required skill level to unlock this action */
   requiredSkillLevel?: number;
+  /** Required criminal skill type (for CRIME actions) */
+  requiredCriminalSkill?: string;
+  /** Required criminal skill level (for CRIME actions) */
+  requiredCriminalSkillLevel?: number;
 }
 
 /**

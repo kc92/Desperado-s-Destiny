@@ -2,10 +2,11 @@
  * CrimesList Component
  * Filtered view of all CRIME type actions with risk indicators
  * Displays warning banner if wanted level is high
+ * Shows criminal skill requirements for locked crimes
  */
 
 import React, { useState } from 'react';
-import { Action, ActionType } from '@desperados/shared';
+import { Action, ActionType, CRIMINAL_SKILLS, CriminalSkillType } from '@desperados/shared';
 import { ActionCard } from './ActionCard';
 import { Button } from '@/components/ui/Button';
 
@@ -14,6 +15,15 @@ interface CrimeMetadata {
   wantedLevelIncrease?: number;
   witnessChance?: number;
   bailCost?: number;
+}
+
+/** Character's criminal skill levels */
+interface CriminalSkillLevels {
+  pickpocketing: number;
+  burglary: number;
+  robbery: number;
+  heisting: number;
+  assassination: number;
 }
 
 interface CrimesListProps {
@@ -29,6 +39,8 @@ interface CrimesListProps {
   onAttempt: (action: Action) => void;
   /** Whether data is loading */
   isLoading?: boolean;
+  /** Character's criminal skill levels (optional - if not provided, assumes level 1 for all) */
+  criminalSkills?: CriminalSkillLevels;
 }
 
 type RiskFilter = 'all' | 'low' | 'medium' | 'high' | 'extreme';
@@ -68,6 +80,44 @@ const getSortValue = (action: Action, metadata: CrimeMetadata | undefined, sortB
 };
 
 /**
+ * Default criminal skill levels (all at level 1)
+ */
+const DEFAULT_CRIMINAL_SKILLS: CriminalSkillLevels = {
+  pickpocketing: 1,
+  burglary: 1,
+  robbery: 1,
+  heisting: 1,
+  assassination: 1
+};
+
+/**
+ * Check if a crime is locked due to skill requirements
+ */
+const isCrimeLocked = (
+  action: Action,
+  criminalSkills: CriminalSkillLevels
+): { locked: boolean; reason?: string } => {
+  if (!action.requiredCriminalSkill || !action.requiredCriminalSkillLevel) {
+    return { locked: false };
+  }
+
+  const skillType = action.requiredCriminalSkill as keyof CriminalSkillLevels;
+  const requiredLevel = action.requiredCriminalSkillLevel;
+  const characterLevel = criminalSkills[skillType] || 1;
+
+  if (characterLevel < requiredLevel) {
+    const skillDef = CRIMINAL_SKILLS[skillType as CriminalSkillType];
+    const skillName = skillDef?.name || skillType;
+    return {
+      locked: true,
+      reason: `Requires ${skillName} level ${requiredLevel} (you have ${characterLevel})`
+    };
+  }
+
+  return { locked: false };
+};
+
+/**
  * Crimes list with filtering and sorting
  */
 export const CrimesList: React.FC<CrimesListProps> = ({
@@ -77,16 +127,32 @@ export const CrimesList: React.FC<CrimesListProps> = ({
   crimeMetadata,
   onAttempt,
   isLoading = false,
+  criminalSkills = DEFAULT_CRIMINAL_SKILLS,
 }) => {
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all');
   const [rewardFilter, setRewardFilter] = useState<RewardFilter>('all');
   const [sortBy, setSortBy] = useState<SortBy>('risk');
+  const [showLocked, setShowLocked] = useState<boolean>(true);
 
   // Filter to CRIME actions only
   const crimeActions = actions.filter((action) => action.type === ActionType.CRIME);
 
-  // Apply filters
-  const filteredActions = crimeActions.filter((action) => {
+  // Separate unlocked and locked crimes
+  const { unlockedCrimes, lockedCrimes } = crimeActions.reduce(
+    (acc, action) => {
+      const lockStatus = isCrimeLocked(action, criminalSkills);
+      if (lockStatus.locked) {
+        acc.lockedCrimes.push({ action, reason: lockStatus.reason! });
+      } else {
+        acc.unlockedCrimes.push(action);
+      }
+      return acc;
+    },
+    { unlockedCrimes: [] as Action[], lockedCrimes: [] as { action: Action; reason: string }[] }
+  );
+
+  // Apply filters to unlocked crimes only
+  const filteredActions = unlockedCrimes.filter((action) => {
     // Risk filter
     if (riskFilter !== 'all') {
       const risk = getRiskLevel(crimeMetadata[action._id]);
@@ -114,6 +180,13 @@ export const CrimesList: React.FC<CrimesListProps> = ({
     const aValue = getSortValue(a, crimeMetadata[a._id], sortBy);
     const bValue = getSortValue(b, crimeMetadata[b._id], sortBy);
     return bValue - aValue; // Descending order
+  });
+
+  // Sort locked crimes by required level
+  const sortedLockedCrimes = [...lockedCrimes].sort((a, b) => {
+    const aLevel = a.action.requiredCriminalSkillLevel || 0;
+    const bLevel = b.action.requiredCriminalSkillLevel || 0;
+    return aLevel - bLevel; // Ascending by required level
   });
 
   const isHighlyWanted = wantedLevel >= 3;
@@ -284,7 +357,57 @@ export const CrimesList: React.FC<CrimesListProps> = ({
       {/* Results Count */}
       {!isLoading && sortedActions.length > 0 && (
         <div className="text-center text-sm text-wood-grain">
-          Showing {sortedActions.length} of {crimeActions.length} crimes
+          Showing {sortedActions.length} of {unlockedCrimes.length} unlocked crimes
+        </div>
+      )}
+
+      {/* Locked Crimes Section */}
+      {!isLoading && sortedLockedCrimes.length > 0 && (
+        <div className="mt-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-western text-wood-medium flex items-center gap-2">
+              <span>🔒</span>
+              Locked Crimes ({sortedLockedCrimes.length})
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowLocked(!showLocked)}
+            >
+              {showLocked ? 'Hide' : 'Show'}
+            </Button>
+          </div>
+
+          {showLocked && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sortedLockedCrimes.map(({ action, reason }) => (
+                <div
+                  key={action._id}
+                  className="parchment p-4 rounded-lg border-2 border-wood-grain/50 opacity-60"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="text-3xl opacity-50">🔒</div>
+                    <div className="flex-1">
+                      <h4 className="font-western text-lg text-wood-medium">
+                        {action.name}
+                      </h4>
+                      <p className="text-sm text-wood-grain line-clamp-2">
+                        {action.description}
+                      </p>
+                      <div className="mt-2 text-xs text-blood-red font-medium">
+                        {reason}
+                      </div>
+                      <div className="mt-2 flex items-center gap-4 text-xs text-wood-grain">
+                        <span>⚡ {action.energyCost}</span>
+                        <span>💰 {action.rewards.gold || 0}</span>
+                        <span>✨ {action.rewards.xp} XP</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

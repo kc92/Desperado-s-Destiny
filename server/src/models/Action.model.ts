@@ -59,6 +59,10 @@ export interface IAction extends Document {
   requiredSkillLevel?: number; // Minimum skill level to unlock this action
   tier?: number; // 1-4 content tier
 
+  // Criminal skill requirements (for CRIME type actions)
+  requiredCriminalSkill?: string; // e.g., 'pickpocketing', 'burglary', 'robbery', 'heisting', 'assassination'
+  requiredCriminalSkillLevel?: number; // Minimum criminal skill level
+
   // Rewards
   rewards: ActionRewards;
 
@@ -148,6 +152,18 @@ const ActionSchema = new Schema<IAction>(
       type: Number,
       min: 1,
       max: 4,
+      default: 1,
+      required: false
+    },
+    requiredCriminalSkill: {
+      type: String,
+      enum: ['pickpocketing', 'burglary', 'robbery', 'heisting', 'assassination'],
+      required: false
+    },
+    requiredCriminalSkillLevel: {
+      type: Number,
+      min: 1,
+      max: 50,
       default: 1,
       required: false
     },
@@ -264,8 +280,10 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 1,
+      requiredCriminalSkill: 'pickpocketing',
+      requiredCriminalSkillLevel: 1,
       tier: 1,
-      rewards: { xp: 20, gold: 10, items: [] },
+      rewards: { xp: 10, gold: 10, items: [] },
       crimeProperties: {
         jailTimeOnFailure: 5,
         wantedLevelIncrease: 1,
@@ -283,8 +301,10 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 1,
+      requiredCriminalSkill: 'burglary',
+      requiredCriminalSkillLevel: 1,
       tier: 1,
-      rewards: { xp: 30, gold: 20, items: ['market_goods'] },
+      rewards: { xp: 15, gold: 20, items: ['market_goods'] },
       crimeProperties: {
         jailTimeOnFailure: 10,
         wantedLevelIncrease: 1,
@@ -300,7 +320,9 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       energyCost: 20,
       difficulty: 35,
       requiredSuit: Suit.SPADES,
-      rewards: { xp: 50, gold: 35, items: ['forged_deed'] },
+      requiredCriminalSkill: 'pickpocketing',
+      requiredCriminalSkillLevel: 10,
+      rewards: { xp: 25, gold: 35, items: ['forged_deed'] },
       crimeProperties: {
         jailTimeOnFailure: 15,
         wantedLevelIncrease: 1,
@@ -316,7 +338,9 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       energyCost: 12,
       difficulty: 28,
       requiredSuit: Suit.SPADES,
-      rewards: { xp: 25, gold: 15, items: [] },
+      requiredCriminalSkill: 'pickpocketing',
+      requiredCriminalSkillLevel: 5,
+      rewards: { xp: 12, gold: 15, items: [] },
       crimeProperties: {
         jailTimeOnFailure: 8,
         wantedLevelIncrease: 1,
@@ -336,8 +360,10 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 10,
+      requiredCriminalSkill: 'burglary',
+      requiredCriminalSkillLevel: 10,
       tier: 2,
-      rewards: { xp: 80, gold: 60, items: ['stolen_goods'] },
+      rewards: { xp: 40, gold: 60, items: ['stolen_goods'] },
       crimeProperties: {
         jailTimeOnFailure: 30,
         wantedLevelIncrease: 2,
@@ -353,7 +379,9 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       energyCost: 30,
       difficulty: 55,
       requiredSuit: Suit.SPADES,
-      rewards: { xp: 100, gold: 80, items: ['cattle'] },
+      requiredCriminalSkill: 'robbery',
+      requiredCriminalSkillLevel: 5,
+      rewards: { xp: 50, gold: 80, items: ['cattle'] },
       crimeProperties: {
         jailTimeOnFailure: 45,
         wantedLevelIncrease: 2,
@@ -369,7 +397,9 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       energyCost: 35,
       difficulty: 60,
       requiredSuit: Suit.SPADES,
-      rewards: { xp: 120, gold: 100, items: ['jewelry', 'pocket_watch'] },
+      requiredCriminalSkill: 'robbery',
+      requiredCriminalSkillLevel: 10,
+      rewards: { xp: 60, gold: 100, items: ['jewelry', 'pocket_watch'] },
       crimeProperties: {
         jailTimeOnFailure: 60,
         wantedLevelIncrease: 3,
@@ -385,7 +415,9 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       energyCost: 28,
       difficulty: 58,
       requiredSuit: Suit.SPADES,
-      rewards: { xp: 110, gold: 85, items: ['whiskey_bottle', 'cash'] },
+      requiredCriminalSkill: 'burglary',
+      requiredCriminalSkillLevel: 15,
+      rewards: { xp: 55, gold: 85, items: ['whiskey_bottle', 'cash'] },
       crimeProperties: {
         jailTimeOnFailure: 40,
         wantedLevelIncrease: 2,
@@ -405,8 +437,10 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 20,
+      requiredCriminalSkill: 'heisting',
+      requiredCriminalSkillLevel: 15,
       tier: 3,
-      rewards: { xp: 130, gold: 95, items: ['incriminating_ledger'] },
+      rewards: { xp: 65, gold: 95, items: ['incriminating_ledger'] },
       crimeProperties: {
         jailTimeOnFailure: 50,
         wantedLevelIncrease: 2,
@@ -424,8 +458,10 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 23,
+      requiredCriminalSkill: 'heisting',
+      requiredCriminalSkillLevel: 18,
       tier: 3,
-      rewards: { xp: 145, gold: 110, items: ['protection_payment'] },
+      rewards: { xp: 72, gold: 110, items: ['protection_payment'] },
       crimeProperties: {
         jailTimeOnFailure: 55,
         wantedLevelIncrease: 2,
@@ -443,8 +479,10 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 26,
+      requiredCriminalSkill: 'heisting',
+      requiredCriminalSkillLevel: 22,
       tier: 3,
-      rewards: { xp: 160, gold: 140, items: ['counterfeit_plates', 'fake_coins'] },
+      rewards: { xp: 80, gold: 140, items: ['counterfeit_plates', 'fake_coins'] },
       crimeProperties: {
         jailTimeOnFailure: 70,
         wantedLevelIncrease: 3,
@@ -462,8 +500,10 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 30,
+      requiredCriminalSkill: 'heisting',
+      requiredCriminalSkillLevel: 28,
       tier: 3,
-      rewards: { xp: 180, gold: 175, items: ['cursed_gold', 'miners_remains'] },
+      rewards: { xp: 90, gold: 175, items: ['cursed_gold', 'miners_remains'] },
       crimeProperties: {
         jailTimeOnFailure: 75,
         wantedLevelIncrease: 2,
@@ -481,8 +521,10 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 34,
+      requiredCriminalSkill: 'heisting',
+      requiredCriminalSkillLevel: 32,
       tier: 3,
-      rewards: { xp: 200, gold: 160, items: ['blackmail_files', 'judges_seal'] },
+      rewards: { xp: 100, gold: 160, items: ['blackmail_files', 'judges_seal'] },
       crimeProperties: {
         jailTimeOnFailure: 85,
         wantedLevelIncrease: 3,
@@ -500,8 +542,10 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 38,
+      requiredCriminalSkill: 'robbery',
+      requiredCriminalSkillLevel: 30,
       tier: 3,
-      rewards: { xp: 220, gold: 280, items: ['railroad_payroll', 'iron_horse_bounty'] },
+      rewards: { xp: 110, gold: 280, items: ['railroad_payroll', 'iron_horse_bounty'] },
       crimeProperties: {
         jailTimeOnFailure: 100,
         wantedLevelIncrease: 4,
@@ -521,8 +565,10 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 40,
+      requiredCriminalSkill: 'heisting',
+      requiredCriminalSkillLevel: 35,
       tier: 4,
-      rewards: { xp: 200, gold: 250, items: ['gold_bars', 'bonds'] },
+      rewards: { xp: 100, gold: 250, items: ['gold_bars', 'bonds'] },
       crimeProperties: {
         jailTimeOnFailure: 120,
         wantedLevelIncrease: 4,
@@ -538,7 +584,9 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       energyCost: 45,
       difficulty: 80,
       requiredSuit: Suit.SPADES,
-      rewards: { xp: 250, gold: 300, items: ['gold_bars', 'luxury_goods'] },
+      requiredCriminalSkill: 'robbery',
+      requiredCriminalSkillLevel: 25,
+      rewards: { xp: 125, gold: 300, items: ['gold_bars', 'luxury_goods'] },
       crimeProperties: {
         jailTimeOnFailure: 180,
         wantedLevelIncrease: 4,
@@ -554,7 +602,9 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       energyCost: 50,
       difficulty: 85,
       requiredSuit: Suit.SPADES,
-      rewards: { xp: 300, gold: 400, items: ['blood_money'] },
+      requiredCriminalSkill: 'assassination',
+      requiredCriminalSkillLevel: 30,
+      rewards: { xp: 150, gold: 400, items: ['blood_money'] },
       crimeProperties: {
         jailTimeOnFailure: 240,
         wantedLevelIncrease: 5,
@@ -570,7 +620,9 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       energyCost: 38,
       difficulty: 70,
       requiredSuit: Suit.SPADES,
-      rewards: { xp: 150, gold: 150, items: ['stolen_horse'] },
+      requiredCriminalSkill: 'robbery',
+      requiredCriminalSkillLevel: 15,
+      rewards: { xp: 75, gold: 150, items: ['stolen_horse'] },
       crimeProperties: {
         jailTimeOnFailure: 90,
         wantedLevelIncrease: 3,
@@ -588,7 +640,9 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       energyCost: 30,
       difficulty: 52,
       requiredSuit: Suit.SPADES,
-      rewards: { xp: 90, gold: 70, items: ['contraband'] },
+      requiredCriminalSkill: 'robbery',
+      requiredCriminalSkillLevel: 8,
+      rewards: { xp: 45, gold: 70, items: ['contraband'] },
       crimeProperties: {
         jailTimeOnFailure: 60,
         wantedLevelIncrease: 2,
@@ -604,7 +658,9 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       energyCost: 25,
       difficulty: 45,
       requiredSuit: Suit.SPADES,
-      rewards: { xp: 70, gold: 55, items: ['moonshine'] },
+      requiredCriminalSkill: 'burglary',
+      requiredCriminalSkillLevel: 8,
+      rewards: { xp: 35, gold: 55, items: ['moonshine'] },
       crimeProperties: {
         jailTimeOnFailure: 30,
         wantedLevelIncrease: 2,
@@ -620,7 +676,9 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       energyCost: 40,
       difficulty: 72,
       requiredSuit: Suit.SPADES,
-      rewards: { xp: 180, gold: 120, items: [] },
+      requiredCriminalSkill: 'assassination',
+      requiredCriminalSkillLevel: 25,
+      rewards: { xp: 90, gold: 120, items: [] },
       crimeProperties: {
         jailTimeOnFailure: 120,
         wantedLevelIncrease: 4,

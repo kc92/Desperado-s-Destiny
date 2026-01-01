@@ -132,6 +132,16 @@ export async function startActionWithDeck(
     throw new Error(`Insufficient energy. Required: ${action.energyCost}, Current: ${Math.floor(character.energy)}`);
   }
 
+  // Check criminal skill requirements for crime actions
+  if (action.type === ActionType.CRIME) {
+    const { CrimeService } = await import('./crime.service');
+    const canAttempt = CrimeService.canAttemptCrime(action, character);
+    if (!canAttempt.canAttempt) {
+      logger.error(`[startActionWithDeck] Criminal skill too low: ${canAttempt.reason}`);
+      throw new Error(canAttempt.reason || 'Criminal skill level too low for this crime');
+    }
+  }
+
   logger.info(`[startActionWithDeck] Initializing game for action type: ${action.type}`);
 
   // Determine game type based on action type
@@ -330,6 +340,21 @@ export async function resolveActionGame(
 
       // Award XP (full even if witnessed - you learned from it)
       await character.addExperience(rewardsGained.xp);
+
+      // Award criminal skill XP for crime actions
+      if (action.type === ActionType.CRIME) {
+        const { CrimeService } = await import('./crime.service');
+        const skillXpResult = await CrimeService.awardCriminalSkillXP(
+          character,
+          action,
+          rewardsGained.xp
+        );
+        if (skillXpResult) {
+          logger.info(`[resolveActionGame] Awarded ${skillXpResult.xpGained} ${skillXpResult.skillId} XP`);
+          // Include in response for frontend notification
+          (rewardsGained as any).criminalSkillXp = skillXpResult;
+        }
+      }
 
       // Award gold
       if (rewardsGained.gold > 0) {

@@ -4,7 +4,7 @@
  * Features: Tabbed interface, JailScreen overlay, WantedLevelDisplay
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useActionStore } from '@/store/useActionStore';
 import { useEnergyStore } from '@/store/useEnergyStore';
@@ -56,6 +56,28 @@ export const Crimes: React.FC = () => {
     };
   } | null>(null);
   const [showGameModal, setShowGameModal] = useState(false);
+
+  // Extract criminal skills from character.skills array
+  const criminalSkills = useMemo(() => {
+    const skills: Record<string, number> = {
+      pickpocketing: 1,
+      burglary: 1,
+      robbery: 1,
+      heisting: 1,
+      assassination: 1
+    };
+
+    if (currentCharacter?.skills) {
+      for (const skill of currentCharacter.skills) {
+        const id = (skill.skillId || '').toLowerCase();
+        if (id && id in skills) {
+          skills[id] = skill.level || 1;
+        }
+      }
+    }
+
+    return skills;
+  }, [currentCharacter?.skills]);
 
   // Load data on mount
   useEffect(() => {
@@ -309,6 +331,7 @@ export const Crimes: React.FC = () => {
             crimeMetadata={{} as any}
             onAttempt={handleAttemptCrime}
             isLoading={isLoading}
+            criminalSkills={criminalSkills as any}
           />
         )}
 
