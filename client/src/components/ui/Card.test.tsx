@@ -433,7 +433,11 @@ describe('Card Component', () => {
       expect(handleClick).toHaveBeenCalled();
     });
 
-    it('supports keyboard navigation when clickable', () => {
+    /**
+     * CRITICAL TEST: Keyboard navigation with Enter key
+     * Interactive cards must respond to keyboard events for accessibility
+     */
+    it('calls onClick when Enter key is pressed on interactive card', () => {
       const handleClick = vi.fn();
       render(
         <Card onClick={handleClick} data-testid="card">
@@ -442,10 +446,121 @@ describe('Card Component', () => {
       );
       const card = screen.getByTestId('card');
 
-      // Simulate keyboard interaction
       fireEvent.keyDown(card, { key: 'Enter', code: 'Enter' });
-      // Note: onClick won't fire from keyDown on a div, this is expected
-      // In production, you'd want to add onKeyDown handler for full keyboard support
+      expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+
+    /**
+     * CRITICAL TEST: Keyboard navigation with Space key
+     */
+    it('calls onClick when Space key is pressed on interactive card', () => {
+      const handleClick = vi.fn();
+      render(
+        <Card onClick={handleClick} data-testid="card">
+          Keyboard accessible
+        </Card>
+      );
+      const card = screen.getByTestId('card');
+
+      fireEvent.keyDown(card, { key: ' ', code: 'Space' });
+      expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+
+    /**
+     * CRITICAL TEST: Interactive cards must have role="button" for screen readers
+     */
+    it('has role="button" when onClick is provided', () => {
+      render(
+        <Card onClick={() => {}} data-testid="card">
+          Interactive
+        </Card>
+      );
+      const card = screen.getByTestId('card');
+      expect(card).toHaveAttribute('role', 'button');
+    });
+
+    /**
+     * CRITICAL TEST: Interactive cards must be focusable
+     */
+    it('has tabIndex=0 when onClick is provided', () => {
+      render(
+        <Card onClick={() => {}} data-testid="card">
+          Interactive
+        </Card>
+      );
+      const card = screen.getByTestId('card');
+      expect(card).toHaveAttribute('tabIndex', '0');
+    });
+
+    /**
+     * Non-interactive cards should not have button role
+     */
+    it('does not have role="button" when onClick is not provided', () => {
+      render(<Card data-testid="card">Non-interactive</Card>);
+      const card = screen.getByTestId('card');
+      expect(card).not.toHaveAttribute('role', 'button');
+    });
+
+    /**
+     * Non-interactive cards should not be in tab order
+     */
+    it('does not have tabIndex when onClick is not provided', () => {
+      render(<Card data-testid="card">Non-interactive</Card>);
+      const card = screen.getByTestId('card');
+      expect(card).not.toHaveAttribute('tabIndex');
+    });
+
+    /**
+     * Interactive cards should have focus-visible styles
+     */
+    it('has focus-visible class when onClick is provided', () => {
+      const { container } = render(
+        <Card onClick={() => {}}>Interactive</Card>
+      );
+      const card = container.firstChild as HTMLElement;
+      expect(card.className).toContain('focus-visible-gold');
+    });
+
+    /**
+     * Should prevent default on keyboard events to avoid scroll
+     */
+    it('prevents default on Enter/Space to avoid page scroll', () => {
+      const handleClick = vi.fn();
+      render(
+        <Card onClick={handleClick} data-testid="card">
+          Interactive
+        </Card>
+      );
+      const card = screen.getByTestId('card');
+
+      const enterEvent = new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true
+      });
+      const preventDefaultSpy = vi.spyOn(enterEvent, 'preventDefault');
+
+      card.dispatchEvent(enterEvent);
+      expect(preventDefaultSpy).toHaveBeenCalled();
+    });
+
+    /**
+     * Should not trigger click on non-activation keys
+     */
+    it('does not call onClick on non-activation keys', () => {
+      const handleClick = vi.fn();
+      render(
+        <Card onClick={handleClick} data-testid="card">
+          Interactive
+        </Card>
+      );
+      const card = screen.getByTestId('card');
+
+      fireEvent.keyDown(card, { key: 'Tab', code: 'Tab' });
+      fireEvent.keyDown(card, { key: 'Escape', code: 'Escape' });
+      fireEvent.keyDown(card, { key: 'a', code: 'KeyA' });
+
+      expect(handleClick).not.toHaveBeenCalled();
     });
   });
 
