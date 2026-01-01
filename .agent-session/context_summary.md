@@ -10,13 +10,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Task** | None (task-002 complete) |
+| **Current Task** | None (task-004 complete) |
 | **TDD Phase** | Ready for next task |
 | **RPI Step** | N/A |
-| **Context Utilization** | ~45% |
-| **Task Backlog** | See `feature_list.json` (2 remaining) |
-| **Last Commit** | 4284779 - chore(tdd): complete task-002 |
-| **Last Checkpoint** | checkpoint-002-skills-feedback |
+| **Context Utilization** | ~55% |
+| **Task Backlog** | See `feature_list.json` (1 remaining) |
+| **Last Commit** | 0360288 - chore(tdd): complete task-004 |
+| **Last Checkpoint** | checkpoint-004-xp-balance |
 
 ### Task Status
 
@@ -25,7 +25,7 @@
 | task-001 | P0 | Fix gathering items not added to inventory | **COMPLETE** |
 | task-002 | P1 | Fix skill training button feedback | **COMPLETE** |
 | task-003 | P2 | Fix card onClick accessibility | pending |
-| task-004 | P1 | Balance XP pacing | pending |
+| task-004 | P1 | Balance XP pacing | **COMPLETE** |
 
 ### Task-001 Summary
 
@@ -40,6 +40,13 @@
 **Fix:** Added `isStartingTraining` state, success/error toasts, Button isLoading prop
 **Test:** `client/src/pages/Skills.test.tsx`
 **Commits:** 5ee0d1d (test), 847c633 (fix), 4284779 (workflow)
+
+### Task-004 Summary
+
+**Root Cause:** XP inflation from difficulty-based formula + uncapped multipliers
+**Fix:** Use action.rewards.xp, cap multipliers at 1.2x (level 10 now requires ~67 crimes, was ~4)
+**Test:** `server/tests/actionDeck/xpBalance.test.ts`
+**Commits:** c2f1e95 (test), cdc2459 (fix), 0360288 (workflow)
 
 ---
 
