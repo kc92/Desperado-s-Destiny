@@ -54,6 +54,7 @@ export const Skills: React.FC = () => {
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
   const [selectedSkillForTraining, setSelectedSkillForTraining] = useState<Skill | null>(null);
   const [levelUpResult, setLevelUpResult] = useState<{ skillName: string; newLevel: number } | null>(null);
+  const [isStartingTraining, setIsStartingTraining] = useState<boolean>(false);
 
   // Start polling on mount, stop on unmount
   useEffect(() => {
@@ -120,14 +121,42 @@ export const Skills: React.FC = () => {
   const confirmTrain = async () => {
     if (!selectedSkillForTraining) return;
 
+    setIsStartingTraining(true);
     try {
       await startTraining(selectedSkillForTraining.id);
       // Dispatch tutorial event for skill training
       dispatchTrainingStarted(selectedSkillForTraining.id);
+
+      // Show success toast
+      showToast({
+        _id: `training-start-${Date.now()}`,
+        characterId: currentCharacter?._id || '',
+        type: NotificationType.SUCCESS,
+        title: 'Training Started!',
+        message: `${selectedSkillForTraining.name} training has begun.`,
+        isRead: false,
+        link: '/skills',
+        createdAt: new Date().toISOString(),
+      });
+
       setShowTrainModal(false);
       setSelectedSkillForTraining(null);
     } catch (err) {
       logger.error('Failed to start training', err as Error, { context: 'Skills' });
+
+      // Show error toast
+      showToast({
+        _id: `training-error-${Date.now()}`,
+        characterId: currentCharacter?._id || '',
+        type: NotificationType.ERROR,
+        title: 'Training Failed',
+        message: 'Could not start training. Please try again.',
+        isRead: false,
+        link: '/skills',
+        createdAt: new Date().toISOString(),
+      });
+    } finally {
+      setIsStartingTraining(false);
     }
   };
 
@@ -350,10 +379,17 @@ export const Skills: React.FC = () => {
             </p>
 
             <div className="flex gap-3">
-              <Button variant="primary" fullWidth onClick={confirmTrain}>
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={confirmTrain}
+                isLoading={isStartingTraining}
+                loadingText="Starting..."
+                disabled={isStartingTraining}
+              >
                 Start Training
               </Button>
-              <Button variant="ghost" onClick={() => setShowTrainModal(false)}>
+              <Button variant="ghost" onClick={() => setShowTrainModal(false)} disabled={isStartingTraining}>
                 Cancel
               </Button>
             </div>

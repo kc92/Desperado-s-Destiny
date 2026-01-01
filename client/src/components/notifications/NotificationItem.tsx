@@ -16,7 +16,9 @@ type NotificationType =
   | 'GANG_WAR_UPDATE'
   | 'COMBAT_DEFEAT'
   | 'JAIL_RELEASED'
-  | 'SKILL_TRAINED';
+  | 'SKILL_TRAINED'
+  | 'SUCCESS'
+  | 'ERROR';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -36,6 +38,8 @@ const notificationIcons: Record<NotificationType, string> = {
   COMBAT_DEFEAT: '💀',
   JAIL_RELEASED: '🔓',
   SKILL_TRAINED: '📚',
+  SUCCESS: '✅',
+  ERROR: '❌',
 };
 
 // Format time ago

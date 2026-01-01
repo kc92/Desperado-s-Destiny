@@ -12,7 +12,9 @@ export enum NotificationType {
   GANG_WAR_UPDATE = 'GANG_WAR_UPDATE',
   COMBAT_DEFEAT = 'COMBAT_DEFEAT',
   JAIL_RELEASED = 'JAIL_RELEASED',
-  SKILL_TRAINED = 'SKILL_TRAINED'
+  SKILL_TRAINED = 'SKILL_TRAINED',
+  SUCCESS = 'SUCCESS',
+  ERROR = 'ERROR'
 }
 
 export interface Notification {

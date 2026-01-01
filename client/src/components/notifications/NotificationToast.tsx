@@ -16,7 +16,9 @@ type NotificationType =
   | 'GANG_WAR_UPDATE'
   | 'COMBAT_DEFEAT'
   | 'JAIL_RELEASED'
-  | 'SKILL_TRAINED';
+  | 'SKILL_TRAINED'
+  | 'SUCCESS'
+  | 'ERROR';
 
 interface NotificationToastProps {
   notification: Notification;
@@ -34,6 +36,8 @@ const notificationIcons: Record<NotificationType, string> = {
   COMBAT_DEFEAT: '💀',
   JAIL_RELEASED: '🔓',
   SKILL_TRAINED: '📚',
+  SUCCESS: '✅',
+  ERROR: '❌',
 };
 
 export const NotificationToast: React.FC<NotificationToastProps> = ({
