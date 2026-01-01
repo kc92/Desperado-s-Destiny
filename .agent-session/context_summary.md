@@ -10,20 +10,29 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Task** | None (documentation phase) |
-| **TDD Phase** | N/A |
+| **Current Task** | None (task-001 complete) |
+| **TDD Phase** | Ready for next task |
 | **RPI Step** | N/A |
-| **Context Utilization** | ~15% (fresh session) |
-| **Task Backlog** | See `feature_list.json` (4 tasks) |
+| **Context Utilization** | ~35% |
+| **Task Backlog** | See `feature_list.json` (3 remaining) |
+| **Last Commit** | 1dff5d5 - chore(tdd): complete task-001 |
+| **Last Checkpoint** | checkpoint-001-gathering-fix |
 
-### Pending Tasks
+### Task Status
 
 | ID | Priority | Name | Status |
 |----|----------|------|--------|
-| task-001 | P0 | Fix gathering items not added to inventory | pending |
+| task-001 | P0 | Fix gathering items not added to inventory | **COMPLETE** |
 | task-002 | P1 | Fix skill training button feedback | pending |
 | task-003 | P2 | Fix card onClick accessibility | pending |
 | task-004 | P1 | Balance XP pacing | pending |
+
+### Task-001 Summary
+
+**Root Cause:** Missing `markModified('inventory')` call in gathering.service.ts
+**Fix:** Added lines 338-340 to call markModified before save
+**Test:** `server/tests/gathering/gathering.service.test.ts`
+**Commits:** 141fce6 (test), 744b68b (fix), 1dff5d5 (workflow)
 
 ---
 
