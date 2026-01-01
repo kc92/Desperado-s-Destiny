@@ -6,6 +6,27 @@
 
 ---
 
+## TDD-RPI Workflow Status
+
+| Field | Value |
+|-------|-------|
+| **Current Task** | None (documentation phase) |
+| **TDD Phase** | N/A |
+| **RPI Step** | N/A |
+| **Context Utilization** | ~15% (fresh session) |
+| **Task Backlog** | See `feature_list.json` (4 tasks) |
+
+### Pending Tasks
+
+| ID | Priority | Name | Status |
+|----|----------|------|--------|
+| task-001 | P0 | Fix gathering items not added to inventory | pending |
+| task-002 | P1 | Fix skill training button feedback | pending |
+| task-003 | P2 | Fix card onClick accessibility | pending |
+| task-004 | P1 | Balance XP pacing | pending |
+
+---
+
 ## Production Hardening Complete
 
 ### Sprint 1: Critical Scalability Fixes
@@ -95,3 +116,152 @@
 - **TypeScript:** Compiles without errors (client and server)
 - **Console Errors:** None (only React Router v7 upgrade warnings)
 - **Capacity:** 1,000-3,000 concurrent users supported
+
+---
+
+## Chrome DevTools MCP Playtest - COMPLETE
+
+### New Player Journey: Level 1 → Level 10
+
+| Milestone | Status | Notes |
+|-----------|--------|-------|
+| Account Registration | ✅ PASS | Form validation works, CSRF token noted |
+| Character Creation | ✅ PASS | Frontera faction selected, "SilverBolt" created |
+| Tutorial Phases | ✅ PASS | All phases completed successfully |
+| Core Systems (Phase A-C) | ✅ PASS | Dashboard, Location, Bank, Shop, Inventory, Settings |
+| Level 10 Grind | ✅ COMPLETE | Destiny Deck crimes used for XP farming |
+
+### Final Character Stats
+
+| Stat | Value |
+|------|-------|
+| Character | SilverBolt |
+| Faction | Frontera |
+| Level | 10 |
+| XP | 196/10,000 |
+| Dollars | $2,841 |
+| WANTED Level | 4/5 |
+| Bounty | $400 |
+| Location | Smuggler's Den |
+
+### Gameplay Observations
+
+1. **Destiny Deck System**: Card-based crime resolution works well
+   - Number cards add to score
+   - Face cards (J, Q, K) are danger - 3 = bust
+   - Suit matches provide bonus multipliers
+   - Risk/reward balance feels engaging
+
+2. **Energy Economy**: 10 energy per basic crime, 0.5/min regen
+   - ~5 hours for full 150 energy refill
+   - Sustainable grinding pace
+
+3. **XP Scaling**: Multipliers from suit matches and card count can yield massive XP
+   - Crime #3: 30 base score → 750 final score → +330 XP with 1.5x multiplier
+
+### Issues Found During Playtest
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| CSRF token in character creation | Low | Expected behavior, form works |
+| React Router v7 upgrade warnings | Info | Console only, no user impact |
+
+### Playtest Verdict
+
+**PASS** - New player journey from account creation to Level 10 is functional and engaging. Core gameplay loops (crimes, combat, economy) work as intended.
+
+---
+
+## Extended Playtest: Skills, Crafting, Gathering
+
+### Pacing Issues Identified
+
+| Issue | Observation | Recommendation |
+|-------|-------------|----------------|
+| XP too fast | Single crime with suit matches yielded +330 XP (30 base × 1.5x multiplier) | Reduce multiplier effects or base XP |
+| Level 10 in ~10 crimes | User noted "that was pretty quick, we want slower and more methodical" | Consider XP curve adjustments |
+| Crimes dominate XP gain | Other activities (gathering, crafting) give only +10 XP | Balance XP sources |
+
+### Skills System
+
+| Aspect | Finding |
+|--------|---------|
+| Total Skills | 33 across 4 categories (Combat, Cunning, Spirit, Craft) |
+| Training Time | 1h 6m to 2h 12m per level (real-time) |
+| Max Level | 50 per skill |
+| Skill Benefits | Boost Destiny Deck card draws |
+| UI Issue | Clicking "Train" button doesn't visibly start training |
+
+### Crafting System
+
+| Aspect | Finding |
+|--------|---------|
+| Recipes Available | 3 at Level 1 (Leather Strip, Bandages, Basic Knife) |
+| Crafting Time | 5 minutes per craft |
+| XP Gain | +10 XP per craft |
+| Quality System | Common 50%, Good 25%, Excellent 10%, etc. |
+| Blocker | Requires gathered materials (none available initially) |
+
+### Gathering System - CRITICAL BUG
+
+| Aspect | Finding |
+|--------|---------|
+| Nodes at Red Gulch | 6 nodes (Mining, Herbalism, Woodcutting, Foraging) |
+| Energy Cost | 5-15 energy per gather |
+| Cooldown | 1m 30s per node |
+| **BUG** | Gathering shows success, energy deducted, but **items NOT added to inventory** |
+
+**Bug Details:**
+- Gathered Metal Scrap x2 from Scrap Pile
+- UI showed "Success! +10 XP"
+- Energy went from 73 → 65 (8 deducted correctly)
+- Toast notification: "Resources Gathered! 2x Metal Scrap"
+- Inventory shows only Tobacco Leaf (from crimes)
+- Crafting shows "0/3 craftable" for Basic Knife
+- **Root cause:** Backend returns success but inventory.service likely fails silently
+
+### UI/Accessibility Issues
+
+| Issue | Location | Description |
+|-------|----------|-------------|
+| Card onClick broken | Gathering page | Card components don't respond to MCP click tool; require JavaScript `.click()` |
+| Same issue | Skills page | Clicking skill training button has no visible effect |
+
+### Location Exploration
+
+| Location | Zone | Gathering Nodes |
+|----------|------|-----------------|
+| Smuggler's Den | Outlaw | None |
+| The Frontera | Outlaw | None |
+| Red Gulch | Settler | 6 nodes (Iron Vein, Coal Seam, Wild Herbs, Pine Tree, Scrap Pile, Water Source) |
+| The Badlands | - | Level 20 required (gated) |
+
+### Current Character State
+
+| Stat | Value |
+|------|-------|
+| Level | 10 |
+| XP | 196/10,000 |
+| Energy | 65/150 |
+| Dollars | $2,841 |
+| Location | Red Gulch |
+| Inventory | 1 item (Tobacco Leaf) |
+
+---
+
+## Bugs to Fix (Priority Order)
+
+| Priority | Bug | File(s) to Check |
+|----------|-----|------------------|
+| **P0** | Gathering items not added to inventory | `server/src/services/gathering.service.ts` |
+| P1 | Skill training button doesn't start training | `client/src/pages/Skills.tsx` |
+| P2 | Card onClick accessibility | `client/src/components/ui/Card.tsx` |
+
+---
+
+## Recommendations
+
+1. **XP Pacing**: Reduce crime XP multipliers (1.5x → 1.2x) or increase level XP requirements
+2. **Gathering Bug**: Debug `gathering.service.ts` - check if `inventory.service.addItem()` is called and succeeds
+3. **Skill Training**: Verify training start API call is being made
+4. **Card Accessibility**: Ensure Card component forwards onClick to underlying element properly

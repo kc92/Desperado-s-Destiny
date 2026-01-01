@@ -1,0 +1,70 @@
+{
+  "spec_source": "context_summary.md",
+  "created_at": "2025-12-31T00:00:00Z",
+  "updated_at": "2025-12-31T00:00:00Z",
+  "tasks": [
+    {
+      "id": "task-001",
+      "name": "Fix gathering items not added to inventory",
+      "description": "Gathering shows success, energy deducted, but items NOT added to inventory. Backend returns success but inventory.service likely fails silently.",
+      "priority": "P0",
+      "status": "pending",
+      "acceptance_criteria": [
+        "Gathered items appear in inventory after successful gather",
+        "Crafting shows correct material counts",
+        "Error handling for inventory addition failures"
+      ],
+      "files": [
+        "server/src/services/gathering.service.ts",
+        "server/src/services/inventory.service.ts"
+      ]
+    },
+    {
+      "id": "task-002",
+      "name": "Fix skill training button feedback",
+      "description": "Clicking 'Train' button doesn't visibly start training. UI shows no feedback when skill training begins.",
+      "priority": "P1",
+      "status": "pending",
+      "acceptance_criteria": [
+        "Train button shows loading state during API call",
+        "Success feedback when training starts",
+        "Error feedback if training fails"
+      ],
+      "files": [
+        "client/src/pages/Skills.tsx"
+      ]
+    },
+    {
+      "id": "task-003",
+      "name": "Fix card onClick accessibility",
+      "description": "Card components don't respond to click tool; require JavaScript .click(). Accessibility issue for interactive cards.",
+      "priority": "P2",
+      "status": "pending",
+      "acceptance_criteria": [
+        "Cards respond to native click events",
+        "Keyboard navigation works (Enter/Space)",
+        "Focus states visible"
+      ],
+      "files": [
+        "client/src/components/ui/Card.tsx"
+      ]
+    },
+    {
+      "id": "task-004",
+      "name": "Balance XP pacing",
+      "description": "XP too fast - Level 10 in ~10 crimes. Single crime with suit matches yielded +330 XP (30 base x 1.5x multiplier). Reduce multiplier effects or base XP.",
+      "priority": "P1",
+      "status": "pending",
+      "acceptance_criteria": [
+        "XP multiplier reduced from 1.5x to 1.2x",
+        "Level 10 requires ~30-50 crimes",
+        "Gathering/crafting XP balanced with crime XP"
+      ],
+      "files": [
+        "shared/src/constants/index.ts",
+        "server/src/services/crime.service.ts",
+        "server/src/services/actionDeck.service.ts"
+      ]
+    }
+  ]
+}

@@ -218,26 +218,30 @@ All services should show "healthy" status.
 
 ## 📚 Documentation
 
-### Essential Reads
-- 📋 **[Session Handoff](docs/SESSION-HANDOFF.md)** - Complete context for next session (MUST READ!)
-- 📊 **[Project Status](docs/PROJECT-STATUS.md)** - Current state dashboard
-- 🗓️ **[Sprint Plan](docs/SPRINT-PLAN.md)** - Complete 8-sprint roadmap
-- 📖 **[Development Log](docs/development-log.md)** - Full session history
+**Start here:** [Documentation Index](docs/INDEX.md)
 
-### Technical Docs
-- 🔐 **[Authentication Guide](server/AUTHENTICATION.md)** - Auth system (500+ lines)
-- 🧪 **[Testing Guide](docs/TESTING.md)** - How to write/run tests (450+ lines)
-- ⚙️ **[Development Guide](docs/DEVELOPMENT.md)** - Developer handbook (500+ lines)
-- 🤝 **[Contributing Guide](docs/CONTRIBUTING.md)** - Code standards (800+ lines)
+### Core Documentation
+- 📖 **[Documentation Index](docs/INDEX.md)** - Master navigation for all docs
+- 🏗️ **[Architecture Overview](docs/architecture/overview.md)** - System design
+- 👨‍💻 **[Developer Onboarding](docs/guides/developer-onboarding.md)** - Get started quickly
+- 🔧 **[Troubleshooting](docs/guides/troubleshooting.md)** - Common issues & solutions
 
-### Quick Guides
-- ⚡ **[Quick Start](docs/QUICKSTART.md)** - 5-minute setup
-- 🏗️ **[Deployment Guide](docs/DEPLOYMENT.md)** - Guide for deploying the application
+### Game Design
+- 🎴 **[Game Mechanics](docs/game-design/mechanics.md)** - Destiny Deck, combat, crime
+- 🌵 **[Factions](docs/lore/factions.md)** - Settler, Nahi, Frontera
+- 📜 **[World History](docs/lore/world-history.md)** - Sangre Territory lore
 
-### Design Specs (194,200 words!)
-- 12 comprehensive design documents
-- Complete worldbuilding (NPCs, locations, lore)
-- Game systems specifications
+### Technical
+- ⚙️ **[Tech Stack](docs/architecture/tech-stack.md)** - Technology decisions
+- 🗄️ **[Database Schemas](docs/architecture/database-schemas.md)** - MongoDB models
+- 🔌 **[API Reference](docs/architecture/api-reference.md)** - REST endpoints
+
+### TDD-RPI Workflow
+- 📋 **[Task Backlog](.agent-session/feature_list.json)** - Current tasks
+- 📊 **[Session Context](.agent-session/context_summary.md)** - Development context
+
+### Legacy Documentation
+- 339 archived docs in `docs/archive/` for reference
 
 ---
 
