@@ -20,6 +20,7 @@ import {
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
+import { getRedisClient } from '../config/redis';
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -114,12 +115,23 @@ export interface GatheringRequirements {
 // GATHERING SERVICE CLASS
 // ============================================================================
 
+// Redis key prefix for gathering cooldowns
+const COOLDOWN_KEY_PREFIX = 'gathering:cooldown';
+
 export class GatheringService {
   /**
-   * Character cooldowns stored in memory (would be in Redis in production)
-   * Map<characterId, Map<nodeId, expiresAt>>
+   * Get Redis key for a character's node cooldown
    */
-  private static cooldowns: Map<string, Map<string, Date>> = new Map();
+  private static getCooldownKey(characterId: string, nodeId: string): string {
+    return `${COOLDOWN_KEY_PREFIX}:${characterId}:${nodeId}`;
+  }
+
+  /**
+   * Get Redis key pattern for all cooldowns of a character
+   */
+  private static getCooldownPattern(characterId: string): string {
+    return `${COOLDOWN_KEY_PREFIX}:${characterId}:*`;
+  }
 
   /**
    * Get all gathering nodes available at a location
@@ -151,8 +163,8 @@ export class GatheringService {
       return playerLevel >= node.levelRequired;
     });
 
-    // Get cooldowns
-    const cooldowns = this.getActiveCooldowns(characterId.toString());
+    // Get cooldowns from Redis
+    const cooldowns = await this.getActiveCooldowns(characterId.toString());
 
     return {
       nodes: allNodes,
@@ -220,8 +232,8 @@ export class GatheringService {
       };
     }
 
-    // Check cooldown
-    const cooldownRemaining = this.getCooldownRemaining(characterId.toString(), nodeId);
+    // Check cooldown from Redis
+    const cooldownRemaining = await this.getCooldownRemaining(characterId.toString(), nodeId);
     if (cooldownRemaining > 0) {
       result.canGather = false;
       result.errors.push(
@@ -331,9 +343,9 @@ export class GatheringService {
         }
       }
 
-      // Set cooldown
+      // Set cooldown in Redis
       const cooldownEndsAt = new Date(Date.now() + node.cooldownSeconds * 1000);
-      this.setCooldown(characterId, nodeId, cooldownEndsAt);
+      await this.setCooldown(characterId, nodeId, cooldownEndsAt);
 
       // Mark modified nested arrays for Mongoose change detection
       character.markModified('inventory');
@@ -448,68 +460,112 @@ export class GatheringService {
   }
 
   // ============================================================================
-  // COOLDOWN MANAGEMENT
+  // COOLDOWN MANAGEMENT (Redis-backed for horizontal scaling)
   // ============================================================================
 
   /**
-   * Set a cooldown for a node
+   * Set a cooldown for a node using Redis with automatic expiration
    */
-  private static setCooldown(characterId: string, nodeId: string, expiresAt: Date): void {
-    if (!this.cooldowns.has(characterId)) {
-      this.cooldowns.set(characterId, new Map());
-    }
-    this.cooldowns.get(characterId)!.set(nodeId, expiresAt);
-  }
+  private static async setCooldown(characterId: string, nodeId: string, expiresAt: Date): Promise<void> {
+    try {
+      const redis = getRedisClient();
+      const key = this.getCooldownKey(characterId, nodeId);
+      const ttlMs = expiresAt.getTime() - Date.now();
+      const ttlSeconds = Math.ceil(ttlMs / 1000);
 
-  /**
-   * Get remaining cooldown in seconds
-   */
-  private static getCooldownRemaining(characterId: string, nodeId: string): number {
-    const charCooldowns = this.cooldowns.get(characterId);
-    if (!charCooldowns) return 0;
-
-    const expiresAt = charCooldowns.get(nodeId);
-    if (!expiresAt) return 0;
-
-    const remaining = (expiresAt.getTime() - Date.now()) / 1000;
-    if (remaining <= 0) {
-      charCooldowns.delete(nodeId);
-      return 0;
-    }
-
-    return remaining;
-  }
-
-  /**
-   * Get all active cooldowns for a character
-   */
-  static getActiveCooldowns(characterId: string): GatheringCooldown[] {
-    const charCooldowns = this.cooldowns.get(characterId);
-    if (!charCooldowns) return [];
-
-    const now = Date.now();
-    const active: GatheringCooldown[] = [];
-
-    for (const [nodeId, expiresAt] of charCooldowns.entries()) {
-      const remaining = (expiresAt.getTime() - now) / 1000;
-      if (remaining > 0) {
-        active.push({
-          nodeId,
-          endsAt: expiresAt,
-          remainingSeconds: remaining,
-        });
-      } else {
-        charCooldowns.delete(nodeId);
+      if (ttlSeconds > 0) {
+        // Store expiration timestamp with auto-expiry
+        await redis.setEx(key, ttlSeconds, expiresAt.getTime().toString());
       }
+    } catch (error) {
+      logger.error('Failed to set gathering cooldown in Redis:', error);
+      // Fail silently - cooldown won't be enforced but gathering will still work
     }
+  }
 
-    return active;
+  /**
+   * Get remaining cooldown in seconds from Redis
+   */
+  private static async getCooldownRemaining(characterId: string, nodeId: string): Promise<number> {
+    try {
+      const redis = getRedisClient();
+      const key = this.getCooldownKey(characterId, nodeId);
+      const expiresAtStr = await redis.get(key);
+
+      if (!expiresAtStr) return 0;
+
+      const expiresAt = parseInt(expiresAtStr, 10);
+      const remaining = (expiresAt - Date.now()) / 1000;
+
+      return remaining > 0 ? remaining : 0;
+    } catch (error) {
+      logger.error('Failed to get gathering cooldown from Redis:', error);
+      return 0; // Allow gathering if Redis fails
+    }
+  }
+
+  /**
+   * Get all active cooldowns for a character from Redis
+   */
+  static async getActiveCooldowns(characterId: string): Promise<GatheringCooldown[]> {
+    try {
+      const redis = getRedisClient();
+      const pattern = this.getCooldownPattern(characterId);
+      const now = Date.now();
+      const active: GatheringCooldown[] = [];
+
+      // Use SCAN for non-blocking iteration
+      let cursor = 0;
+      do {
+        const result = await redis.scan(cursor, { MATCH: pattern, COUNT: 100 });
+        cursor = result.cursor;
+
+        for (const key of result.keys) {
+          const expiresAtStr = await redis.get(key);
+          if (!expiresAtStr) continue;
+
+          const expiresAt = parseInt(expiresAtStr, 10);
+          const remaining = (expiresAt - now) / 1000;
+
+          if (remaining > 0) {
+            // Extract nodeId from key: gathering:cooldown:{characterId}:{nodeId}
+            const nodeId = key.split(':').pop() || '';
+            active.push({
+              nodeId,
+              endsAt: new Date(expiresAt),
+              remainingSeconds: remaining,
+            });
+          }
+        }
+      } while (cursor !== 0);
+
+      return active;
+    } catch (error) {
+      logger.error('Failed to get active gathering cooldowns from Redis:', error);
+      return []; // Return empty if Redis fails
+    }
   }
 
   /**
    * Clear all cooldowns for a character (admin function)
    */
-  static clearCooldowns(characterId: string): void {
-    this.cooldowns.delete(characterId);
+  static async clearCooldowns(characterId: string): Promise<void> {
+    try {
+      const redis = getRedisClient();
+      const pattern = this.getCooldownPattern(characterId);
+
+      // Use SCAN + DEL for safe deletion
+      let cursor = 0;
+      do {
+        const result = await redis.scan(cursor, { MATCH: pattern, COUNT: 100 });
+        cursor = result.cursor;
+
+        if (result.keys.length > 0) {
+          await redis.del(result.keys);
+        }
+      } while (cursor !== 0);
+    } catch (error) {
+      logger.error('Failed to clear gathering cooldowns from Redis:', error);
+    }
   }
 }

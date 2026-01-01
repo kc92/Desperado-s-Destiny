@@ -17,9 +17,9 @@ import {
   calculateXPForLevel,
   calculateTrainingTime,
   DestinySuit,
-  NotificationType,
   SkillCategory
 } from '@desperados/shared';
+import { NotificationType } from '../models/Notification.model';
 import logger from '../utils/logger';
 import { QuestService } from './quest.service';
 import { NotificationService } from './notification.service';

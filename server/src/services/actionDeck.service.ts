@@ -157,12 +157,11 @@ export async function startActionWithDeck(
   });
 
   // Store session in database
+  // NOTE: We only store IDs, not full objects - reduces storage by ~81% (600KB → 100KB)
   await ActionDeckSession.create({
     sessionId: gameState.gameId,
     characterId,
     actionId: action._id.toString(),
-    action: action.toObject(),
-    character: character.toObject(),
     gameState,
     startedAt: new Date(),
     expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
@@ -225,24 +224,34 @@ export async function resolveActionGame(
   }
 
   const gameState = deckSession.gameState;
+
+  // Fetch action and character on-demand (not stored in session to save ~500KB per session)
+  const [actionDoc, character] = await Promise.all([
+    Action.findById(deckSession.actionId),
+    Character.findById(deckSession.characterId)
+  ]);
+
+  if (!actionDoc) {
+    throw new Error('Action not found');
+  }
+  if (!character) {
+    throw new Error('Character not found');
+  }
+
+  // Convert to plain object for type compatibility
+  const action = actionDoc.toObject() as any;
+
+  // Build pending action info for compatibility
   const pendingAction: PendingAction = {
     actionId: deckSession.actionId,
     characterId: deckSession.characterId.toString(),
-    action: deckSession.action,
-    character: deckSession.character,
+    action,
+    character: character.toObject(),
     startedAt: deckSession.startedAt
   };
 
   // Resolve the deck game
   const gameResult = resolveGame(gameState);
-
-  // Load character for updates
-  const character = await Character.findById(pendingAction.characterId);
-  if (!character) {
-    throw new Error('Character not found');
-  }
-
-  const action = pendingAction.action;
   const success = gameResult.success;
   const isJob = action.isJob === true;
 
@@ -424,11 +433,21 @@ export async function getPendingAction(gameId: string): Promise<PendingAction | 
     return null;
   }
 
+  // Fetch action and character on-demand (not stored in session to save ~500KB)
+  const [action, character] = await Promise.all([
+    Action.findById(session.actionId),
+    Character.findById(session.characterId)
+  ]);
+
+  if (!action || !character) {
+    return null;
+  }
+
   return {
     actionId: session.actionId,
     characterId: session.characterId.toString(),
-    action: session.action,
-    character: session.character,
+    action: action.toObject(),
+    character: character.toObject(),
     startedAt: session.startedAt
   };
 }

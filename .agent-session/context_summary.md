@@ -1,8 +1,41 @@
 # Desperados Destiny - Context Summary
 
-**Session Date:** 2025-12-31
+**Session Date:** 2026-01-01
 **Branch:** refactor/production-hardening
-**Last Commit:** 032c170
+**Last Commit:** (pending)
+
+---
+
+## Scalability Remediation Complete (2026-01-01)
+
+### Summary
+
+42 scalability issues identified in audit. 9 of 10 tasks remediated:
+
+| Task | Status | Impact |
+|------|--------|--------|
+| ActionDeckSession storage optimization | ✅ COMPLETE | 81% reduction (600KB→100KB) |
+| fenceTrust array cap | ✅ COMPLETE | Prevents document bloat |
+| setInterval fixes (taming, worldBoss, deckGame) | ✅ COMPLETE | Memory leak prevention |
+| Graceful shutdown integration | ✅ COMPLETE | Clean termination |
+| Gathering cooldowns → Redis | ✅ COMPLETE | Horizontal scaling |
+| Database indexes | ✅ COMPLETE | Query optimization |
+| ActionResult aggregation | ✅ COMPLETE | O(1) vs O(n) memory |
+| Crime decay pagination | ✅ COMPLETE | Batch processing |
+| useEnergy hook fix | ✅ COMPLETE | Interval stability |
+| Add .select() to populate calls | ⏸️ DEFERRED | Lower priority |
+
+### Key Changes This Session
+
+1. **ActionDeckSession** - Removed `action` and `character` Mixed fields, fetch on-demand via IDs
+2. **fenceTrust** - Added MAX_FENCE_TRUST_ENTRIES=50 cap with LRU eviction
+3. **Gathering Cooldowns** - Migrated from in-memory Map to Redis with SCAN/TTL
+4. **ActionResult.getCharacterStats()** - Replaced find+filter with MongoDB aggregation pipeline
+5. **Crime Decay** - Added BATCH_SIZE=500 pagination with skip/limit
+6. **useEnergy Hook** - Used refs instead of state in interval callback to prevent recreation
+
+### Full Report
+See `.agent-session/scalability-audit-2026-01-01.md` for complete findings
 
 ---
 

@@ -84,6 +84,14 @@ export const useEnergy = (): UseEnergyReturn => {
   const spendingRef = useRef(false);
   const syncInProgressRef = useRef(false);
 
+  // Ref to track energyStatus without causing interval recreation
+  const energyStatusRef = useRef<EnergyStatus | null>(null);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    energyStatusRef.current = energyStatus;
+  }, [energyStatus]);
+
   // Fetch current energy status
   const fetchStatus = useCallback(async () => {
     setIsLoading(true);
@@ -280,6 +288,7 @@ export const useEnergy = (): UseEnergyReturn => {
   })();
 
   // Auto-refresh energy status periodically (every 30 seconds for better sync)
+  // Uses refs to prevent interval recreation when energyStatus changes
   useEffect(() => {
     const interval = setInterval(async () => {
       // Skip if another sync is in progress
@@ -288,12 +297,27 @@ export const useEnergy = (): UseEnergyReturn => {
       // FIX: Sync regardless of energyStatus being null - this helps recover from API errors
       syncInProgressRef.current = true;
       try {
+        // Use ref to access current energyStatus without recreating interval
+        const status = energyStatusRef.current;
+
         // If we don't have energyStatus yet, fetch it
-        if (!energyStatus) {
+        if (!status) {
           await fetchStatus();
-        } else if (energyStatus.current < energyStatus.max) {
-          // Only regenerate if not at max
-          await regenerate();
+        } else if (status.current < status.max) {
+          // Only regenerate if not at max - call API directly to avoid dependency on regenerate
+          const response = await api.post<{ data: { regen: RegenResult } }>('/energy/regenerate');
+          const result = response.data.data.regen;
+
+          // Update local status using the ref's current value
+          const currentStatus = energyStatusRef.current;
+          if (currentStatus) {
+            setEnergyStatus({
+              ...currentStatus,
+              current: result.currentEnergy,
+              max: result.maxEnergy,
+              nextRegenAt: result.nextRegenAt,
+            });
+          }
         }
       } catch (err) {
         logger.error('Energy sync failed', err as Error, { context: 'useEnergy' });
@@ -303,7 +327,7 @@ export const useEnergy = (): UseEnergyReturn => {
     }, 30000); // Sync every 30 seconds for better accuracy
 
     return () => clearInterval(interval);
-  }, [energyStatus, regenerate, fetchStatus]);
+  }, [fetchStatus]); // Only depends on fetchStatus which is stable (empty deps)
 
   return {
     energyStatus,

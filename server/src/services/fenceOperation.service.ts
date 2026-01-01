@@ -43,6 +43,12 @@ interface ICharacterFenceTrust {
 }
 
 /**
+ * Maximum number of fence trust entries per character
+ * Prevents document bloat from unbounded array growth
+ */
+const MAX_FENCE_TRUST_ENTRIES = 50;
+
+/**
  * Result of selling to fence
  */
 interface FenceSaleResult {
@@ -402,6 +408,16 @@ export class FenceOperationService {
       existingTrust.totalValueTraded += valueTraded;
       existingTrust.lastTransactionAt = new Date();
     } else {
+      // Cap array to prevent document bloat - remove oldest entry if at limit
+      if (character.fenceTrust.length >= MAX_FENCE_TRUST_ENTRIES) {
+        // Sort by lastTransactionAt (oldest first) and remove oldest
+        character.fenceTrust.sort((a: ICharacterFenceTrust, b: ICharacterFenceTrust) => {
+          const aTime = a.lastTransactionAt?.getTime() || 0;
+          const bTime = b.lastTransactionAt?.getTime() || 0;
+          return aTime - bTime;
+        });
+        character.fenceTrust.shift(); // Remove oldest entry
+      }
       character.fenceTrust.push({
         fenceLocationId,
         trustLevel: newTrustLevel,
@@ -431,6 +447,15 @@ export class FenceOperationService {
       existingTrust.stingOperationsTriggered++;
       existingTrust.trustLevel = Math.max(0, existingTrust.trustLevel - 20); // Lose trust
     } else {
+      // Cap array to prevent document bloat - remove oldest entry if at limit
+      if (character.fenceTrust.length >= MAX_FENCE_TRUST_ENTRIES) {
+        character.fenceTrust.sort((a: ICharacterFenceTrust, b: ICharacterFenceTrust) => {
+          const aTime = a.lastTransactionAt?.getTime() || 0;
+          const bTime = b.lastTransactionAt?.getTime() || 0;
+          return aTime - bTime;
+        });
+        character.fenceTrust.shift(); // Remove oldest entry
+      }
       character.fenceTrust.push({
         fenceLocationId,
         trustLevel: 0,

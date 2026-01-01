@@ -377,8 +377,26 @@ export class TamingService {
 
 // Run cleanup every hour
 // Note: MongoDB TTL index also handles automatic deletion
-setInterval(() => {
-  TamingService.cleanupExpiredAttempts().catch((error) => {
-    logger.error('Error cleaning up taming attempts:', error);
-  });
-}, 60 * 60 * 1000);
+let tamingCleanupInterval: NodeJS.Timeout | null = null;
+
+function startTamingCleanup(): void {
+  if (!tamingCleanupInterval) {
+    tamingCleanupInterval = setInterval(() => {
+      TamingService.cleanupExpiredAttempts().catch((error) => {
+        logger.error('Error cleaning up taming attempts:', error);
+      });
+    }, 60 * 60 * 1000);
+  }
+}
+
+function stopTamingCleanup(): void {
+  if (tamingCleanupInterval) {
+    clearInterval(tamingCleanupInterval);
+    tamingCleanupInterval = null;
+  }
+}
+
+// Auto-start on module load
+startTamingCleanup();
+
+export { startTamingCleanup, stopTamingCleanup };

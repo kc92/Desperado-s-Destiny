@@ -21,17 +21,35 @@ import {
 const activeGames = new Map<string, GameState>();
 
 // Clean up expired games every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [gameId, state] of activeGames) {
-    const elapsed = now - state.startedAt.getTime();
-    const maxTime = (state.timeLimit + 60) * 1000; // Extra minute buffer
+let deckGameCleanupInterval: NodeJS.Timeout | null = null;
 
-    if (elapsed > maxTime) {
-      activeGames.delete(gameId);
-    }
+function startDeckGameCleanup(): void {
+  if (!deckGameCleanupInterval) {
+    deckGameCleanupInterval = setInterval(() => {
+      const now = Date.now();
+      for (const [gameId, state] of activeGames) {
+        const elapsed = now - state.startedAt.getTime();
+        const maxTime = (state.timeLimit + 60) * 1000; // Extra minute buffer
+
+        if (elapsed > maxTime) {
+          activeGames.delete(gameId);
+        }
+      }
+    }, 5 * 60 * 1000);
   }
-}, 5 * 60 * 1000);
+}
+
+function stopDeckGameCleanup(): void {
+  if (deckGameCleanupInterval) {
+    clearInterval(deckGameCleanupInterval);
+    deckGameCleanupInterval = null;
+  }
+}
+
+// Auto-start on module load
+startDeckGameCleanup();
+
+export { startDeckGameCleanup, stopDeckGameCleanup };
 
 /**
  * Start a new deck game

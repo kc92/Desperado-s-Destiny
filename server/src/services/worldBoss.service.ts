@@ -431,8 +431,26 @@ export class WorldBossService {
 /**
  * Background job to check enrage timers
  */
-setInterval(() => {
-  for (const bossId of Object.values(WorldBossType)) {
-    WorldBossService.checkEnrageTimer(bossId);
+let worldBossEnrageInterval: NodeJS.Timeout | null = null;
+
+function startWorldBossEnrageCheck(): void {
+  if (!worldBossEnrageInterval) {
+    worldBossEnrageInterval = setInterval(() => {
+      for (const bossId of Object.values(WorldBossType)) {
+        WorldBossService.checkEnrageTimer(bossId);
+      }
+    }, 60 * 1000); // Check every minute
   }
-}, 60 * 1000); // Check every minute
+}
+
+function stopWorldBossEnrageCheck(): void {
+  if (worldBossEnrageInterval) {
+    clearInterval(worldBossEnrageInterval);
+    worldBossEnrageInterval = null;
+  }
+}
+
+// Auto-start on module load
+startWorldBossEnrageCheck();
+
+export { startWorldBossEnrageCheck, stopWorldBossEnrageCheck };

@@ -162,6 +162,7 @@ const ActionResultSchema = new Schema<IActionResult>(
 ActionResultSchema.index({ characterId: 1, timestamp: -1 });
 ActionResultSchema.index({ actionId: 1, timestamp: -1 });
 ActionResultSchema.index({ characterId: 1, success: 1 });
+ActionResultSchema.index({ characterId: 1, success: 1, timestamp: -1 }); // For stats aggregation queries
 
 /**
  * Instance method: Return safe action result object
@@ -200,6 +201,7 @@ ActionResultSchema.statics.findByCharacter = async function(
 
 /**
  * Static method: Get character statistics
+ * Uses MongoDB aggregation pipeline for efficient database-side computation
  */
 ActionResultSchema.statics.getCharacterStats = async function(
   characterId: string
@@ -211,25 +213,55 @@ ActionResultSchema.statics.getCharacterStats = async function(
   totalXpGained: number;
   totalGoldGained: number;
 }> {
-  const results = await this.find({
-    characterId: new mongoose.Types.ObjectId(characterId)
-  });
+  const result = await this.aggregate([
+    {
+      $match: {
+        characterId: new mongoose.Types.ObjectId(characterId)
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        totalActions: { $sum: 1 },
+        successCount: {
+          $sum: { $cond: [{ $eq: ['$success', true] }, 1, 0] }
+        },
+        totalXpGained: { $sum: '$rewardsGained.xp' },
+        totalGoldGained: { $sum: '$rewardsGained.gold' }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        totalActions: 1,
+        successCount: 1,
+        failureCount: { $subtract: ['$totalActions', '$successCount'] },
+        successRate: {
+          $cond: [
+            { $eq: ['$totalActions', 0] },
+            0,
+            { $multiply: [{ $divide: ['$successCount', '$totalActions'] }, 100] }
+          ]
+        },
+        totalXpGained: 1,
+        totalGoldGained: 1
+      }
+    }
+  ]);
 
-  const totalActions = results.length;
-  const successCount = results.filter(r => r.success).length;
-  const failureCount = totalActions - successCount;
-  const successRate = totalActions > 0 ? (successCount / totalActions) * 100 : 0;
-  const totalXpGained = results.reduce((sum, r) => sum + r.rewardsGained.xp, 0);
-  const totalGoldGained = results.reduce((sum, r) => sum + r.rewardsGained.gold, 0);
+  // Return default values if no results
+  if (result.length === 0) {
+    return {
+      totalActions: 0,
+      successCount: 0,
+      failureCount: 0,
+      successRate: 0,
+      totalXpGained: 0,
+      totalGoldGained: 0
+    };
+  }
 
-  return {
-    totalActions,
-    successCount,
-    failureCount,
-    successRate,
-    totalXpGained,
-    totalGoldGained
-  };
+  return result[0];
 };
 
 /**

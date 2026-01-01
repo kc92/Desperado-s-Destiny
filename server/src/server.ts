@@ -407,6 +407,28 @@ async function shutdown(signal: string): Promise<void> {
       logger.warn('Failed to shutdown Bull job system:', error);
     }
 
+    // Stop all module-level intervals to prevent memory leaks
+    try {
+      const antiExploit = await import('./middleware/antiExploit.middleware');
+      antiExploit.default.stopCleanupInterval();
+
+      const { stopCacheCleanup } = await import('./services/territoryBonus.service');
+      stopCacheCleanup();
+
+      const { stopTamingCleanup } = await import('./services/taming.service');
+      stopTamingCleanup();
+
+      const { stopWorldBossEnrageCheck } = await import('./services/worldBoss.service');
+      stopWorldBossEnrageCheck();
+
+      const { stopDeckGameCleanup } = await import('./controllers/deckGame.controller');
+      stopDeckGameCleanup();
+
+      logger.info('All module intervals stopped');
+    } catch (error) {
+      logger.warn('Failed to stop some module intervals:', error);
+    }
+
     // Close Socket.io connections
     if (io) {
       logger.info('Closing Socket.io connections...');

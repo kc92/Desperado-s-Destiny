@@ -11,11 +11,9 @@ export interface IActionDeckSession extends Document {
   characterId: mongoose.Types.ObjectId;
   actionId: string;
 
-  // Pending action data
-  action: any;
-  character: any;
-
   // Game state data (stored as flexible object)
+  // NOTE: action and character are fetched on-demand via actionId/characterId
+  // This reduces document size from ~600KB to ~100KB per session
   gameState: any;
 
   // Timestamps
@@ -42,17 +40,9 @@ const ActionDeckSessionSchema = new Schema<IActionDeckSession>({
     index: true
   },
 
-  // Pending action data
-  action: {
-    type: Schema.Types.Mixed,
-    required: true
-  },
-  character: {
-    type: Schema.Types.Mixed,
-    required: true
-  },
-
   // Game state (full GameState object)
+  // NOTE: action and character are fetched on-demand via actionId/characterId
+  // This reduces document size from ~600KB to ~100KB per session
   gameState: {
     type: Schema.Types.Mixed,
     required: true

@@ -542,17 +542,14 @@ async function handleKick(
     }
 
     // Notify kicked player if they were a real player
+    // Use room-based lookup for O(1) instead of O(n) socket iteration
     if (kickedPlayerId) {
       const io = getSocketIO();
-      const sockets = await io.fetchSockets();
+      const playerSockets = await io.in(`user:${kickedPlayerId}`).fetchSockets();
 
-      for (const s of sockets) {
-        const authS = s as unknown as AuthenticatedSocket;
-        if (authS.data?.characterId === kickedPlayerId) {
-          s.emit('cardTable:kicked', { tableId });
-          await s.leave(getTableRoom(tableId));
-          break;
-        }
+      for (const s of playerSockets) {
+        s.emit('cardTable:kicked', { tableId });
+        await s.leave(getTableRoom(tableId));
       }
     }
 

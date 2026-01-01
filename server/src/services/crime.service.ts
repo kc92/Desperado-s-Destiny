@@ -917,21 +917,41 @@ export class CrimeService {
     totalReduced: number;
   }> {
     try {
-      // Find all characters with wanted level > 0
-      const characters = await Character.find({
-        wantedLevel: { $gt: 0 },
-        isActive: true
-      });
-
+      // Process in batches to prevent memory issues with large player counts
+      const BATCH_SIZE = 500;
       let charactersDecayed = 0;
       let totalReduced = 0;
+      let skip = 0;
+      let hasMore = true;
 
-      for (const character of characters) {
-        const decayed = character.decayWantedLevel();
-        if (decayed) {
-          charactersDecayed++;
-          totalReduced++;
-          await character.save();
+      while (hasMore) {
+        const characters = await Character.find({
+          wantedLevel: { $gt: 0 },
+          isActive: true
+        })
+          .limit(BATCH_SIZE)
+          .skip(skip)
+          .select('_id wantedLevel wantedDecayAt');
+
+        if (characters.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        for (const character of characters) {
+          const decayed = character.decayWantedLevel();
+          if (decayed) {
+            charactersDecayed++;
+            totalReduced++;
+            await character.save();
+          }
+        }
+
+        // If we got fewer than BATCH_SIZE, we've processed all
+        if (characters.length < BATCH_SIZE) {
+          hasMore = false;
+        } else {
+          skip += BATCH_SIZE;
         }
       }
 

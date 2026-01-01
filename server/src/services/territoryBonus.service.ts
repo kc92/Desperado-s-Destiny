@@ -70,8 +70,27 @@ function clearExpiredCache(): void {
   }
 }
 
-// Clear expired entries every minute
-setInterval(clearExpiredCache, 60 * 1000);
+// Clear expired entries every minute - store reference for graceful shutdown
+let cacheCleanupInterval: NodeJS.Timeout | null = null;
+
+function startCacheCleanup(): void {
+  if (!cacheCleanupInterval) {
+    cacheCleanupInterval = setInterval(clearExpiredCache, 60 * 1000);
+  }
+}
+
+function stopCacheCleanup(): void {
+  if (cacheCleanupInterval) {
+    clearInterval(cacheCleanupInterval);
+    cacheCleanupInterval = null;
+  }
+}
+
+// Auto-start on module load
+startCacheCleanup();
+
+// Export for graceful shutdown
+export { startCacheCleanup, stopCacheCleanup };
 
 // =============================================================================
 // HELPER FUNCTIONS
