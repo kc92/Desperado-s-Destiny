@@ -335,6 +335,10 @@ export class GatheringService {
       const cooldownEndsAt = new Date(Date.now() + node.cooldownSeconds * 1000);
       this.setCooldown(characterId, nodeId, cooldownEndsAt);
 
+      // Mark modified nested arrays for Mongoose change detection
+      character.markModified('inventory');
+      character.markModified('skills');
+
       // Save character
       await character.save({ session });
       await session.commitTransaction();
