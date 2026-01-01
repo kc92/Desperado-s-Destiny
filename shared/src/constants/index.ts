@@ -48,3 +48,6 @@ export * from './gangBusiness.constants';
 
 // Moral Reputation constants (Phase 19.3: Frontier Justice)
 export * from './moralReputation.constants';
+
+// Criminal Skills constants (Crime balance)
+export * from './criminalSkills.constants';

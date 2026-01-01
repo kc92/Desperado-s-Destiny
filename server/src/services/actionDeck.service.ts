@@ -69,16 +69,20 @@ function calculateJobRewards(
     goldMultiplier = 1.0 + ((normalizedScore - 70) / 30) * 0.5; // 1 to 1.5
   }
 
-  // Apply suit bonus multiplier on top
-  const suitMultiplier = gameResult.suitBonus?.multiplier || 1.0;
+  // Apply suit bonus multiplier on top (CAPPED at 1.2x to prevent XP inflation)
+  const rawSuitMultiplier = gameResult.suitBonus?.multiplier || 1.0;
+  const suitMultiplier = Math.min(1.2, rawSuitMultiplier);
 
   // Calculate final gold
   const baseGold = goldMin + Math.floor(goldRange * goldMultiplier);
   const finalGold = Math.floor(baseGold * suitMultiplier);
 
-  // XP also scales with performance (50% to 150%)
-  const xpMultiplier = 0.5 + (normalizedScore / 100);
-  const finalXP = Math.floor(baseXP * xpMultiplier * suitMultiplier);
+  // XP also scales with performance (50% to 120% - CAPPED to prevent inflation)
+  const rawXpMultiplier = 0.5 + (normalizedScore / 100);
+  const xpMultiplier = Math.min(1.2, rawXpMultiplier);
+  // Combined multiplier also capped at 1.2x total
+  const combinedXpMultiplier = Math.min(1.2, xpMultiplier * suitMultiplier);
+  const finalXP = Math.floor(baseXP * combinedXpMultiplier);
 
   logger.info(`[calculateJobRewards] Job: ${jobData.name}`);
   logger.info(`[calculateJobRewards] Score: ${normalizedScore}, GoldMult: ${goldMultiplier.toFixed(2)}, SuitMult: ${suitMultiplier.toFixed(2)}`);
@@ -243,7 +247,9 @@ export async function resolveActionGame(
   const isJob = action.isJob === true;
 
   // Use rewards from game engine if available, otherwise calculate
-  const multiplier = gameResult.suitBonus.multiplier || 1;
+  // Cap multiplier at 1.2x to prevent XP inflation
+  const rawMultiplier = gameResult.suitBonus.multiplier || 1;
+  const multiplier = Math.min(1.2, rawMultiplier);
 
   let rewardsGained: RewardsGained;
   let crimeResolution = null;
@@ -294,9 +300,13 @@ export async function resolveActionGame(
     }
 
     if (success) {
-      // Use game engine rewards if available
-      let goldReward = gameResult.rewards?.gold ?? Math.round((30 + (action.difficulty * 15)) * multiplier);
-      const xpReward = gameResult.rewards?.experience ?? Math.round((20 + (action.difficulty * 8)) * multiplier);
+      // Use game engine rewards if available, or calculate from action's defined rewards
+      // IMPORTANT: Use action.rewards.xp as base, not difficulty-based formula (prevents XP inflation)
+      const baseGold = action.rewards?.gold || (30 + (action.difficulty * 15));
+      const baseXP = action.rewards?.xp || 20;
+
+      let goldReward = gameResult.rewards?.gold ?? Math.round(baseGold * multiplier);
+      const xpReward = gameResult.rewards?.experience ?? Math.round(baseXP * multiplier);
 
       // Reduce gold if witnessed (you dropped some escaping)
       if (crimeResolution?.wasWitnessed) {

@@ -11,7 +11,14 @@ import { TransactionSource } from '../models/GoldTransaction.model';
 import { TimeService } from './time.service';
 import { WeatherService } from './weather.service';
 import { CrowdService } from './crowd.service';
-import { calculateCategoryMultiplier, SkillCategory, SKILLS } from '@desperados/shared';
+import {
+  calculateCategoryMultiplier,
+  SkillCategory,
+  SKILLS,
+  CriminalSkillType,
+  CRIMINAL_SKILLS,
+  calculateCriminalSkillXP
+} from '@desperados/shared';
 import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
 import { withLock } from '../utils/distributedLock';
@@ -77,6 +84,106 @@ export class CrimeService {
   static getCunningCategoryMultiplier(character: ICharacter): number {
     const highestLevel = this.getHighestCunningSkillLevel(character);
     return calculateCategoryMultiplier(highestLevel, 'CUNNING');
+  }
+
+  /**
+   * Get character's criminal skill level
+   */
+  static getCriminalSkillLevel(character: ICharacter, skillType: CriminalSkillType): number {
+    // Criminal skills are stored as regular skills with the criminal skill ID
+    const skill = character.skills.find(
+      s => s.skillId.toLowerCase() === skillType.toLowerCase()
+    );
+    return skill?.level || 1; // Default to level 1 if not found
+  }
+
+  /**
+   * Check if character can attempt a crime based on criminal skill requirements
+   */
+  static canAttemptCrime(
+    action: IAction,
+    character: ICharacter
+  ): { canAttempt: boolean; reason?: string } {
+    // Check for required criminal skill
+    if (action.requiredCriminalSkill && action.requiredCriminalSkillLevel) {
+      const skillType = action.requiredCriminalSkill as CriminalSkillType;
+      const requiredLevel = action.requiredCriminalSkillLevel;
+      const characterLevel = this.getCriminalSkillLevel(character, skillType);
+
+      if (characterLevel < requiredLevel) {
+        const skillDef = CRIMINAL_SKILLS[skillType];
+        return {
+          canAttempt: false,
+          reason: `Requires ${skillDef?.name || skillType} level ${requiredLevel} (you have ${characterLevel})`
+        };
+      }
+    }
+
+    return { canAttempt: true };
+  }
+
+  /**
+   * Award criminal skill XP after completing a crime
+   * Formula: crimeXP * 0.5
+   */
+  static async awardCriminalSkillXP(
+    character: ICharacter,
+    action: IAction,
+    crimeXP: number
+  ): Promise<{ skillId: string; xpGained: number; levelUp?: { newLevel: number } } | null> {
+    if (!action.requiredCriminalSkill) {
+      return null;
+    }
+
+    const skillType = action.requiredCriminalSkill as CriminalSkillType;
+    const xpGained = calculateCriminalSkillXP(crimeXP);
+
+    // Find or create the skill entry
+    let skillIndex = character.skills.findIndex(
+      s => s.skillId.toLowerCase() === skillType.toLowerCase()
+    );
+
+    if (skillIndex < 0) {
+      // Initialize the criminal skill at level 1
+      character.skills.push({
+        skillId: skillType,
+        level: 1,
+        experience: 0,
+        trainingStarted: undefined as any,
+        trainingCompletes: undefined as any
+      });
+      skillIndex = character.skills.length - 1;
+    }
+
+    const skill = character.skills[skillIndex];
+    skill.experience = (skill.experience || 0) + xpGained;
+
+    // Check for level up (formula: level^2 * 50)
+    const xpForNextLevel = Math.floor(Math.pow(skill.level, 2) * 50);
+    let levelUp: { newLevel: number } | undefined;
+
+    if (skill.experience >= xpForNextLevel && skill.level < 50) {
+      skill.level += 1;
+      skill.experience -= xpForNextLevel;
+      levelUp = { newLevel: skill.level };
+
+      logger.info(
+        `Criminal skill level up: ${character.name} ${skillType} is now level ${skill.level}`
+      );
+    }
+
+    // Mark skills as modified for Mongoose
+    character.markModified('skills');
+
+    logger.info(
+      `Criminal skill XP: ${character.name} gained ${xpGained} ${skillType} XP (${skill.experience}/${xpForNextLevel})`
+    );
+
+    return {
+      skillId: skillType,
+      xpGained,
+      levelUp
+    };
   }
 
   /**
