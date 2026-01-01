@@ -26,15 +26,21 @@
       "name": "Fix skill training button feedback",
       "description": "Clicking 'Train' button doesn't visibly start training. UI shows no feedback when skill training begins.",
       "priority": "P1",
-      "status": "pending",
+      "status": "completed",
+      "completed_at": "2025-12-31",
       "acceptance_criteria": [
         "Train button shows loading state during API call",
         "Success feedback when training starts",
         "Error feedback if training fails"
       ],
       "files": [
-        "client/src/pages/Skills.tsx"
-      ]
+        "client/src/pages/Skills.tsx",
+        "shared/src/types/notification.types.ts",
+        "client/src/components/notifications/NotificationItem.tsx",
+        "client/src/components/notifications/NotificationToast.tsx"
+      ],
+      "test_file": "client/src/pages/Skills.test.tsx",
+      "summary": "context_summaries/task-002-summary.md"
     },
     {
       "id": "task-003",

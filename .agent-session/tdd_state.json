@@ -4,10 +4,10 @@
   "current_task": null,
   "current_phase": null,
   "current_rpi_step": null,
-  "context_utilization_estimate": 0.35,
-  "last_checkpoint": "checkpoint-001-gathering-fix",
-  "last_commit": "1dff5d5",
-  "checkpoints": ["checkpoint-001-gathering-fix"],
+  "context_utilization_estimate": 0.45,
+  "last_checkpoint": "checkpoint-002-skills-feedback",
+  "last_commit": null,
+  "checkpoints": ["checkpoint-001-gathering-fix", "checkpoint-002-skills-feedback"],
   "phase_results": {
     "task-001-RED": {
       "completed_at": "2025-12-31",
@@ -20,7 +20,19 @@
     "task-001-REFACTOR": {
       "completed_at": "2025-12-31",
       "notes": "Code already clean, no changes needed"
+    },
+    "task-002-RED": {
+      "completed_at": "2025-12-31",
+      "test_file": "client/src/pages/Skills.test.tsx"
+    },
+    "task-002-GREEN": {
+      "completed_at": "2025-12-31",
+      "fix_file": "client/src/pages/Skills.tsx:120-160"
+    },
+    "task-002-REFACTOR": {
+      "completed_at": "2025-12-31",
+      "notes": "Code follows existing patterns, no changes needed"
     }
   },
-  "notes": "Task-001 COMPLETE. Ready for task-002 (skill training button) or fresh context."
+  "notes": "Task-002 COMPLETE. Ready for task-003 (card accessibility) or task-004 (XP pacing)."
 }
