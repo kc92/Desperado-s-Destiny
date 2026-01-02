@@ -23,18 +23,72 @@ import {
 } from '../data/highStakesEvents';
 import { AchievementService } from './achievement.service';
 import { InventoryService } from './inventory.service';
+import { getRedisClient, isRedisConnected } from '../config/redis';
 import logger from '../utils/logger';
 
-// Track event participants (in production, use Redis)
+// Track event participants - Redis-backed for horizontal scaling
 interface EventParticipation {
   eventId: string;
   characterId: string;
-  joinedAt: Date;
+  joinedAt: string; // ISO string for Redis serialization
   position: number;
   score: number;
 }
 
-const eventParticipants = new Map<string, EventParticipation[]>();
+const EVENT_PARTICIPANTS_KEY_PREFIX = 'high-stakes:event:';
+const EVENT_PARTICIPANTS_TTL = 86400; // 24 hours
+
+/**
+ * Get event participants from Redis
+ */
+async function getEventParticipants(eventId: string): Promise<EventParticipation[]> {
+  if (!isRedisConnected()) {
+    return [];
+  }
+  try {
+    const client = getRedisClient();
+    const data = await client.get(`${EVENT_PARTICIPANTS_KEY_PREFIX}${eventId}`);
+    if (!data) return [];
+    return JSON.parse(data) as EventParticipation[];
+  } catch (error) {
+    logger.warn('[HighStakesEvents] Failed to get participants from Redis:', error);
+    return [];
+  }
+}
+
+/**
+ * Set event participants in Redis
+ */
+async function setEventParticipants(eventId: string, participants: EventParticipation[]): Promise<void> {
+  if (!isRedisConnected()) {
+    return;
+  }
+  try {
+    const client = getRedisClient();
+    await client.setEx(
+      `${EVENT_PARTICIPANTS_KEY_PREFIX}${eventId}`,
+      EVENT_PARTICIPANTS_TTL,
+      JSON.stringify(participants)
+    );
+  } catch (error) {
+    logger.warn('[HighStakesEvents] Failed to set participants in Redis:', error);
+  }
+}
+
+/**
+ * Delete event participants from Redis
+ */
+async function deleteEventParticipants(eventId: string): Promise<void> {
+  if (!isRedisConnected()) {
+    return;
+  }
+  try {
+    const client = getRedisClient();
+    await client.del(`${EVENT_PARTICIPANTS_KEY_PREFIX}${eventId}`);
+  } catch (error) {
+    logger.warn('[HighStakesEvents] Failed to delete participants from Redis:', error);
+  }
+}
 
 /**
  * Get all available events
@@ -42,7 +96,15 @@ const eventParticipants = new Map<string, EventParticipation[]>();
 export async function getAvailableEvents(currentDate: Date = new Date()): Promise<any[]> {
   const allEvents = Object.values(HIGH_STAKES_EVENTS);
 
-  return allEvents.map(event => ({
+  // Fetch all participant counts in parallel
+  const participantCounts = await Promise.all(
+    allEvents.map(async event => {
+      const participants = await getEventParticipants(event.id);
+      return participants.length;
+    })
+  );
+
+  return allEvents.map((event, index) => ({
     id: event.id,
     name: event.name,
     description: event.description,
@@ -50,7 +112,7 @@ export async function getAvailableEvents(currentDate: Date = new Date()): Promis
     prizePool: event.prizePool,
     isActive: isEventActive(event, currentDate),
     nextOccurrence: getNextEventTime(event, currentDate),
-    currentParticipants: (eventParticipants.get(event.id) || []).length,
+    currentParticipants: participantCounts[index],
     maxParticipants: event.maxParticipants,
     entryRequirements: event.entryRequirements
   }));
@@ -75,12 +137,14 @@ export async function checkEventRequirements(
 
   const history = await GamblingHistory.findByCharacter(characterId);
   const failures: string[] = [];
+  // Use Total Level / 10 for backward compat with level requirements
+  const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
 
   for (const req of event.entryRequirements) {
     switch (req.type) {
       case 'LEVEL':
-        if (character.level < req.value) {
-          failures.push(`Level ${req.value} required (you are level ${character.level})`);
+        if (effectiveLevel < req.value) {
+          failures.push(`Total Level ${req.value * 10} required (you are at ${character.totalLevel || 30})`);
         }
         break;
 
@@ -160,7 +224,7 @@ export async function joinEvent(
   }
 
   // Check if already joined
-  const participants = eventParticipants.get(eventId) || [];
+  const participants = await getEventParticipants(eventId);
   if (participants.some(p => p.characterId === characterId)) {
     throw new Error('You have already joined this event');
   }
@@ -183,13 +247,13 @@ export async function joinEvent(
   const participation: EventParticipation = {
     eventId,
     characterId,
-    joinedAt: new Date(),
+    joinedAt: new Date().toISOString(),
     position: participants.length + 1,
     score: 0
   };
 
   participants.push(participation);
-  eventParticipants.set(eventId, participants);
+  await setEventParticipants(eventId, participants);
 
   logger.info(`Character ${character.name} joined event ${event.name}`);
 
@@ -209,12 +273,12 @@ export async function updateParticipantScore(
   characterId: string,
   scoreChange: number
 ): Promise<void> {
-  const participants = eventParticipants.get(eventId) || [];
+  const participants = await getEventParticipants(eventId);
   const participant = participants.find(p => p.characterId === characterId);
 
   if (participant) {
     participant.score += scoreChange;
-    eventParticipants.set(eventId, participants);
+    await setEventParticipants(eventId, participants);
   }
 }
 
@@ -224,7 +288,7 @@ export async function updateParticipantScore(
 export async function getEventLeaderboard(
   eventId: string
 ): Promise<any[]> {
-  const participants = eventParticipants.get(eventId) || [];
+  const participants = await getEventParticipants(eventId);
 
   // Sort by score descending
   const sorted = [...participants].sort((a, b) => b.score - a.score);
@@ -257,7 +321,7 @@ export async function endEvent(eventId: string): Promise<{
     throw new Error('Event not found');
   }
 
-  const participants = eventParticipants.get(eventId) || [];
+  const participants = await getEventParticipants(eventId);
   if (participants.length === 0) {
     logger.warn(`Event ${event.name} ended with no participants`);
     return { winners: [], prizesDistributed: 0 };
@@ -301,8 +365,8 @@ export async function endEvent(eventId: string): Promise<{
     }
   }
 
-  // Clear participants
-  eventParticipants.delete(eventId);
+  // Clear participants from Redis
+  await deleteEventParticipants(eventId);
 
   logger.info(`Event ${event.name} ended. ${winners.length} winners, ${prizesDistributed} prizes distributed`);
 
@@ -382,7 +446,7 @@ export async function getEventDetails(eventId: string): Promise<any> {
     throw new Error('Event not found');
   }
 
-  const participants = eventParticipants.get(eventId) || [];
+  const participants = await getEventParticipants(eventId);
   const currentDate = new Date();
 
   return {
@@ -403,7 +467,7 @@ export async function checkEventSchedules(): Promise<void> {
   const activeEvents = getActiveEvents(currentDate);
 
   for (const event of activeEvents) {
-    const participants = eventParticipants.get(event.id) || [];
+    const participants = await getEventParticipants(event.id);
 
     // Check if event should end
     const eventStart = getNextEventTime(event, new Date(currentDate.getTime() - event.duration * 60 * 1000));

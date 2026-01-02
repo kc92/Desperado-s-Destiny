@@ -25,8 +25,9 @@ import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
 import { v4 as uuidv4 } from 'uuid';
 import { withLock } from '../utils/distributedLock';
+import { RedisStateManager } from './base/RedisStateManager';
 
-// Active tournament matches (in production, use Redis)
+// Active tournament matches - Redis-backed for horizontal scaling
 interface TournamentGameState {
   tournamentId: string;
   matchId: string;
@@ -38,7 +39,16 @@ interface TournamentGameState {
   player2Result?: any;
 }
 
-const activeTournamentGames = new Map<string, TournamentGameState>();
+/**
+ * Redis-backed tournament game state manager
+ * TTL: 2 hours (max expected tournament match duration)
+ */
+class TournamentGameStateManager extends RedisStateManager<TournamentGameState> {
+  protected keyPrefix = 'tournament:game:';
+  protected ttlSeconds = 7200; // 2 hours
+}
+
+const tournamentGameManager = new TournamentGameStateManager();
 
 /**
  * Create a new tournament
@@ -381,7 +391,7 @@ export async function startTournamentMatch(
     player2Resolved: false
   };
 
-  activeTournamentGames.set(matchId, gameState);
+  await tournamentGameManager.setState(matchId, gameState);
 
   // Update match status
   match.status = 'in_progress';
@@ -404,7 +414,7 @@ export async function processTournamentAction(
   matchComplete: boolean;
   result?: any;
 }> {
-  const gameState = activeTournamentGames.get(matchId);
+  const gameState = await tournamentGameManager.getState(matchId);
   if (!gameState) {
     throw new Error('Tournament match game not found');
   }
@@ -450,6 +460,9 @@ export async function processTournamentAction(
   // Check if match complete
   const matchComplete = gameState.player1Resolved && gameState.player2Resolved;
 
+  // Save updated game state to Redis
+  await tournamentGameManager.setState(matchId, gameState);
+
   if (matchComplete) {
     const result = await resolveTournamentMatch(matchId);
     return {
@@ -476,7 +489,7 @@ async function resolveTournamentMatch(matchId: string): Promise<{
   player1Score: number;
   player2Score: number;
 }> {
-  const gameState = activeTournamentGames.get(matchId);
+  const gameState = await tournamentGameManager.getState(matchId);
   if (!gameState || !gameState.player1Result || !gameState.player2Result) {
     throw new Error('Match game not properly resolved');
   }
@@ -606,8 +619,8 @@ async function resolveTournamentMatch(matchId: string): Promise<{
 
   await tournament.save();
 
-  // Clean up game state
-  activeTournamentGames.delete(matchId);
+  // Clean up game state from Redis
+  await tournamentGameManager.deleteState(matchId);
 
   return {
     winnerId: winnerId.toString(),

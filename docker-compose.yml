@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   # MongoDB Database (Replica Set mode for transactions)
+  # Auto-initializes replica set on first startup
   mongodb:
     image: mongo:6
     container_name: desperados-mongodb
@@ -13,14 +14,24 @@ services:
       - mongodb_data:/data/db
       - mongodb_config:/data/configdb
       - ./docker/mongo-keyfile:/tmp/mongo-keyfile:ro
+      - ./docker/mongo-init-replica.js:/docker-entrypoint-initdb.d/init-replica.js:ro
     networks:
       - desperados-network
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/desperados-destiny --quiet
+      # Check both ping AND replica set primary status
+      test: >
+        mongosh --quiet --eval "
+          try {
+            db.adminCommand('ping');
+            const status = rs.status();
+            if (status.myState !== 1) quit(1);
+            quit(0);
+          } catch(e) { quit(1); }
+        "
       interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
     deploy:
       resources:
         limits:
@@ -73,11 +84,11 @@ services:
       MONGODB_URI: mongodb://mongodb:27017/desperados-destiny?replicaSet=rs0
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
-      JWT_EXPIRE: ${JWT_EXPIRE:-7d}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required - generate with: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"}
+      JWT_EXPIRE: ${JWT_EXPIRE:-1h}
       BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-      DISABLE_TRANSACTIONS: "true"
+      DISABLE_TRANSACTIONS: ${DISABLE_TRANSACTIONS:-false}
     volumes:
       - ./server:/app
       - ./shared:/app/shared

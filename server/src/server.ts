@@ -202,19 +202,23 @@ function configureRoutes(): void {
   // Prometheus metrics endpoint (before API routes, no auth required for scraping)
   app.get('/metrics', getMetrics);
 
-  // API routes
+  // API routes - versioned for backward compatibility
+  app.use('/api/v1', routes);
+  // Legacy route support (redirect to v1)
   app.use('/api', routes);
 
   // Global CSRF protection for all mutation requests
   // This ensures 100% coverage without modifying each route file
-  app.use('/api', (req, res, next) => {
+  const csrfMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     // Skip GET, HEAD, OPTIONS - these are safe methods
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       return next();
     }
     // Require CSRF token for all mutations (POST, PUT, PATCH, DELETE)
     return requireCsrfToken(req, res, next);
-  });
+  };
+  app.use('/api/v1', csrfMiddleware);
+  app.use('/api', csrfMiddleware);
 
   // Root route
   app.get('/', (_req, res) => {

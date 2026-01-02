@@ -25,6 +25,9 @@ interface TimeoutResult {
   error?: string;
 }
 
+// Maximum encounters to process per job run (prevents memory/timeout issues)
+const MAX_BATCH_SIZE = 100;
+
 /**
  * Process timed-out combat encounters
  */
@@ -33,6 +36,7 @@ export async function processTimedOutEncounters(): Promise<{
   succeeded: number;
   failed: number;
   results: TimeoutResult[];
+  hasMore: boolean;
 }> {
   const startTime = Date.now();
   const results: TimeoutResult[] = [];
@@ -42,18 +46,28 @@ export async function processTimedOutEncounters(): Promise<{
   try {
     const now = new Date();
 
-    // Find active encounters with expired timeouts
+    // Count total timed-out encounters for reporting
+    const totalTimedOut = await CombatEncounter.countDocuments({
+      status: CombatStatus.ACTIVE,
+      'currentRound.timeoutAt': { $lte: now },
+      'currentRound.phase': PlayerTurnPhase.HOLD
+    });
+
+    // Find active encounters with expired timeouts (limited batch)
     const timedOutEncounters = await CombatEncounter.find({
       status: CombatStatus.ACTIVE,
       'currentRound.timeoutAt': { $lte: now },
       'currentRound.phase': PlayerTurnPhase.HOLD // Only timeout during hold phase
-    }).populate('characterId', 'name userId');
+    })
+      .limit(MAX_BATCH_SIZE)
+      .populate('characterId', 'name userId');
 
     if (timedOutEncounters.length === 0) {
-      return { processed: 0, succeeded: 0, failed: 0, results: [] };
+      return { processed: 0, succeeded: 0, failed: 0, results: [], hasMore: false };
     }
 
-    logger.info(`Processing ${timedOutEncounters.length} timed-out combat encounters`);
+    const hasMore = totalTimedOut > MAX_BATCH_SIZE;
+    logger.info(`Processing ${timedOutEncounters.length} of ${totalTimedOut} timed-out combat encounters`);
 
     const io = getIO();
 
@@ -85,14 +99,15 @@ export async function processTimedOutEncounters(): Promise<{
 
     const duration = Date.now() - startTime;
     logger.info(
-      `Combat timeout processing complete: ${succeeded} succeeded, ${failed} failed in ${duration}ms`
+      `Combat timeout processing complete: ${succeeded} succeeded, ${failed} failed in ${duration}ms${hasMore ? ` (more pending)` : ''}`
     );
 
     return {
       processed: timedOutEncounters.length,
       succeeded,
       failed,
-      results
+      results,
+      hasMore
     };
   } catch (error) {
     logger.error('Error in combat timeout job:', error);
@@ -125,7 +140,7 @@ async function processEncounterTimeout(
   logger.info(`Combat timeout for ${characterName} in encounter ${encounter._id}`);
 
   // Import combat service dynamically to avoid circular dependencies
-  const { CombatService } = await import('../services/combat.service');
+  const { CombatService } = await import('../services/combat');
 
   // Auto-confirm the hold with whatever cards are currently held
   // If no cards are held, this effectively skips all discards

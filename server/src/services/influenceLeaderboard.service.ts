@@ -47,32 +47,37 @@ export class InfluenceLeaderboardService {
         .populate('characterId', 'name level gangId')
         .lean();
 
-      const entries: InfluenceLeaderboardEntry[] = [];
+      // Batch fetch all gang names to avoid N+1 queries
+      const gangIds = contributions
+        .map((c: any) => c.characterId?.gangId)
+        .filter((id: any) => id != null);
 
-      for (let i = 0; i < contributions.length; i++) {
-        const contrib = contributions[i] as any;
-        const character = contrib.characterId;
-
-        let gangName: string | undefined;
-        if (character.gangId) {
-          const gang = await Gang.findById(character.gangId).select('name').lean();
-          gangName = gang?.name;
+      const gangMap = new Map<string, string>();
+      if (gangIds.length > 0) {
+        const gangs = await Gang.find({ _id: { $in: gangIds } }).select('name').lean();
+        for (const gang of gangs) {
+          gangMap.set(gang._id.toString(), gang.name);
         }
+      }
 
-        entries.push({
+      const entries: InfluenceLeaderboardEntry[] = contributions.map((contrib: any, i: number) => {
+        const character = contrib.characterId;
+        const gangName = character?.gangId ? gangMap.get(character.gangId.toString()) : undefined;
+
+        return {
           rank: i + 1,
-          characterId: character._id.toString(),
-          characterName: character.name,
-          characterLevel: character.level,
+          characterId: character?._id?.toString() || '',
+          characterName: character?.name || 'Unknown',
+          characterLevel: character?.level || 1,
           factionId: contrib.factionId,
           totalInfluence: contrib.totalInfluenceContributed,
           weeklyInfluence: contrib.weeklyInfluence,
           monthlyInfluence: contrib.monthlyInfluence,
           currentMilestone: contrib.currentMilestone,
-          gangId: character.gangId?.toString(),
+          gangId: character?.gangId?.toString(),
           gangName,
-        });
-      }
+        };
+      });
 
       return entries;
     } catch (error) {
@@ -96,19 +101,24 @@ export class InfluenceLeaderboardService {
         period
       );
 
-      const entries: InfluenceLeaderboardEntry[] = [];
+      // Batch fetch all gang names to avoid N+1 queries
+      const gangIds = topContributors
+        .map((c: any) => c.characterId?.gangId)
+        .filter((id: any) => id != null);
 
-      for (let i = 0; i < topContributors.length; i++) {
-        const contrib = topContributors[i] as any;
-        const character = contrib.characterId;
-
-        let gangName: string | undefined;
-        if (character?.gangId) {
-          const gang = await Gang.findById(character.gangId).select('name').lean();
-          gangName = gang?.name;
+      const gangMap = new Map<string, string>();
+      if (gangIds.length > 0) {
+        const gangs = await Gang.find({ _id: { $in: gangIds } }).select('name').lean();
+        for (const gang of gangs) {
+          gangMap.set(gang._id.toString(), gang.name);
         }
+      }
 
-        entries.push({
+      const entries: InfluenceLeaderboardEntry[] = topContributors.map((contrib: any, i: number) => {
+        const character = contrib.characterId;
+        const gangName = character?.gangId ? gangMap.get(character.gangId.toString()) : undefined;
+
+        return {
           rank: i + 1,
           characterId: character?._id?.toString() || contrib.characterId.toString(),
           characterName: character?.name || contrib.characterName,
@@ -120,19 +130,17 @@ export class InfluenceLeaderboardService {
           currentMilestone: contrib.currentMilestone,
           gangId: character?.gangId?.toString(),
           gangName,
-        });
-      }
-
-      // Calculate total faction influence
-      const totalFactionInfluence = await PlayerInfluenceContribution.getFactionTotalInfluence(
-        factionId
-      );
-
-      // Calculate territories controlled by this faction (where a gang controls it)
-      const territoriesControlled = await Territory.countDocuments({
-        faction: factionId,
-        controllingGangId: { $ne: null },
+        };
       });
+
+      // Run these queries in parallel instead of sequentially
+      const [totalFactionInfluence, territoriesControlled] = await Promise.all([
+        PlayerInfluenceContribution.getFactionTotalInfluence(factionId),
+        Territory.countDocuments({
+          faction: factionId,
+          controllingGangId: { $ne: null },
+        })
+      ]);
 
       // Calculate weekly growth
       const weeklyGrowth = this.calculateWeeklyGrowth(topContributors);
@@ -158,16 +166,19 @@ export class InfluenceLeaderboardService {
     limit: number = 50
   ): Promise<FactionLeaderboard[]> {
     const factions = Object.values(FactionId);
-    const leaderboards: FactionLeaderboard[] = [];
 
-    for (const faction of factions) {
+    // Fetch all faction leaderboards in parallel
+    const leaderboardPromises = factions.map(async faction => {
       try {
-        const leaderboard = await this.getFactionLeaderboard(faction, limit);
-        leaderboards.push(leaderboard);
+        return await this.getFactionLeaderboard(faction, limit);
       } catch (error) {
         logger.error(`Error loading leaderboard for ${faction}:`, error);
+        return null;
       }
-    }
+    });
+
+    const results = await Promise.all(leaderboardPromises);
+    const leaderboards = results.filter((lb): lb is FactionLeaderboard => lb !== null);
 
     // Sort by total faction influence
     leaderboards.sort((a, b) => b.totalFactionInfluence - a.totalFactionInfluence);
@@ -397,38 +408,35 @@ export class InfluenceLeaderboardService {
     }>
   > {
     const factions = Object.values(FactionId);
-    const rankings: Array<{
-      factionId: FactionId;
-      factionName: string;
-      totalInfluence: number;
-      activeContributors: number;
-      weeklyGrowth: number;
-      rank: number;
-    }> = [];
 
-    for (const faction of factions) {
-      const totalInfluence = await PlayerInfluenceContribution.getFactionTotalInfluence(faction);
+    // Fetch all faction data in parallel using aggregation for efficiency
+    const rankingPromises = factions.map(async faction => {
+      const [totalInfluence, activeContributors, weeklyGrowthResult] = await Promise.all([
+        PlayerInfluenceContribution.getFactionTotalInfluence(faction),
+        PlayerInfluenceContribution.countDocuments({
+          factionId: faction,
+          weeklyInfluence: { $gt: 0 },
+        }),
+        // Use aggregation to sum weeklyInfluence in a single query
+        PlayerInfluenceContribution.aggregate([
+          { $match: { factionId: faction } },
+          { $group: { _id: null, total: { $sum: '$weeklyInfluence' } } }
+        ])
+      ]);
 
-      const activeContributors = await PlayerInfluenceContribution.countDocuments({
-        factionId: faction,
-        weeklyInfluence: { $gt: 0 },
-      });
+      const weeklyGrowth = weeklyGrowthResult[0]?.total || 0;
 
-      const contributions = await PlayerInfluenceContribution.find({
-        factionId: faction,
-      }).select('weeklyInfluence');
-
-      const weeklyGrowth = contributions.reduce((sum, c) => sum + c.weeklyInfluence, 0);
-
-      rankings.push({
+      return {
         factionId: faction,
         factionName: this.getFactionDisplayName(faction),
         totalInfluence,
         activeContributors,
         weeklyGrowth,
         rank: 0, // Will be set after sorting
-      });
-    }
+      };
+    });
+
+    const rankings = await Promise.all(rankingPromises);
 
     // Sort by total influence
     rankings.sort((a, b) => b.totalInfluence - a.totalInfluence);

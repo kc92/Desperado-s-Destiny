@@ -22,6 +22,7 @@ import {
   scaleRewards
 } from '../data/contractTemplates';
 import { CONTRACT_CONSTANTS } from '@desperados/shared';
+import { getRedisClient, isRedisConnected } from '../config/redis';
 import logger from '../utils/logger';
 
 /**
@@ -32,15 +33,67 @@ const URGENT_SPAWN_INTERVAL_MINUTES = 30; // Check every 30 minutes
 const MAX_URGENT_CONTRACTS_PER_DAY = 3; // Maximum urgent contracts a player can receive per day
 
 /**
+ * Redis key prefix for daily spawn trackers
+ * Uses HSET for efficient per-character tracking with automatic TTL cleanup
+ */
+const SPAWN_TRACKER_KEY_PREFIX = 'urgent-spawn:';
+
+/**
  * Track daily urgent contract spawns per character
  */
 interface UrgentSpawnTracker {
   characterId: string;
   count: number;
-  lastSpawnAt: Date;
+  lastSpawnAt: string; // ISO string for Redis serialization
 }
 
-const dailySpawnTrackers = new Map<string, UrgentSpawnTracker>();
+/**
+ * Get today's Redis key for spawn trackers (auto-expires at midnight UTC)
+ */
+function getTodayTrackerKey(): string {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  return `${SPAWN_TRACKER_KEY_PREFIX}${today.toISOString().split('T')[0]}`;
+}
+
+/**
+ * Get spawn tracker from Redis
+ */
+async function getTracker(characterId: string): Promise<UrgentSpawnTracker | null> {
+  if (!isRedisConnected()) {
+    return null;
+  }
+  try {
+    const client = getRedisClient();
+    const data = await client.hGet(getTodayTrackerKey(), characterId);
+    if (!data) return null;
+    return JSON.parse(data) as UrgentSpawnTracker;
+  } catch (error) {
+    logger.warn('[UrgentContractSpawner] Failed to get tracker from Redis:', error);
+    return null;
+  }
+}
+
+/**
+ * Set spawn tracker in Redis with TTL until end of day
+ */
+async function setTracker(characterId: string, tracker: UrgentSpawnTracker): Promise<void> {
+  if (!isRedisConnected()) {
+    return;
+  }
+  try {
+    const client = getRedisClient();
+    const key = getTodayTrackerKey();
+    await client.hSet(key, characterId, JSON.stringify(tracker));
+    // Set TTL to expire at midnight UTC + 1 hour buffer
+    const tomorrow = new Date();
+    tomorrow.setUTCHours(25, 0, 0, 0); // 1am UTC next day
+    const ttlSeconds = Math.ceil((tomorrow.getTime() - Date.now()) / 1000);
+    await client.expire(key, ttlSeconds);
+  } catch (error) {
+    logger.warn('[UrgentContractSpawner] Failed to set tracker in Redis:', error);
+  }
+}
 
 /**
  * Main urgent contract spawner function
@@ -57,8 +110,7 @@ export async function spawnUrgentContracts(): Promise<void> {
       try {
         logger.info('[UrgentContractSpawner] Starting urgent contract spawn cycle...');
 
-        // Clean up old tracker entries (from previous days)
-        cleanupOldTrackers();
+        // No need to clean up - Redis TTL handles automatic cleanup
 
         // Get recently active characters (logged in within last 2 hours)
         const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
@@ -72,8 +124,8 @@ export async function spawnUrgentContracts(): Promise<void> {
         let spawnedCount = 0;
 
         for (const character of activeCharacters) {
-          // Check daily spawn limit
-          const tracker = dailySpawnTrackers.get(character._id.toString());
+          // Check daily spawn limit (Redis-backed)
+          const tracker = await getTracker(character._id.toString());
           if (tracker && tracker.count >= MAX_URGENT_CONTRACTS_PER_DAY) {
             continue;
           }
@@ -88,8 +140,8 @@ export async function spawnUrgentContracts(): Promise<void> {
           if (contract) {
             spawnedCount++;
 
-            // Update tracker
-            updateTracker(character._id.toString());
+            // Update tracker (Redis-backed)
+            await updateTrackerRedis(character._id.toString());
 
             // Notify player via Socket.IO
             try {
@@ -164,9 +216,11 @@ async function spawnUrgentContract(
     }
 
     // Filter available urgent templates based on character requirements
+    // Use Total Level / 10 for backward compat with level-based templates
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
     const availableTemplates = URGENT_CONTRACTS.filter(template => {
       // Check level requirement
-      if (template.levelRequirement && character.level < template.levelRequirement) {
+      if (template.levelRequirement && effectiveLevel < template.levelRequirement) {
         return false;
       }
 
@@ -186,7 +240,7 @@ async function spawnUrgentContract(
     const template = SecureRNG.select(availableTemplates);
 
     // Generate contract from template
-    const contract = generateUrgentContract(template, character.level);
+    const contract = generateUrgentContract(template, effectiveLevel);
 
     // Add to daily contracts
     dailyRecord.contracts.push(contract as IContract);
@@ -336,33 +390,22 @@ function replacePlaceholders(template: string, data: any): string {
 }
 
 /**
- * Update spawn tracker for a character
+ * Update spawn tracker for a character (Redis-backed)
  */
-function updateTracker(characterId: string): void {
-  const existing = dailySpawnTrackers.get(characterId);
+async function updateTrackerRedis(characterId: string): Promise<void> {
+  const existing = await getTracker(characterId);
+  const now = new Date().toISOString();
+
   if (existing) {
     existing.count += 1;
-    existing.lastSpawnAt = new Date();
+    existing.lastSpawnAt = now;
+    await setTracker(characterId, existing);
   } else {
-    dailySpawnTrackers.set(characterId, {
+    await setTracker(characterId, {
       characterId,
       count: 1,
-      lastSpawnAt: new Date()
+      lastSpawnAt: now
     });
-  }
-}
-
-/**
- * Clean up old tracker entries from previous days
- */
-function cleanupOldTrackers(): void {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-
-  for (const [characterId, tracker] of dailySpawnTrackers.entries()) {
-    if (tracker.lastSpawnAt < today) {
-      dailySpawnTrackers.delete(characterId);
-    }
   }
 }
 
@@ -425,8 +468,19 @@ export async function getUrgentSpawnerStatus(): Promise<{
   const nextSpawn = new Date(now);
   nextSpawn.setMinutes(Math.ceil(now.getMinutes() / URGENT_SPAWN_INTERVAL_MINUTES) * URGENT_SPAWN_INTERVAL_MINUTES, 0, 0);
 
+  // Get tracker count from Redis
+  let trackersCount = 0;
+  if (isRedisConnected()) {
+    try {
+      const client = getRedisClient();
+      trackersCount = await client.hLen(getTodayTrackerKey());
+    } catch (error) {
+      logger.warn('[UrgentContractSpawner] Failed to get tracker count from Redis:', error);
+    }
+  }
+
   return {
-    trackersCount: dailySpawnTrackers.size,
+    trackersCount,
     nextSpawnWindow: nextSpawn
   };
 }

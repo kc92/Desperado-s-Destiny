@@ -81,7 +81,8 @@ export class BountyHuntingService {
       return { bounties: [], activeHunt: null };
     }
 
-    const bounties = getAvailableBounties(character.level);
+    // Use Combat Level for bounty difficulty matching (combat-related content)
+    const bounties = getAvailableBounties(character.combatLevel || 1);
     const activeHunt = await BountyHunt.findActiveHunt(characterId);
 
     return { bounties, activeHunt };
@@ -118,9 +119,10 @@ export class BountyHuntingService {
         return { success: false, error: 'Invalid bounty target' };
       }
 
-      // Check level requirement
-      if (character.level < target.levelRequired) {
-        return { success: false, error: `You must be level ${target.levelRequired} to hunt this target` };
+      // Check Combat Level requirement
+      const combatLevel = character.combatLevel || 1;
+      if (combatLevel < target.levelRequired) {
+        return { success: false, error: `Requires Combat Level ${target.levelRequired} to hunt this target (current: ${combatLevel})` };
       }
 
       // Calculate expiry time
@@ -404,6 +406,27 @@ export class BountyHuntingService {
 
         // Award XP
         await CharacterProgressionService.addExperience(characterId, xpAwarded, 'bounty_hunting');
+
+        // Award Combat XP for bounty capture
+        try {
+          const bountyXP = SkillService.calculateBountyCombatXP(goldAwarded);
+          const combatResult = await SkillService.awardCombatXP(
+            characterId,
+            bountyXP,
+            'bounty'
+          );
+
+          // Check Combat Level milestones if leveled up
+          if (combatResult.leveledUp) {
+            await CharacterProgressionService.checkCombatLevelMilestones(
+              characterId,
+              combatResult.newCombatLevel,
+              combatResult.totalCombatXp
+            );
+          }
+        } catch (combatXpError) {
+          logger.warn('Failed to award bounty combat XP:', combatXpError);
+        }
 
         // Handle reputation
         let reputationChange: { faction: string; amount: number } | undefined;
@@ -796,6 +819,9 @@ export class BountyHuntingService {
         'bountyPortfolio.activeBounties.status': 'active'
       });
 
+      // Process all investors and collect save operations
+      const saveOperations: Promise<any>[] = [];
+
       for (const investor of investors) {
         if (!investor.bountyPortfolio) continue;
 
@@ -832,7 +858,13 @@ export class BountyHuntingService {
         // Update portfolio value (remove this investment)
         investor.bountyPortfolio.portfolioValue -= investment.goldInvested;
 
-        await investor.save();
+        // Collect save operation for parallel execution
+        saveOperations.push(investor.save());
+      }
+
+      // Execute all saves in parallel to avoid N+1 writes
+      if (saveOperations.length > 0) {
+        await Promise.all(saveOperations);
       }
     } catch (error) {
       logger.error('Error processing portfolio investments', { bountyId, error });
