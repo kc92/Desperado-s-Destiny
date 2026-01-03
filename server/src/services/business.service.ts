@@ -121,11 +121,13 @@ export class BusinessService {
         throw new Error(`Unknown business type: ${businessType}`);
       }
 
-      // Check level requirement
-      if (character.level < requirements.minCharacterLevel) {
+      // Check Total Level requirement (old level × 10)
+      const totalLevel = character.totalLevel || 30;
+      const requiredTotalLevel = requirements.minCharacterLevel * 10;
+      if (totalLevel < requiredTotalLevel) {
         throw new Error(
-          `Level ${requirements.minCharacterLevel} required to establish this business. ` +
-          `Your level: ${character.level}`
+          `Total Level ${requiredTotalLevel} required to establish this business. ` +
+          `Current: ${totalLevel}`
         );
       }
 

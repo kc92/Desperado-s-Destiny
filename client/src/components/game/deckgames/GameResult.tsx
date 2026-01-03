@@ -290,6 +290,75 @@ export const GameResult: React.FC<GameResultProps> = ({
           </motion.p>
         )}
 
+        {/* NEW: Effectiveness Breakdown (V2 System) */}
+        {(gameResult as any).effectiveness && (gameResult as any).effectivenessBreakdown && (
+          <motion.div
+            className="mt-4 p-3 bg-gradient-to-r from-wood-darker to-wood-dark rounded border border-gold-dark/30"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.75 }}
+          >
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gold-light font-bold text-sm">Effectiveness</span>
+              <motion.span
+                className="text-2xl font-western text-gold-light"
+                initial={{ scale: 0.5 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.9, type: 'spring' }}
+              >
+                <AnimatedCounter value={(gameResult as any).effectiveness} duration={600} />
+              </motion.span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <motion.div
+                className="text-center p-1 bg-wood-darker/50 rounded"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+              >
+                <div className="text-desert-dust">Base</div>
+                <div className="text-white font-bold">
+                  {(gameResult as any).effectivenessBreakdown.baseValue}
+                </div>
+              </motion.div>
+              <motion.div
+                className="text-center p-1 bg-wood-darker/50 rounded"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.85 }}
+              >
+                <div className="text-desert-dust">Suit</div>
+                <div className={`font-bold ${
+                  (gameResult as any).effectivenessBreakdown.suitMultiplier >= 1.3 ? 'text-green-400' : 'text-white'
+                }`}>
+                  {((gameResult as any).effectivenessBreakdown.suitMultiplier).toFixed(1)}x
+                </div>
+              </motion.div>
+              <motion.div
+                className="text-center p-1 bg-wood-darker/50 rounded"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.9 }}
+              >
+                <div className="text-desert-dust">Skill</div>
+                <div className={`font-bold ${
+                  (gameResult as any).effectivenessBreakdown.skillMultiplier >= 1.2 ? 'text-blue-400' : 'text-white'
+                }`}>
+                  {((gameResult as any).effectivenessBreakdown.skillMultiplier).toFixed(1)}x
+                </div>
+              </motion.div>
+            </div>
+            <motion.p
+              className="text-xs text-desert-dust text-center mt-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.95 }}
+            >
+              {(gameResult as any).effectivenessBreakdown.handName} × {(gameResult as any).effectivenessBreakdown.suitMatches} suit matches
+            </motion.p>
+          </motion.div>
+        )}
+
         {!isSuccess && gameResult.mitigation && (
           <motion.p
             className="mt-2 text-sm text-yellow-400"

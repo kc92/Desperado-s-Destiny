@@ -26,6 +26,8 @@ import karmaService from './karma.service';
 import karmaEffectsService from './karmaEffects.service';
 import { safeAchievementUpdate, safeAchievementSet } from '../utils/achievementUtils';
 import { TerritoryBonusService } from './territoryBonus.service';
+import { SkillService } from './skill.service';
+import { CharacterProgressionService } from './characterProgression.service';
 
 /**
  * Crime resolution result
@@ -149,6 +151,7 @@ export class CrimeService {
         skillId: skillType,
         level: 1,
         experience: 0,
+        totalXpEarned: 0,
         trainingStarted: undefined as any,
         trainingCompletes: undefined as any
       });
@@ -158,11 +161,11 @@ export class CrimeService {
     const skill = character.skills[skillIndex];
     skill.experience = (skill.experience || 0) + xpGained;
 
-    // Check for level up (formula: level^2 * 50)
-    const xpForNextLevel = Math.floor(Math.pow(skill.level, 2) * 50);
+    // Check for level up using shared formula
+    const xpForNextLevel = SkillService.calculateXPForNextLevel(skill.level);
     let levelUp: { newLevel: number } | undefined;
 
-    if (skill.experience >= xpForNextLevel && skill.level < 50) {
+    if (skill.experience >= xpForNextLevel && xpForNextLevel > 0 && skill.level < 50) {
       skill.level += 1;
       skill.experience -= xpForNextLevel;
       levelUp = { newLevel: skill.level };
@@ -174,6 +177,21 @@ export class CrimeService {
 
     // Mark skills as modified for Mongoose
     character.markModified('skills');
+
+    // Update Total Level if criminal skill leveled up
+    if (levelUp) {
+      SkillService.updateTotalLevel(character);
+
+      // Check Total Level milestones (consistent pattern with other services)
+      try {
+        await CharacterProgressionService.checkTotalLevelMilestones(
+          character._id.toString(),
+          character.totalLevel
+        );
+      } catch (milestoneError) {
+        logger.error('Failed to check Total Level milestones for criminal skill:', milestoneError);
+      }
+    }
 
     logger.info(
       `Criminal skill XP: ${character.name} gained ${xpGained} ${skillType} XP (${skill.experience}/${xpForNextLevel})`
@@ -911,49 +929,43 @@ export class CrimeService {
   /**
    * Decay wanted levels for all characters (background job)
    * Reduces wanted level by 1 if 24h has elapsed
+   *
+   * PERFORMANCE FIX: Uses updateMany instead of individual saves to avoid N+1 query problem
+   * Previous implementation: 500+ individual save() calls per batch
+   * Current implementation: Single updateMany() per batch
    */
   static async decayWantedLevels(): Promise<{
     charactersDecayed: number;
     totalReduced: number;
   }> {
     try {
-      // Process in batches to prevent memory issues with large player counts
-      const BATCH_SIZE = 500;
-      let charactersDecayed = 0;
-      let totalReduced = 0;
-      let skip = 0;
-      let hasMore = true;
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const now = new Date();
 
-      while (hasMore) {
-        const characters = await Character.find({
+      // Use updateMany with aggregation pipeline for atomic update
+      // This replaces the N+1 pattern of: find -> loop -> save each
+      const result = await Character.updateMany(
+        {
           wantedLevel: { $gt: 0 },
-          isActive: true
-        })
-          .limit(BATCH_SIZE)
-          .skip(skip)
-          .select('_id wantedLevel wantedDecayAt');
-
-        if (characters.length === 0) {
-          hasMore = false;
-          break;
-        }
-
-        for (const character of characters) {
-          const decayed = character.decayWantedLevel();
-          if (decayed) {
-            charactersDecayed++;
-            totalReduced++;
-            await character.save();
+          isActive: true,
+          lastWantedDecay: { $lte: twentyFourHoursAgo }
+        },
+        [
+          {
+            $set: {
+              // Decrease wanted level by 1, minimum 0
+              wantedLevel: { $max: [0, { $subtract: ['$wantedLevel', 1] }] },
+              // Recalculate bounty: (wantedLevel - 1) * 100
+              bountyAmount: { $multiply: [{ $max: [0, { $subtract: ['$wantedLevel', 1] }] }, 100] },
+              // Update last decay timestamp
+              lastWantedDecay: now
+            }
           }
-        }
+        ]
+      );
 
-        // If we got fewer than BATCH_SIZE, we've processed all
-        if (characters.length < BATCH_SIZE) {
-          hasMore = false;
-        } else {
-          skip += BATCH_SIZE;
-        }
-      }
+      const charactersDecayed = result.modifiedCount;
+      const totalReduced = charactersDecayed; // Each character decreases by 1
 
       logger.info(`Wanted level decay: ${charactersDecayed} characters, ${totalReduced} levels reduced`);
 

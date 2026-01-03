@@ -497,8 +497,8 @@ export function checkMechanicCounter(
     // Get the relevant skill value based on counterplay requirement
     let skillValue = 0;
     switch (counterplay.skill) {
-      case 'perception':
-        skillValue = player.perceptionSkill;
+      case 'duel_instinct':
+        skillValue = player.duelInstinctSkill;
         break;
       case 'sleight_of_hand':
         skillValue = player.sleightOfHandSkill;

@@ -23,6 +23,8 @@ import { withLock, duelChallengeLockKey } from '../utils/distributedLock';
 import logger from '../utils/logger';
 import { logCombatEvent, logEconomyEvent, CombatEvent, EconomyEvent } from './base';
 import karmaService from './karma.service';
+import { SkillService } from './skill.service';
+import { CharacterProgressionService } from './characterProgression.service';
 
 // DuelGameState interface for type safety
 interface DuelGameState {
@@ -808,6 +810,39 @@ async function resolveDuel(duelId: string): Promise<{
     } catch (karmaError) {
       // Karma recording is non-critical
       logger.warn('Failed to record karma for duel:', karmaError);
+    }
+
+    // Award PvP Combat XP to the winner
+    try {
+      const winnerChar = await Character.findById(winnerId);
+      const loserChar = await Character.findById(loserId);
+
+      if (winnerChar && loserChar) {
+        const pvpXP = SkillService.calculatePvPCombatXP(
+          winnerChar.combatLevel || 1,
+          loserChar.combatLevel || 1
+        );
+
+        const combatResult = await SkillService.awardCombatXP(
+          winnerId,
+          pvpXP,
+          'pvp'
+        );
+
+        // Check Combat Level milestones if leveled up
+        if (combatResult.leveledUp) {
+          await CharacterProgressionService.checkCombatLevelMilestones(
+            winnerId,
+            combatResult.newCombatLevel,
+            combatResult.totalCombatXp
+          );
+        }
+
+        logger.debug(`PvP Combat XP awarded: ${winnerName} gained ${pvpXP} XP`);
+      }
+    } catch (combatXpError) {
+      // Combat XP is non-critical
+      logger.warn('Failed to award PvP combat XP:', combatXpError);
     }
 
     return {

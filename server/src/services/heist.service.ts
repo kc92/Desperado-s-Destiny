@@ -169,8 +169,9 @@ export class HeistService {
           throw new Error(`Character ${character.name} is not a member of the gang`);
         }
 
-        // Calculate skill level based on character level and relevant skills
-        const skillLevel = Math.min(100, character.level * 2);
+        // Calculate skill level based on Total Level and relevant skills
+        const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+        const skillLevel = Math.min(100, effectiveLevel * 2);
 
         heist[0].addRoleAssignment(assignment.role, assignment.characterId, character.name, skillLevel);
       }

@@ -9,6 +9,7 @@ import mongoose from 'mongoose';
 import logger from '../utils/logger';
 import { Location } from '../models/Location.model';
 import { frontierLocations } from '../data/locations/frontier_locations';
+import { academyLocations } from '../data/locations/skill-academy';
 import { ZONES } from '@desperados/shared';
 
 // Location IDs for consistent references
@@ -55,6 +56,8 @@ export const LOCATION_IDS = {
   WHISKEY_BEND_SALOON: new mongoose.Types.ObjectId('6501a0000000000000000049'),
   // New World Location
   PERDITION: new mongoose.Types.ObjectId('6501a000000000000000004a'),
+  // Skill Academy
+  DESPERADOS_ACADEMY: new mongoose.Types.ObjectId('6601a0000000000000000001'),
 };
 
 // Starting location IDs for each faction
@@ -1688,9 +1691,9 @@ export async function seedLocations(): Promise<void> {
     await Location.deleteMany({});
 
     // Insert new locations
-    await Location.insertMany([...locationSeeds, ...frontierLocations]);
+    await Location.insertMany([...locationSeeds, ...frontierLocations, ...academyLocations]);
 
-    console.log(`Successfully seeded ${locationSeeds.length + frontierLocations.length} locations`);
+    console.log(`Successfully seeded ${locationSeeds.length + frontierLocations.length + academyLocations.length} locations`);
   } catch (error) {
     logger.error('Error seeding locations', { error: error instanceof Error ? error.message : error });
     throw error;

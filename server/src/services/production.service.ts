@@ -85,7 +85,9 @@ export class ProductionService {
     dollarsEarned: number,
     session?: mongoose.ClientSession
   ): Promise<number> {
-    const dailyCap = this.calculateDailyIncomeCap(character.level);
+    // Use Total Level for income cap calculation (divided by 10 for backward compat)
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+    const dailyCap = this.calculateDailyIncomeCap(effectiveLevel);
 
     // Get today's start time (UTC midnight)
     const today = new Date();
@@ -214,10 +216,11 @@ export class ProductionService {
         throw new Error('Character not found');
       }
 
-      // Check level requirement
-      if (character.level < product.requiredLevel) {
+      // Check level requirement (use Total Level for content gating)
+      const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+      if (effectiveLevel < product.requiredLevel) {
         throw new Error(
-          `Requires level ${product.requiredLevel} (you are level ${character.level})`
+          `Requires Total Level ${product.requiredLevel * 10} (you are at ${character.totalLevel || 30})`
         );
       }
 

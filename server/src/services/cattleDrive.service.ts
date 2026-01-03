@@ -148,7 +148,9 @@ export class CattleDriveService {
       return { routes: [], activeDrive: null, canStartDrive: false };
     }
 
-    const routes = getAvailableRoutes(character.level);
+    // Use Total Level for route availability (old level × 10)
+    const totalLevel = character.totalLevel || 30;
+    const routes = getAvailableRoutes(Math.floor(totalLevel / 10));
     const activeDrive = await CattleDrive.findActiveByCharacter(characterId);
     const canStartDrive = !activeDrive;
 
@@ -186,9 +188,11 @@ export class CattleDriveService {
         return { success: false, error: 'Invalid route' };
       }
 
-      // Check level requirement
-      if (character.level < route.levelRequired) {
-        return { success: false, error: `You must be level ${route.levelRequired} to start this drive` };
+      // Check Total Level requirement (old level × 10)
+      const totalLevel = character.totalLevel || 30;
+      const requiredTotalLevel = route.levelRequired * 10;
+      if (totalLevel < requiredTotalLevel) {
+        return { success: false, error: `Requires Total Level ${requiredTotalLevel} to start this drive (current: ${totalLevel})` };
       }
 
       // Check energy for first phase

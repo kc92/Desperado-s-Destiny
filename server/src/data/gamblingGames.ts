@@ -225,7 +225,7 @@ export const GAMBLING_GAMES: Record<string, GamblingGame> = {
         description: 'Track the queen through shuffles'
       },
       {
-        skillId: 'cunning',
+        skillId: 'duel_instinct',
         minimumLevel: 1,
         bonusPerLevel: 2,
         description: 'Detect dealer tricks and manipulation'
@@ -518,7 +518,7 @@ export const GAMBLING_GAMES: Record<string, GamblingGame> = {
         description: 'Reading opponents and detecting bluffs'
       },
       {
-        skillId: 'cunning',
+        skillId: 'duel_instinct',
         minimumLevel: 2,
         bonusPerLevel: 2,
         description: 'Bluffing and deception'
@@ -594,7 +594,7 @@ export const GAMBLING_GAMES: Record<string, GamblingGame> = {
         description: 'Remembering folded cards'
       },
       {
-        skillId: 'cunning',
+        skillId: 'duel_instinct',
         minimumLevel: 2,
         bonusPerLevel: 2,
         description: 'Advanced bluffing techniques'

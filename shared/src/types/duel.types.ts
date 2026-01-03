@@ -462,14 +462,15 @@ export interface DuelRewards {
 
 /**
  * Active abilities that can be used during a duel
+ * REFACTORED: Uses duel_instinct skill (merged perception + poker_face)
  */
 export enum DuelAbility {
-  // Perception abilities
-  READ_OPPONENT = 'read_opponent',  // Contest vs Deception
+  // Duel Instinct abilities (offense)
+  READ_OPPONENT = 'read_opponent',  // Contest: duel_instinct vs duel_instinct
   COLD_READ = 'cold_read',          // Reveal exact hand strength
 
   // Defense abilities
-  POKER_FACE = 'poker_face',        // Block reads for 2 rounds
+  STONE_FACE = 'stone_face',        // Block reads for 2 rounds
   FALSE_TELL = 'false_tell',        // Give wrong info
 
   // Card abilities

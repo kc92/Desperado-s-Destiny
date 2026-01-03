@@ -36,7 +36,7 @@ export interface ITeamCardPlayer {
   lastActionAt: number;
   isReady: boolean;
   gamblingSkill: number;
-  perceptionSkill: number;
+  duelInstinctSkill: number;
   deceptionSkill: number;
   sleightOfHandSkill: number;
   contributionScore: number;
@@ -149,7 +149,7 @@ const TeamCardPlayerSchema = new Schema<ITeamCardPlayer>({
   lastActionAt: { type: Number, default: Date.now },
   isReady: { type: Boolean, default: false },
   gamblingSkill: { type: Number, default: 1 },
-  perceptionSkill: { type: Number, default: 1 },
+  duelInstinctSkill: { type: Number, default: 1 },
   deceptionSkill: { type: Number, default: 1 },
   sleightOfHandSkill: { type: Number, default: 1 },
   contributionScore: { type: Number, default: 0 },

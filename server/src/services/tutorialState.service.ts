@@ -449,8 +449,9 @@ export class TutorialStateService {
     const character = await Character.findById(charId);
     if (!character) return false;
 
-    // Auto-skip if character is too high level
-    if (character.level >= AUTO_SKIP_LEVEL) {
+    // Auto-skip if character is too high level (use Total Level / 10)
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+    if (effectiveLevel >= AUTO_SKIP_LEVEL) {
       const progress = await TutorialProgress.findByCharacterId(charId);
 
       // Only auto-skip if tutorial not already complete

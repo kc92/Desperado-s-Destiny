@@ -209,9 +209,11 @@ export async function checkRegionUnlocked(req: AuthRequest, res: Response): Prom
     return;
   }
 
+  // Use Total Level for content gating (divided by 10 for backward compat)
+  const effectiveLevel = Math.floor((req.character.totalLevel || 30) / 10);
   const isUnlocked = await geographyService.isRegionUnlockedForCharacter(
     regionId,
-    req.character.level
+    effectiveLevel
   );
 
   res.json({
@@ -235,9 +237,11 @@ export async function checkZoneUnlocked(req: AuthRequest, res: Response): Promis
     return;
   }
 
+  // Use Total Level for content gating (divided by 10 for backward compat)
+  const zoneEffectiveLevel = Math.floor((req.character.totalLevel || 30) / 10);
   const isUnlocked = await geographyService.isZoneUnlockedForCharacter(
     zoneId,
-    req.character.level
+    zoneEffectiveLevel
   );
 
   res.json({

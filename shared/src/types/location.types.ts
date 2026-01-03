@@ -82,7 +82,9 @@ export type LocationType =
   | 'service'
   // High-level zone types
   | 'wasteland'
-  | 'ghost_town';
+  | 'ghost_town'
+  // Skill Academy building
+  | 'skill_academy';
 
 /**
  * Town tier for building availability (1=Camp, 5=Capital)

@@ -400,7 +400,8 @@ export class InheritanceService {
         character.skills.push({
           skillId,
           level: boost,
-          experience: 0
+          experience: 0,
+          totalXpEarned: 0
         });
       }
     }

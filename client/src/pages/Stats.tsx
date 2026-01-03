@@ -66,13 +66,15 @@ export const Stats: React.FC = () => {
 
     const skillBonusByCategory = calculateSkillBonusByCategory(skillData, skills);
     const combatSkillBonus = calculateCombatSkillBonus(skillData, skills);
-    const maxHP = calculateMaxHP(currentCharacter.level, combatSkillBonus);
+    // Use Combat Level for HP calculations
+    const combatLevel = currentCharacter.combatLevel || 1;
+    const maxHP = calculateMaxHP(combatLevel, combatSkillBonus);
 
     return {
       maxHP,
       skillBonusByCategory,
       combatSkillBonus,
-      levelHPBonus: currentCharacter.level * 5,
+      levelHPBonus: combatLevel * 5,  // Combat Level determines HP bonus
       baseHP: 100
     };
   }, [currentCharacter, skillData, skills]);
@@ -88,9 +90,6 @@ export const Stats: React.FC = () => {
       </div>
     );
   }
-
-  // Calculate XP progress
-  const xpProgress = (currentCharacter.experience / currentCharacter.experienceToNextLevel) * 100;
 
   // Format faction display
   const factionDisplay = currentCharacter.faction
@@ -112,19 +111,23 @@ export const Stats: React.FC = () => {
           <div className="flex-1">
             <h2 className="text-xl font-western text-gold-light">{currentCharacter.name}</h2>
             <p className="text-desert-sand">
-              Level {currentCharacter.level} • {factionDisplay}
+              {factionDisplay}
             </p>
-            {/* XP Progress Bar */}
-            <div className="mt-2">
-              <div className="flex justify-between text-xs text-desert-stone mb-1">
-                <span>Experience</span>
-                <span>{formatNumber(currentCharacter.experience)} / {formatNumber(currentCharacter.experienceToNextLevel)}</span>
+            {/* New Level System Display */}
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              <div className="bg-wood-dark/50 rounded-lg p-2 text-center">
+                <div className="text-xs text-desert-stone">Total Level</div>
+                <div className="text-lg font-bold text-gold-light">
+                  {currentCharacter.totalLevel || 30}
+                </div>
+                <div className="text-xs text-desert-stone">(Sum of all skills)</div>
               </div>
-              <div className="h-2 bg-wood-dark rounded-full overflow-hidden border border-wood-light/30">
-                <div
-                  className="h-full bg-gradient-to-r from-gold-dark to-gold-light transition-all duration-300"
-                  style={{ width: `${Math.min(xpProgress, 100)}%` }}
-                />
+              <div className="bg-wood-dark/50 rounded-lg p-2 text-center">
+                <div className="text-xs text-desert-stone">Combat Level</div>
+                <div className="text-lg font-bold text-red-400">
+                  {currentCharacter.combatLevel || 1}
+                </div>
+                <div className="text-xs text-desert-stone">(Max 138)</div>
               </div>
             </div>
           </div>
@@ -189,7 +192,7 @@ export const Stats: React.FC = () => {
                 <span>{derivedStats?.baseHP || 100}</span>
               </div>
               <div className="flex justify-between">
-                <span>Level Bonus (×5)</span>
+                <span>Combat Level Bonus (×5)</span>
                 <span className="text-green-400">+{derivedStats?.levelHPBonus || 0}</span>
               </div>
               <div className="flex justify-between">

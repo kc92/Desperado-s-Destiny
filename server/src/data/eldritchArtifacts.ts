@@ -104,7 +104,7 @@ export const ELDRITCH_ARTIFACTS: EldritchArtifact[] = [
         energyCost: 20,
         cooldown: 15,
         buffs: [
-          { stat: 'perception', amount: 50, duration: 10 }
+          { stat: 'duel_instinct', amount: 50, duration: 10 }
         ],
         sanityLoss: 10,
         corruptionGain: 5,

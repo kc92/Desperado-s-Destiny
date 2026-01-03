@@ -10,7 +10,7 @@
  * - Loot on defeat scenarios
  */
 
-import { CombatService } from '../../src/services/combat.service';
+import { CombatService } from '../../src/services/combat';
 import { INPC } from '../../src/models/NPC.model';
 import { NPCType } from '@desperados/shared';
 

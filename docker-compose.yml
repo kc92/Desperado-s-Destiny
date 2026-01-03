@@ -1,10 +1,9 @@
-version: '3.8'
-
 services:
   # MongoDB Database (Replica Set mode for transactions)
   # Auto-initializes replica set on first startup
+  # Uses MongoDB 7 to match Railway production
   mongodb:
-    image: mongo:6
+    image: mongo:7
     container_name: desperados-mongodb
     restart: unless-stopped
     ports:
@@ -128,9 +127,9 @@ services:
     ports:
       - "5173:5173"
     environment:
-      # Use Docker service name for inter-container communication
-      VITE_API_URL: http://backend:5001
-      VITE_WS_URL: ws://backend:5001
+      # Browser makes requests, so use localhost (not Docker DNS)
+      VITE_API_URL: http://localhost:5001
+      VITE_WS_URL: http://localhost:5001
     volumes:
       - ./client:/app
       - ./shared:/app/shared

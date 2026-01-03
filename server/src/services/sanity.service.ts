@@ -274,13 +274,14 @@ export class SanityService {
       throw new Error('Character not found');
     }
 
-    // Check requirements
+    // Check requirements (use Total Level / 10 for backward compat)
     if (method.requirements) {
-      if (method.requirements.minLevel && character.level < method.requirements.minLevel) {
+      const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+      if (method.requirements.minLevel && effectiveLevel < method.requirements.minLevel) {
         return {
           success: false,
           newSanity: 0,
-          message: `Requires level ${method.requirements.minLevel}`
+          message: `Requires Total Level ${method.requirements.minLevel * 10}`
         };
       }
     }

@@ -373,7 +373,7 @@ export class IntegrationHealthChecker {
 
     // Test: Combat → Multiple systems flow
     try {
-      const { CombatService } = await import('../services/combat.service');
+      const { CombatService } = await import('../services/combat');
       flows.push({ name: 'Combat → Multi-system', success: true });
     } catch (error: any) {
       flows.push({

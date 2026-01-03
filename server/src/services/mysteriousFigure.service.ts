@@ -125,12 +125,13 @@ export class MysteriousFigureService {
       }
     }
 
-    // Check level requirements
-    if (conditions.minLevel && character.level < conditions.minLevel) {
+    // Check level requirements (use Total Level / 10 for backward compat)
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+    if (conditions.minLevel && effectiveLevel < conditions.minLevel) {
       return false;
     }
 
-    if (conditions.maxLevel && character.level > conditions.maxLevel) {
+    if (conditions.maxLevel && effectiveLevel > conditions.maxLevel) {
       return false;
     }
 

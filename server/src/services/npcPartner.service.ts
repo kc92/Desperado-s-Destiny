@@ -89,7 +89,7 @@ export function createNPCPartner(
     lastActionAt: Date.now(),
     isReady: true,
     gamblingSkill: Math.max(1, Math.min(100, adjustedSkill)),
-    perceptionSkill: Math.max(1, Math.min(100, adjustedSkill - 5)),
+    duelInstinctSkill: Math.max(1, Math.min(100, adjustedSkill - 5)),
     deceptionSkill: Math.max(1, Math.min(100, adjustedSkill - 10)),
     sleightOfHandSkill: Math.max(1, Math.min(100, adjustedSkill - 8)),
     contributionScore: 0,
@@ -839,13 +839,13 @@ export function canCounterBossMechanic(
   mechanic: any,
   npcPlayer: ITeamCardPlayer
 ): { canCounter: boolean; skill: string; value: number } {
-  const { perceptionSkill, sleightOfHandSkill, gamblingSkill, deceptionSkill } = npcPlayer;
+  const { duelInstinctSkill, sleightOfHandSkill, gamblingSkill, deceptionSkill } = npcPlayer;
 
   switch (mechanic.type) {
     case 'marked_deck':
     case 'reveal_hand':
-      if (perceptionSkill >= (mechanic.counterThreshold?.perception || 40)) {
-        return { canCounter: true, skill: 'perception', value: perceptionSkill };
+      if (duelInstinctSkill >= (mechanic.counterThreshold?.duelInstinct || 40)) {
+        return { canCounter: true, skill: 'duel_instinct', value: duelInstinctSkill };
       }
       break;
 

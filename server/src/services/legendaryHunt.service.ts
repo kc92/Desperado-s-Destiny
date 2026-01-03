@@ -86,8 +86,9 @@ export async function getLegendaryAnimals(
         return null;
       }
 
-      // Check if character meets requirements
-      const meetsLevel = character.level >= legendary.levelRequirement;
+      // Check if character meets Combat Level requirement
+      const combatLevel = character.combatLevel || 1;
+      const meetsLevel = combatLevel >= legendary.levelRequirement;
       let meetsReputation = true;
 
       if (legendary.reputationRequirement) {
@@ -354,11 +355,12 @@ export async function initiateLegendaryHunt(
       };
     }
 
-    // Check level requirement
-    if (character.level < legendary.levelRequirement) {
+    // Check Combat Level requirement
+    const combatLevel = character.combatLevel || 1;
+    if (combatLevel < legendary.levelRequirement) {
       return {
         success: false,
-        error: `Requires level ${legendary.levelRequirement}`,
+        error: `Requires Combat Level ${legendary.levelRequirement} (current: ${combatLevel})`,
       };
     }
 
@@ -625,8 +627,10 @@ export async function awardLegendaryRewards(
 
         // Apply bonus to character
         const bonusType = legendary.permanentBonus.type;
-        if (bonusType === 'cunning' || bonusType === 'spirit' || bonusType === 'combat' || bonusType === 'craft') {
-          character.stats[bonusType] += legendary.permanentBonus.amount;
+        if (bonusType === 'cunning_power' || bonusType === 'spirit_power' || bonusType === 'combat_power' || bonusType === 'craft_power') {
+          // Map power type to stat name (remove '_power' suffix)
+          const statName = bonusType.replace('_power', '') as 'cunning' | 'spirit' | 'combat' | 'craft';
+          character.stats[statName] += legendary.permanentBonus.amount;
         } else if (bonusType === 'max_energy') {
           character.maxEnergy += legendary.permanentBonus.amount;
         }

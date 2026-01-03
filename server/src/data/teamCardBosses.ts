@@ -51,7 +51,7 @@ export const BLACK_HAT_MORGAN: RaidBoss = {
           duration: MechanicDuration.ROUND,
           effect: { revealRandomCard: true },
           counterplay: {
-            skill: 'perception',
+            skill: 'duel_instinct',
             threshold: 40,
             effect: 'negate'
           },
@@ -111,7 +111,7 @@ export const BLACK_HAT_MORGAN: RaidBoss = {
           duration: MechanicDuration.ROUND,
           effect: { swapCards: true },
           counterplay: {
-            skill: 'perception',
+            skill: 'duel_instinct',
             threshold: 50,
             teamwork: true,
             effect: 'negate'
@@ -128,7 +128,7 @@ export const BLACK_HAT_MORGAN: RaidBoss = {
     uniqueReward: 'black_hat_morgans_deck',
     skillXP: {
       gambling: 50,
-      perception: 25
+      duel_instinct: 25
     }
   }
 };
@@ -235,7 +235,7 @@ export const LADY_LUCK: RaidBoss = {
     uniqueReward: 'ladys_lucky_coin',
     skillXP: {
       gambling: 75,
-      perception: 40
+      duel_instinct: 40
     }
   }
 };
@@ -296,7 +296,7 @@ export const THE_REAPER: RaidBoss = {
           duration: MechanicDuration.ROUND,
           effect: { scoreMultiplier: 2 },
           counterplay: {
-            skill: 'perception',
+            skill: 'duel_instinct',
             threshold: 35,
             effect: 'reduce'
           },
@@ -337,7 +337,7 @@ export const THE_REAPER: RaidBoss = {
     uniqueReward: 'reapers_card_case',
     skillXP: {
       gambling: 60,
-      perception: 30
+      duel_instinct: 30
     }
   }
 };
@@ -449,7 +449,7 @@ export const THE_CONTRACTOR: RaidBoss = {
     uniqueReward: 'contractors_cufflinks',
     skillXP: {
       gambling: 100,
-      perception: 50
+      duel_instinct: 50
     }
   }
 };
@@ -560,7 +560,7 @@ export const THE_ALCHEMIST: RaidBoss = {
     uniqueReward: 'alchemists_card_case',
     skillXP: {
       gambling: 80,
-      perception: 40
+      duel_instinct: 40
     }
   }
 };

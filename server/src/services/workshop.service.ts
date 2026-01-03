@@ -33,6 +33,7 @@ export function validateWorkshopAccess(
   workshop: WorkshopBuilding,
   character: {
     level: number;
+    totalLevel?: number;  // New Total Level system
     reputation: Record<string, number>;
     faction?: string;
     completedQuests: string[];
@@ -47,12 +48,14 @@ export function validateWorkshopAccess(
     return { canAccess: true, errors: [], warnings: [] };
   }
 
+  // Use Total Level for content gating (divided by 10 for backward compat)
+  const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
   for (const requirement of workshop.accessRequirements) {
     switch (requirement.type) {
       case 'level':
-        if (character.level < (requirement.value as number)) {
+        if (effectiveLevel < (requirement.value as number)) {
           errors.push(
-            `Requires level ${requirement.value} (you are level ${character.level})`
+            `Requires Total Level ${(requirement.value as number) * 10} (you are at ${character.totalLevel || 30})`
           );
         }
         break;
@@ -343,6 +346,7 @@ export function findBestWorkshop(
 export function getWorkshopRecommendations(
   character: {
     level: number;
+    totalLevel?: number;  // New Total Level system
     reputation: Record<string, number>;
     faction?: string;
     completedQuests: string[];
@@ -370,9 +374,10 @@ export function getWorkshopRecommendations(
           available.push(workshop);
         }
       } else {
-        // Check if requirements are close to being met
+        // Check if requirements are close to being met (use Total Level)
         const levelReq = workshop.accessRequirements?.find(r => r.type === 'level');
-        if (levelReq && (character.level >= (levelReq.value as number) - 5)) {
+        const effectiveLevelCheck = Math.floor((character.totalLevel || 30) / 10);
+        if (levelReq && (effectiveLevelCheck >= (levelReq.value as number) - 5)) {
           upcoming.push({
             workshop,
             requirements: validation.errors

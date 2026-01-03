@@ -60,6 +60,7 @@ const Location = lazy(() => import('@/pages/Location').then(m => ({ default: m.L
 // const Actions = lazy(() => import('@/pages/Actions').then(m => ({ default: m.Actions })));
 const ActionChallenge = lazy(() => import('@/pages/ActionChallenge').then(m => ({ default: m.ActionChallenge })));
 const Skills = lazy(() => import('@/pages/Skills').then(m => ({ default: m.Skills })));
+const SkillAcademy = lazy(() => import('@/pages/SkillAcademy').then(m => ({ default: m.SkillAcademy })));
 const Stats = lazy(() => import('@/pages/Stats').then(m => ({ default: m.Stats })));
 // Combat page removed - Phase 7: Location-Specific Combat
 // const Combat = lazy(() => import('@/pages/Combat').then(m => ({ default: m.Combat })));
@@ -265,6 +266,7 @@ function App() {
                     <Skills />
                   </ErrorBoundary>
                 } />
+                <Route path="academy" element={<SkillAcademy />} />
                 <Route path="stats" element={
                   <ErrorBoundary fallback={<StatsErrorFallback />}>
                     <Stats />

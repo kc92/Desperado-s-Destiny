@@ -985,8 +985,8 @@ export const SOCIAL_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 3,
     levelScaling: false,
     baseRewards: { gold: 60, xp: 35 },
-    requiredSkills: [{ skillId: 'perception', minLevel: 3 }],
-    skillXpRewards: [{ skillId: 'perception', amount: 15 }]
+    requiredSkills: [{ skillId: 'duel_instinct', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'duel_instinct', amount: 15 }]
   },
   {
     id: 'social_improve_reputation',
@@ -1330,8 +1330,8 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 3,
     levelScaling: false,
     baseRewards: { gold: 100, xp: 60 },
-    requiredSkills: [{ skillId: 'perception', minLevel: 5 }, { skillId: 'reconnaissance', minLevel: 3 }],
-    skillXpRewards: [{ skillId: 'perception', amount: 25 }, { skillId: 'reconnaissance', amount: 20 }]
+    requiredSkills: [{ skillId: 'duel_instinct', minLevel: 5 }, { skillId: 'reconnaissance', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'duel_instinct', amount: 25 }, { skillId: 'reconnaissance', amount: 20 }]
   },
   {
     id: 'investigate_location',
@@ -1343,8 +1343,8 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 85, xp: 50 },
-    requiredSkills: [{ skillId: 'perception', minLevel: 5 }],
-    skillXpRewards: [{ skillId: 'perception', amount: 25 }]
+    requiredSkills: [{ skillId: 'duel_instinct', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'duel_instinct', amount: 25 }]
   },
   {
     id: 'investigate_missing_person',
@@ -1356,8 +1356,8 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 4,
     levelScaling: false,
     baseRewards: { gold: 150, xp: 85 },
-    requiredSkills: [{ skillId: 'perception', minLevel: 10 }, { skillId: 'reconnaissance', minLevel: 8 }],
-    skillXpRewards: [{ skillId: 'perception', amount: 40 }, { skillId: 'reconnaissance', amount: 35 }]
+    requiredSkills: [{ skillId: 'duel_instinct', minLevel: 10 }, { skillId: 'reconnaissance', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'duel_instinct', amount: 40 }, { skillId: 'reconnaissance', amount: 35 }]
   },
   {
     id: 'investigate_crime_scene',
@@ -1369,8 +1369,8 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 3,
     levelScaling: false,
     baseRewards: { gold: 70, xp: 40 },
-    requiredSkills: [{ skillId: 'perception', minLevel: 3 }],
-    skillXpRewards: [{ skillId: 'perception', amount: 15 }]
+    requiredSkills: [{ skillId: 'duel_instinct', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'duel_instinct', amount: 15 }]
   },
   {
     id: 'investigate_smuggling_route',
@@ -1395,8 +1395,8 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 5,
     levelScaling: false,
     baseRewards: { gold: 200, xp: 110 },
-    requiredSkills: [{ skillId: 'perception', minLevel: 12 }, { skillId: 'deception', minLevel: 8 }],
-    skillXpRewards: [{ skillId: 'perception', amount: 45 }, { skillId: 'deception', amount: 30 }]
+    requiredSkills: [{ skillId: 'duel_instinct', minLevel: 12 }, { skillId: 'deception', minLevel: 8 }],
+    skillXpRewards: [{ skillId: 'duel_instinct', amount: 45 }, { skillId: 'deception', amount: 30 }]
   },
   {
     id: 'investigate_counterfeit',
@@ -1408,8 +1408,8 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 3,
     levelScaling: false,
     baseRewards: { gold: 120, xp: 65 },
-    requiredSkills: [{ skillId: 'perception', minLevel: 5 }],
-    skillXpRewards: [{ skillId: 'perception', amount: 25 }]
+    requiredSkills: [{ skillId: 'duel_instinct', minLevel: 5 }],
+    skillXpRewards: [{ skillId: 'duel_instinct', amount: 25 }]
   },
   {
     id: 'investigate_haunted_site',
@@ -1421,8 +1421,8 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 1,
     levelScaling: false,
     baseRewards: { gold: 65, xp: 35 },
-    requiredSkills: [{ skillId: 'willpower', minLevel: 5 }, { skillId: 'perception', minLevel: 3 }],
-    skillXpRewards: [{ skillId: 'willpower', amount: 20 }, { skillId: 'perception', amount: 15 }]
+    requiredSkills: [{ skillId: 'willpower', minLevel: 5 }, { skillId: 'duel_instinct', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'willpower', amount: 20 }, { skillId: 'duel_instinct', amount: 15 }]
   },
   {
     id: 'investigate_rival_gang',
@@ -1449,8 +1449,8 @@ export const INVESTIGATION_CONTRACTS: ContractTemplate[] = [
     levelScaling: false,
     baseRewards: { gold: 250, xp: 125 },
     itemReward: 'gold_nugget',
-    requiredSkills: [{ skillId: 'perception', minLevel: 12 }, { skillId: 'survival', minLevel: 10 }],
-    skillXpRewards: [{ skillId: 'perception', amount: 50 }, { skillId: 'survival', amount: 40 }]
+    requiredSkills: [{ skillId: 'duel_instinct', minLevel: 12 }, { skillId: 'survival', minLevel: 10 }],
+    skillXpRewards: [{ skillId: 'duel_instinct', amount: 50 }, { skillId: 'survival', amount: 40 }]
   }
 ];
 
@@ -1508,8 +1508,8 @@ export const CRAFTING_CONTRACTS: ContractTemplate[] = [
     baseProgressMax: 5,
     levelScaling: true,
     baseRewards: { gold: 40, xp: 30 },
-    requiredSkills: [{ skillId: 'herbalism', minLevel: 3 }],
-    skillXpRewards: [{ skillId: 'herbalism', amount: 15 }]
+    requiredSkills: [{ skillId: 'alchemy', minLevel: 3 }],
+    skillXpRewards: [{ skillId: 'alchemy', amount: 15 }]
   },
   {
     id: 'craft_master_recipe',

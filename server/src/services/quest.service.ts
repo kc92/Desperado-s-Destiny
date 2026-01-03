@@ -176,10 +176,12 @@ export class QuestService {
     }).select('questId');
     const activeIds = activeQuests.map(q => q.questId);
 
-    // Find available quests
+    // Find available quests using Total Level (old level × 10)
+    const totalLevel = character.totalLevel || 30;
+    const effectiveOldLevel = Math.floor(totalLevel / 10);
     const quests = await QuestDefinition.find({
       isActive: true,
-      levelRequired: { $lte: character.level },
+      levelRequired: { $lte: effectiveOldLevel },
       $or: [
         { questId: { $nin: [...completedIds, ...activeIds] } },
         { repeatable: true, questId: { $nin: activeIds } }
@@ -242,9 +244,11 @@ export class QuestService {
       throw new AppError('Quest not found', 404);
     }
 
-    // Check level
-    if (character.level < questDef.levelRequired) {
-      throw new AppError(`Level ${questDef.levelRequired} required`, 400);
+    // Check Total Level (old level × 10)
+    const totalLevel = character.totalLevel || 30;
+    const requiredTotalLevel = questDef.levelRequired * 10;
+    if (totalLevel < requiredTotalLevel) {
+      throw new AppError(`Total Level ${requiredTotalLevel} required (current: ${totalLevel})`, 400);
     }
 
     // Check prerequisites

@@ -247,7 +247,7 @@ export interface TeamCardPlayer {
 
   /** Skills affecting gameplay */
   gamblingSkill: number;
-  perceptionSkill: number;
+  duelInstinctSkill: number;
   deceptionSkill: number;
   sleightOfHandSkill: number;
 
@@ -394,7 +394,7 @@ export interface MechanicEffect {
  */
 export interface CounterplayOption {
   /** Skill required to counter */
-  skill?: 'gambling' | 'perception' | 'deception' | 'sleight_of_hand';
+  skill?: 'gambling' | 'duel_instinct' | 'deception' | 'sleight_of_hand';
   /** Minimum skill level needed */
   threshold?: number;
   /** Whether team can pool skill levels */
@@ -415,7 +415,7 @@ export interface RaidRewards {
   uniqueReward?: string;  // Unique cosmetic/item ID
   skillXP?: {
     gambling?: number;
-    perception?: number;
+    duel_instinct?: number;
   };
 }
 

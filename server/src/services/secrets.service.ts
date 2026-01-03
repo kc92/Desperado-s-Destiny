@@ -166,7 +166,9 @@ export class SecretsService {
 
       case 'level':
         if (!requirement.minLevel) return false;
-        return character.level >= requirement.minLevel;
+        // Use Total Level / 10 for backward compat
+        const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+        return effectiveLevel >= requirement.minLevel;
 
       case 'faction_standing':
         if (!requirement.faction || !requirement.minReputation) return false;

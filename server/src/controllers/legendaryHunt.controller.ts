@@ -566,9 +566,10 @@ export async function getDifficultyRating(req: CharacterRequest, res: Response):
       return;
     }
 
+    // Use Combat Level for combat-related difficulty calculations
     const difficulty = legendaryCombatService.calculateDifficultyRating(
       legendaryId,
-      character.level
+      character.combatLevel || 1
     );
 
     res.status(200).json({

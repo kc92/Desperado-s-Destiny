@@ -27,7 +27,9 @@ export function GangCreation() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const canAfford = currentCharacter && currentCharacter.gold! >= GANG_CREATION.COST;
-  const meetsLevelRequirement = currentCharacter && currentCharacter.level >= GANG_CREATION.MIN_LEVEL;
+  // Use Total Level for gang creation requirement
+  const totalLevel = currentCharacter?.totalLevel || 30;
+  const meetsLevelRequirement = currentCharacter && totalLevel >= GANG_CREATION.MIN_TOTAL_LEVEL;
 
   const validateName = useCallback((value: string): string | undefined => {
     if (value.length < GANG_CONSTRAINTS.NAME_MIN_LENGTH) {
@@ -284,7 +286,7 @@ export function GangCreation() {
                 <li className={`flex items-center ${meetsLevelRequirement ? 'text-green-700' : 'text-red-700'}`}>
                   <span className="mr-2">{meetsLevelRequirement ? '✓' : '✗'}</span>
                   <span>
-                    Level {GANG_CREATION.MIN_LEVEL}+ (You are Level {currentCharacter.level})
+                    Total Level {GANG_CREATION.MIN_TOTAL_LEVEL}+ (You are Total Level {totalLevel})
                   </span>
                 </li>
               </ul>

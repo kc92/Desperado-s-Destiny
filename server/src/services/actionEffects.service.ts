@@ -241,8 +241,9 @@ export class ActionEffectsService {
     targetFaction: TerritoryFactionId,
     territoryId?: string
   ): Promise<InfluenceModifiers> {
-    // Character level bonus: +1% per level above 10
-    const characterLevelBonus = Math.max(0, (character.level - 10) * 0.01);
+    // Character level bonus: +1% per effective level above 10 (use Total Level / 10)
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+    const characterLevelBonus = Math.max(0, (effectiveLevel - 10) * 0.01);
 
     // Reputation bonus: +1% per 100 reputation
     const reputationBonus = this.getReputationBonus(character, targetFaction);

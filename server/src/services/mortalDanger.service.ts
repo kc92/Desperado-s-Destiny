@@ -144,13 +144,14 @@ export class MortalDangerService {
     actionDanger: number,
     opponentLevel?: number
   ): Promise<DeathRiskFactors> {
-    // Calculate skill ratio (character level vs action/opponent difficulty)
-    const characterPower = character.level + this.getEquipmentBonus(character);
+    // Calculate skill ratio using Combat Level
+    const combatLevel = character.combatLevel || 1;
+    const characterPower = combatLevel + this.getEquipmentBonus(character);
     const requiredPower = opponentLevel || Math.ceil(actionDanger * 50); // Scale action danger to "level"
     const skillRatio = characterPower / Math.max(requiredPower, 1);
 
-    // Health ratio
-    const maxHealth = 100 + (character.level * 10); // Base HP + level scaling
+    // Health ratio using Combat Level
+    const maxHealth = 100 + (combatLevel * 10); // Base HP + combat level scaling
     const currentHealth = character.isKnockedOut ? 1 : maxHealth; // Assume full health unless knocked out
     const healthRatio = currentHealth / maxHealth;
 

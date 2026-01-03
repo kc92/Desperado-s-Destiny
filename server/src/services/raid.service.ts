@@ -554,9 +554,11 @@ export class RaidService {
       const character = await Character.findById(participant.characterId).session(session || null);
       if (character) {
         // Base power from character stats (combat + cunning for tactical ability)
+        // Use Combat Level for combat-related power calculation
+        const combatLevel = character.combatLevel || 1;
         const combatPower = (character.stats?.combat || 10) +
                            (character.stats?.cunning || 10) +
-                           (character.level * 2);
+                           (combatLevel * 2);
 
         // Role multipliers
         const roleMultiplier = participant.role === RaidParticipantRole.LEADER

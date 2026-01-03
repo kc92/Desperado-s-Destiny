@@ -155,7 +155,9 @@ export class MiningClaimService {
       return { locations: [], ownedClaims: [], canStakeMore: false };
     }
 
-    const locations = getAvailableClaims(character.level);
+    // Use Total Level / 10 for backward compat with level-based claim unlocks
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+    const locations = getAvailableClaims(effectiveLevel);
     const ownedClaims = await MiningClaim.findActiveByCharacter(characterId);
     const canStakeMore = ownedClaims.length < this.MAX_CLAIMS_PER_CHARACTER;
 
@@ -194,9 +196,10 @@ export class MiningClaimService {
         return { success: false, error: 'Invalid claim location' };
       }
 
-      // Check level requirement
-      if (character.level < location.levelRequired) {
-        return { success: false, error: `You must be level ${location.levelRequired} to stake this claim` };
+      // Check level requirement (use Total Level / 10 for backward compat)
+      const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+      if (effectiveLevel < location.levelRequired) {
+        return { success: false, error: `You must have Total Level ${location.levelRequired * 10} to stake this claim` };
       }
 
       // Check if already owns this claim
@@ -285,21 +288,48 @@ export class MiningClaimService {
         return { success: false, resources: {}, goldValue: 0, hoursAccumulated: 0, error: 'Claim is not active' };
       }
 
-      // TERRITORY BONUS: Fetch mining bonuses (Phase 2.2)
-      let miningBonuses = { yield: 1.0, rareChance: 1.0, speed: 1.0, value: 1.0 };
-      try {
-        const charObjId = new mongoose.Types.ObjectId(characterId);
-        const bonusResult = await TerritoryBonusService.getMiningBonuses(charObjId);
-        if (bonusResult.hasBonuses) {
-          miningBonuses = bonusResult.bonuses;
-          logger.debug(`Territory mining bonuses applied: yield ${miningBonuses.yield}x, speed ${miningBonuses.speed}x, value ${miningBonuses.value}x`);
-        }
-      } catch (bonusError) {
-        logger.warn('Failed to get territory mining bonuses:', bonusError);
+      // Get claim location for resource types (sync operation - do first)
+      const location = getClaimLocationById(claim.claimId);
+      if (!location) {
+        return { success: false, resources: {}, goldValue: 0, hoursAccumulated: 0, error: 'Invalid claim location' };
+      }
+
+      const tierConfig = CLAIM_TIER_CONFIG[claim.tier as ClaimTier];
+      const charObjId = new mongoose.Types.ObjectId(characterId);
+
+      // SCALABILITY FIX: Run independent async operations in parallel
+      const [miningBonusResult, scarcityResult] = await Promise.all([
+        // TERRITORY BONUS: Fetch mining bonuses (Phase 2.2)
+        TerritoryBonusService.getMiningBonuses(charObjId).catch(err => {
+          logger.warn('Failed to get territory mining bonuses:', err);
+          return { hasBonuses: false, bonuses: { yield: 1.0, rareChance: 1.0, speed: 1.0, value: 1.0 } };
+        }),
+        // Phase 14.3: Get resource scarcity modifier (competition between claims on same vein)
+        ResourceScarcityService.calculateYieldModifier(claimDocId, claimDocId).catch(err => {
+          logger.warn('[MiningClaim] Failed to get resource scarcity modifier:', err);
+          return { finalYieldMultiplier: 1.0, claimCount: 1, status: 'unknown' };
+        })
+      ]);
+
+      // Extract mining bonuses
+      const miningBonuses = miningBonusResult.hasBonuses
+        ? miningBonusResult.bonuses
+        : { yield: 1.0, rareChance: 1.0, speed: 1.0, value: 1.0 };
+
+      if (miningBonusResult.hasBonuses) {
+        logger.debug(`Territory mining bonuses applied: yield ${miningBonuses.yield}x, speed ${miningBonuses.speed}x, value ${miningBonuses.value}x`);
+      }
+
+      // Extract scarcity modifier
+      const scarcityModifier = scarcityResult.finalYieldMultiplier;
+      if (scarcityModifier < 1.0) {
+        logger.debug(
+          `[MiningClaim] Resource scarcity applied: ${scarcityModifier.toFixed(2)}x ` +
+          `(${scarcityResult.claimCount} claims, status: ${scarcityResult.status})`
+        );
       }
 
       // Check cooldown (with territory speed bonus reducing cooldown)
-      const tierConfig = CLAIM_TIER_CONFIG[claim.tier as ClaimTier];
       const baseCooldownMs = tierConfig.collectCooldownHours * 60 * 60 * 1000;
       const cooldownMs = Math.floor(baseCooldownMs * miningBonuses.speed); // speed < 1 means faster
       const timeSinceCollect = Date.now() - claim.lastCollectedAt.getTime();
@@ -307,12 +337,6 @@ export class MiningClaimService {
       if (timeSinceCollect < cooldownMs) {
         const remainingHours = Math.ceil((cooldownMs - timeSinceCollect) / (60 * 60 * 1000));
         return { success: false, resources: {}, goldValue: 0, hoursAccumulated: 0, error: `Collection on cooldown. ${remainingHours}h remaining` };
-      }
-
-      // Get claim location for resource types
-      const location = getClaimLocationById(claim.claimId);
-      if (!location) {
-        return { success: false, resources: {}, goldValue: 0, hoursAccumulated: 0, error: 'Invalid claim location' };
       }
 
       // Calculate yield based on time since last collection (capped at max storage)
@@ -327,24 +351,6 @@ export class MiningClaimService {
       // Phase 14: Get condition-based yield multiplier
       const conditionMultiplier = claim.getYieldMultiplier();
       const isOverworked = claim.isOverworked();
-
-      // Phase 14.3: Get resource scarcity modifier (competition between claims on same vein)
-      let scarcityModifier = 1.0;
-      try {
-        const scarcityResult = await ResourceScarcityService.calculateYieldModifier(
-          claimDocId, // veinId - using claim ID as placeholder, actual vein lookup happens in service
-          claimDocId
-        );
-        scarcityModifier = scarcityResult.finalYieldMultiplier;
-        if (scarcityModifier < 1.0) {
-          logger.debug(
-            `[MiningClaim] Resource scarcity applied: ${scarcityModifier.toFixed(2)}x ` +
-            `(${scarcityResult.claimCount} claims, status: ${scarcityResult.status})`
-          );
-        }
-      } catch (scarcityError) {
-        logger.warn('[MiningClaim] Failed to get resource scarcity modifier:', scarcityError);
-      }
 
       for (const resourceId of location.resources) {
         const resource = MINING_RESOURCES[resourceId as keyof typeof MINING_RESOURCES];
@@ -395,10 +401,11 @@ export class MiningClaimService {
       await claim.save();
 
       // Phase 5.2: Check for random encounter (15% chance)
+      // Note: Pass claim object directly to avoid redundant DB query
       let encounter: MiningEncounter | undefined;
       try {
         const charObjId = new mongoose.Types.ObjectId(characterId);
-        const possibleEncounter = await this.checkForMiningEncounter(charObjId, claimDocId);
+        const possibleEncounter = await this.checkForMiningEncounter(charObjId, claim);
         if (possibleEncounter) {
           encounter = possibleEncounter;
         }
@@ -407,18 +414,17 @@ export class MiningClaimService {
       }
 
       // Phase 5.2: Update daily contract progress for mining-type contracts
-      try {
-        await DailyContractService.triggerProgress(
-          characterId,
-          'mining_collection',
-          {
-            type: 'crafting', // Mining contracts are under crafting type
-            amount: 1
-          }
-        );
-      } catch (contractError) {
+      // SCALABILITY FIX: Fire-and-forget - don't await since we don't need the result
+      DailyContractService.triggerProgress(
+        characterId,
+        'mining_collection',
+        {
+          type: 'crafting', // Mining contracts are under crafting type
+          amount: 1
+        }
+      ).catch(contractError => {
         logger.warn('Failed to update mining contract progress:', contractError);
-      }
+      });
 
       logger.info('Mining yield collected', {
         characterId,
@@ -759,10 +765,12 @@ export class MiningClaimService {
 
   /**
    * Phase 5.2: Check for random mining encounter during collection
+   * @param characterId - The character ID
+   * @param claim - The claim object (passed to avoid redundant query)
    */
   static async checkForMiningEncounter(
     characterId: mongoose.Types.ObjectId,
-    claimId: string
+    claim: IMiningClaim
   ): Promise<MiningEncounter | null> {
     try {
       // 15% chance per collection
@@ -770,7 +778,6 @@ export class MiningClaimService {
         return null;
       }
 
-      const claim = await MiningClaim.findById(claimId);
       if (!claim) return null;
 
       // Select encounter type (weighted by tier)
@@ -809,7 +816,7 @@ export class MiningClaimService {
 
       return encounter;
     } catch (error) {
-      logger.error('Error checking for mining encounter', { characterId, claimId, error });
+      logger.error('Error checking for mining encounter', { characterId, claimId: claim?.claimId, error });
       return null;
     }
   }

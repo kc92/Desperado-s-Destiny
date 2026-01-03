@@ -8,12 +8,14 @@ import { useCharacterStore } from '@/store/useCharacterStore';
 import { useSkillStore } from '@/store/useSkillStore';
 import { useEnergyStore } from '@/store/useEnergyStore';
 import { useEnergy } from '@/hooks/useEnergy';
+import { useLiveEnergy } from '@/hooks/useLiveEnergy';
 import { useDeath } from '@/hooks/useDeath';
 import { useKarma } from '@/hooks/useKarma';
 import { useDuels } from '@/hooks/useDuels';
 // useFateMarks imported for FateMarksDisplay context - kept for future use
 // import { useFateMarks } from '@/hooks/useFateMarks';
 import { FateMarksDisplay } from '@/components/danger/FateMarksDisplay';
+import { ActiveBuffsDisplay } from '@/components/tavern';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useMailStore } from '@/store/useMailStore';
 import { factionToDisplay } from '@/types';
@@ -51,25 +53,16 @@ export const PlayerSidebar: React.FC = () => {
   useNotifications(); // Initialize notifications hook (counts shown in header)
   const mailUnreadCount = useMailStore((state) => state.unreadCount);
 
-  // Extract energy values with fallbacks
-  // FIX: Use useEnergy hook's computed values which include client-side interpolation
-  const { currentEnergy: hookEnergy, maxEnergy: hookMaxEnergy } = useEnergy();
+  // PERFORMANCE FIX: Use useLiveEnergy for real-time interpolated energy display
+  // This replaces the previous setInterval hack that forced re-renders every 10 seconds
+  const {
+    displayEnergy: energy,
+    maxEnergy,
+    isRegenerating
+  } = useLiveEnergy({ updateInterval: 1000 });
 
-  // Prefer hook values (which include real-time interpolation), fall back to store, then character
-  const energy = hookEnergy > 0 ? hookEnergy : (energyState?.currentEnergy ?? currentCharacter?.energy ?? 0);
-  const maxEnergy = hookMaxEnergy > 0 ? hookMaxEnergy : (energyState?.maxEnergy ?? currentCharacter?.maxEnergy ?? 150);
-  // Regen rate: 30 energy/hour = 0.5/min for free, 45/hour = 0.75/min for premium
+  // Regen rate for display purposes (from store or default)
   const regenRate = energyState?.regenRate ?? 0.5;
-
-  // FIX: Force re-render every 10 seconds to update interpolated energy display
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const ticker = setInterval(() => {
-      setTick(t => t + 1);
-    }, 10000); // Update display every 10 seconds
-
-    return () => clearInterval(ticker);
-  }, []);
 
   // Fetch energy, death status, and duel stats on mount
   useEffect(() => {
@@ -126,8 +119,30 @@ export const PlayerSidebar: React.FC = () => {
     return null;
   }
 
-  const xpForNextLevel = 100 * Math.pow(currentCharacter.level, 2); // Exponential formula matching server
-  const xpProgress = (currentCharacter.experience / xpForNextLevel) * 100;
+  // Total Level progression (new system)
+  const totalLevel = (currentCharacter as any).totalLevel || 30;
+  const combatLevel = (currentCharacter as any).combatLevel || 1;
+
+  // Total Level milestones for progress bar
+  const totalLevelMilestones = [30, 100, 250, 500, 750, 1000, 1500, 2000, 2500, 2970];
+  const getCurrentMilestone = (tl: number) => {
+    for (let i = totalLevelMilestones.length - 1; i >= 0; i--) {
+      if (tl >= totalLevelMilestones[i]) return totalLevelMilestones[i];
+    }
+    return 30;
+  };
+  const getNextMilestone = (tl: number) => {
+    for (const m of totalLevelMilestones) {
+      if (m > tl) return m;
+    }
+    return 2970;
+  };
+  const currentMilestone = getCurrentMilestone(totalLevel);
+  const nextMilestone = getNextMilestone(totalLevel);
+  const tlProgress = currentMilestone === nextMilestone
+    ? 100
+    : ((totalLevel - currentMilestone) / (nextMilestone - currentMilestone)) * 100;
+
   const factionDisplay = factionToDisplay(currentCharacter.faction);
 
   // Get faction color
@@ -156,9 +171,18 @@ export const PlayerSidebar: React.FC = () => {
           <span className={`text-sm font-bold capitalize ${getFactionColor()}`}>
             {factionDisplay}
           </span>
-          <span className="text-desert-sand text-sm">
-            Level {currentCharacter.level}
-          </span>
+          {/* Total Level - Primary progression */}
+          <Tooltip content="Total Level - Sum of all skill levels">
+            <span className="text-desert-sand text-sm">
+              TL {totalLevel}
+            </span>
+          </Tooltip>
+          {/* Combat Level - Combat progression */}
+          <Tooltip content="Combat Level - Derived from combat XP">
+            <span className="text-red-400 text-sm">
+              CL {combatLevel}
+            </span>
+          </Tooltip>
           {/* Prestige Badge */}
           {(currentCharacter as any).prestige?.currentRank > 0 && (
             <Link
@@ -209,21 +233,28 @@ export const PlayerSidebar: React.FC = () => {
 
           {/* Fate Marks Display - Near Energy Bar */}
           <FateMarksDisplay className="mt-2" />
+
+          {/* Tavern Energy Buffs Display */}
+          <ActiveBuffsDisplay compact className="mt-2" />
         </div>
 
-        {/* XP Bar */}
+        {/* Total Level Progress Bar */}
         <div>
           <div className="flex justify-between text-xs mb-1">
-            <span className="text-desert-sand">Experience</span>
-            <span className="text-purple-400 font-bold">
-              {currentCharacter.experience}/{xpForNextLevel}
+            <span className="text-desert-sand">Total Level</span>
+            <span className="text-cyan-400 font-bold">
+              {totalLevel} / {nextMilestone}
             </span>
           </div>
           <div className="h-3 bg-wood-dark rounded-full overflow-hidden border border-wood-light/30">
             <div
-              className="h-full bg-gradient-to-r from-purple-700 to-purple-400 transition-all duration-300"
-              style={{ width: `${Math.min(xpProgress, 100)}%` }}
+              className="h-full bg-gradient-to-r from-cyan-700 to-cyan-400 transition-all duration-300"
+              style={{ width: `${Math.min(tlProgress, 100)}%` }}
             />
+          </div>
+          <div className="flex justify-between text-xs text-desert-sand/70 mt-1">
+            <span>Next tier: TL {nextMilestone}</span>
+            <span className="text-cyan-400">{Math.floor(tlProgress)}%</span>
           </div>
         </div>
 

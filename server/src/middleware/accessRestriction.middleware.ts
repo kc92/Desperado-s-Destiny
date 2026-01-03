@@ -50,11 +50,13 @@ export function checkBuildingAccess(
     }
   }
 
-  // Level check
-  if (requirements.minLevel && character.level < requirements.minLevel) {
+  // Total Level check (minLevel in requirements refers to old character level, multiply by 10 for Total Level)
+  const totalLevel = character.totalLevel || 30;
+  const requiredTotalLevel = requirements.minLevel ? requirements.minLevel * 10 : 0;
+  if (requiredTotalLevel > 0 && totalLevel < requiredTotalLevel) {
     return {
       canAccess: false,
-      reason: `Requires level ${requirements.minLevel}`,
+      reason: `Requires Total Level ${requiredTotalLevel}`,
     };
   }
 

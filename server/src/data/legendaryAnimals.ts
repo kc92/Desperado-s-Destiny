@@ -159,9 +159,9 @@ export const LEGENDARY_ANIMALS: LegendaryAnimal[] = [
     achievementId: 'demon_slayer',
     titleUnlocked: 'Demon Slayer',
     permanentBonus: {
-      type: 'combat',
+      type: 'combat_power',
       amount: 10,
-      description: 'Defeating Old Red grants +10 Combat permanently',
+      description: 'Defeating Old Red grants +10 Combat Power permanently',
     },
 
     clueLocations: [
@@ -312,7 +312,7 @@ export const LEGENDARY_ANIMALS: LegendaryAnimal[] = [
     ],
 
     immunities: [],
-    weaknesses: ['perception'],
+    weaknesses: ['duel_instinct'],
 
     guaranteedDrops: [
       {
@@ -340,9 +340,9 @@ export const LEGENDARY_ANIMALS: LegendaryAnimal[] = [
     achievementId: 'ghost_hunter',
     titleUnlocked: 'Ghost Hunter',
     permanentBonus: {
-      type: 'cunning',
+      type: 'cunning_power',
       amount: 8,
-      description: 'Defeating Ghost Cat grants +8 Cunning permanently',
+      description: 'Defeating Ghost Cat grants +8 Cunning Power permanently',
     },
 
     clueLocations: [
@@ -519,9 +519,9 @@ export const LEGENDARY_ANIMALS: LegendaryAnimal[] = [
     achievementId: 'pack_breaker',
     titleUnlocked: 'Pack Breaker',
     permanentBonus: {
-      type: 'spirit',
+      type: 'spirit_power',
       amount: 10,
-      description: 'Defeating Lobo Grande grants +10 Spirit permanently',
+      description: 'Defeating Lobo Grande grants +10 Spirit Power permanently',
     },
 
     clueLocations: [
@@ -874,9 +874,9 @@ export const LEGENDARY_ANIMALS: LegendaryAnimal[] = [
     achievementId: 'trophy_master',
     titleUnlocked: 'Trophy Master',
     permanentBonus: {
-      type: 'cunning',
+      type: 'cunning_power',
       amount: 7,
-      description: 'Defeating Crown grants +7 Cunning permanently',
+      description: 'Defeating Crown grants +7 Cunning Power permanently',
     },
 
     clueLocations: [
@@ -1925,9 +1925,9 @@ export const LEGENDARY_ANIMALS: LegendaryAnimal[] = [
     achievementId: 'river_conqueror',
     titleUnlocked: 'River Conqueror',
     permanentBonus: {
-      type: 'combat',
+      type: 'combat_power',
       amount: 8,
-      description: 'Defeating Old Gator grants +8 Combat permanently',
+      description: 'Defeating Old Gator grants +8 Combat Power permanently',
     },
 
     clueLocations: [

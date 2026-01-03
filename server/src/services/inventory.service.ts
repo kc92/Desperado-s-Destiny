@@ -78,9 +78,11 @@ export class InventoryService {
     let maxSlots = this.DEFAULT_CAPACITY_SLOTS;
     let maxWeight = this.DEFAULT_CAPACITY_WEIGHT;
 
-    // Bonus from level
-    maxSlots += Math.floor(character.level / 10) * 10;
-    maxWeight += Math.floor(character.level / 5) * 50;
+    // Bonus from Total Level (replaces old character.level)
+    // Using totalLevel / 100 to maintain similar scaling (old level 50 = totalLevel 500)
+    const totalLevel = character.totalLevel || 30;
+    maxSlots += Math.floor(totalLevel / 100) * 10;
+    maxWeight += Math.floor(totalLevel / 50) * 50;
 
     // Bank vault tier bonuses (if exists on character)
     if ('bankVaultTier' in character) {

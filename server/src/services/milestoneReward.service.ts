@@ -215,9 +215,11 @@ export class MilestoneRewardService {
 
     const results: MilestoneRewardResult[] = [];
     const milestoneLevels = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+    // Use Total Level / 10 for backward compat with level-based milestones
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
 
     for (const level of milestoneLevels) {
-      if (character.level >= level) {
+      if (effectiveLevel >= level) {
         const result = await this.checkAndAwardRewards(characterId, level);
         if (result && !result.alreadyClaimed) {
           results.push(result);

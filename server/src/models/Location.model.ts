@@ -305,6 +305,8 @@ const LocationSchema = new Schema<ILocation>(
         // High-level zone types
         'wasteland',
         'ghost_town',
+        // Skill Academy building
+        'skill_academy',
       ] as LocationType[],
     },
     region: {

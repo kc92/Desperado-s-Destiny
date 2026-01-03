@@ -116,3 +116,78 @@ export interface ChallengeResult {
   /** Margin of success/failure */
   margin: number;
 }
+
+// ============================================================================
+// Effectiveness System Types (New Unified Formula)
+// ============================================================================
+
+/**
+ * Breakdown of how effectiveness was calculated
+ * Used for UI display and debugging
+ */
+export interface EffectivenessBreakdown {
+  /** Name of the poker hand (e.g., "Flush", "Two Pair") */
+  handName: string;
+
+  /** Base value from hand rank (50-500) */
+  baseValue: number;
+
+  /** Number of cards matching the relevant suit (0-5) */
+  suitMatches: number;
+
+  /** Suit multiplier applied (1.0-1.5) */
+  suitMultiplier: number;
+
+  /** Skill boost percentage applied (0-50) */
+  skillBoostPercent: number;
+
+  /** Skill multiplier applied (1.0-1.5) */
+  skillMultiplier: number;
+
+  /** The relevant suit for this action */
+  relevantSuit?: Suit;
+}
+
+/**
+ * Result of effectiveness calculation
+ */
+export interface EffectivenessResult {
+  /** Final calculated effectiveness value */
+  effectiveness: number;
+
+  /** Detailed breakdown of calculation components */
+  breakdown: EffectivenessBreakdown;
+
+  /** Whether this meets the success threshold (if applicable) */
+  meetsThreshold?: boolean;
+
+  /** The threshold that was required (if applicable) */
+  threshold?: number;
+}
+
+/**
+ * Extended game result with effectiveness data
+ */
+export interface EffectivenessGameResult {
+  /** Whether the action succeeded */
+  success: boolean;
+
+  /** The hand that was drawn */
+  hand: Card[];
+
+  /** Hand evaluation details */
+  evaluation: HandEvaluation;
+
+  /** Effectiveness calculation result */
+  effectiveness: EffectivenessResult;
+
+  /** Rewards earned from the action */
+  rewards: {
+    gold?: number;
+    xp?: number;
+    items?: string[];
+  };
+
+  /** Special effects triggered (e.g., "Perfect Suit Mastery!") */
+  specialEffects?: string[];
+}

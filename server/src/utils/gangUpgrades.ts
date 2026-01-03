@@ -25,11 +25,12 @@ export function calculateUpgradeCost(
 ): number {
   const nextLevel = currentLevel + 1;
 
-  const costMultipliers = {
+  const costMultipliers: Record<GangUpgradeType, number> = {
     [GangUpgradeType.VAULT_SIZE]: 1000,
     [GangUpgradeType.MEMBER_SLOTS]: 2000,
     [GangUpgradeType.WAR_CHEST]: 1500,
     [GangUpgradeType.PERK_BOOSTER]: 5000,
+    [GangUpgradeType.TRAINING_GROUNDS]: 3000, // 3K, 12K, 27K for levels 1-3
   };
 
   const multiplier = costMultipliers[upgradeType];
@@ -59,6 +60,9 @@ export function getUpgradeBenefit(upgradeType: GangUpgradeType, level: number): 
       return 5000 * level;
     case GangUpgradeType.PERK_BOOSTER:
       return 1 + 0.1 * level;
+    case GangUpgradeType.TRAINING_GROUNDS:
+      // 5% per level: L1=5%, L2=10%, L3=15% training time reduction
+      return 0.05 * level;
     default:
       return 0;
   }
@@ -139,7 +143,7 @@ export function calculateTotalUpgradeCost(
  * @returns Human-readable description
  */
 export function getUpgradeDescription(upgradeType: GangUpgradeType): string {
-  const descriptions = {
+  const descriptions: Record<GangUpgradeType, string> = {
     [GangUpgradeType.VAULT_SIZE]:
       'Increases gang bank capacity by 10,000 gold per level',
     [GangUpgradeType.MEMBER_SLOTS]:
@@ -148,6 +152,8 @@ export function getUpgradeDescription(upgradeType: GangUpgradeType): string {
       'Increases war funding capacity by 5,000 gold per level',
     [GangUpgradeType.PERK_BOOSTER]:
       'Multiplies all gang perks by 10% per level',
+    [GangUpgradeType.TRAINING_GROUNDS]:
+      'Reduces skill training time for all members by 5% per level (max 15%)',
   };
 
   return descriptions[upgradeType];

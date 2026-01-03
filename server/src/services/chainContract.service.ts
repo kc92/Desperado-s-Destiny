@@ -76,9 +76,11 @@ export class ChainContractService {
         return null;
       }
 
-      // Check level requirement
-      if (template.levelRequirement && character.level < template.levelRequirement) {
-        logger.debug(`Character ${characterId} doesn't meet level requirement for chain ${chainTemplateId}`);
+      // Check Total Level requirement (old level × 10)
+      const totalLevel = character.totalLevel || 30;
+      const requiredTotalLevel = template.levelRequirement ? template.levelRequirement * 10 : 0;
+      if (requiredTotalLevel > 0 && totalLevel < requiredTotalLevel) {
+        logger.debug(`Character ${characterId} doesn't meet Total Level requirement for chain ${chainTemplateId}`);
         return null;
       }
 
@@ -108,9 +110,10 @@ export class ChainContractService {
         return null;
       }
 
-      // Calculate rewards based on character level
+      // Calculate rewards based on effective old level (Total Level / 10)
+      const effectiveOldLevel = Math.floor(totalLevel / 10);
       const scaledRewards = template.levelScaling
-        ? scaleRewards(template.baseRewards, template.difficulty, character.level)
+        ? scaleRewards(template.baseRewards, template.difficulty, effectiveOldLevel)
         : template.baseRewards;
 
       const totalRewards = {
@@ -559,10 +562,12 @@ export class ChainContractService {
         return null;
       }
 
-      // Filter eligible chain templates
+      // Filter eligible chain templates using Total Level
+      const totalLevel = character.totalLevel || 30;
       const eligibleTemplates = CHAIN_CONTRACTS.filter(template => {
-        // Check level requirement
-        if (template.levelRequirement && character.level < template.levelRequirement) {
+        // Check Total Level requirement (old level × 10)
+        const requiredTotalLevel = template.levelRequirement ? template.levelRequirement * 10 : 0;
+        if (requiredTotalLevel > 0 && totalLevel < requiredTotalLevel) {
           return false;
         }
 

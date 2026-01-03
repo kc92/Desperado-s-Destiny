@@ -60,6 +60,26 @@ export interface InventoryItem {
 }
 
 /**
+ * Active temporary effect on a character (e.g., tavern buffs)
+ */
+export interface ActiveEffect {
+  /** Unique effect identifier (e.g., 'tavern_drink', 'tavern_rest') */
+  effectId: string;
+  /** Type of effect for categorization */
+  effectType: 'regen_buff' | 'stat_buff' | 'skill_buff';
+  /** Effect magnitude (e.g., 0.10 = +10% for regen buffs) */
+  magnitude: number;
+  /** When the effect was applied */
+  appliedAt: Date;
+  /** When the effect expires */
+  expiresAt: Date;
+  /** Location ID where effect was gained (optional) */
+  sourceLocation?: string;
+  /** Human-readable source name for UI display */
+  sourceName?: string;
+}
+
+/**
  * Complete character entity stored in database
  */
 export interface Character {
@@ -120,11 +140,15 @@ export interface SafeCharacter {
   faction: Faction;
   /** Character appearance customization */
   appearance: CharacterAppearance;
-  /** Character's current level */
+  /** @deprecated Use totalLevel instead - kept for backward compatibility */
   level: number;
-  /** Current experience points */
+  /** Total Level (sum of all skill levels, 30-2970) */
+  totalLevel: number;
+  /** Combat Level (derived from combat XP, 1-138) */
+  combatLevel: number;
+  /** @deprecated Use skill XP instead - kept for backward compatibility */
   experience: number;
-  /** Experience needed for next level */
+  /** @deprecated - kept for backward compatibility */
   experienceToNextLevel: number;
   /** Current energy */
   energy: number;
@@ -156,6 +180,8 @@ export interface SafeCharacter {
   skills: CharacterSkill[];
   /** Character inventory */
   inventory: InventoryItem[];
+  /** Active temporary effects (tavern buffs, etc.) */
+  activeEffects: ActiveEffect[];
   /** Combat statistics */
   combatStats: CombatStats;
   /** Whether character is in jail */

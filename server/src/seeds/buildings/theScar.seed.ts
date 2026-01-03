@@ -31,7 +31,7 @@ const theScarBuildings = [
     name: 'The Edge',
     description: 'The last safe point before The Scar proper begins. A rocky outcrop overlooking the massive fissure that plunges into lightless depths. The air here feels wrong - too cold, too still, as if reality itself recoils from what lies below. Those who stand at the edge report vertigo, nausea, and an overwhelming sense of being watched by something vast and hungry.',
     shortDescription: 'Overlook of the forbidden depths',
-    type: 'overlook',
+    type: 'mesa',
     region: 'devils_canyon',
     parentId: LOCATION_IDS.THE_SCAR,
     tier: 5,

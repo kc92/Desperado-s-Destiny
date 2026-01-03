@@ -80,6 +80,14 @@ secrets/
 *.key
 *.cert
 
+# Claude Code configuration (may contain credentials)
+.claude/
+
+# Session/cookie files (contain auth tokens)
+cookies.txt
+playtest_cookies.txt
+*_cookies.txt
+
 # Database dumps
 *.sql
 *.dump

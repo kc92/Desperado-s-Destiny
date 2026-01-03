@@ -132,6 +132,8 @@ export const getPrestigeHistory = async (
     const prestige: CharacterPrestige = character.prestige ?? {
       currentRank: 0,
       totalPrestiges: 0,
+      xpMultiplier: 1.0,
+      goldMultiplier: 1.0,
       permanentBonuses: [],
       prestigeHistory: [],
     };
@@ -194,15 +196,37 @@ export const checkPrestigeEligibility = async (
 
     const info = await ProgressionService.getPrestigeInfo(characterId);
 
+    // Build requirements list with new Total Level system
     const requirements = [];
-    if (!info.canPrestige && info.nextRank) {
+    if (info.nextRank) {
       const character = await Character.findById(characterId);
-      if (character && character.level < info.nextRank.requiredLevel) {
+      if (character) {
+        const totalLevel = character.totalLevel || 30;
+        const combatLevel = character.combatLevel || 1;
+        const skillsAt50Plus = character.skills.filter(s => s.level >= 50).length;
+
+        // Total Level requirement: 1000+
         requirements.push({
-          type: 'level',
-          current: character.level,
-          required: info.nextRank.requiredLevel,
-          met: false,
+          type: 'totalLevel',
+          current: totalLevel,
+          required: 1000,
+          met: totalLevel >= 1000,
+        });
+
+        // Combat Level requirement: 75+
+        requirements.push({
+          type: 'combatLevel',
+          current: combatLevel,
+          required: 75,
+          met: combatLevel >= 75,
+        });
+
+        // Skills at 50+ requirement: 5+
+        requirements.push({
+          type: 'skillsAt50',
+          current: skillsAt50Plus,
+          required: 5,
+          met: skillsAt50Plus >= 5,
         });
       }
     }

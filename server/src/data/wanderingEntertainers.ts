@@ -428,7 +428,7 @@ export const WANDERING_ENTERTAINERS: WanderingEntertainer[] = [
           experience: 75,
           gold: 5,
           buff: {
-            stat: 'perception',
+            stat: 'duel_instinct',
             modifier: 10,
             duration: 120
           }
@@ -1656,7 +1656,7 @@ export const WANDERING_ENTERTAINERS: WanderingEntertainer[] = [
         rewards: {
           experience: 50,
           buff: {
-            stat: 'perception',
+            stat: 'duel_instinct',
             modifier: 10,
             duration: 180
           }

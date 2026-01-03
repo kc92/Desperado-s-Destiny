@@ -189,7 +189,7 @@ export const GHOST_TOWN_MORAL_CHOICES: Record<string, IMoralChoice> = {
         id: 'offer_trade',
         label: 'Offer a Trade',
         description: 'Negotiate with the spirits using cunning.',
-        requirements: { skill: 'cunning', skillLevel: 50 },
+        requirements: { skill: 'deception', skillLevel: 50 },
         consequences: {
           specialEffect: 'spirit_arbiter_quest',
           reward: { title: 'Spirit Arbiter' },
@@ -321,7 +321,7 @@ export const BOUNTY_MORAL_CHOICES: Record<string, IMoralChoice> = {
         id: 'fake_the_death',
         label: 'Fake the Death',
         description: 'Help Jesse disappear in exchange for ongoing information.',
-        requirements: { skill: 'cunning', skillLevel: 40 },
+        requirements: { skill: 'deception', skillLevel: 40 },
         consequences: {
           specialEffect: 'jesse_informant_contact',
           reward: { gold: 100 }, // Recurring monthly gold
@@ -406,7 +406,7 @@ export const BOUNTY_MORAL_CHOICES: Record<string, IMoralChoice> = {
         id: 'become_the_voice',
         label: 'Become the Voice',
         description: 'Channel Rising Moon\'s spirit, becoming his avatar.',
-        requirements: { skill: 'spirit', skillLevel: 60 },
+        requirements: { skill: 'ritual_knowledge', skillLevel: 60 },
         consequences: {
           specialEffect: 'spirit_avatar_transformation',
           reward: { title: 'Spirit Champion' },

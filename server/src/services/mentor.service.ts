@@ -65,9 +65,11 @@ export class MentorService {
       canRequest = false;
     }
 
-    // Check level requirement
-    if (character.level < mentor.requirements.minLevel) {
-      reasons.push(`Requires level ${mentor.requirements.minLevel}`);
+    // Check Total Level requirement (old level × 10)
+    const totalLevel = character.totalLevel || 30;
+    const requiredTotalLevel = mentor.requirements.minLevel * 10;
+    if (totalLevel < requiredTotalLevel) {
+      reasons.push(`Requires Total Level ${requiredTotalLevel} (current: ${totalLevel})`);
       canRequest = false;
     }
 

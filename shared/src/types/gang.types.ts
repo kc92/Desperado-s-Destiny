@@ -43,6 +43,7 @@ export enum GangUpgradeType {
   MEMBER_SLOTS = 'memberSlots',
   WAR_CHEST = 'warChest',
   PERK_BOOSTER = 'perkBooster',
+  TRAINING_GROUNDS = 'trainingGrounds',
 }
 
 /**
@@ -53,6 +54,7 @@ export interface GangUpgrades {
   memberSlots: number;
   warChest: number;
   perkBooster: number;
+  trainingGrounds: number;
 }
 
 /**
@@ -165,9 +167,10 @@ export enum GangPermission {
 
 /**
  * Gang creation requirements
+ * MIN_TOTAL_LEVEL: Minimum Total Level (sum of all skill levels) to create a gang
  */
 export const GANG_CREATION = {
-  MIN_LEVEL: 10,
+  MIN_TOTAL_LEVEL: 100,  // Was MIN_LEVEL: 10 (old character level system)
   COST: 2000,
 } as const;
 
@@ -199,6 +202,7 @@ export const GANG_UPGRADE_MAX_LEVELS = {
   [GangUpgradeType.MEMBER_SLOTS]: 5,
   [GangUpgradeType.WAR_CHEST]: 10,
   [GangUpgradeType.PERK_BOOSTER]: 5,
+  [GangUpgradeType.TRAINING_GROUNDS]: 3,
 } as const;
 
 

@@ -18,6 +18,8 @@ import { WorldEventType, EventStatus } from '../models/WorldEvent.model';
 import { WorldEventService } from './worldEvent.service';
 import logger from '../utils/logger';
 import { getSocketIO } from '../config/socket';
+import { SkillService } from './skill.service';
+import { CharacterProgressionService } from './characterProgression.service';
 
 export class GangWarService {
   /**
@@ -459,6 +461,42 @@ export class GangWarService {
       logger.info(
         `War cooldown set: Both gangs on cooldown until ${cooldownUntil.toISOString()}`
       );
+
+      // Award Combat XP to winning gang members based on contributions
+      try {
+        const winningContributions = winner === 'attacker'
+          ? war.attackerContributions
+          : war.defenderContributions;
+
+        for (const contribution of winningContributions) {
+          // Use contribution amount as basis for combat XP (gold contributed = effort)
+          const warXP = SkillService.calculateGangWarCombatXP(contribution.amount);
+
+          const combatResult = await SkillService.awardCombatXP(
+            contribution.characterId.toString(),
+            warXP,
+            'gang_war',
+            session
+          );
+
+          // Check Combat Level milestones if leveled up
+          if (combatResult.leveledUp) {
+            await CharacterProgressionService.checkCombatLevelMilestones(
+              contribution.characterId.toString(),
+              combatResult.newCombatLevel,
+              combatResult.totalCombatXp,
+              session
+            );
+          }
+        }
+
+        logger.info(
+          `Gang war combat XP awarded to ${winningContributions.length} winning members`
+        );
+      } catch (combatXpError) {
+        // Combat XP is non-critical - don't fail war resolution
+        logger.warn('Failed to award gang war combat XP:', combatXpError);
+      }
 
       await session.commitTransaction();
 

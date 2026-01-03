@@ -140,8 +140,8 @@ export class FactionWarService {
         throw new Error('Character not found');
       }
 
-      // Validate eligibility
-      if (!warEvent.canJoin(character.level)) {
+      // Validate eligibility (use Combat Level for war participation)
+      if (!warEvent.canJoin(character.combatLevel || 1)) {
         throw new Error('Character does not meet requirements for this war event');
       }
 

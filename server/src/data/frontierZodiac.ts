@@ -235,7 +235,7 @@ export const FRONTIER_SIGNS: FrontierSign[] = [
       ],
       skills: [
         { skill: 'hunting', value: 0.15 },
-        { skill: 'perception', value: 0.12 }
+        { skill: 'duel_instinct', value: 0.12 }
       ],
       special: [
         { effect: 'tracking_range', value: 0.25 },

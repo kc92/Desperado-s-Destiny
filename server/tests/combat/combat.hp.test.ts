@@ -10,7 +10,7 @@
  * - HP boundaries
  */
 
-import { CombatService } from '../../src/services/combat.service';
+import { CombatService } from '../../src/services/combat';
 import { ICharacter } from '../../src/models/Character.model';
 
 describe('HP System', () => {

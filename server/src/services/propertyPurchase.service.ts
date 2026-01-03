@@ -215,11 +215,12 @@ export class PropertyPurchaseService {
    * Calculate interest rate based on character reputation
    */
   private static calculateInterestRate(character: any): number {
-    // Simplified: Use level as proxy for reputation
-    // Lower level = higher interest rate
+    // Simplified: Use Total Level / 10 as proxy for reputation
+    // Lower effective level = higher interest rate
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
     const baseRate = LOAN_CONFIG.MAX_INTEREST_RATE;
     const reductionPerLevel = 0.2;
-    const rate = Math.max(LOAN_CONFIG.MIN_INTEREST_RATE, baseRate - character.level * reductionPerLevel);
+    const rate = Math.max(LOAN_CONFIG.MIN_INTEREST_RATE, baseRate - effectiveLevel * reductionPerLevel);
     return Math.round(rate * 10) / 10; // Round to 1 decimal
   }
 

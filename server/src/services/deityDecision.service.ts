@@ -183,9 +183,10 @@ class DeityDecisionService {
       }
     }
 
-    // 3. High level characters are more interesting
+    // 3. High level characters are more interesting (use Total Level)
     if (character) {
-      interest += Math.min(character.level / 5, 10); // Up to 10 points for level 50
+      const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+      interest += Math.min(effectiveLevel / 5, 10); // Up to 10 points for effective level 50
     }
 
     // 4. Characters with active blessings/curses are more interesting

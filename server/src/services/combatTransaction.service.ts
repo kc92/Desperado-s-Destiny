@@ -9,7 +9,7 @@ import mongoose, { ClientSession } from 'mongoose';
 import { Character, ICharacter } from '../models/Character.model';
 import { NPC, INPC } from '../models/NPC.model';
 import { CombatEncounter, ICombatEncounter, ICombatRound, ILootAwarded } from '../models/CombatEncounter.model';
-import { CombatService } from './combat.service';
+import { CombatService } from './combat';
 import { CharacterProgressionService } from './characterProgression.service';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import { CombatStatus, HandRank, CombatTurnResult } from '@desperados/shared';

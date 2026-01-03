@@ -414,3 +414,69 @@
     border-width: 2px;
   }
 }
+
+/* -----------------------------------------------------------------------------
+   SALOON LOCATION THEMING
+   Danger levels and faction accents for saloon/tavern locations
+   ----------------------------------------------------------------------------- */
+
+/* Saloon Danger Levels */
+.saloon-danger-safe {
+  /* Clean, warm lighting - no additional effects needed */
+}
+
+.saloon-danger-moderate {
+  box-shadow: inset 0 0 50px rgba(139, 69, 19, 0.1);
+}
+
+.saloon-danger-dangerous {
+  box-shadow: inset 0 0 50px rgba(139, 0, 0, 0.2);
+  border-color: rgba(139, 0, 0, 0.5);
+}
+
+.saloon-danger-lawless {
+  box-shadow: inset 0 0 100px rgba(139, 0, 0, 0.3);
+  border-color: var(--color-blood);
+}
+
+/* Saloon Faction Accents */
+.saloon-faction-settler {
+  border-top: 3px solid var(--color-settler);
+}
+
+.saloon-faction-nahi {
+  border-top: 3px solid var(--color-kaiowa);
+}
+
+.saloon-faction-frontera {
+  border-top: 3px solid var(--color-outlaw);
+}
+
+.saloon-faction-neutral {
+  border-top: 3px solid var(--color-gold-dark);
+}
+
+/* Saloon Zone Cards */
+.saloon-zone {
+  transition: var(--transition-base);
+}
+
+.saloon-zone:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Saloon Activity Highlight */
+.saloon-activity-available {
+  border-left: 3px solid var(--color-success);
+}
+
+.saloon-activity-cooldown {
+  border-left: 3px solid var(--color-warning);
+  opacity: 0.7;
+}
+
+.saloon-activity-locked {
+  border-left: 3px solid var(--color-error);
+  opacity: 0.5;
+}

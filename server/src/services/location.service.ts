@@ -22,6 +22,7 @@ import { WorldEvent } from '../models/WorldEvent.model';
 import { calculateDangerChance, rollForEncounter } from '../middleware/accessRestriction.middleware';
 import { ZONE_INFO, WorldZoneType, getAdjacentZones, LocationJob, SkillCategory } from '@desperados/shared';
 import logger from '../utils/logger';
+import { escapeRegex } from '../utils/stringUtils';
 import { SecureRNG } from './base/SecureRNG';
 import { ActionDeckSession } from '../models/ActionDeckSession.model';
 import { initGame, getGameTypeForJobCategory, GameState, Suit } from './deckGames';
@@ -136,10 +137,12 @@ export class LocationService {
         isActive: true,
       });
 
-      // Filter by character requirements
+      // Filter by character requirements using Total Level
+      const totalLevel = character.totalLevel || 30;
       const availableActions = actions.filter(action => {
-        // Check level requirement
-        if (action.requiredSkillLevel && character.level < action.requiredSkillLevel) {
+        // Check Total Level requirement (old level × 10)
+        const requiredTotalLevel = action.requiredSkillLevel ? action.requiredSkillLevel * 10 : 0;
+        if (requiredTotalLevel > 0 && totalLevel < requiredTotalLevel) {
           return false;
         }
         return true;
@@ -247,15 +250,17 @@ export class LocationService {
             crimes.push(safeAction);
           }
         } else if (action.type === ActionType.COMBAT) {
-          // Combat filtered by character level
+          // Combat filtered by Combat Level
+          const combatLevel = character.combatLevel || 1;
           const requiredLevel = action.requiredSkillLevel || 1;
-          if (character.level >= requiredLevel && availableCombatNames.includes(action.name)) {
+          if (combatLevel >= requiredLevel && availableCombatNames.includes(action.name)) {
             combat.push(safeAction);
           }
         } else if (action.type === ActionType.CRAFT) {
-          // Craft actions - check level requirement
-          const requiredLevel = action.requiredSkillLevel || 1;
-          if (character.level >= requiredLevel && availableCraftNames.includes(action.name)) {
+          // Craft actions - check Total Level (old level × 10)
+          const totalLevel = character.totalLevel || 30;
+          const requiredTotalLevel = (action.requiredSkillLevel || 1) * 10;
+          if (totalLevel >= requiredTotalLevel && availableCraftNames.includes(action.name)) {
             craft.push(safeAction);
           }
         } else if (action.type === ActionType.SOCIAL) {
@@ -294,10 +299,13 @@ export class LocationService {
         return [];
       }
 
-      // Filter jobs by requirements
+      // Filter jobs by requirements using Total Level
+      const totalLevel = character.totalLevel || 30;
       const availableJobs = location.jobs.filter(job => {
         if (job.requirements) {
-          if (job.requirements.minLevel && character.level < job.requirements.minLevel) {
+          // Check Total Level requirement (old level × 10)
+          const requiredTotalLevel = job.requirements.minLevel ? job.requirements.minLevel * 10 : 0;
+          if (requiredTotalLevel > 0 && totalLevel < requiredTotalLevel) {
             return false;
           }
           if (job.requirements.requiredSkill && job.requirements.skillLevel) {
@@ -469,18 +477,20 @@ export class LocationService {
         };
       }
 
-      // Check location requirements
+      // Check location requirements using Total Level
       if (targetLocation.requirements) {
         const req = targetLocation.requirements;
+        const totalLevel = character.totalLevel || 30;
+        const requiredTotalLevel = req.minLevel ? req.minLevel * 10 : 0;
 
-        if (req.minLevel && character.level < req.minLevel) {
+        if (requiredTotalLevel > 0 && totalLevel < requiredTotalLevel) {
           await session.abortTransaction();
           session.endSession();
           return {
             success: false,
             newLocation: null as any,
             energySpent: 0,
-            message: `Requires level ${req.minLevel}`,
+            message: `Requires Total Level ${requiredTotalLevel} (current: ${totalLevel})`,
           };
         }
 
@@ -549,18 +559,21 @@ export class LocationService {
       await session.commitTransaction();
       session.endSession();
 
-      // Update quest progress for location visit (fire-and-forget, outside transaction)
-      // This is safe because quest progress is not critical to travel completion
+      // Update quest progress for location visit (outside transaction for performance)
+      // RELIABILITY FIX: Combined into single await to ensure quest progress is tracked
       if (!encounter) {
-        // Trigger with ObjectId for direct matches
-        QuestService.onLocationVisited(characterId, targetLocationId).catch(err =>
-          logger.error('Quest update failed after travel:', err)
-        );
-        // Also trigger with slug format for quest matching
         const locationSlug = targetLocation.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
-        QuestService.onLocationVisited(characterId, `location:${locationSlug}`).catch(err =>
-          logger.error('Quest slug update failed after travel:', err)
-        );
+        try {
+          await Promise.all([
+            // Trigger with ObjectId for direct matches
+            QuestService.onLocationVisited(characterId, targetLocationId),
+            // Also trigger with slug format for quest matching
+            QuestService.onLocationVisited(characterId, `location:${locationSlug}`)
+          ]);
+        } catch (err) {
+          // Log but don't fail travel - quest updates are non-critical
+          logger.error('Quest update failed after travel:', err);
+        }
       }
 
       // Return appropriate result
@@ -659,15 +672,16 @@ export class LocationService {
         };
       }
 
-      // Check requirements
+      // Check requirements (use Total Level for content gating)
       if (job.requirements) {
-        if (job.requirements.minLevel && character.level < job.requirements.minLevel) {
+        const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+        if (job.requirements.minLevel && effectiveLevel < job.requirements.minLevel) {
           return {
             success: false,
             goldEarned: 0,
             xpEarned: 0,
             items: [],
-            message: `Requires level ${job.requirements.minLevel}`,
+            message: `Requires Total Level ${job.requirements.minLevel * 10}`,
           };
         }
       }
@@ -806,12 +820,13 @@ export class LocationService {
         };
       }
 
-      // Check requirements
+      // Check requirements (use Total Level for content gating)
       if (job.requirements) {
-        if (job.requirements.minLevel && character.level < job.requirements.minLevel) {
+        const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+        if (job.requirements.minLevel && effectiveLevel < job.requirements.minLevel) {
           return {
             success: false,
-            message: `Requires level ${job.requirements.minLevel}`,
+            message: `Requires Total Level ${job.requirements.minLevel * 10}`,
           };
         }
       }
@@ -970,15 +985,16 @@ export class LocationService {
         };
       }
 
-      // Check level requirement
-      if (item.requiredLevel && character.level < item.requiredLevel) {
+      // Check level requirement (use Total Level for content gating)
+      const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+      if (item.requiredLevel && effectiveLevel < item.requiredLevel) {
         await session.abortTransaction();
         session.endSession();
         return {
           success: false,
           itemId: '',
           goldSpent: 0,
-          message: `Requires level ${item.requiredLevel}`,
+          message: `Requires Total Level ${item.requiredLevel * 10}`,
         };
       }
 
@@ -1317,11 +1333,12 @@ export class LocationService {
           { location: locationName },
           { location: locationType },
           { location: locationZone },
-          { location: { $regex: new RegExp(locationName.replace(/[^a-zA-Z0-9]/g, '.*'), 'i') } },
+          // SECURITY: Use escapeRegex to prevent NoSQL injection via regex patterns
+          { location: { $regex: new RegExp(escapeRegex(locationName), 'i') } },
         ],
         type: { $in: hostileTypes },
         isActive: true,
-        level: { $lte: character.level + 10 }, // Don't show NPCs more than 10 levels above player
+        level: { $lte: (character.combatLevel || 1) + 10 }, // Don't show NPCs more than 10 combat levels above player
       })
         .sort({ level: 1, difficulty: 1 })
         .limit(20)

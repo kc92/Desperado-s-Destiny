@@ -4,8 +4,10 @@
  */
 
 import { QuestDefinition } from '../models/Quest.model';
+import { ALL_STARTER_QUESTS } from '../data/quests/starter-quests';
 
-const starterQuests = [
+// Legacy quests kept for reference - actual seeding uses ALL_STARTER_QUESTS
+const legacyQuests = [
   // Main Story Quests
   {
     questId: 'welcome-to-frontier',
@@ -1914,11 +1916,15 @@ const starterQuests = [
 
 /**
  * Seed quests into database
+ * Uses ALL_STARTER_QUESTS from data/quests/starter-quests.ts which includes:
+ * - Newcomer's Trail, Greenhorn's Trail, Frontier Justice, etc.
+ * - Skill Academy tutorial quests (26 quests)
+ * - All NPC quest chains
  */
 export async function seedQuests(): Promise<void> {
   console.log('Seeding quests...');
 
-  for (const quest of starterQuests) {
+  for (const quest of ALL_STARTER_QUESTS) {
     await QuestDefinition.findOneAndUpdate(
       { questId: quest.questId },
       quest,
@@ -1926,7 +1932,7 @@ export async function seedQuests(): Promise<void> {
     );
   }
 
-  console.log(`Seeded ${starterQuests.length} quests`);
+  console.log(`Seeded ${ALL_STARTER_QUESTS.length} quests`);
 }
 
 /**

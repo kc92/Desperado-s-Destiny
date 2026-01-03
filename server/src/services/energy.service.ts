@@ -117,6 +117,30 @@ export class EnergyService {
   }
 
   /**
+   * Get full regeneration multiplier including all bonuses
+   * Combines premium multiplier with tavern buffs
+   *
+   * @param character - Full character object with activeEffects
+   * @param isInTavern - Whether character is currently in a tavern location
+   * @returns Combined multiplier (e.g., 1.5 = 50% faster regen)
+   */
+  static async getFullRegenMultiplier(character: ICharacter, isInTavern: boolean = false): Promise<number> {
+    // Get base premium multiplier
+    let multiplier = await this.getRegenMultiplier(character.userId.toString());
+
+    // Add tavern buff multiplier
+    try {
+      const { TavernService } = await import('./tavern.service');
+      const tavernMultiplier = TavernService.getRegenBuffMultiplier(character, isInTavern);
+      multiplier *= tavernMultiplier;
+    } catch (error) {
+      logger.warn('Failed to get tavern buff multiplier:', error);
+    }
+
+    return multiplier;
+  }
+
+  /**
    * Get current energy status including regeneration calculation
    * Read-only operation - does not modify database
    *
@@ -125,14 +149,21 @@ export class EnergyService {
    */
   static async getStatus(characterId: string): Promise<EnergyStatus> {
     const character = await Character.findById(characterId).select(
-      'energy maxEnergy lastEnergyUpdate userId'
+      'energy maxEnergy lastEnergyUpdate userId activeEffects currentLocation'
     );
 
     if (!character) {
       throw new AppError('Character not found', HttpStatus.NOT_FOUND);
     }
 
-    const regenMultiplier = await this.getRegenMultiplier(character.userId.toString());
+    // Check if character is in a tavern for buff bonus
+    let isInTavern = false;
+    try {
+      const { TavernService } = await import('./tavern.service');
+      isInTavern = await TavernService.isCharacterInTavern(character);
+    } catch { /* ignore */ }
+
+    const regenMultiplier = await this.getFullRegenMultiplier(character, isInTavern);
 
     const regeneratedEnergy = this.calculateRegeneration(
       character.lastEnergyUpdate,
@@ -477,7 +508,14 @@ export class EnergyService {
    * Use the atomic methods instead
    */
   static async regenerateEnergy(character: ICharacter): Promise<void> {
-    const regenMultiplier = await this.getRegenMultiplier(character.userId.toString());
+    // Check if character is in a tavern for buff bonus
+    let isInTavern = false;
+    try {
+      const { TavernService } = await import('./tavern.service');
+      isInTavern = await TavernService.isCharacterInTavern(character);
+    } catch { /* ignore */ }
+
+    const regenMultiplier = await this.getFullRegenMultiplier(character, isInTavern);
     const regenAmount = this.calculateRegeneration(
       character.lastEnergyUpdate,
       character.energy,
@@ -492,7 +530,14 @@ export class EnergyService {
    * @deprecated Use calculateRegeneration() instead
    */
   static async calculateRegenAmount(character: ICharacter): Promise<number> {
-    const regenMultiplier = await this.getRegenMultiplier(character.userId.toString());
+    // Check if character is in a tavern for buff bonus
+    let isInTavern = false;
+    try {
+      const { TavernService } = await import('./tavern.service');
+      isInTavern = await TavernService.isCharacterInTavern(character);
+    } catch { /* ignore */ }
+
+    const regenMultiplier = await this.getFullRegenMultiplier(character, isInTavern);
     return this.calculateRegeneration(
       character.lastEnergyUpdate,
       character.energy,

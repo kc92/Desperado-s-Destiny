@@ -1,0 +1,106 @@
+{
+  "playtest_id": "playtest_20260102",
+  "started_at": "2026-01-02T21:55:00Z",
+  "last_updated": "2026-01-03T05:50:00Z",
+  "current_phase": 2,
+  "account": {
+    "email": "playtest_20260102@test.com",
+    "created_at": "2026-01-02T21:55:00Z"
+  },
+  "character": {
+    "name": "Tester20260102",
+    "faction": "Frontera",
+    "level": 5,
+    "experience": 10,
+    "experience_to_next": 174,
+    "xp_needed": 164,
+    "combat_level": 1,
+    "total_level": 34,
+    "gold": 299,
+    "bounty": 500,
+    "wanted_level": 5,
+    "energy": {
+      "current": 3,
+      "max": 150,
+      "regen_bonus": "+30% (bath +20%, drink +10%)",
+      "effective_regen": "0.65/min"
+    },
+    "location": "Smuggler's Den",
+    "skills": {
+      "cunning": 0,
+      "spirit": 0,
+      "combat": 0,
+      "craft": 0
+    },
+    "inventory_count": 0,
+    "deity_relationships": {
+      "gambler": {"affinity": -55.8, "relationship": "CURSED"},
+      "outlaw_king": {"affinity": 55.95, "relationship": "BLESSED"}
+    },
+    "active_curse": {
+      "type": "UNLUCKY_STREAK",
+      "source": "GAMBLER",
+      "removal_condition": "Win 3 fair gambles",
+      "expires_at": null
+    },
+    "active_blessing": {
+      "type": "OUTLAWS_FREEDOM",
+      "source": "OUTLAW_KING",
+      "expires_at": "2026-01-10T03:43:39.275Z"
+    },
+    "active_buffs": [
+      {"type": "regen_buff", "source": "drink", "magnitude": 0.1, "expires": "2026-01-03T05:52:15.694Z"},
+      {"type": "regen_buff", "source": "bath", "magnitude": 0.2, "expires": "2026-01-03T07:12:52.554Z"}
+    ]
+  },
+  "progress": {
+    "tutorials_completed": ["intro_frontera", "destiny_deck_quiz"],
+    "milestones_reached": ["level_5"],
+    "features_unlocked": ["mail_system_level_4", "friends_list_level_5"],
+    "features_tested": [
+      "registration",
+      "character_creation",
+      "game_entry",
+      "tutorial_partial",
+      "skills_page",
+      "inventory_page",
+      "destiny_deck_crimes",
+      "energy_system",
+      "dynamic_events",
+      "crime_failure",
+      "jail_system",
+      "travel_system",
+      "hub_locations",
+      "shop_system",
+      "karma_system",
+      "jobs_system",
+      "stats_page",
+      "leaderboard",
+      "territory_map",
+      "quest_system",
+      "tavern_system",
+      "energy_regen_buffs",
+      "level_up_system"
+    ]
+  },
+  "session": {
+    "actions_performed": 30,
+    "crimes_attempted": 20,
+    "crimes_succeeded": 19,
+    "crimes_failed": 1,
+    "jobs_completed": 4,
+    "travels_completed": 7,
+    "time_played_minutes": 355,
+    "last_checkpoint": "phase_1_complete_level_5"
+  },
+  "notes": {
+    "phase_1_complete": "LEVEL 5 ACHIEVED! Job 4 gave +32 XP (High Card hand). 130+32=162 > 152 required. Leveled up!",
+    "doom_explained": "BUG-015: DOOM is Gambler's UNLUCKY_STREAK curse. Requires winning 3 gambles to remove. No time expiration.",
+    "jail_server_bug": "BUG-014: Server returns isJailed:true even when jailedUntil is past. Root cause of stale UI.",
+    "buildings_deadlock": "BUG-013 + BUG-015: Can't enter buildings to gamble, can't remove curse without gambling.",
+    "jobs_verified": "JOBS WORK! Completed 4 Smuggle Goods jobs. Job 4: +32 XP, +18 Gold (High Card hand).",
+    "tutorial_broken": "BUG-003, BUG-005, BUG-006: Tutorial stuck on non-existent Abandoned Mine",
+    "key_discovery": "DOOM = Gambler deity curse, not a separate cooldown system",
+    "phase_2_goals": "Levels 6-10: Courier Work (L6), Gambling (L7), Crafting (L8), Gang Join (L10)"
+  }
+}

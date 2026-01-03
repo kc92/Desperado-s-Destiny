@@ -114,9 +114,10 @@ export class ShootingContestService {
         throw new Error('Character not found');
       }
 
-      // Check level requirement
-      if (character.level < contest.minLevel) {
-        throw new Error(`Character must be level ${contest.minLevel} or higher`);
+      // Check level requirement (use Combat Level for shooting contests)
+      const combatLevel = character.combatLevel || 1;
+      if (combatLevel < contest.minLevel) {
+        throw new Error(`Character must be Combat Level ${contest.minLevel} or higher`);
       }
 
       // PHASE 5 FIX: Actually deduct entry fee from character's dollars

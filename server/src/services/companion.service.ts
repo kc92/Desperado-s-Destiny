@@ -124,10 +124,12 @@ export class CompanionService {
         throw new AppError('This species has no purchase price', 400);
       }
 
-      // Check level requirement
-      if (character.level < speciesDef.levelRequired) {
+      // Check Total Level requirement (old level × 10)
+      const totalLevel = character.totalLevel || 30;
+      const requiredTotalLevel = speciesDef.levelRequired * 10;
+      if (totalLevel < requiredTotalLevel) {
         throw new AppError(
-          `Requires level ${speciesDef.levelRequired}. Current: ${character.level}`,
+          `Requires Total Level ${requiredTotalLevel} (current: ${totalLevel})`,
           400
         );
       }
@@ -634,10 +636,12 @@ export class CompanionService {
       let available = true;
       let reason: string | undefined;
 
-      // Check level
-      if (character.level < speciesDef.levelRequired) {
+      // Check Total Level (old level × 10)
+      const totalLevel = character.totalLevel || 30;
+      const requiredTotalLevel = speciesDef.levelRequired * 10;
+      if (totalLevel < requiredTotalLevel) {
         available = false;
-        reason = `Requires level ${speciesDef.levelRequired}`;
+        reason = `Requires Total Level ${requiredTotalLevel} (current: ${totalLevel})`;
       }
 
       // Check reputation

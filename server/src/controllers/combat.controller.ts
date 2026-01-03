@@ -9,7 +9,7 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { Character } from '../models/Character.model';
 import { NPC } from '../models/NPC.model';
 import { CombatEncounter } from '../models/CombatEncounter.model';
-import { CombatService } from '../services/combat.service';
+import { CombatService } from '../services/combat';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError, HttpStatus } from '../types';
 import logger from '../utils/logger';

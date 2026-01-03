@@ -88,9 +88,10 @@ export class HuntingService {
       };
     }
 
-    // Get available hunting grounds based on level
+    // Get available hunting grounds based on Combat Level
+    const combatLevel = character.combatLevel || 1;
     const availableGrounds = Object.values(HUNTING_GROUNDS).filter(
-      ground => ground.minLevel <= character.level
+      ground => ground.minLevel <= combatLevel
     );
 
     // Check equipment (simplified for now - can be expanded later)
@@ -147,11 +148,12 @@ export class HuntingService {
         return { success: false, error: 'Invalid hunting ground' };
       }
 
-      // Check level requirement
-      if (character.level < huntingGround.minLevel) {
+      // Check Combat Level requirement
+      const combatLevelCheck = character.combatLevel || 1;
+      if (combatLevelCheck < huntingGround.minLevel) {
         await session.abortTransaction();
         session.endSession();
-        return { success: false, error: `Requires level ${huntingGround.minLevel}` };
+        return { success: false, error: `Requires Combat Level ${huntingGround.minLevel}` };
       }
 
       // Check energy

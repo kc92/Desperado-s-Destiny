@@ -16,6 +16,8 @@ import {
   SKILL_PROGRESSION,
   calculateXPForLevel,
   calculateTrainingTime,
+  calculateTotalLevel,
+  calculateCombatLevel,
   DestinySuit,
   SkillCategory
 } from '@desperados/shared';
@@ -23,20 +25,25 @@ import { NotificationType } from '../models/Notification.model';
 import logger from '../utils/logger';
 import { QuestService } from './quest.service';
 import { NotificationService } from './notification.service';
+import { CharacterProgressionService } from './characterProgression.service';
+import { PremiumUtils } from '../utils/premium.utils';
+import { GangService } from './gang.service';
 
 /**
  * PHASE 19: Specialization System Configuration
  *
+ * LEVELING SYSTEM REFACTOR: Updated thresholds for level 99 cap
+ *
  * Players gain bonuses for mastering skill categories.
- * Each category has thresholds at levels 25, 35, 45, 50.
+ * Each category has thresholds at levels 25, 40, 60, 80, 99.
  * Reaching each threshold with your LOWEST skill in the category grants +5%.
- * Maximum bonus: +25% for having all skills in a category at 50.
+ * Maximum bonus: +25% for having all skills in a category at 99.
  *
  * This encourages deep specialization rather than spreading thin.
  */
 export const SPECIALIZATION_CONFIG = {
-  /** Skill level thresholds that unlock bonuses */
-  categoryMasteryThresholds: [25, 35, 45, 50] as const,
+  /** Skill level thresholds that unlock bonuses (updated for level 99 cap) */
+  categoryMasteryThresholds: [25, 40, 60, 80, 99] as const,
 
   /** Bonus multiplier per threshold reached (5% = 0.05) */
   bonusPerTier: 0.05,
@@ -63,9 +70,8 @@ export const SPECIALIZATION_CONFIG = {
       'tracking',
       'deception',
       'gambling',
-      'perception',
-      'sleight_of_hand',
-      'poker_face'
+      'duel_instinct',
+      'sleight_of_hand'
     ],
     spirit: [
       'medicine',
@@ -82,9 +88,8 @@ export const SPECIALIZATION_CONFIG = {
       'alchemy',
       'engineering',
       'mining',
-      'prospecting',
-      'herbalism',
-      'carpentry'
+      'carpentry',
+      'gunsmithing'
     ]
   } as const
 } as const;
@@ -121,6 +126,7 @@ export class SkillService {
           skillId: skill.id,
           level: SKILL_PROGRESSION.STARTING_LEVEL,
           experience: 0,
+          totalXpEarned: 0,
           trainingStarted: undefined,
           trainingCompletes: undefined
         });
@@ -146,6 +152,7 @@ export class SkillService {
           skillId: skill.id,
           level: SKILL_PROGRESSION.STARTING_LEVEL,
           experience: 0,
+          totalXpEarned: 0,
           trainingStarted: undefined,
           trainingCompletes: undefined
         });
@@ -163,7 +170,7 @@ export class SkillService {
     if (currentLevel >= SKILL_PROGRESSION.MAX_LEVEL) {
       return 0; // Max level reached
     }
-    return calculateXPForLevel(currentLevel);
+    return calculateXPForLevel(currentLevel + 1);
   }
 
   /**
@@ -172,6 +179,64 @@ export class SkillService {
    */
   static calculateSkillTrainingTime(skillId: string, currentLevel: number): number {
     return calculateTrainingTime(skillId, currentLevel);
+  }
+
+  /**
+   * Calculate skill training time with premium and gang bonuses applied
+   * Uses character ID to look up premium status and gang membership
+   *
+   * Bonus stacking (multiplicative):
+   * - Premium: 25% reduction (multiplier 0.75)
+   * - Gang Training Grounds L1/L2/L3: 5%/10%/15% reduction
+   * - Combined max: Premium + Gang L3 = 36.25% reduction
+   *
+   * @param skillId - Skill being trained
+   * @param currentLevel - Current skill level
+   * @param characterId - Character ID for bonus lookup
+   * @returns Training time in milliseconds with all bonuses applied
+   */
+  static async calculateSkillTrainingTimeWithBonuses(
+    skillId: string,
+    currentLevel: number,
+    characterId: string
+  ): Promise<number> {
+    // Get base training time
+    const baseTime = this.calculateSkillTrainingTime(skillId, currentLevel);
+
+    // Get character for premium and gang lookup
+    const character = await Character.findById(characterId);
+    if (!character) {
+      return baseTime; // No bonuses for unknown character
+    }
+
+    let multiplier = 1.0;
+
+    // Apply premium time reduction (25% = 0.75 multiplier)
+    try {
+      const premiumMultiplier = await PremiumUtils.getTrainingTimeMultiplierByCharacter(characterId);
+      multiplier *= premiumMultiplier;
+    } catch (error) {
+      logger.warn('Failed to get premium training multiplier:', error);
+    }
+
+    // Apply gang Training Grounds reduction (5%/10%/15%)
+    if (character.gangId) {
+      try {
+        const gangReduction = await GangService.getTrainingFacilityBonus(character.gangId.toString());
+        if (gangReduction > 0) {
+          multiplier *= (1 - gangReduction);
+        }
+      } catch (error) {
+        logger.warn('Failed to get gang training bonus:', error);
+      }
+    }
+
+    // Apply multiplier and return (minimum 1 minute to prevent exploits)
+    const finalTime = Math.max(60000, Math.floor(baseTime * multiplier));
+
+    logger.debug(`Training time for ${skillId} L${currentLevel}: base=${baseTime}ms, multiplier=${multiplier.toFixed(3)}, final=${finalTime}ms`);
+
+    return finalTime;
   }
 
   /**
@@ -225,11 +290,18 @@ export class SkillService {
         return { success: false, error: 'Character not found' };
       }
 
-      // Check if already training
-      if (!character.canStartTraining()) {
+      // Count currently training skills
+      const currentlyTraining = character.skills.filter(
+        s => s.trainingStarted && s.trainingCompletes && new Date(s.trainingCompletes) > new Date()
+      ).length;
+
+      // Check concurrent training limit (Premium: 2, Free: 1)
+      const maxSlots = await PremiumUtils.getMaxConcurrentTrainingByCharacter(characterId);
+      if (currentlyTraining >= maxSlots) {
         await session.abortTransaction();
         session.endSession();
-        return { success: false, error: 'Already training a skill' };
+        const upgradeHint = maxSlots === 1 ? ' Upgrade to Premium for 2 training slots!' : '';
+        return { success: false, error: `Already training maximum skills (${maxSlots}).${upgradeHint}` };
       }
 
       // Validate skill exists
@@ -248,6 +320,7 @@ export class SkillService {
           skillId: skillDef.id,
           level: SKILL_PROGRESSION.STARTING_LEVEL,
           experience: 0,
+          totalXpEarned: 0,
           trainingStarted: undefined,
           trainingCompletes: undefined
         };
@@ -261,8 +334,12 @@ export class SkillService {
         return { success: false, error: 'Skill already at maximum level' };
       }
 
-      // Calculate training time
-      const trainingTime = this.calculateSkillTrainingTime(skillDef.id, characterSkill.level);
+      // Calculate training time with premium + gang bonuses
+      const trainingTime = await this.calculateSkillTrainingTimeWithBonuses(
+        skillDef.id,
+        characterSkill.level,
+        characterId
+      );
       const now = new Date();
       const completesAt = new Date(now.getTime() + trainingTime);
 
@@ -418,7 +495,27 @@ export class SkillService {
       training.trainingStarted = undefined;
       training.trainingCompletes = undefined;
 
+      // Update Total Level if skill leveled up
+      if (leveledUp) {
+        this.updateTotalLevel(character);
+      }
+
       await character.save({ session });
+
+      // Check Total Level milestones after skill level-up (within transaction)
+      if (leveledUp) {
+        try {
+          await CharacterProgressionService.checkTotalLevelMilestones(
+            characterId,
+            character.totalLevel,
+            session
+          );
+        } catch (milestoneError) {
+          logger.error('Failed to check Total Level milestones:', milestoneError);
+          // Don't fail training completion for milestone check failures
+        }
+      }
+
       await session.commitTransaction();
       session.endSession();
 
@@ -487,7 +584,188 @@ export class SkillService {
   }
 
   /**
+   * Batch complete all training levels that finished while offline
+   * Awards multiple levels if player was offline long enough
+   * Auto-continues training with remaining time
+   *
+   * @param characterId - Character ID
+   * @returns Results including all levels gained and remaining training time
+   */
+  static async batchOfflineComplete(characterId: string): Promise<{
+    completed: boolean;
+    levelsGained: number;
+    results: Array<{
+      skillId: string;
+      skillName: string;
+      oldLevel: number;
+      newLevel: number;
+      xpAwarded: number;
+    }>;
+    continuedTraining?: {
+      skillId: string;
+      completesAt: Date;
+      remainingMs: number;
+    };
+  }> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const character = await Character.findById(characterId).session(session);
+      if (!character) {
+        await session.abortTransaction();
+        session.endSession();
+        return { completed: false, levelsGained: 0, results: [] };
+      }
+
+      const training = character.getCurrentTraining();
+      if (!training || !training.trainingStarted || !training.trainingCompletes) {
+        await session.abortTransaction();
+        session.endSession();
+        return { completed: false, levelsGained: 0, results: [] };
+      }
+
+      // Check if training has completed
+      const now = new Date();
+      if (new Date(training.trainingCompletes) > now) {
+        await session.abortTransaction();
+        session.endSession();
+        return { completed: false, levelsGained: 0, results: [] };
+      }
+
+      const skillDef = this.getSkillDefinition(training.skillId);
+      if (!skillDef) {
+        await session.abortTransaction();
+        session.endSession();
+        return { completed: false, levelsGained: 0, results: [] };
+      }
+
+      // Calculate total elapsed time since training started
+      let elapsedMs = now.getTime() - new Date(training.trainingStarted).getTime();
+      let currentLevel = training.level;
+      const results: Array<{
+        skillId: string;
+        skillName: string;
+        oldLevel: number;
+        newLevel: number;
+        xpAwarded: number;
+      }> = [];
+
+      // Loop: Award levels while time remains and under max level
+      while (elapsedMs > 0 && currentLevel < skillDef.maxLevel) {
+        // Get training time for this level (with bonuses)
+        const trainingTime = await this.calculateSkillTrainingTimeWithBonuses(
+          training.skillId,
+          currentLevel,
+          characterId
+        );
+
+        if (elapsedMs >= trainingTime) {
+          // Level completes
+          const xpAwarded = this.calculateXPForNextLevel(currentLevel);
+          results.push({
+            skillId: training.skillId,
+            skillName: skillDef.name,
+            oldLevel: currentLevel,
+            newLevel: currentLevel + 1,
+            xpAwarded
+          });
+
+          elapsedMs -= trainingTime;
+          currentLevel++;
+        } else {
+          // Partial progress - not enough time for next level
+          break;
+        }
+      }
+
+      if (results.length === 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return { completed: false, levelsGained: 0, results: [] };
+      }
+
+      // Apply all level-ups
+      training.level = currentLevel;
+      training.experience = 0; // Reset XP after level-ups
+      training.totalXpEarned = (training.totalXpEarned || 0) + results.reduce((sum, r) => sum + r.xpAwarded, 0);
+
+      // Update Total Level
+      this.updateTotalLevel(character);
+
+      let continuedTraining: { skillId: string; completesAt: Date; remainingMs: number } | undefined;
+
+      // If there's remaining time and not at max, continue training
+      if (elapsedMs > 0 && currentLevel < skillDef.maxLevel) {
+        const nextTrainingTime = await this.calculateSkillTrainingTimeWithBonuses(
+          training.skillId,
+          currentLevel,
+          characterId
+        );
+        const remainingForNextLevel = nextTrainingTime - elapsedMs;
+        const completesAt = new Date(now.getTime() + remainingForNextLevel);
+
+        training.trainingStarted = new Date(now.getTime() - elapsedMs);
+        training.trainingCompletes = completesAt;
+
+        continuedTraining = {
+          skillId: training.skillId,
+          completesAt,
+          remainingMs: remainingForNextLevel
+        };
+      } else {
+        // Clear training (completed or at max)
+        training.trainingStarted = undefined;
+        training.trainingCompletes = undefined;
+      }
+
+      await character.save({ session });
+      await session.commitTransaction();
+      session.endSession();
+
+      // Log and notify
+      logger.info(`Batch offline complete for ${characterId}: ${results.length} levels gained`, {
+        skillId: training.skillId,
+        oldLevel: results[0]?.oldLevel,
+        newLevel: currentLevel,
+        levelsGained: results.length
+      });
+
+      // Send notification summarizing gains
+      if (results.length > 0) {
+        try {
+          const totalXp = results.reduce((sum, r) => sum + r.xpAwarded, 0);
+          await NotificationService.createNotification(
+            characterId,
+            NotificationType.SKILL_TRAINED,
+            results.length > 1 ? `${skillDef.name} Training: +${results.length} Levels!` : `${skillDef.name} Training Complete!`,
+            results.length > 1
+              ? `You gained ${results.length} levels in ${skillDef.name} while you were away! Now at level ${currentLevel}.`
+              : `${skillDef.name} reached level ${currentLevel}!`,
+            '/skills'
+          );
+        } catch (notifError) {
+          logger.error('Failed to create batch training notification:', notifError);
+        }
+      }
+
+      return {
+        completed: true,
+        levelsGained: results.length,
+        results,
+        continuedTraining
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      logger.error('Error in batch offline complete:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Check and auto-complete any training that finished while offline
+   * Now supports batch completion for multiple levels
    * Called on login/page load
    */
   static async checkAndAutoComplete(characterId: string): Promise<{
@@ -501,31 +779,45 @@ export class SkillService {
       newXP: number;
       xpToNextLevel: number;
     };
+    batchResults?: {
+      levelsGained: number;
+      results: Array<{
+        skillId: string;
+        skillName: string;
+        oldLevel: number;
+        newLevel: number;
+        xpAwarded: number;
+      }>;
+    };
   }> {
-    const character = await Character.findById(characterId);
-    if (!character) {
+    // Use batch completion for multi-level support
+    const batchResult = await this.batchOfflineComplete(characterId);
+
+    if (!batchResult.completed || batchResult.results.length === 0) {
       return { completed: false };
     }
 
-    const training = character.getCurrentTraining();
-    if (!training || !training.trainingCompletes) {
-      return { completed: false };
-    }
+    // Return both the legacy single-result format and the new batch format
+    const lastResult = batchResult.results[batchResult.results.length - 1];
+    const firstResult = batchResult.results[0];
+    const totalXp = batchResult.results.reduce((sum, r) => sum + r.xpAwarded, 0);
 
-    // Check if training should have completed (even if it was hours ago)
-    if (new Date(training.trainingCompletes) <= new Date()) {
-      const result = await this.completeTraining(characterId);
-      if (result.success && result.result) {
-        logger.info(`Auto-completed offline training for character ${characterId}`, {
-          skillId: result.result.skillId,
-          newLevel: result.result.newLevel,
-          completedAt: training.trainingCompletes
-        });
-        return { completed: true, result: result.result };
+    return {
+      completed: true,
+      result: {
+        skillId: lastResult.skillId,
+        oldLevel: firstResult.oldLevel,
+        newLevel: lastResult.newLevel,
+        xpAwarded: totalXp,
+        leveledUp: true,
+        newXP: 0, // Reset after batch level-ups
+        xpToNextLevel: this.calculateXPForNextLevel(lastResult.newLevel)
+      },
+      batchResults: {
+        levelsGained: batchResult.levelsGained,
+        results: batchResult.results
       }
-    }
-
-    return { completed: false };
+    };
   }
 
   /**
@@ -599,6 +891,7 @@ export class SkillService {
           skillId: skillDef.id,
           level: SKILL_PROGRESSION.STARTING_LEVEL,
           experience: 0,
+          totalXpEarned: 0,
           trainingStarted: undefined,
           trainingCompletes: undefined
         };
@@ -649,7 +942,26 @@ export class SkillService {
         characterSkill.experience = 0;
       }
 
+      // Update Total Level if any levels were gained
+      if (levelsGained > 0) {
+        this.updateTotalLevel(character);
+      }
+
       await character.save({ session });
+
+      // Check Total Level milestones after skill level-up
+      if (levelsGained > 0) {
+        try {
+          await CharacterProgressionService.checkTotalLevelMilestones(
+            characterId,
+            character.totalLevel,
+            useExternalSession ? session : undefined
+          );
+        } catch (milestoneError) {
+          logger.error('Failed to check Total Level milestones:', milestoneError);
+          // Don't fail XP award for milestone check failures
+        }
+      }
 
       if (!useExternalSession) {
         await session.commitTransaction();
@@ -938,10 +1250,10 @@ export class SkillService {
    * This replaces the unused character.stats object with real values.
    *
    * Categories:
-   * - cunning: lockpicking, stealth, pickpocket, tracking, deception, gambling, perception, sleight_of_hand, poker_face
+   * - cunning: lockpicking, stealth, pickpocket, tracking, deception, gambling, duel_instinct, sleight_of_hand
    * - spirit: medicine, persuasion, animal_handling, leadership, ritual_knowledge, performance
    * - combat: melee_combat, ranged_combat, defensive_tactics, mounted_combat, explosives
-   * - craft: blacksmithing, leatherworking, cooking, alchemy, engineering, mining, prospecting, herbalism, carpentry
+   * - craft: blacksmithing, leatherworking, cooking, alchemy, engineering, mining, carpentry, gunsmithing
    *
    * @param character - The character to calculate stats for
    * @returns Object with cunning, spirit, combat, craft values
@@ -984,5 +1296,242 @@ export class SkillService {
     }
 
     return total;
+  }
+
+  // ============================================
+  // TOTAL LEVEL SYSTEM
+  // Sum of all skill levels (replaces character level)
+  // ============================================
+
+  /**
+   * Calculate and update a character's Total Level
+   * Should be called after any skill level change
+   *
+   * @param character - Character to update
+   * @returns The new Total Level
+   */
+  static updateTotalLevel(character: ICharacter): number {
+    const skills = character.skills.map(s => ({ level: s.level || 1 }));
+    const newTotalLevel = calculateTotalLevel(skills);
+
+    // Update cached value
+    character.totalLevel = newTotalLevel;
+
+    logger.debug(`Updated Total Level for ${character.name}: ${newTotalLevel}`);
+    return newTotalLevel;
+  }
+
+  /**
+   * Get Total Level for a character (calculated, not cached)
+   */
+  static getTotalLevel(character: ICharacter): number {
+    const skills = character.skills.map(s => ({ level: s.level || 1 }));
+    return calculateTotalLevel(skills);
+  }
+
+  /**
+   * Check if character meets Total Level requirement
+   */
+  static meetsTotalLevelRequirement(character: ICharacter, requiredLevel: number): boolean {
+    return this.getTotalLevel(character) >= requiredLevel;
+  }
+
+  // ============================================
+  // COMBAT LEVEL SYSTEM
+  // Derived from total combat XP earned (1-138)
+  // ============================================
+
+  /**
+   * Award Combat XP and update Combat Level
+   * Called after PvE victories, PvP wins, bounty captures, gang wars
+   *
+   * @param characterId - Character to award XP to
+   * @param xpAmount - Amount of combat XP to award
+   * @param source - Source of the XP for logging
+   * @param session - Optional mongoose session for transactions
+   */
+  static async awardCombatXP(
+    characterId: string,
+    xpAmount: number,
+    source: 'pve' | 'pvp' | 'bounty' | 'gang_war' | 'training',
+    session?: mongoose.ClientSession
+  ): Promise<{
+    success: boolean;
+    oldCombatLevel: number;
+    newCombatLevel: number;
+    combatXpGained: number;
+    totalCombatXp: number;
+    leveledUp: boolean;
+  }> {
+    const useExternalSession = !!session;
+    if (!session) {
+      session = await mongoose.startSession();
+      session.startTransaction();
+    }
+
+    try {
+      const character = await Character.findById(characterId).session(session);
+
+      if (!character) {
+        if (!useExternalSession) {
+          await session.abortTransaction();
+          session.endSession();
+        }
+        throw new Error('Character not found');
+      }
+
+      const oldCombatXp = character.combatXp || 0;
+      const oldCombatLevel = character.combatLevel || 1;
+
+      // Add combat XP
+      character.combatXp = oldCombatXp + xpAmount;
+
+      // Calculate new combat level
+      const newCombatLevel = calculateCombatLevel(character.combatXp);
+      character.combatLevel = newCombatLevel;
+
+      const leveledUp = newCombatLevel > oldCombatLevel;
+
+      await character.save({ session });
+
+      if (!useExternalSession) {
+        await session.commitTransaction();
+        session.endSession();
+      }
+
+      logger.info(
+        `Character ${character.name} gained ${xpAmount} combat XP from ${source}. ` +
+        `Combat Level: ${oldCombatLevel} -> ${newCombatLevel}, Total XP: ${character.combatXp}`
+      );
+
+      // Notify on level up
+      if (leveledUp) {
+        try {
+          await NotificationService.createNotification(
+            characterId,
+            NotificationType.SKILL_TRAINED,
+            'Combat Level Up!',
+            `Your Combat Level increased to ${newCombatLevel}!`,
+            '/character'
+          );
+        } catch (notifError) {
+          logger.error('Failed to create combat level notification:', notifError);
+        }
+      }
+
+      return {
+        success: true,
+        oldCombatLevel,
+        newCombatLevel,
+        combatXpGained: xpAmount,
+        totalCombatXp: character.combatXp,
+        leveledUp
+      };
+    } catch (error) {
+      if (!useExternalSession) {
+        await session.abortTransaction();
+        session.endSession();
+      }
+      logger.error('Error awarding combat XP:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate combat XP for a PvE victory
+   * Formula: enemyLevel * 50 XP
+   */
+  static calculatePvECombatXP(enemyLevel: number): number {
+    return enemyLevel * 50;
+  }
+
+  /**
+   * Calculate combat XP for a PvP victory
+   * Formula: 500 + (opponentCombatLevel - yourCombatLevel) * 25 XP
+   * Bonus for defeating higher level opponents, reduced for lower
+   */
+  static calculatePvPCombatXP(yourCombatLevel: number, opponentCombatLevel: number): number {
+    const base = 500;
+    const levelDiff = opponentCombatLevel - yourCombatLevel;
+    const bonus = levelDiff * 25;
+    return Math.max(100, base + bonus); // Minimum 100 XP
+  }
+
+  /**
+   * Calculate combat XP for capturing a bounty
+   * Formula: bountyAmount / 10 XP
+   */
+  static calculateBountyCombatXP(bountyAmount: number): number {
+    return Math.floor(bountyAmount / 10);
+  }
+
+  /**
+   * Calculate combat XP for gang war contribution
+   * Formula: damage * 2 XP
+   */
+  static calculateGangWarCombatXP(damageDealt: number): number {
+    return Math.floor(damageDealt * 2);
+  }
+
+  // ============================================
+  // UTILITY METHODS
+  // ============================================
+
+  /**
+   * Get count of skills at or above a certain level
+   * Used for prestige requirements
+   */
+  static getSkillsAtLevel(character: ICharacter, minLevel: number): number {
+    return character.skills.filter(s => s.level >= minLevel).length;
+  }
+
+  /**
+   * Get the character's highest individual skill level
+   */
+  static getHighestSkillLevel(character: ICharacter): { skillId: string; level: number } | null {
+    if (!character.skills || character.skills.length === 0) {
+      return null;
+    }
+
+    let highest = character.skills[0];
+    for (const skill of character.skills) {
+      if (skill.level > highest.level) {
+        highest = skill;
+      }
+    }
+
+    return { skillId: highest.skillId, level: highest.level };
+  }
+
+  /**
+   * Get comprehensive progression summary for UI
+   */
+  static getProgressionSummary(character: ICharacter): {
+    totalLevel: number;
+    combatLevel: number;
+    combatXp: number;
+    skillsAt99: number;
+    skillsAt80Plus: number;
+    skillsAt50Plus: number;
+    averageSkillLevel: number;
+    primarySpecialization: SpecializationCategory | null;
+  } {
+    const totalLevel = this.getTotalLevel(character);
+    const avgLevel = character.skills.length > 0
+      ? totalLevel / character.skills.length
+      : 1;
+
+    const primary = this.getPrimarySpecialization(character);
+
+    return {
+      totalLevel,
+      combatLevel: character.combatLevel || 1,
+      combatXp: character.combatXp || 0,
+      skillsAt99: this.getSkillsAtLevel(character, 99),
+      skillsAt80Plus: this.getSkillsAtLevel(character, 80),
+      skillsAt50Plus: this.getSkillsAtLevel(character, 50),
+      averageSkillLevel: Math.round(avgLevel * 10) / 10,
+      primarySpecialization: primary?.category || null
+    };
   }
 }

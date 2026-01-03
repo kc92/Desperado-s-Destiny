@@ -15,6 +15,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 import { isValidUpgradeType } from '../utils/gangUpgrades';
 import logger from '../utils/logger';
 import { sanitizeErrorMessage } from '../utils/errors';
+import { createExactMatchRegex, createContainsRegex } from '../utils/stringUtils';
 
 /**
  * C4 SECURITY FIX: Helper to verify character ownership
@@ -852,7 +853,8 @@ export class GangController {
         return;
       }
 
-      const exists = await Gang.exists({ name: { $regex: new RegExp(`^${name}$`, 'i') }, isActive: true });
+      // SECURITY: Use createExactMatchRegex to prevent NoSQL injection via regex patterns
+      const exists = await Gang.exists({ name: { $regex: createExactMatchRegex(name) }, isActive: true });
 
       res.status(200).json({
         success: true,
@@ -886,7 +888,8 @@ export class GangController {
         return;
       }
 
-      const exists = await Gang.exists({ tag: { $regex: new RegExp(`^${tag}$`, 'i') }, isActive: true });
+      // SECURITY: Use createExactMatchRegex to prevent NoSQL injection via regex patterns
+      const exists = await Gang.exists({ tag: { $regex: createExactMatchRegex(tag) }, isActive: true });
 
       res.status(200).json({
         success: true,
@@ -921,8 +924,9 @@ export class GangController {
       }
 
       // Find characters without a gang that match the search
+      // SECURITY: Use createContainsRegex to prevent NoSQL injection via regex patterns
       const characters = await Character.find({
-        name: { $regex: q, $options: 'i' },
+        name: { $regex: createContainsRegex(q) },
         gangId: { $exists: false },
         isActive: true,
       })

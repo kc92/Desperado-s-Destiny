@@ -1,0 +1,110 @@
+# =============================================================================
+# DESPERADOS DESTINY - LOCAL DEVELOPMENT ENVIRONMENT
+# =============================================================================
+# Mirrors Railway + Vercel production setup as closely as possible.
+#
+# Features:
+#   - MongoDB 7 with replica set (transactions enabled, like Railway)
+#   - Redis 7 with password authentication (like Railway)
+#   - Auto-initializes replica set on first startup
+#   - Health checks ensure services are ready before use
+#
+# Usage:
+#   docker-compose -f docker-compose.local.yml up -d
+#   cd server && npm run dev
+#   cd client && npm run dev
+#
+# Stop:
+#   docker-compose -f docker-compose.local.yml down
+#
+# Full reset (deletes all data):
+#   docker-compose -f docker-compose.local.yml down -v
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # MongoDB - Replica Set Mode (Required for Transactions)
+  # ---------------------------------------------------------------------------
+  # Railway's MongoDB plugin runs in replica set mode, so we mirror that here
+  # to ensure transactions work identically in dev and production.
+  # ---------------------------------------------------------------------------
+  mongodb:
+    image: mongo:7
+    container_name: desperados-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./docker/mongo-init-replica.js:/docker-entrypoint-initdb.d/init-replica.js:ro
+    networks:
+      - desperados-network
+    healthcheck:
+      # Verify both MongoDB is running AND replica set has elected a PRIMARY
+      test: >
+        mongosh --quiet --eval "
+          try {
+            db.adminCommand('ping');
+            const status = rs.status();
+            if (status.myState !== 1) quit(1);
+            quit(0);
+          } catch(e) { quit(1); }
+        "
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # ---------------------------------------------------------------------------
+  # Redis - Password Protected (Matches Railway)
+  # ---------------------------------------------------------------------------
+  # Railway's Redis plugin requires authentication, so we enable it here
+  # to catch any auth-related bugs before production.
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: desperados-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass redispassword
+    volumes:
+      - redis_data:/data
+    networks:
+      - desperados-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redispassword", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  desperados-network:
+    driver: bridge

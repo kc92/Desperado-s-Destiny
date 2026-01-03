@@ -6,7 +6,7 @@
 
 export enum GatheringType {
   MINING = 'mining',
-  HERBALISM = 'herbalism',
+  HERBALISM = 'alchemy',
   WOODCUTTING = 'woodcutting',
   FORAGING = 'foraging'
 }
@@ -124,7 +124,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Wild Herbs',
     description: 'A patch of common herbs growing in the wild. Good for basic remedies.',
     locationIds: ['western-outpost', 'red-gulch', 'kaiowa-mesa', 'whiskeyville'],
-    skillRequired: 'herbalism',
+    skillRequired: 'alchemy',
     levelRequired: 1,
     energyCost: 10,
     cooldownSeconds: 120, // 2 minutes
@@ -139,7 +139,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Medicinal Plants',
     description: 'Rare plants with powerful healing properties. Prized by healers.',
     locationIds: ['kaiowa-mesa', 'hidden-chinatown'],
-    skillRequired: 'herbalism',
+    skillRequired: 'alchemy',
     levelRequired: 10,
     energyCost: 15,
     cooldownSeconds: 240, // 4 minutes
@@ -155,7 +155,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Poison Plants',
     description: 'Dangerous plants with toxic properties. Handle with care.',
     locationIds: ['the-scar', 'the-wastes'],
-    skillRequired: 'herbalism',
+    skillRequired: 'alchemy',
     levelRequired: 15,
     energyCost: 20,
     cooldownSeconds: 300, // 5 minutes
@@ -171,7 +171,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Tobacco Patch',
     description: 'Wild tobacco growing naturally. A frontier luxury.',
     locationIds: ['western-outpost', 'frontera'],
-    skillRequired: 'herbalism',
+    skillRequired: 'alchemy',
     levelRequired: 5,
     energyCost: 12,
     cooldownSeconds: 180, // 3 minutes
@@ -247,7 +247,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Scrap Pile',
     description: 'A pile of discarded metal and materials. One man\'s trash...',
     locationIds: ['red-gulch', 'frontera', 'whiskeyville'],
-    skillRequired: 'prospecting',
+    skillRequired: 'mining',
     levelRequired: 1,
     energyCost: 8,
     cooldownSeconds: 90, // 1.5 minutes
@@ -264,7 +264,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Abandoned Camp',
     description: 'A deserted campsite. Previous owners left in a hurry.',
     locationIds: ['western-outpost', 'the-wastes'],
-    skillRequired: 'prospecting',
+    skillRequired: 'mining',
     levelRequired: 5,
     energyCost: 12,
     cooldownSeconds: 180, // 3 minutes
@@ -281,7 +281,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Animal Carcass',
     description: 'Remains of a dead animal. Salvageable materials within.',
     locationIds: ['western-outpost', 'kaiowa-mesa', 'the-wastes'],
-    skillRequired: 'prospecting',
+    skillRequired: 'mining',
     levelRequired: 3,
     energyCost: 10,
     cooldownSeconds: 120, // 2 minutes
@@ -298,7 +298,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Water Source',
     description: 'A natural spring or well. Clean water is precious out here.',
     locationIds: ['western-outpost', 'red-gulch', 'kaiowa-mesa', 'frontera'],
-    skillRequired: 'prospecting',
+    skillRequired: 'mining',
     levelRequired: 1,
     energyCost: 5,
     cooldownSeconds: 60, // 1 minute
@@ -313,7 +313,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Hemp Plants',
     description: 'Wild hemp. Useful fibers for rope and cloth.',
     locationIds: ['western-outpost', 'frontera', 'kaiowa-mesa'],
-    skillRequired: 'prospecting',
+    skillRequired: 'mining',
     levelRequired: 5,
     energyCost: 10,
     cooldownSeconds: 150, // 2.5 minutes

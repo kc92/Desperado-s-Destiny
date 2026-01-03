@@ -128,9 +128,10 @@ export async function registerPlayer(
       throw new Error('Tournament is full');
     }
 
-    // Check level requirement
-    if (tournament.minLevelRequired && character.level < tournament.minLevelRequired) {
-      throw new Error(`Minimum level ${tournament.minLevelRequired} required`);
+    // Check level requirement (use Combat Level for combat tournaments)
+    const combatLevel = character.combatLevel || 1;
+    if (tournament.minLevelRequired && combatLevel < tournament.minLevelRequired) {
+      throw new Error(`Minimum Combat Level ${tournament.minLevelRequired} required`);
     }
 
     // Check dollars

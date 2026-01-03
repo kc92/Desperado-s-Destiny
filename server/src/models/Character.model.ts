@@ -33,11 +33,16 @@ export interface CharacterStats {
 
 /**
  * Skill training record
+ *
+ * LEVELING SYSTEM REFACTOR: Skills now max at 99 (not 50)
+ * totalXpEarned tracks lifetime XP for prestige calculations
  */
 export interface CharacterSkill {
   skillId: string;
   level: number;
   experience: number;
+  /** Lifetime XP earned in this skill (for prestige tracking) */
+  totalXpEarned: number;
   trainingStarted?: Date;
   trainingCompletes?: Date;
 }
@@ -84,20 +89,36 @@ export interface CharacterFateMark {
 }
 
 /**
- * Prestige system data (Phase 6 Progression)
+ * Prestige system data
+ *
+ * LEVELING SYSTEM REFACTOR: Prestige now based on Total Level 1000+
+ * and Combat Level 75+ with XP/Gold multiplier bonuses
  */
 export interface CharacterPrestige {
+  /** Current prestige rank (0-10) */
   currentRank: number;
+  /** Total number of times prestiged */
   totalPrestiges: number;
+  /** XP multiplier from prestige (1.0 = no bonus, 1.5 = +50%) */
+  xpMultiplier: number;
+  /** Gold multiplier from prestige */
+  goldMultiplier: number;
+  /** Permanent stat bonuses from prestige */
   permanentBonuses: Array<{
     type: string;
     value: number;
     description: string;
   }>;
+  /** History of prestige events */
   prestigeHistory: Array<{
     rank: number;
     achievedAt: Date;
+    /** @deprecated Use totalLevelAtPrestige instead */
     levelAtPrestige: number;
+    /** Total Level when prestiged */
+    totalLevelAtPrestige?: number;
+    /** Combat Level when prestiged */
+    combatLevelAtPrestige?: number;
   }>;
 }
 
@@ -162,9 +183,23 @@ export interface ICharacter extends Document {
   // Appearance
   appearance: CharacterAppearance;
 
-  // Progression
+  // Progression (Legacy - being replaced by Total Level system)
+  /** @deprecated Use totalLevel instead - kept for migration compatibility */
   level: number;
+  /** @deprecated Character XP replaced by skill XP system */
   experience: number;
+
+  // NEW: Total Level System (sum of all skill levels)
+  /** Total Level = sum of all skill levels (30-2970) */
+  totalLevel: number;
+  /** Total combat XP earned (for Combat Level calculation) */
+  combatXp: number;
+  /** Combat Level derived from combatXp (1-138) */
+  combatLevel: number;
+  /** Claimed Total Level milestones (e.g., 'tenderfoot', 'legend') */
+  claimedTotalLevelMilestones: string[];
+  /** Claimed Combat Level milestones (e.g., 'scrapper', 'gunslinger') */
+  claimedCombatLevelMilestones: string[];
 
   // Resources
   energy: number;
@@ -334,6 +369,20 @@ export interface ICharacter extends Document {
     consumedAt?: Date;
   }>;
 
+  // Active Effects (Tavern buffs, temporary bonuses)
+  activeEffects: Array<{
+    effectId: string;
+    effectType: 'regen_buff' | 'stat_buff' | 'skill_buff';
+    magnitude: number;
+    appliedAt: Date;
+    expiresAt: Date;
+    sourceLocation?: string;
+    sourceName?: string;
+  }>;
+
+  // Activity Cooldowns (tavern activities, etc.)
+  activityCooldowns: Map<string, Date>;
+
   // Timestamps
   createdAt: Date;
   lastActive: Date;
@@ -452,17 +501,53 @@ const CharacterSchema = new Schema<ICharacter>(
       }
     },
 
-    // Progression
+    // Progression (Legacy - being replaced by Total Level system)
+    /** @deprecated Use totalLevel instead */
     level: {
       type: Number,
       default: 1,
       min: PROGRESSION.MIN_LEVEL,
       max: PROGRESSION.MAX_LEVEL
     },
+    /** @deprecated Character XP replaced by skill XP system */
     experience: {
       type: Number,
       default: 0,
       min: 0
+    },
+
+    // NEW: Total Level System (RuneScape/Therian Saga style)
+    /** Total Level = sum of all skill levels (30-2970) */
+    totalLevel: {
+      type: Number,
+      default: 30, // 30 skills at level 1
+      min: 30,
+      max: 2970,
+      index: true // For leaderboards
+    },
+    /** Total combat XP earned (for Combat Level calculation) */
+    combatXp: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    /** Combat Level derived from combatXp (1-138) */
+    combatLevel: {
+      type: Number,
+      default: 1,
+      min: 1,
+      max: 138,
+      index: true // For PvP matchmaking
+    },
+    /** Claimed Total Level milestones */
+    claimedTotalLevelMilestones: {
+      type: [String],
+      default: []
+    },
+    /** Claimed Combat Level milestones */
+    claimedCombatLevelMilestones: {
+      type: [String],
+      default: []
     },
 
     // Resources
@@ -570,11 +655,13 @@ const CharacterSchema = new Schema<ICharacter>(
       craft: { type: Number, default: 0 }
     },
 
-    // Skills
+    // Skills (max level now 99 instead of 50)
     skills: [{
       skillId: { type: String, required: true },
-      level: { type: Number, default: 0 },
-      experience: { type: Number, default: 0 },
+      level: { type: Number, default: 1, min: 1, max: 99 },
+      experience: { type: Number, default: 0, min: 0 },
+      /** Lifetime XP earned in this skill (for prestige tracking) */
+      totalXpEarned: { type: Number, default: 0, min: 0 },
       trainingStarted: { type: Date },
       trainingCompletes: { type: Date }
     }],
@@ -800,8 +887,12 @@ const CharacterSchema = new Schema<ICharacter>(
     },
     prestige: {
       type: {
-        currentRank: { type: Number, default: 0, min: 0 },
+        currentRank: { type: Number, default: 0, min: 0, max: 10 },
         totalPrestiges: { type: Number, default: 0, min: 0 },
+        /** XP multiplier from prestige (1.0 = no bonus) */
+        xpMultiplier: { type: Number, default: 1.0, min: 1.0 },
+        /** Gold multiplier from prestige (1.0 = no bonus) */
+        goldMultiplier: { type: Number, default: 1.0, min: 1.0 },
         permanentBonuses: [{
           type: { type: String, required: true },
           value: { type: Number, required: true },
@@ -810,7 +901,10 @@ const CharacterSchema = new Schema<ICharacter>(
         prestigeHistory: [{
           rank: { type: Number, required: true },
           achievedAt: { type: Date, default: Date.now },
-          levelAtPrestige: { type: Number, required: true }
+          /** @deprecated Use totalLevelAtPrestige */
+          levelAtPrestige: { type: Number, required: true },
+          totalLevelAtPrestige: { type: Number },
+          combatLevelAtPrestige: { type: Number }
         }]
       },
       default: undefined
@@ -900,6 +994,31 @@ const CharacterSchema = new Schema<ICharacter>(
       default: []
     },
 
+    // Active Effects (Tavern buffs, temporary bonuses)
+    activeEffects: {
+      type: [{
+        effectId: { type: String, required: true },
+        effectType: {
+          type: String,
+          enum: ['regen_buff', 'stat_buff', 'skill_buff'],
+          required: true
+        },
+        magnitude: { type: Number, required: true },
+        appliedAt: { type: Date, required: true },
+        expiresAt: { type: Date, required: true },
+        sourceLocation: { type: String },
+        sourceName: { type: String }
+      }],
+      default: []
+    },
+
+    // Activity Cooldowns (tavern activities, etc.)
+    activityCooldowns: {
+      type: Map,
+      of: Date,
+      default: new Map()
+    },
+
     // Activity tracking
     lastActive: {
       type: Date,
@@ -931,6 +1050,16 @@ CharacterSchema.index({ gangId: 1, level: -1 }); // For gang member rankings
 CharacterSchema.index({ currentLocation: 1 }); // For location-based queries (players at location)
 CharacterSchema.index({ isJailed: 1 }); // For jail status queries
 CharacterSchema.index({ isActive: 1 }); // For active character filtering
+
+// PERFORMANCE FIX: Compound indexes for high-frequency query patterns
+CharacterSchema.index({ userId: 1, isActive: 1, currentLocation: 1 }); // User's characters at specific location
+CharacterSchema.index({ totalLevel: -1, isActive: 1 }); // Global leaderboards by totalLevel
+CharacterSchema.index({ combatLevel: -1, isActive: 1 }); // PvP matchmaking and combat leaderboards
+CharacterSchema.index({ faction: 1, totalLevel: -1, isActive: 1 }); // Faction leaderboards with totalLevel
+CharacterSchema.index({ gangId: 1, isActive: 1 }); // Active gang members queries
+CharacterSchema.index({ isJailed: 1, jailedUntil: 1 }); // Jail release job optimization
+CharacterSchema.index({ currentLocation: 1, isActive: 1, wantedLevel: 1 }); // Bounty hunting at location
+CharacterSchema.index({ userId: 1 }); // Standalone user lookup (common pattern)
 
 /**
  * Virtual: Energy regeneration rate (per hour)
@@ -1054,9 +1183,15 @@ CharacterSchema.methods.toSafeObject = function(this: ICharacter) {
     name: this.name,
     faction: this.faction,
     appearance: this.appearance,
+    // Legacy level (deprecated)
     level: this.level,
     experience: this.experience,
     experienceToNextLevel: this.nextLevelXP,
+    // NEW: Total Level System
+    totalLevel: this.totalLevel || 30,
+    combatXp: this.combatXp || 0,
+    combatLevel: this.combatLevel || 1,
+    // Energy
     energy: Math.floor(this.energy),
     maxEnergy: this.maxEnergy,
     // Primary currency (Dollars)
@@ -1081,7 +1216,15 @@ CharacterSchema.methods.toSafeObject = function(this: ICharacter) {
     lastActive: this.lastActive,
     // Permadeath system
     fateMarks: this.fateMarks || [],
-    isDead: this.isDead || false
+    isDead: this.isDead || false,
+    // Active effects (tavern buffs, etc.)
+    activeEffects: this.activeEffects || [],
+    // Prestige info
+    prestige: this.prestige ? {
+      rank: this.prestige.currentRank,
+      xpMultiplier: this.prestige.xpMultiplier || 1.0,
+      goldMultiplier: this.prestige.goldMultiplier || 1.0
+    } : null
   };
 };
 

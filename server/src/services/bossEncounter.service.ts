@@ -67,10 +67,10 @@ export class BossEncounterService {
       };
     }
 
-    // Check spawn conditions
+    // Check spawn conditions (use Combat Level for boss fights)
     const conditionCheck = checkSpawnConditions(
       boss.spawnConditions,
-      character.level,
+      character.combatLevel || 1,
       character
     );
 
@@ -635,7 +635,9 @@ export class BossEncounterService {
    */
   private static getCharacterMaxHP(character: ICharacter): number {
     const baseHP = 100;
-    const levelBonus = character.level * 5;
+    // Use Combat Level for HP bonus (replaces old character.level)
+    const combatLevel = character.combatLevel || 1;
+    const levelBonus = combatLevel * 5;
     const combatSkillBonus = character.skills
       .filter(s => {
         const skillDef = SKILLS[s.skillId.toUpperCase()];

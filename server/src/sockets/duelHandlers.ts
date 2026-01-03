@@ -34,7 +34,7 @@ import {
   compareHands,
   HandEvaluation
 } from '@desperados/shared';
-import { perceptionService } from '../services/perception.service';
+import { duelInstinctService } from '../services/duelInstinct.service';
 import logger from '../utils/logger';
 
 // =============================================================================
@@ -164,7 +164,7 @@ process.on('SIGINT', handleGracefulShutdown);
  */
 function createInitialAbilityState(perceptionLevel: number, sleightLevel: number): AbilityState {
   return {
-    available: perceptionService.getAvailableAbilities(perceptionLevel, sleightLevel),
+    available: duelInstinctService.getAvailableAbilities(perceptionLevel, sleightLevel),
     cooldowns: {},
     energy: 50, // Start with 50 energy
     maxEnergy: 100,
@@ -1246,7 +1246,7 @@ async function handleUseAbility(
     logger.info(`Character ${characterName} using ability ${ability} in duel ${duelId}`);
 
     // Use the perception service to process the ability
-    const result = perceptionService.useAbility(
+    const result = duelInstinctService.useAbility(
       ability as DuelAbility,
       playerPerceptionLevel,
       opponentDeceptionLevel,
@@ -1274,7 +1274,7 @@ async function handleUseAbility(
     }
 
     // Handle special ability effects
-    if (ability === DuelAbility.POKER_FACE) {
+    if (ability === DuelAbility.STONE_FACE) {
       playerAbilityState.pokerFaceActive = true;
       playerAbilityState.pokerFaceRoundsLeft = 2;
     }
@@ -1304,7 +1304,7 @@ async function handleUseAbility(
       effect: {
         hints: result.effect?.hints,
         revealedCards: result.effect?.revealedCards,
-        blockedRounds: ability === DuelAbility.POKER_FACE ? 2 : undefined
+        blockedRounds: ability === DuelAbility.STONE_FACE ? 2 : undefined
       },
       energyCost: result.energyCost,
       newCooldown: result.cooldownRounds || 0
@@ -1370,7 +1370,7 @@ async function sendPassivePerceptionHints(
     }
 
     // Get passive hints
-    const hints = perceptionService.getPassiveHints(
+    const hints = duelInstinctService.getPassiveHints(
       playerPerceptionLevel,
       opponentPokerFaceLevel,
       opponentGameState.hand || [],

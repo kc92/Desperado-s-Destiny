@@ -221,10 +221,12 @@ export class HolidayService {
     quest: HolidayQuest,
     progress: any
   ): boolean {
+    // Use Total Level / 10 for backward compat with level requirements
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
     for (const req of quest.requirements) {
       switch (req.type) {
         case 'LEVEL':
-          if (character.level < req.value) return false;
+          if (effectiveLevel < (req.value as number)) return false;
           break;
         case 'QUEST_COMPLETED':
           if (!progress || !progress.hasCompletedQuest(req.value as string)) {
@@ -452,10 +454,11 @@ export class HolidayService {
       }
     }
 
-    // Check level requirement
+    // Check level requirement (use Total Level / 10 for backward compat)
     const character = await Character.findById(characterId);
-    if (item.requiredLevel && character && character.level < item.requiredLevel) {
-      throw new Error('Level requirement not met');
+    const effectiveLevel = character ? Math.floor((character.totalLevel || 30) / 10) : 0;
+    if (item.requiredLevel && character && effectiveLevel < item.requiredLevel) {
+      throw new Error(`Requires Total Level ${item.requiredLevel * 10}`);
     }
 
     // Process purchase

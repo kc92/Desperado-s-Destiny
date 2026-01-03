@@ -52,7 +52,7 @@ export interface SpecialEffect {
 
   // Effect modifiers
   statBonus?: {
-    stat: string; // e.g., 'combat', 'cunning', 'craft'
+    stat: string; // e.g., 'combat_power', 'cunning_power', 'craft_power'
     value: number; // Percentage or flat bonus
     type: 'percentage' | 'flat';
   };

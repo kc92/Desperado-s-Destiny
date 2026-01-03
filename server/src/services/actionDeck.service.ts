@@ -17,8 +17,12 @@ import {
   GameState,
   GameResult,
   PlayerAction,
-  Suit
+  Suit,
+  calculateEffectivenessV2,
+  calculateHybridRewards,
+  getEffectivenessSpecialEffect
 } from './deckGames';
+import { EffectivenessResult, EFFECTIVENESS_CAPS } from '@desperados/shared';
 import { EnergyService } from './energy.service';
 import logger from '../utils/logger';
 
@@ -41,7 +45,89 @@ const ACTION_TYPE_SUITS: Record<string, Suit> = {
 
 /**
  * Calculate job rewards based on game performance
- * Uses score-based scaling: poor play = goldMin, great play = goldMax with 1.5x bonus
+ *
+ * NEW EFFECTIVENESS SYSTEM V2:
+ * - Uses hand rank as base damage/effectiveness (50-500)
+ * - Suit matches add +10% per matching card (up to +50%)
+ * - Skills provide percentage boost (up to +50%)
+ * - Formula: effectiveness = baseHandValue * suitMultiplier * skillMultiplier
+ * - Gold scales with effectiveness, XP scales with suit matches (hybrid)
+ */
+function calculateJobRewardsV2(
+  gameResult: GameResult,
+  jobData: {
+    rewards: { goldMin: number; goldMax: number; xp: number };
+    name: string;
+  },
+  characterSuitBonus: number = 0
+): { gold: number; xp: number; effectiveness: number; effectivenessBreakdown: any } {
+  const { goldMin, goldMax, xp: baseXP } = jobData.rewards;
+  const goldRange = goldMax - goldMin;
+
+  // Calculate effectiveness using the new V2 system
+  // We use gameResult data: handName, suitMatches, and characterSuitBonus
+  const handName = gameResult.handName || 'High Card';
+  const suitMatches = gameResult.suitMatches || 0;
+
+  // Map hand name to base value (from HAND_BASE_VALUES)
+  const handBaseValues: Record<string, number> = {
+    'Royal Flush': 500,
+    'Straight Flush': 300,
+    'Four of a Kind': 250,
+    'Full House': 200,
+    'Flush': 175,
+    'Straight': 150,
+    'Three of a Kind': 125,
+    'Two Pair': 100,
+    'One Pair': 75,
+    'Pair': 75,
+    'High Card': 50
+  };
+  const baseValue = handBaseValues[handName] || 50;
+
+  // Calculate suit multiplier (+10% per matching card)
+  const suitMultiplier = 1.0 + Math.min(suitMatches, 5) * 0.10;
+
+  // Calculate skill boost (average of matching suit skills, capped at 50%)
+  const avgSkillLevel = characterSuitBonus / 5; // Assume 5 skills per category
+  const skillBoostPercent = Math.min(avgSkillLevel, 50);
+  const skillMultiplier = 1 + (skillBoostPercent / 100);
+
+  // Calculate final effectiveness
+  const effectiveness = Math.round(baseValue * suitMultiplier * skillMultiplier);
+
+  // Build effectiveness breakdown for UI
+  const effectivenessBreakdown = {
+    handName,
+    baseValue,
+    suitMatches,
+    suitMultiplier,
+    skillBoostPercent,
+    skillMultiplier
+  };
+
+  // Calculate gold based on effectiveness
+  // Baseline: 200 effectiveness = 100% of gold range (goldMax)
+  // Lower effectiveness = less gold, higher = more gold (up to 2x)
+  const effectivenessRatio = effectiveness / EFFECTIVENESS_CAPS.REWARD_BASELINE;
+  const goldMultiplier = Math.min(effectivenessRatio, EFFECTIVENESS_CAPS.JOB_GOLD_MULTIPLIER);
+  const finalGold = Math.floor(goldMin + (goldRange * goldMultiplier));
+
+  // Calculate XP using hybrid system (suit matches affect XP)
+  // +10% XP per suit match
+  const xpMultiplier = 1 + (suitMatches * 0.10);
+  const finalXP = Math.floor(baseXP * Math.min(xpMultiplier, 1.5));
+
+  logger.info(`[calculateJobRewardsV2] Job: ${jobData.name}`);
+  logger.info(`[calculateJobRewardsV2] Hand: ${handName} (base ${baseValue}), Suits: ${suitMatches} (${suitMultiplier.toFixed(2)}x), Skill: ${skillBoostPercent.toFixed(0)}% (${skillMultiplier.toFixed(2)}x)`);
+  logger.info(`[calculateJobRewardsV2] Effectiveness: ${effectiveness}, Gold: ${goldMin}-${goldMax} → ${finalGold}, XP: ${baseXP} → ${finalXP}`);
+
+  return { gold: finalGold, xp: finalXP, effectiveness, effectivenessBreakdown };
+}
+
+/**
+ * Legacy job rewards calculation (for backward compatibility)
+ * @deprecated Use calculateJobRewardsV2 for new effectiveness system
  */
 function calculateJobRewards(
   gameResult: GameResult,
@@ -50,45 +136,9 @@ function calculateJobRewards(
     name: string;
   }
 ): { gold: number; xp: number } {
-  const { goldMin, goldMax, xp: baseXP } = jobData.rewards;
-  const goldRange = goldMax - goldMin;
-
-  // Normalize score to 0-100 range
-  const normalizedScore = Math.min(100, Math.max(0, gameResult.score));
-
-  // Score-based multiplier:
-  // - Score < 30: multiplier = 0 (goldMin)
-  // - Score 30-70: multiplier = 0→1 (linear from goldMin to goldMax)
-  // - Score > 70: multiplier = 1→1.5 (bonus range)
-  let goldMultiplier: number;
-  if (normalizedScore < 30) {
-    goldMultiplier = 0;
-  } else if (normalizedScore < 70) {
-    goldMultiplier = (normalizedScore - 30) / 40; // 0 to 1
-  } else {
-    goldMultiplier = 1.0 + ((normalizedScore - 70) / 30) * 0.5; // 1 to 1.5
-  }
-
-  // Apply suit bonus multiplier on top (CAPPED at 1.2x to prevent XP inflation)
-  const rawSuitMultiplier = gameResult.suitBonus?.multiplier || 1.0;
-  const suitMultiplier = Math.min(1.2, rawSuitMultiplier);
-
-  // Calculate final gold
-  const baseGold = goldMin + Math.floor(goldRange * goldMultiplier);
-  const finalGold = Math.floor(baseGold * suitMultiplier);
-
-  // XP also scales with performance (50% to 120% - CAPPED to prevent inflation)
-  const rawXpMultiplier = 0.5 + (normalizedScore / 100);
-  const xpMultiplier = Math.min(1.2, rawXpMultiplier);
-  // Combined multiplier also capped at 1.2x total
-  const combinedXpMultiplier = Math.min(1.2, xpMultiplier * suitMultiplier);
-  const finalXP = Math.floor(baseXP * combinedXpMultiplier);
-
-  logger.info(`[calculateJobRewards] Job: ${jobData.name}`);
-  logger.info(`[calculateJobRewards] Score: ${normalizedScore}, GoldMult: ${goldMultiplier.toFixed(2)}, SuitMult: ${suitMultiplier.toFixed(2)}`);
-  logger.info(`[calculateJobRewards] Gold: ${goldMin}-${goldMax} → ${finalGold}, XP: ${baseXP} → ${finalXP}`);
-
-  return { gold: finalGold, xp: finalXP };
+  // Use V2 with default skill bonus of 0
+  const result = calculateJobRewardsV2(gameResult, jobData, 0);
+  return { gold: result.gold, xp: result.xp };
 }
 
 /**
@@ -235,21 +285,39 @@ export async function resolveActionGame(
 
   const gameState = deckSession.gameState;
 
-  // Fetch action and character on-demand (not stored in session to save ~500KB per session)
-  const [actionDoc, character] = await Promise.all([
-    Action.findById(deckSession.actionId),
-    Character.findById(deckSession.characterId)
-  ]);
+  // Check if this is a job session (job data is stored directly in session.action)
+  const isJobSession = deckSession.action?.isJob === true;
 
-  if (!actionDoc) {
-    throw new Error('Action not found');
-  }
-  if (!character) {
-    throw new Error('Character not found');
-  }
+  // For jobs, action data is already stored in session
+  // For regular actions, fetch from Action collection
+  let action: any;
+  let character: any;
 
-  // Convert to plain object for type compatibility
-  const action = actionDoc.toObject() as any;
+  if (isJobSession) {
+    // Job session - use stored action data, only fetch character
+    action = deckSession.action;
+    character = await Character.findById(deckSession.characterId);
+    if (!character) {
+      throw new Error('Character not found');
+    }
+    logger.info(`[resolveActionGame] Using stored job data for: ${action.name}`);
+  } else {
+    // Regular action - fetch both from database
+    const [actionDoc, charDoc] = await Promise.all([
+      Action.findById(deckSession.actionId),
+      Character.findById(deckSession.characterId)
+    ]);
+
+    if (!actionDoc) {
+      throw new Error('Action not found');
+    }
+    if (!charDoc) {
+      throw new Error('Character not found');
+    }
+
+    action = actionDoc.toObject();
+    character = charDoc;
+  }
 
   // Build pending action info for compatibility
   const pendingAction: PendingAction = {
@@ -273,12 +341,23 @@ export async function resolveActionGame(
   let rewardsGained: RewardsGained;
   let crimeResolution = null;
 
-  // JOB HANDLING - Uses score-based reward scaling
+  // JOB HANDLING - Uses NEW effectiveness system V2
   if (isJob) {
     logger.info(`[resolveActionGame] Processing JOB: ${action.name}`);
 
-    // Calculate job rewards based on game performance
-    const jobRewards = calculateJobRewards(gameResult, action);
+    // Get the relevant suit for this job (jobs are typically 'labor' which uses clubs/Combat)
+    const relevantSuit = gameState.relevantSuit || ACTION_TYPE_SUITS[action.type] || 'clubs';
+
+    // Get character's skill bonus for this suit - THIS MAKES SKILLS MATTER!
+    const characterSuitBonus = character.getSkillBonusForSuit(relevantSuit);
+    logger.info(`[resolveActionGame] Character ${relevantSuit} skill bonus: ${characterSuitBonus}`);
+
+    // Calculate job rewards using NEW effectiveness system
+    const jobRewards = calculateJobRewardsV2(gameResult, action, characterSuitBonus);
+
+    // Enhance gameResult with effectiveness data for UI
+    (gameResult as any).effectiveness = jobRewards.effectiveness;
+    (gameResult as any).effectivenessBreakdown = jobRewards.effectivenessBreakdown;
 
     rewardsGained = {
       xp: jobRewards.xp,

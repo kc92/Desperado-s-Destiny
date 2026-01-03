@@ -212,9 +212,10 @@ export class ShopService {
           throw new AppError('Character not found', 404);
         }
 
-        // Check level requirement
-        if (character.level < item.levelRequired) {
-          throw new AppError(`Level ${item.levelRequired} required to purchase this item`, 400);
+        // Check level requirement (use Total Level for content gating)
+        const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+        if (effectiveLevel < item.levelRequired) {
+          throw new AppError(`Total Level ${item.levelRequired * 10} required to purchase this item`, 400);
         }
 
         // Check dollars with race condition prevention

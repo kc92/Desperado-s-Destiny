@@ -111,11 +111,13 @@ export class EncounterService {
 
       // Get encounter pool
       const timeOfDay = this.getTimeOfDay(currentHour);
+      // Use Combat Level for encounter scaling (combat-related)
+      const combatLevel = character.combatLevel || 1;
       const encounterPool = await this.getEncounterPool(
         toLocation.region,
         toLocation.dangerLevel,
         timeOfDay,
-        character.level
+        combatLevel
       );
 
       if (encounterPool.length === 0) {
@@ -381,8 +383,9 @@ export class EncounterService {
       const destination = await Location.findById(activeEncounter.toLocationId);
       const dangerLevel = destination?.dangerLevel || 5;
 
-      // Flee chance: 50% + (level * 2) - (danger * 5), clamped 20-85%
-      const fleeChance = Math.max(20, Math.min(85, 50 + (character.level * 2) - (dangerLevel * 5)));
+      // Flee chance: 50% + (combatLevel * 2) - (danger * 5), clamped 20-85%
+      const combatLevel = character.combatLevel || 1;
+      const fleeChance = Math.max(20, Math.min(85, 50 + (combatLevel * 2) - (dangerLevel * 5)));
       const escaped = SecureRNG.d100() < fleeChance;
 
       let damage = 0;
@@ -463,11 +466,12 @@ export class EncounterService {
 
     const req = outcome.requirements;
 
-    // Check level
-    if (req.minLevel && character.level < req.minLevel) {
+    // Check level (use Total Level / 10 for backward compat)
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+    if (req.minLevel && effectiveLevel < req.minLevel) {
       return {
         success: false,
-        reason: `Requires level ${req.minLevel}`
+        reason: `Requires Total Level ${req.minLevel * 10}`
       };
     }
 

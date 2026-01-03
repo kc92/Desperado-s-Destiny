@@ -441,10 +441,10 @@ export class StagecoachAmbushService {
       // Get gang members count
       const attackerCount = 1 + (plan.gangMembers?.length || 0);
 
-      // Calculate success chance
+      // Calculate success chance (use Combat Level for combat-related ambush)
       const successChance = this.calculateAmbushChance(
         spot,
-        character.level,
+        character.combatLevel || 1,
         attackerCount,
         route.dangerLevel,
         guardCount

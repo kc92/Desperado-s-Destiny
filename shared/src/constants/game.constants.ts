@@ -68,43 +68,97 @@ export const ENERGY = {
 /**
  * Character progression constants
  *
- * BALANCE FIX: XP multiplier reduced from 1.5 to 1.15
- * Old formula: XP = 100 × 1.5^(level-1) → Level 50 = ~10 trillion XP (impossible)
- * New formula: XP = 100 × 1.15^(level-1) → Level 50 = ~57,575 XP (achievable)
+ * LEVELING SYSTEM REFACTOR - RuneScape/Therian Saga Style
  *
- * Level XP requirements (cumulative):
- * Level 10: ~2,261 XP
- * Level 20: ~14,232 XP
- * Level 30: ~89,653 XP
- * Level 40: ~564,808 XP
- * Level 50: ~3.56 million XP
+ * The old character level system (L1-50) has been REPLACED by:
+ * - Total Level: Sum of all skill levels (30-2970)
+ * - Combat Level: Derived from combat XP (1-138)
+ * - Individual skill max: 99
+ *
+ * See skills.constants.ts for XP formulas and milestone definitions.
+ *
+ * Player journey:
+ * - Day 1: Total Level ~45-60
+ * - Month 1: Total Level ~300-450
+ * - Year 1: Total Level ~1000 (first prestige)
+ * - Decade: Total Level 2970 (max)
  */
 export const PROGRESSION = {
-  /** Minimum character level */
+  /**
+   * @deprecated Character level replaced by Total Level system
+   * Kept for migration compatibility only
+   */
   MIN_LEVEL: 1,
-  /** Maximum character level */
+  /**
+   * @deprecated Character level replaced by Total Level system
+   * Kept for migration compatibility only
+   */
   MAX_LEVEL: 50,
-  /** Base experience needed for level 2 */
+  /**
+   * @deprecated Use skills.constants.ts XP formulas
+   */
   BASE_EXPERIENCE: 100,
   /**
-   * Experience multiplier per level
-   * BALANCE FIX: Reduced from 1.5 to 1.15 to make max level achievable
-   * At 1.5x, level 50 required ~10 trillion XP (impossible)
-   * At 1.15x, level 50 requires ~3.5 million XP (achievable in 2-3 months active play)
+   * @deprecated Use skills.constants.ts XP formulas
    */
   EXPERIENCE_MULTIPLIER: 1.15,
   /** Maximum characters per account */
   MAX_CHARACTERS_PER_ACCOUNT: 3,
   /**
-   * Milestone levels that grant special bonuses
-   * Reached at levels 10, 20, 30, 40, 50
+   * @deprecated Total Level milestones are in skills.constants.ts
    */
   MILESTONE_LEVELS: [10, 20, 30, 40, 50] as readonly number[],
   /**
-   * Prestige threshold - levels above this are "prestige" ranks
-   * Currently disabled (set to MAX_LEVEL)
+   * @deprecated Use PRESTIGE_REQUIREMENTS in skills.constants.ts
    */
-  PRESTIGE_THRESHOLD: 50
+  PRESTIGE_THRESHOLD: 50,
+
+  // ============================================
+  // NEW TOTAL LEVEL SYSTEM
+  // ============================================
+
+  /** Total number of trainable skills */
+  SKILL_COUNT: 30,
+  /** Minimum Total Level (30 skills at level 1) */
+  MIN_TOTAL_LEVEL: 30,
+  /** Maximum Total Level (30 skills at level 99) */
+  MAX_TOTAL_LEVEL: 2970,
+  /** Maximum individual skill level */
+  MAX_SKILL_LEVEL: 99,
+
+  /** Total Level tier thresholds (for content gating) */
+  TOTAL_LEVEL_TIERS: {
+    GREENHORN: 30,      // Starting
+    TENDERFOOT: 100,    // Basic unlocks
+    FRONTIER_HAND: 250, // Intermediate content
+    TRAILBLAZER: 500,   // Advanced content
+    VETERAN: 750,       // Elite content
+    LEGEND: 1000,       // Prestige unlocks
+    LIVING_LEGEND: 1500,
+    MYTHIC: 2000,
+    IMMORTAL: 2500,
+    GOD_OF_WEST: 2970   // Maximum
+  } as const,
+
+  // ============================================
+  // NEW COMBAT LEVEL SYSTEM
+  // ============================================
+
+  /** Minimum Combat Level */
+  MIN_COMBAT_LEVEL: 1,
+  /** Maximum Combat Level */
+  MAX_COMBAT_LEVEL: 138,
+
+  /** Combat Level tier thresholds (for PvP matching) */
+  COMBAT_LEVEL_TIERS: {
+    SCRAPPER: 10,
+    BRAWLER: 25,
+    GUNSLINGER: 50,
+    DESPERADO: 75,
+    LEGENDARY: 100,
+    DEATH_DEALER: 126,
+    GOD_OF_DEATH: 138
+  } as const
 } as const;
 
 /**
@@ -236,8 +290,8 @@ export const CHARACTER_LIMITS = {
   MAX_INVENTORY_SIZE: 100,
   /** Maximum bank storage slots */
   MAX_BANK_SLOTS: 200,
-  /** Maximum skill level */
-  MAX_SKILL_LEVEL: 100,
+  /** Maximum skill level (RuneScape style) */
+  MAX_SKILL_LEVEL: 99,
   /** Default spawn location ID */
   DEFAULT_SPAWN_LOCATION: 'dusty-springs',
   /** Minimum name length */
@@ -530,18 +584,30 @@ export const SANITY_CONSTANTS = {
 
 /**
  * Level tier definitions
+ *
+ * LEVELING SYSTEM REFACTOR: Now based on Total Level (sum of all skills)
+ * instead of character level. 30 skills × 99 max = 2970 Total Level
  */
 export const LEVEL_TIERS = {
-  /** Number of levels per tier */
+  /**
+   * @deprecated Use TOTAL_LEVEL_TIERS in PROGRESSION
+   */
   TIER_SIZE: 5,
-  /** Tier definitions */
+  /**
+   * Total Level tier definitions - replaces old character level tiers
+   * Based on sum of all skill levels (30-2970 range)
+   */
   TIERS: [
-    { min: 1, max: 5, name: 'Greenhorn', color: '#808080' },
-    { min: 6, max: 10, name: 'Tenderfoot', color: '#228B22' },
-    { min: 11, max: 20, name: 'Frontier Hand', color: '#4169E1' },
-    { min: 21, max: 30, name: 'Trailblazer', color: '#9932CC' },
-    { min: 31, max: 40, name: 'Frontier Veteran', color: '#FFD700' },
-    { min: 41, max: 50, name: 'Legend of the West', color: '#FF4500' }
+    { min: 30, max: 99, name: 'Greenhorn', color: '#808080' },
+    { min: 100, max: 249, name: 'Tenderfoot', color: '#228B22' },
+    { min: 250, max: 499, name: 'Frontier Hand', color: '#4169E1' },
+    { min: 500, max: 749, name: 'Trailblazer', color: '#9932CC' },
+    { min: 750, max: 999, name: 'Veteran', color: '#FFA500' },
+    { min: 1000, max: 1499, name: 'Legend', color: '#FFD700' },
+    { min: 1500, max: 1999, name: 'Living Legend', color: '#00CED1' },
+    { min: 2000, max: 2499, name: 'Mythic', color: '#FF00FF' },
+    { min: 2500, max: 2969, name: 'Immortal', color: '#FF0000' },
+    { min: 2970, max: 2970, name: 'God of the West', color: '#FFD700' }
   ]
 } as const;
 

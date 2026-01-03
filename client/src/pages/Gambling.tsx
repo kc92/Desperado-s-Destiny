@@ -3,7 +3,7 @@
  * 6 game types: Blackjack, Roulette, Craps, Faro, Three-Card Monte, Wheel of Fortune
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { Card, Button, Modal, EmptyState } from '@/components/ui';
 import { CardGridSkeleton } from '@/components/ui/Skeleton';
@@ -26,44 +26,109 @@ import gamblingService, {
 
 type TabType = 'games' | 'session' | 'history' | 'leaderboard';
 
+// ============================================================================
+// CONSOLIDATED STATE TYPES
+// ============================================================================
+
+/** UI state for page-level concerns */
+interface UIState {
+  activeTab: TabType;
+  locations: GamblingLocation[];
+  selectedLocation: GamblingLocation | null;
+  sessionHistory: SessionHistory[];
+  leaderboard: LeaderboardEntry[];
+  isLoading: boolean;
+  error: string | null;
+  showLocationModal: boolean;
+  isSubmitting: boolean;
+}
+
+/** Game configuration and session state */
+interface GameConfig {
+  selectedGame: GameType | null;
+  betAmount: number;
+  isPlaying: boolean;
+  activeSession: GameSession | null;
+}
+
+/** Discriminated union for active game states */
+type ActiveGameState =
+  | { type: null }
+  | { type: 'blackjack'; state: BlackjackState }
+  | { type: 'roulette'; state: RouletteState }
+  | { type: 'craps'; state: CrapsState }
+  | { type: 'faro'; state: FaroState }
+  | { type: 'three_card_monte'; state: ThreeCardMonteState }
+  | { type: 'wheel_of_fortune'; state: WheelOfFortuneState };
+
+const INITIAL_UI_STATE: UIState = {
+  activeTab: 'games',
+  locations: [],
+  selectedLocation: null,
+  sessionHistory: [],
+  leaderboard: [],
+  isLoading: true,
+  error: null,
+  showLocationModal: false,
+  isSubmitting: false,
+};
+
+const INITIAL_GAME_CONFIG: GameConfig = {
+  selectedGame: null,
+  betAmount: 100,
+  isPlaying: false,
+  activeSession: null,
+};
+
 export const Gambling: React.FC = () => {
   const { currentCharacter, updateCharacter } = useCharacterStore();
   const { success, error: showError, info } = useToast();
 
-  // State
-  const [activeTab, setActiveTab] = useState<TabType>('games');
-  const [locations, setLocations] = useState<GamblingLocation[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<GamblingLocation | null>(null);
-  const [activeSession, setActiveSession] = useState<GameSession | null>(null);
-  const [sessionHistory, setSessionHistory] = useState<SessionHistory[]>([]);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // ============================================================================
+  // CONSOLIDATED STATE (19 useState → 3)
+  // ============================================================================
 
-  // Game states
-  const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
-  const [betAmount, setBetAmount] = useState<number>(100);
-  const [isPlaying, setIsPlaying] = useState(false);
+  /** UI state: page-level concerns */
+  const [ui, setUI] = useState<UIState>(INITIAL_UI_STATE);
 
-  // Individual game states
-  const [blackjackState, setBlackjackState] = useState<BlackjackState | null>(null);
-  const [rouletteState, setRouletteState] = useState<RouletteState | null>(null);
-  const [crapsState, setCrapsState] = useState<CrapsState | null>(null);
-  const [faroState, setFaroState] = useState<FaroState | null>(null);
-  const [monteState, setMonteState] = useState<ThreeCardMonteState | null>(null);
-  const [wheelState, setWheelState] = useState<WheelOfFortuneState | null>(null);
+  /** Game config: bet setup and session */
+  const [gameConfig, setGameConfig] = useState<GameConfig>(INITIAL_GAME_CONFIG);
 
-  // Modal state
-  const [showLocationModal, setShowLocationModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  /** Active game: discriminated union for type-safe game state */
+  const [activeGame, setActiveGame] = useState<ActiveGameState>({ type: null });
+
+  // ============================================================================
+  // STATE UPDATE HELPERS
+  // ============================================================================
+
+  /** Update UI state partially */
+  const updateUI = useCallback((updates: Partial<UIState>) => {
+    setUI(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  /** Update game config partially */
+  const updateGameConfig = useCallback((updates: Partial<GameConfig>) => {
+    setGameConfig(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  // Convenience destructuring for cleaner JSX
+  const { activeTab, locations, selectedLocation, isLoading, error, showLocationModal, isSubmitting, sessionHistory, leaderboard } = ui;
+  const { selectedGame, betAmount, isPlaying, activeSession } = gameConfig;
+
+  // Type-safe game state accessors (using type narrowing)
+  const blackjackState: BlackjackState | null = activeGame.type === 'blackjack' ? activeGame.state : null;
+  const rouletteState: RouletteState | null = activeGame.type === 'roulette' ? activeGame.state : null;
+  const crapsState: CrapsState | null = activeGame.type === 'craps' ? activeGame.state : null;
+  const faroState: FaroState | null = activeGame.type === 'faro' ? activeGame.state : null;
+  const monteState: ThreeCardMonteState | null = activeGame.type === 'three_card_monte' ? activeGame.state : null;
+  const wheelState: WheelOfFortuneState | null = activeGame.type === 'wheel_of_fortune' ? activeGame.state : null;
 
   useEffect(() => {
     loadData();
   }, [activeTab]);
 
   const loadData = async () => {
-    setIsLoading(true);
-    setError(null);
+    updateUI({ isLoading: true, error: null });
 
     try {
       switch (activeTab) {
@@ -78,89 +143,87 @@ export const Gambling: React.FC = () => {
           break;
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load data');
+      updateUI({ error: err.message || 'Failed to load data' });
     } finally {
-      setIsLoading(false);
+      updateUI({ isLoading: false });
     }
   };
 
   const loadLocations = async () => {
     try {
-      const locations = await gamblingService.getLocations();
-      setLocations(locations);
+      const locs = await gamblingService.getLocations();
+      updateUI({ locations: locs });
     } catch (err: unknown) {
       logger.error('Failed to load locations', err as Error, { context: 'Gambling.loadLocations' });
-      setLocations([]);
+      updateUI({ locations: [] });
     }
   };
 
   const loadSessionHistory = async () => {
     try {
       const sessions = await gamblingService.getHistory();
-      setSessionHistory(sessions);
+      updateUI({ sessionHistory: sessions });
     } catch (err: unknown) {
       logger.error('Failed to load history', err as Error, { context: 'Gambling.loadSessionHistory' });
-      setSessionHistory([]);
+      updateUI({ sessionHistory: [] });
     }
   };
 
   const loadLeaderboard = async () => {
     try {
-      const leaderboard = await gamblingService.getLeaderboard();
-      setLeaderboard(leaderboard);
+      const lb = await gamblingService.getLeaderboard();
+      updateUI({ leaderboard: lb });
     } catch (err: unknown) {
       logger.error('Failed to load leaderboard', err as Error, { context: 'Gambling.loadLeaderboard' });
-      setLeaderboard([]);
+      updateUI({ leaderboard: [] });
     }
   };
 
   const handleStartSession = async (location: GamblingLocation, game: GameType) => {
     if (!currentCharacter) return;
 
-    setIsSubmitting(true);
+    updateUI({ isSubmitting: true });
     try {
       const result = await gamblingService.startSession({
         locationId: location._id,
         gameType: game,
       });
 
-      setActiveSession(result.session || {
+      const session = result.session || {
         _id: 'local-session',
         gameType: game,
         locationId: location._id,
-        status: 'active',
+        status: 'active' as const,
         currentBet: 0,
         totalWagered: 0,
         totalWon: 0,
         netResult: 0,
         handsPlayed: 0,
         startTime: new Date().toISOString(),
-      });
-      setSelectedLocation(location);
-      setSelectedGame(game);
-      setActiveTab('session');
-      setShowLocationModal(false);
+      };
+
+      updateGameConfig({ activeSession: session, selectedGame: game });
+      updateUI({ selectedLocation: location, activeTab: 'session', showLocationModal: false });
       info('Game Started', `Welcome to ${getGameName(game)}!`);
     } catch {
       // Start local session for demo
-      setActiveSession({
+      const localSession = {
         _id: 'local-session',
         gameType: game,
         locationId: location._id,
-        status: 'active',
+        status: 'active' as const,
         currentBet: 0,
         totalWagered: 0,
         totalWon: 0,
         netResult: 0,
         handsPlayed: 0,
         startTime: new Date().toISOString(),
-      });
-      setSelectedLocation(location);
-      setSelectedGame(game);
-      setActiveTab('session');
-      setShowLocationModal(false);
+      };
+
+      updateGameConfig({ activeSession: localSession, selectedGame: game });
+      updateUI({ selectedLocation: location, activeTab: 'session', showLocationModal: false });
     } finally {
-      setIsSubmitting(false);
+      updateUI({ isSubmitting: false });
     }
   };
 
@@ -181,22 +244,14 @@ export const Gambling: React.FC = () => {
       }
     }
 
-    setActiveSession(null);
-    setSelectedGame(null);
-    setSelectedLocation(null);
     resetGameStates();
-    setActiveTab('games');
+    updateUI({ selectedLocation: null, activeTab: 'games' });
     loadSessionHistory();
   };
 
   const resetGameStates = () => {
-    setBlackjackState(null);
-    setRouletteState(null);
-    setCrapsState(null);
-    setFaroState(null);
-    setMonteState(null);
-    setWheelState(null);
-    setBetAmount(100);
+    setActiveGame({ type: null });
+    setGameConfig(INITIAL_GAME_CONFIG);
   };
 
   // Game Logic Functions
@@ -208,7 +263,7 @@ export const Gambling: React.FC = () => {
       return;
     }
 
-    setIsPlaying(true);
+    updateGameConfig({ isPlaying: true });
 
     try {
       const result = await gamblingService.playBlackjack(
@@ -217,13 +272,13 @@ export const Gambling: React.FC = () => {
         action === 'deal' ? betAmount : undefined
       );
 
-      setBlackjackState(result);
+      setActiveGame({ type: 'blackjack', state: result });
       updateSessionStats(result);
     } catch {
       // Simulate locally
       simulateBlackjack(action);
     } finally {
-      setIsPlaying(false);
+      updateGameConfig({ isPlaying: false });
     }
   };
 
@@ -274,7 +329,7 @@ export const Gambling: React.FC = () => {
         updateLocalSession(0, betAmount, false);
       }
 
-      setBlackjackState(newState);
+      setActiveGame({ type: 'blackjack', state: newState });
       if (currentCharacter) {
         updateCharacter({ gold: currentCharacter.gold - betAmount });
       }
@@ -304,7 +359,7 @@ export const Gambling: React.FC = () => {
         updateLocalSession(0, 0);
       }
 
-      setBlackjackState(newState);
+      setActiveGame({ type: 'blackjack', state: newState });
     } else if (action === 'stand' && blackjackState) {
       const dealerCards = [...blackjackState.dealerHand.cards];
       let dealerTotal = calculateHandTotal(dealerCards);
@@ -346,7 +401,7 @@ export const Gambling: React.FC = () => {
         canSplit: false,
       };
 
-      setBlackjackState(newState);
+      setActiveGame({ type: 'blackjack', state: newState });
       updateLocalSession(payout, 0);
       if (payout > 0 && currentCharacter) {
         updateCharacter({ gold: currentCharacter.gold + payout });
@@ -409,7 +464,7 @@ export const Gambling: React.FC = () => {
         canSplit: false,
       };
 
-      setBlackjackState(newState);
+      setActiveGame({ type: 'blackjack', state: newState });
       updateLocalSession(payout, additionalBet);
       if (payout > 0 && currentCharacter) {
         updateCharacter({ gold: currentCharacter.gold + payout });
@@ -430,20 +485,20 @@ export const Gambling: React.FC = () => {
       return;
     }
 
-    setIsPlaying(true);
+    updateGameConfig({ isPlaying: true });
 
     try {
       const result = await gamblingService.playRoulette(
         activeSession._id,
         rouletteState.selectedBets
       );
-      setRouletteState((prev) => prev ? { ...prev, ...result } : null);
+      setActiveGame({ type: 'roulette', state: { ...rouletteState, ...result } });
       updateSessionStats(result);
     } catch {
       // Simulate locally
       simulateRoulette();
     } finally {
-      setIsPlaying(false);
+      updateGameConfig({ isPlaying: false });
     }
   };
 
@@ -490,11 +545,9 @@ export const Gambling: React.FC = () => {
       }
     });
 
-    setRouletteState({
-      ...rouletteState,
-      result,
-      winningBets,
-      payout,
+    setActiveGame({
+      type: 'roulette',
+      state: { ...rouletteState, result, winningBets, payout }
     });
 
     updateLocalSession(payout, totalBet);
@@ -511,8 +564,8 @@ export const Gambling: React.FC = () => {
       return;
     }
 
-    setIsPlaying(true);
-    setWheelState((prev) => prev ? { ...prev, isSpinning: true } : null);
+    updateGameConfig({ isPlaying: true });
+    setActiveGame({ type: 'wheel_of_fortune', state: { ...wheelState, isSpinning: true } });
     updateCharacter({ gold: currentCharacter.gold - betAmount });
     updateLocalSession(0, betAmount, false);
 
@@ -524,12 +577,9 @@ export const Gambling: React.FC = () => {
     const won = wheelState.selectedSegment === spinResult;
     const payout = won ? betAmount * spinResult : 0;
 
-    setWheelState({
-      ...wheelState,
-      spinResult,
-      isSpinning: false,
-      result: won ? 'win' : 'lose',
-      payout,
+    setActiveGame({
+      type: 'wheel_of_fortune',
+      state: { ...wheelState, spinResult, isSpinning: false, result: won ? 'win' : 'lose', payout }
     });
 
     updateLocalSession(payout, 0);
@@ -538,7 +588,7 @@ export const Gambling: React.FC = () => {
       success('You Won!', `Payout: ${formatDollars(payout)}`);
     }
 
-    setIsPlaying(false);
+    updateGameConfig({ isPlaying: false });
   };
 
   const playThreeCardMonte = async () => {
@@ -548,7 +598,7 @@ export const Gambling: React.FC = () => {
       return;
     }
 
-    setIsPlaying(true);
+    updateGameConfig({ isPlaying: true });
     updateCharacter({ gold: currentCharacter.gold - betAmount });
     updateLocalSession(0, betAmount, false);
 
@@ -559,12 +609,9 @@ export const Gambling: React.FC = () => {
     const won = monteState.selectedPosition === queenPosition;
     const payout = won ? betAmount * 2 : 0;
 
-    setMonteState({
-      ...monteState,
-      queenPosition,
-      revealed: true,
-      result: won ? 'win' : 'lose',
-      payout,
+    setActiveGame({
+      type: 'three_card_monte',
+      state: { ...monteState, queenPosition, revealed: true, result: won ? 'win' : 'lose', payout }
     });
 
     updateLocalSession(payout, 0);
@@ -573,7 +620,7 @@ export const Gambling: React.FC = () => {
       success('You Won!', `The Queen was there! Payout: ${formatDollars(payout)}`);
     }
 
-    setIsPlaying(false);
+    updateGameConfig({ isPlaying: false });
   };
 
   const playCraps = async () => {
@@ -583,7 +630,7 @@ export const Gambling: React.FC = () => {
       return;
     }
 
-    setIsPlaying(true);
+    updateGameConfig({ isPlaying: true });
 
     if (crapsState.point === null) {
       // Come-out roll
@@ -627,12 +674,9 @@ export const Gambling: React.FC = () => {
       }
     }
 
-    setCrapsState({
-      ...crapsState,
-      dice: [die1, die2],
-      point: newPoint,
-      result,
-      payout,
+    setActiveGame({
+      type: 'craps',
+      state: { ...crapsState, dice: [die1, die2], point: newPoint, result, payout }
     });
 
     if (result && result !== 'point_set') {
@@ -645,7 +689,7 @@ export const Gambling: React.FC = () => {
       info('Point Set', `The point is ${total}. Roll again!`);
     }
 
-    setIsPlaying(false);
+    updateGameConfig({ isPlaying: false });
   };
 
   const playFaro = async () => {
@@ -655,7 +699,7 @@ export const Gambling: React.FC = () => {
       return;
     }
 
-    setIsPlaying(true);
+    updateGameConfig({ isPlaying: true });
     updateCharacter({ gold: currentCharacter.gold - betAmount });
     updateLocalSession(0, betAmount, false);
 
@@ -683,12 +727,9 @@ export const Gambling: React.FC = () => {
       payout = 0;
     }
 
-    setFaroState({
-      ...faroState,
-      losingCard,
-      winningCard,
-      result,
-      payout,
+    setActiveGame({
+      type: 'faro',
+      state: { ...faroState, losingCard, winningCard, result, payout }
     });
 
     updateLocalSession(payout, 0);
@@ -699,18 +740,21 @@ export const Gambling: React.FC = () => {
       }
     }
 
-    setIsPlaying(false);
+    updateGameConfig({ isPlaying: false });
   };
 
   const updateLocalSession = (payout: number, wagered: number, isComplete: boolean = true) => {
-    setActiveSession((prev) => {
-      if (!prev) return prev;
+    setGameConfig((prev) => {
+      if (!prev.activeSession) return prev;
       return {
         ...prev,
-        totalWagered: prev.totalWagered + wagered,
-        totalWon: prev.totalWon + payout,
-        netResult: prev.netResult + (payout - wagered),
-        handsPlayed: isComplete ? prev.handsPlayed + 1 : prev.handsPlayed,
+        activeSession: {
+          ...prev.activeSession,
+          totalWagered: prev.activeSession.totalWagered + wagered,
+          totalWon: prev.activeSession.totalWon + payout,
+          netResult: prev.activeSession.netResult + (payout - wagered),
+          handsPlayed: isComplete ? prev.activeSession.handsPlayed + 1 : prev.activeSession.handsPlayed,
+        }
       };
     });
   };
@@ -718,7 +762,7 @@ export const Gambling: React.FC = () => {
   const updateSessionStats = (result: any) => {
     // Update session based on API response
     if (result.session) {
-      setActiveSession(result.session);
+      updateGameConfig({ activeSession: result.session });
     }
   };
 
@@ -798,7 +842,7 @@ export const Gambling: React.FC = () => {
             ] as const).map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => !tab.disabled && setActiveTab(tab.id)}
+                onClick={() => !tab.disabled && updateUI({ activeTab: tab.id })}
                 disabled={tab.disabled}
                 className={`
                   px-4 py-2 rounded font-serif capitalize transition-all
@@ -856,7 +900,7 @@ export const Gambling: React.FC = () => {
       {error && (
         <div className="bg-blood-red/20 border-2 border-blood-red rounded-lg p-4">
           <p className="text-blood-red">{error}</p>
-          <Button variant="ghost" size="sm" onClick={() => setError(null)} className="mt-2">
+          <Button variant="ghost" size="sm" onClick={() => updateUI({ error: null })} className="mt-2">
             Dismiss
           </Button>
         </div>
@@ -882,8 +926,8 @@ export const Gambling: React.FC = () => {
                 <button
                   key={game}
                   onClick={() => {
-                    setSelectedGame(game);
-                    setShowLocationModal(true);
+                    updateGameConfig({ selectedGame: game });
+                    updateUI({ showLocationModal: true });
                   }}
                   className="bg-wood-grain/10 rounded-lg p-6 border-2 border-wood-grain/30 hover:border-gold-light transition-all hover:scale-105 text-left"
                 >
@@ -917,7 +961,7 @@ export const Gambling: React.FC = () => {
                         <input
                           type="number"
                           value={betAmount}
-                          onChange={(e) => setBetAmount(Math.max(1, parseInt(e.target.value) || 0))}
+                          onChange={(e) => updateGameConfig({ betAmount: Math.max(1, parseInt(e.target.value) || 0) })}
                           className="w-32 px-3 py-2 bg-wood-grain/10 border border-wood-grain/30 rounded text-center"
                           min={selectedLocation?.minBet || 10}
                           max={Math.min(selectedLocation?.maxBet || 10000, currentCharacter.gold)}
@@ -929,7 +973,7 @@ export const Gambling: React.FC = () => {
                             key={amt}
                             variant="ghost"
                             size="sm"
-                            onClick={() => setBetAmount(Math.min(amt, currentCharacter.gold))}
+                            onClick={() => updateGameConfig({ betAmount: Math.min(amt, currentCharacter.gold) })}
                           >
                             {formatDollars(amt)}
                           </Button>
@@ -1039,7 +1083,7 @@ export const Gambling: React.FC = () => {
                       ) : (
                         <Button
                           variant="secondary"
-                          onClick={() => setBlackjackState(null)}
+                          onClick={() => setActiveGame({ type: null })}
                         >
                           New Hand
                         </Button>
@@ -1080,7 +1124,7 @@ export const Gambling: React.FC = () => {
                       {[1, 2, 5, 10, 20].map((seg) => (
                         <button
                           key={seg}
-                          onClick={() => setWheelState((prev) => ({ ...prev!, selectedSegment: seg }))}
+                          onClick={() => wheelState && setActiveGame({ type: 'wheel_of_fortune', state: { ...wheelState, selectedSegment: seg } })}
                           disabled={wheelState?.isSpinning}
                           className={`w-16 h-16 rounded-full font-bold text-lg transition-all
                             ${wheelState?.selectedSegment === seg
@@ -1116,10 +1160,9 @@ export const Gambling: React.FC = () => {
                     variant="secondary"
                     onClick={() => {
                       if (!wheelState) {
-                        setWheelState({
-                          currentBet: betAmount,
-                          selectedSegment: 1,
-                          isSpinning: false,
+                        setActiveGame({
+                          type: 'wheel_of_fortune',
+                          state: { currentBet: betAmount, selectedSegment: 1, isSpinning: false }
                         });
                       }
                       playWheelOfFortune();
@@ -1163,11 +1206,11 @@ export const Gambling: React.FC = () => {
                       <button
                         key={pos}
                         onClick={() => {
-                          if (!monteState?.revealed) {
-                            setMonteState((prev) => ({
-                              ...prev!,
-                              selectedPosition: pos,
-                            }));
+                          if (!monteState?.revealed && monteState) {
+                            setActiveGame({
+                              type: 'three_card_monte',
+                              state: { ...monteState, selectedPosition: pos }
+                            });
                           }
                         }}
                         disabled={isPlaying || monteState?.revealed}
@@ -1211,10 +1254,9 @@ export const Gambling: React.FC = () => {
                       variant="secondary"
                       onClick={() => {
                         if (!monteState) {
-                          setMonteState({
-                            currentBet: betAmount,
-                            selectedPosition: null,
-                            revealed: false,
+                          setActiveGame({
+                            type: 'three_card_monte',
+                            state: { currentBet: betAmount, selectedPosition: null, revealed: false }
                           });
                         } else if (monteState.selectedPosition !== null) {
                           playThreeCardMonte();
@@ -1232,7 +1274,7 @@ export const Gambling: React.FC = () => {
                   ) : (
                     <Button
                       variant="secondary"
-                      onClick={() => setMonteState(null)}
+                      onClick={() => setActiveGame({ type: null })}
                     >
                       Play Again
                     </Button>
@@ -1258,7 +1300,7 @@ export const Gambling: React.FC = () => {
                         <input
                           type="number"
                           value={betAmount}
-                          onChange={(e) => setBetAmount(Math.max(1, parseInt(e.target.value) || 0))}
+                          onChange={(e) => updateGameConfig({ betAmount: Math.max(1, parseInt(e.target.value) || 0) })}
                           className="w-32 px-3 py-2 bg-wood-grain/10 border border-wood-grain/30 rounded text-center"
                           min={10}
                           max={currentCharacter.gold}
@@ -1271,22 +1313,18 @@ export const Gambling: React.FC = () => {
                         <div className="flex justify-center gap-4">
                           <Button
                             variant="secondary"
-                            onClick={() => setCrapsState({
-                              currentBet: betAmount,
-                              betType: 'pass',
-                              point: null,
-                              dice: [0, 0],
+                            onClick={() => setActiveGame({
+                              type: 'craps',
+                              state: { currentBet: betAmount, betType: 'pass', point: null, dice: [0, 0] }
                             })}
                           >
                             Pass Line
                           </Button>
                           <Button
                             variant="ghost"
-                            onClick={() => setCrapsState({
-                              currentBet: betAmount,
-                              betType: 'dont_pass',
-                              point: null,
-                              dice: [0, 0],
+                            onClick={() => setActiveGame({
+                              type: 'craps',
+                              state: { currentBet: betAmount, betType: 'dont_pass', point: null, dice: [0, 0] }
                             })}
                           >
                             Don't Pass
@@ -1354,7 +1392,7 @@ export const Gambling: React.FC = () => {
                       ) : (
                         <Button
                           variant="secondary"
-                          onClick={() => setCrapsState(null)}
+                          onClick={() => setActiveGame({ type: null })}
                         >
                           New Game
                         </Button>
@@ -1395,10 +1433,10 @@ export const Gambling: React.FC = () => {
                       {['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'].map((card) => (
                         <button
                           key={card}
-                          onClick={() => setFaroState((prev) => ({
-                            ...prev!,
-                            selectedCard: card,
-                          }))}
+                          onClick={() => faroState && setActiveGame({
+                            type: 'faro',
+                            state: { ...faroState, selectedCard: card }
+                          })}
                           disabled={faroState?.winningCard !== undefined}
                           className={`w-10 h-14 rounded border-2 font-bold text-sm transition-all
                             ${faroState?.selectedCard === card
@@ -1440,9 +1478,9 @@ export const Gambling: React.FC = () => {
                       variant="secondary"
                       onClick={() => {
                         if (!faroState) {
-                          setFaroState({
-                            currentBet: betAmount,
-                            selectedCard: 'A',
+                          setActiveGame({
+                            type: 'faro',
+                            state: { currentBet: betAmount, selectedCard: 'A' }
                           });
                         } else {
                           playFaro();
@@ -1456,7 +1494,7 @@ export const Gambling: React.FC = () => {
                   ) : (
                     <Button
                       variant="secondary"
-                      onClick={() => setFaroState(null)}
+                      onClick={() => setActiveGame({ type: null })}
                     >
                       Play Again
                     </Button>
@@ -1502,16 +1540,22 @@ export const Gambling: React.FC = () => {
                         key={bet.type}
                         onClick={() => {
                           if (!rouletteState) {
-                            setRouletteState({
-                              currentBet: betAmount,
-                              selectedBets: [{ type: bet.type, value: bet.type, amount: betAmount }],
-                              winningBets: [],
+                            setActiveGame({
+                              type: 'roulette',
+                              state: {
+                                currentBet: betAmount,
+                                selectedBets: [{ type: bet.type, value: bet.type, amount: betAmount }],
+                                winningBets: [],
+                              }
                             });
                           } else if (!rouletteState.result) {
-                            setRouletteState((prev) => ({
-                              ...prev!,
-                              selectedBets: [...prev!.selectedBets, { type: bet.type, value: bet.type, amount: betAmount }],
-                            }));
+                            setActiveGame({
+                              type: 'roulette',
+                              state: {
+                                ...rouletteState,
+                                selectedBets: [...rouletteState.selectedBets, { type: bet.type, value: bet.type, amount: betAmount }],
+                              }
+                            });
                           }
                         }}
                         disabled={rouletteState?.result !== undefined}
@@ -1564,7 +1608,7 @@ export const Gambling: React.FC = () => {
                     <div className="flex justify-center gap-4">
                       <Button
                         variant="ghost"
-                        onClick={() => setRouletteState(null)}
+                        onClick={() => setActiveGame({ type: null })}
                         disabled={!rouletteState?.selectedBets.length}
                       >
                         Clear Bets
@@ -1586,7 +1630,7 @@ export const Gambling: React.FC = () => {
                     <div className="flex justify-center">
                       <Button
                         variant="secondary"
-                        onClick={() => setRouletteState(null)}
+                        onClick={() => setActiveGame({ type: null })}
                       >
                         New Round
                       </Button>
@@ -1703,8 +1747,8 @@ export const Gambling: React.FC = () => {
       <Modal
         isOpen={showLocationModal}
         onClose={() => {
-          setShowLocationModal(false);
-          setSelectedGame(null);
+          updateUI({ showLocationModal: false });
+          updateGameConfig({ selectedGame: null });
         }}
         title={`Play ${selectedGame ? getGameName(selectedGame) : 'Game'}`}
         size="md"
@@ -1740,8 +1784,8 @@ export const Gambling: React.FC = () => {
             variant="ghost"
             fullWidth
             onClick={() => {
-              setShowLocationModal(false);
-              setSelectedGame(null);
+              updateUI({ showLocationModal: false });
+              updateGameConfig({ selectedGame: null });
             }}
           >
             Cancel

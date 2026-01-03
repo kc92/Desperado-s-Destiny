@@ -7,7 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { Character } from '../models/Character.model';
 import { Gang } from '../models/Gang.model';
-import { createExactMatchRegex } from '../utils/stringUtils';
+import { createExactMatchRegex, createContainsRegex } from '../utils/stringUtils';
 
 /**
  * Get public profile by character name
@@ -97,8 +97,9 @@ export const searchCharacters = asyncHandler(
     }
 
     // Search for characters matching the query (case-insensitive)
+    // SECURITY: Use createContainsRegex to prevent NoSQL injection via regex patterns
     const characters = await Character.find({
-      name: { $regex: new RegExp(q, 'i') },
+      name: { $regex: createContainsRegex(q) },
       isActive: true,
     })
       .select('_id name faction level')

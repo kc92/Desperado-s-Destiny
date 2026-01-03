@@ -43,10 +43,11 @@ export class TamingService {
     const tameableSpecies = getTameableSpecies();
     const encounters: WildEncounter[] = [];
 
-    // Filter species by location and level
+    // Filter species by location and level (use Total Level / 10)
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
     for (const speciesDef of tameableSpecies) {
       // Check if character meets level requirement
-      if (character.level < speciesDef.levelRequired) {
+      if (effectiveLevel < speciesDef.levelRequired) {
         continue;
       }
 
@@ -132,10 +133,11 @@ export class TamingService {
         throw new AppError('This species has no taming difficulty', 400);
       }
 
-      // Check level requirement
-      if (character.level < speciesDef.levelRequired) {
+      // Check level requirement (use Total Level / 10 for backward compat)
+      const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+      if (effectiveLevel < speciesDef.levelRequired) {
         throw new AppError(
-          `Requires level ${speciesDef.levelRequired}. Current: ${character.level}`,
+          `Requires Total Level ${speciesDef.levelRequired * 10}. Current: ${character.totalLevel || 30}`,
           400
         );
       }
@@ -379,11 +381,28 @@ export class TamingService {
 // Note: MongoDB TTL index also handles automatic deletion
 let tamingCleanupInterval: NodeJS.Timeout | null = null;
 
+// RELIABILITY FIX: Added retry logic for cleanup failures
+async function runCleanupWithRetry(maxRetries = 3): Promise<void> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await TamingService.cleanupExpiredAttempts();
+      return; // Success, exit retry loop
+    } catch (error) {
+      logger.error(`Taming cleanup attempt ${attempt}/${maxRetries} failed:`, error);
+      if (attempt < maxRetries) {
+        // Wait before retry (exponential backoff: 1s, 2s, 4s)
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+      }
+    }
+  }
+  logger.error('Taming cleanup failed after all retries');
+}
+
 function startTamingCleanup(): void {
   if (!tamingCleanupInterval) {
     tamingCleanupInterval = setInterval(() => {
-      TamingService.cleanupExpiredAttempts().catch((error) => {
-        logger.error('Error cleaning up taming attempts:', error);
+      runCleanupWithRetry().catch((error) => {
+        logger.error('Unexpected error in cleanup retry wrapper:', error);
       });
     }, 60 * 60 * 1000);
   }

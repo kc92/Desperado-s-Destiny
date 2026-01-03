@@ -108,7 +108,7 @@ export interface LegendaryDrop {
  * Permanent stat bonus from legendary hunt
  */
 export interface StatBonus {
-  type: 'cunning' | 'spirit' | 'combat' | 'craft' | 'max_energy' | 'critical_chance' | 'damage_reduction';
+  type: 'combat_power' | 'cunning_power' | 'spirit_power' | 'craft_power' | 'max_energy' | 'critical_chance' | 'damage_reduction';
   amount: number;
   description: string;
 }

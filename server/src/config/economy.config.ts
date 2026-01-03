@@ -4,23 +4,28 @@
  * Central configuration for all economic values in Desperados Destiny.
  * This file defines the complete economic balance across all systems.
  *
- * Design Philosophy:
- * - Time to max level: ~200-300 hours of active play
- * - Gold value: Meaningful choices at all levels
+ * Design Philosophy (Updated for Total Level System - Phase D):
+ * - Time to max skill: ~8,700 hours (10+ years at casual play)
+ * - Time to first prestige: ~1-2 years of active play
+ * - Gold value: Meaningful choices at all Total Level tiers
  * - Progressive scaling: Each tier feels rewarding
  * - Sink balance: Gold earned should match gold spent over time
+ *
+ * LEVELING SYSTEM REFACTOR:
+ * - Character level is DEPRECATED, replaced by Total Level (30-2970)
+ * - Tiers now based on Total Level milestones, not character level
  */
 
 /**
- * Level tier definitions
- * Used to categorize content and rewards
+ * Level tier definitions (based on Total Level, not character level)
+ * Total Level = sum of all skill levels (30 skills × 99 max = 2,970 max)
  */
 export enum LevelTier {
-  NOVICE = 'NOVICE',     // Levels 1-10
-  JOURNEYMAN = 'JOURNEYMAN', // Levels 11-20
-  VETERAN = 'VETERAN',   // Levels 21-30
-  EXPERT = 'EXPERT',     // Levels 31-40
-  MASTER = 'MASTER'      // Levels 41-50
+  NOVICE = 'NOVICE',           // Total Level 30-99 (Greenhorn)
+  JOURNEYMAN = 'JOURNEYMAN',   // Total Level 100-249 (Tenderfoot)
+  VETERAN = 'VETERAN',         // Total Level 250-499 (Frontier Hand)
+  EXPERT = 'EXPERT',           // Total Level 500-999 (Trailblazer)
+  MASTER = 'MASTER'            // Total Level 1000+ (Legend and beyond)
 }
 
 /**
@@ -367,9 +372,24 @@ export const EXPLOIT_THRESHOLDS = {
 } as const;
 
 /**
- * Helper function to get level tier from level number
+ * Helper function to get level tier from Total Level
+ * @param totalLevel - Character's Total Level (sum of all skill levels)
+ * @returns The appropriate tier for that Total Level
  */
-export function getLevelTier(level: number): LevelTier {
+export function getLevelTier(totalLevel: number): LevelTier {
+  if (totalLevel < 100) return LevelTier.NOVICE;
+  if (totalLevel < 250) return LevelTier.JOURNEYMAN;
+  if (totalLevel < 500) return LevelTier.VETERAN;
+  if (totalLevel < 1000) return LevelTier.EXPERT;
+  return LevelTier.MASTER;
+}
+
+/**
+ * Helper function to get level tier from old character level (DEPRECATED)
+ * Kept for backward compatibility during transition
+ * @deprecated Use getLevelTier(totalLevel) instead
+ */
+export function getLevelTierFromCharacterLevel(level: number): LevelTier {
   if (level <= 10) return LevelTier.NOVICE;
   if (level <= 20) return LevelTier.JOURNEYMAN;
   if (level <= 30) return LevelTier.VETERAN;
@@ -435,6 +455,7 @@ export const EconomyConfig = {
 
   // Helper functions
   getLevelTier,
+  getLevelTierFromCharacterLevel, // Deprecated - kept for backward compatibility
   calculateXPForLevel,
   calculateTotalXPToLevel,
   getExpectedGoldPerHour,

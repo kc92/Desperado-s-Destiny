@@ -46,6 +46,7 @@ export interface IGangUpgrades {
   memberSlots: number;
   warChest: number;
   perkBooster: number;
+  trainingGrounds: number;
 }
 
 /**
@@ -234,6 +235,12 @@ const GangSchema = new Schema<IGang>(
         default: 0,
         min: 0,
         max: GANG_UPGRADE_MAX_LEVELS[GangUpgradeType.PERK_BOOSTER],
+      },
+      trainingGrounds: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: GANG_UPGRADE_MAX_LEVELS[GangUpgradeType.TRAINING_GROUNDS],
       },
     },
     territories: {

@@ -45,7 +45,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Hand-to-hand fighting with fists, knives, and close weapons',
     suit: DestinySuit.CLUBS,
     category: SkillCategory.COMBAT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR, // 1 hour
     icon: '🗡️'
   },
@@ -55,7 +55,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Accuracy with rifles, pistols, and bows',
     suit: DestinySuit.CLUBS,
     category: SkillCategory.COMBAT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '🔫'
   },
@@ -65,7 +65,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Blocking, dodging, and defensive maneuvers',
     suit: DestinySuit.CLUBS,
     category: SkillCategory.COMBAT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '🛡️'
   },
@@ -75,7 +75,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Fighting on horseback',
     suit: DestinySuit.CLUBS,
     category: SkillCategory.COMBAT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 1.5,
     icon: '🏇'
   },
@@ -85,7 +85,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Using and defusing dynamite and explosives',
     suit: DestinySuit.CLUBS,
     category: SkillCategory.COMBAT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 2,
     icon: '💣'
   },
@@ -99,7 +99,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Opening locks without keys',
     suit: DestinySuit.SPADES,
     category: SkillCategory.CUNNING,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '🔓'
   },
@@ -109,7 +109,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Moving unseen and unheard',
     suit: DestinySuit.SPADES,
     category: SkillCategory.CUNNING,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '👤'
   },
@@ -119,7 +119,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Stealing from others without detection',
     suit: DestinySuit.SPADES,
     category: SkillCategory.CUNNING,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '💰'
   },
@@ -129,7 +129,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Following trails and finding hidden things',
     suit: DestinySuit.SPADES,
     category: SkillCategory.CUNNING,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '👣'
   },
@@ -139,7 +139,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Lying, disguises, and trickery',
     suit: DestinySuit.SPADES,
     category: SkillCategory.CUNNING,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '🎭'
   },
@@ -149,19 +149,19 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Card games, dice, and games of chance',
     suit: DestinySuit.SPADES,
     category: SkillCategory.CUNNING,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '🎲'
   },
-  PERCEPTION: {
-    id: 'perception',
-    name: 'Perception',
-    description: 'Reading opponents and detecting tells in duels',
+  DUEL_INSTINCT: {
+    id: 'duel_instinct',
+    name: 'Duel Instinct',
+    description: 'Reading opponents and masking your own tells during showdowns',
     suit: DestinySuit.SPADES,
     category: SkillCategory.CUNNING,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
-    icon: '👁️'
+    icon: '🎯'
   },
   SLEIGHT_OF_HAND: {
     id: 'sleight_of_hand',
@@ -169,19 +169,9 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Card manipulation and subtle cheating techniques',
     suit: DestinySuit.SPADES,
     category: SkillCategory.CUNNING,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 1.5,
     icon: '🃏'
-  },
-  POKER_FACE: {
-    id: 'poker_face',
-    name: 'Poker Face',
-    description: 'Hiding tells and blocking opponent reads',
-    suit: DestinySuit.SPADES,
-    category: SkillCategory.CUNNING,
-    maxLevel: 50,
-    baseTrainingTime: TIME.HOUR,
-    icon: '😐'
   },
 
   // ============================================
@@ -193,7 +183,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Healing wounds and curing ailments',
     suit: DestinySuit.HEARTS,
     category: SkillCategory.SPIRIT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 1.5,
     icon: '💊'
   },
@@ -203,7 +193,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Convincing others through words',
     suit: DestinySuit.HEARTS,
     category: SkillCategory.SPIRIT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '💬'
   },
@@ -213,7 +203,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Training and calming animals',
     suit: DestinySuit.HEARTS,
     category: SkillCategory.SPIRIT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '🐴'
   },
@@ -223,7 +213,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Inspiring and commanding others',
     suit: DestinySuit.HEARTS,
     category: SkillCategory.SPIRIT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '⭐'
   },
@@ -233,7 +223,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Understanding supernatural rituals and traditions',
     suit: DestinySuit.HEARTS,
     category: SkillCategory.SPIRIT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 2,
     icon: '🔮'
   },
@@ -243,7 +233,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Music, storytelling, and entertainment',
     suit: DestinySuit.HEARTS,
     category: SkillCategory.SPIRIT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '🎵'
   },
@@ -257,7 +247,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Forging metal tools and weapons',
     suit: DestinySuit.DIAMONDS,
     category: SkillCategory.CRAFT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 2,
     icon: '⚒️'
   },
@@ -267,7 +257,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Crafting leather goods and armor',
     suit: DestinySuit.DIAMONDS,
     category: SkillCategory.CRAFT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 2,
     icon: '🧳'
   },
@@ -277,17 +267,17 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Preparing food and tonics',
     suit: DestinySuit.DIAMONDS,
     category: SkillCategory.CRAFT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR,
     icon: '🍖'
   },
   ALCHEMY: {
     id: 'alchemy',
     name: 'Alchemy',
-    description: 'Brewing potions and elixirs',
+    description: 'Gathering herbs, identifying plants, and brewing potions, elixirs, and tonics',
     suit: DestinySuit.DIAMONDS,
     category: SkillCategory.CRAFT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 2,
     icon: '🧪'
   },
@@ -297,39 +287,19 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Building traps, mechanisms, and devices',
     suit: DestinySuit.DIAMONDS,
     category: SkillCategory.CRAFT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 2,
     icon: '⚙️'
   },
   MINING: {
     id: 'mining',
     name: 'Mining',
-    description: 'Extracting ore and gems from the earth',
+    description: 'Finding deposits, assessing ore quality, and extracting minerals and gems',
     suit: DestinySuit.DIAMONDS,
     category: SkillCategory.CRAFT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 1.5,
     icon: '⛏️'
-  },
-  PROSPECTING: {
-    id: 'prospecting',
-    name: 'Prospecting',
-    description: 'Finding and assessing ore deposits, illegal claim operations, and deep mining',
-    suit: DestinySuit.DIAMONDS,
-    category: SkillCategory.CRAFT,
-    maxLevel: 50,
-    baseTrainingTime: TIME.HOUR * 1.5,
-    icon: '🔍'
-  },
-  HERBALISM: {
-    id: 'herbalism',
-    name: 'Herbalism',
-    description: 'Gathering and identifying plants',
-    suit: DestinySuit.DIAMONDS,
-    category: SkillCategory.CRAFT,
-    maxLevel: 50,
-    baseTrainingTime: TIME.HOUR,
-    icon: '🌿'
   },
   CARPENTRY: {
     id: 'carpentry',
@@ -337,54 +307,21 @@ export const SKILLS: Record<string, SkillDefinition> = {
     description: 'Woodworking and furniture crafting',
     suit: DestinySuit.DIAMONDS,
     category: SkillCategory.CRAFT,
-    maxLevel: 50,
+    maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 1.5,
     icon: '🪵'
   },
-
-  // ============================================
-  // GENERIC SKILLS (for recipe requirements)
-  // ============================================
-  CRAFT: {
-    id: 'craft',
-    name: 'Crafting',
-    description: 'General crafting ability covering all craft disciplines',
+  GUNSMITHING: {
+    id: 'gunsmithing',
+    name: 'Gunsmithing',
+    description: 'Crafting and modifying firearms, from pistols to rifles',
     suit: DestinySuit.DIAMONDS,
     category: SkillCategory.CRAFT,
-    maxLevel: 50,
-    baseTrainingTime: TIME.HOUR,
-    icon: '🔨'
+    maxLevel: 99,
+    baseTrainingTime: TIME.HOUR * 2,
+    icon: '🔧'
   },
-  SPIRIT: {
-    id: 'spirit',
-    name: 'Spirit',
-    description: 'General spiritual ability for rituals and healing',
-    suit: DestinySuit.HEARTS,
-    category: SkillCategory.SPIRIT,
-    maxLevel: 50,
-    baseTrainingTime: TIME.HOUR,
-    icon: '💫'
-  },
-  CUNNING: {
-    id: 'cunning',
-    name: 'Cunning',
-    description: 'General cunning ability for deception and stealth',
-    suit: DestinySuit.SPADES,
-    category: SkillCategory.CUNNING,
-    maxLevel: 50,
-    baseTrainingTime: TIME.HOUR,
-    icon: '🎭'
-  },
-  COMBAT: {
-    id: 'combat',
-    name: 'Combat',
-    description: 'General combat ability for fighting',
-    suit: DestinySuit.CLUBS,
-    category: SkillCategory.COMBAT,
-    maxLevel: 50,
-    baseTrainingTime: TIME.HOUR,
-    icon: '⚔️'
-  }
+
 };
 
 /**
@@ -410,35 +347,35 @@ export const SKILL_TIERS: Record<SkillTier, TierDefinition> = {
   [SkillTier.NOVICE]: {
     name: 'Novice',
     minLevel: 1,
-    maxLevel: 10,
+    maxLevel: 20,
     description: 'Just starting out - learning the basics',
     color: 'gray'
   },
   [SkillTier.APPRENTICE]: {
     name: 'Apprentice',
-    minLevel: 11,
-    maxLevel: 25,
+    minLevel: 21,
+    maxLevel: 40,
     description: 'Developing competency - intermediate skills unlocked',
     color: 'green'
   },
   [SkillTier.JOURNEYMAN]: {
     name: 'Journeyman',
-    minLevel: 26,
-    maxLevel: 40,
+    minLevel: 41,
+    maxLevel: 60,
     description: 'Skilled practitioner - advanced abilities available',
     color: 'blue'
   },
   [SkillTier.EXPERT]: {
     name: 'Expert',
-    minLevel: 41,
-    maxLevel: 49,
+    minLevel: 61,
+    maxLevel: 80,
     description: 'Highly skilled - expert-level content unlocked',
     color: 'purple'
   },
   [SkillTier.MASTER]: {
     name: 'Master',
-    minLevel: 50,
-    maxLevel: 50,
+    minLevel: 81,
+    maxLevel: 99,
     description: 'True mastery achieved - legendary abilities unlocked',
     color: 'gold'
   }
@@ -623,62 +560,78 @@ export function getUnlockedBonusBreakdown(
 /**
  * Skill progression constants
  *
- * PHASE 19 BALANCE PASS: Adjusted for ~283 hours to max a skill
- * Old formula: level^2.5 * 100 = 2,650 hours per skill (unsustainable)
- * New formula: level^2.0 * 50 = ~283 hours per skill (2-4 months casual)
+ * LEVELING SYSTEM REFACTOR - RuneScape/Therian Saga Style
  *
- * Design Philosophy: RuneScape/EVE/Torn-style long-term progression
- * - Max one skill every 2-4 months casually
- * - Specialization should matter
- * - Years of meaningful progression
+ * New formula: 50 + 25 * level^2 + 10 * 1.1^level
+ * - Level 10:  ~14,225 total XP (~14 hours)
+ * - Level 50:  ~862,500 total XP (~863 hours / 10 months)
+ * - Level 99:  ~13M total XP (~13,000 hours / decade)
+ *
+ * Design Philosophy:
+ * - 30 skills × 99 levels = Total Level 2,970 max
+ * - First prestige ~1 year (Total Level 1000)
+ * - Decade-long max completion journey
+ * - Sandbox freedom - train any skill you want
  */
 export const SKILL_PROGRESSION = {
   /** Starting level for all skills */
   STARTING_LEVEL: 1,
-  /** Maximum level for all skills */
-  MAX_LEVEL: 50,
-  /** XP curve exponent (higher = steeper curve) - REDUCED from 2.5 to 2.0 */
-  XP_EXPONENT: 2.0,
-  /** XP curve base multiplier - REDUCED from 100 to 50 */
-  XP_BASE_MULTIPLIER: 50,
+  /** Maximum level for all skills (RuneScape style) */
+  MAX_LEVEL: 99,
+  /** Number of trainable skills (26 total after consolidation) */
+  SKILL_COUNT: 26,
+  /** XP formula coefficients */
+  XP_BASE: 50,
+  XP_QUADRATIC_COEFFICIENT: 25,
+  XP_EXPONENTIAL_BASE: 1.1,
+  XP_EXPONENTIAL_COEFFICIENT: 10,
   /**
    * Training time scaling coefficient for sqrt curve
    * Formula: baseTime * (1 + sqrt(level) * TRAINING_TIME_SCALE)
-   * L1: 1.15x, L25: 1.75x, L50: 2.06x (gentle curve, not 6x!)
+   * L1: 1.15x, L50: 2.06x, L99: 2.64x (gentle curve)
    */
   TRAINING_TIME_SCALE: 0.15,
   /** Only one skill can be trained at a time */
   MAX_CONCURRENT_TRAINING: 1,
   /** Base XP gained per hour of training */
   BASE_XP_PER_HOUR: 1000,
-  /** Approximate hours to max one skill (~283 hours with new formula) */
-  ESTIMATED_HOURS_TO_MAX: 283
+  /** Approximate hours to max one skill to 99 */
+  ESTIMATED_HOURS_TO_MAX: 8700,
+  /** Hours to reach level 50 in one skill */
+  ESTIMATED_HOURS_TO_50: 863
 } as const;
 
 /**
- * Calculate XP needed to reach a specific level (exponential curve)
- * Formula: floor(level^2.0 * 50)
+ * Calculate XP needed FOR a specific level (not cumulative)
+ * Formula: 50 + 25 * level^2 + 10 * 1.1^level
  *
- * PHASE 19 BALANCE: Reduced from level^2.5 * 100
+ * LEVELING SYSTEM REFACTOR - Targets 1-2 years to first prestige
  *
- * Level progression (XP to reach each level):
- * Level 1: 50 XP
- * Level 10: 5,000 XP
- * Level 25: 31,250 XP
- * Level 40: 80,000 XP
- * Level 50: 125,000 XP
- *
- * Total XP to max: ~283,000 XP (~283 hours)
+ * XP requirements per level:
+ * Level 10:  ~2,600 XP
+ * Level 20:  ~10,450 XP
+ * Level 50:  ~66,350 XP
+ * Level 70:  ~127,350 XP
+ * Level 99:  ~294,350 XP
  */
 export function calculateXPForLevel(level: number): number {
-  if (level <= 0) return 0;
+  if (level <= 1) return 0;
   return Math.floor(
-    Math.pow(level, SKILL_PROGRESSION.XP_EXPONENT) * SKILL_PROGRESSION.XP_BASE_MULTIPLIER
+    SKILL_PROGRESSION.XP_BASE +
+    SKILL_PROGRESSION.XP_QUADRATIC_COEFFICIENT * Math.pow(level, 2) +
+    SKILL_PROGRESSION.XP_EXPONENTIAL_COEFFICIENT * Math.pow(SKILL_PROGRESSION.XP_EXPONENTIAL_BASE, level)
   );
 }
 
 /**
  * Calculate total XP needed to reach a level from level 1
+ *
+ * Cumulative XP totals:
+ * Level 10:  ~14,225 XP (~14 hours)
+ * Level 20:  ~73,400 XP (~73 hours / 1 month)
+ * Level 50:  ~862,500 XP (~863 hours / 10 months)
+ * Level 70:  ~2,490,000 XP (~2,490 hours / 2 years)
+ * Level 99:  ~13,034,431 XP (~13,034 hours / 10+ years)
  */
 export function calculateTotalXPForLevel(level: number): number {
   let total = 0;
@@ -692,10 +645,10 @@ export function calculateTotalXPForLevel(level: number): number {
  * Get the tier for a given skill level
  */
 export function getTierForLevel(level: number): SkillTier {
-  if (level >= 50) return SkillTier.MASTER;
-  if (level >= 41) return SkillTier.EXPERT;
-  if (level >= 26) return SkillTier.JOURNEYMAN;
-  if (level >= 11) return SkillTier.APPRENTICE;
+  if (level >= 81) return SkillTier.MASTER;
+  if (level >= 61) return SkillTier.EXPERT;
+  if (level >= 41) return SkillTier.JOURNEYMAN;
+  if (level >= 21) return SkillTier.APPRENTICE;
   return SkillTier.NOVICE;
 }
 
@@ -772,4 +725,326 @@ export function getSkillsBySuit(suit: DestinySuit): SkillDefinition[] {
  */
 export function getSkillById(skillId: string): SkillDefinition | undefined {
   return SKILLS[skillId.toUpperCase()];
+}
+
+// ============================================
+// TOTAL LEVEL SYSTEM
+// Replaces character level - sum of all skill levels
+// ============================================
+
+/**
+ * Total Level milestone interface
+ */
+export interface TotalLevelMilestone {
+  /** Total level required */
+  totalLevel: number;
+  /** Milestone tier name */
+  tier: string;
+  /** Description of what unlocks */
+  unlocks: string[];
+  /** Display color */
+  color: string;
+}
+
+/**
+ * Total Level milestones - replaces old character level system
+ * 26 skills at level 1 = Total Level 26 (starting)
+ * 26 skills at level 99 = Total Level 2,574 (max)
+ */
+export const TOTAL_LEVEL_MILESTONES: TotalLevelMilestone[] = [
+  {
+    totalLevel: 26,
+    tier: 'Greenhorn',
+    unlocks: ['Starting point'],
+    color: 'gray'
+  },
+  {
+    totalLevel: 100,
+    tier: 'Tenderfoot',
+    unlocks: ['Gang creation', 'Basic properties', 'Expanded travel'],
+    color: 'green'
+  },
+  {
+    totalLevel: 250,
+    tier: 'Frontier Hand',
+    unlocks: ['Train robberies', 'Advanced crafting', 'Property upgrades'],
+    color: 'blue'
+  },
+  {
+    totalLevel: 500,
+    tier: 'Trailblazer',
+    unlocks: ['Bank heists', 'Elite equipment', 'Advanced gang features'],
+    color: 'purple'
+  },
+  {
+    totalLevel: 750,
+    tier: 'Veteran',
+    unlocks: ['Legendary quests', 'Rare companions', 'Hidden locations'],
+    color: 'orange'
+  },
+  {
+    totalLevel: 1000,
+    tier: 'Legend',
+    unlocks: ['PRESTIGE UNLOCKS', 'Legendary titles', 'Elite content'],
+    color: 'gold'
+  },
+  {
+    totalLevel: 1500,
+    tier: 'Living Legend',
+    unlocks: ['Hidden locations', 'Secret NPCs', 'Mythic gear'],
+    color: 'cyan'
+  },
+  {
+    totalLevel: 2000,
+    tier: 'Mythic',
+    unlocks: ['Supernatural content', 'Mythic abilities', 'End-game raids'],
+    color: 'magenta'
+  },
+  {
+    totalLevel: 2400,
+    tier: 'Immortal',
+    unlocks: ['Final boss content', 'Immortal gear', 'Ultimate challenges'],
+    color: 'red'
+  },
+  {
+    totalLevel: 2574,
+    tier: 'God of the West',
+    unlocks: ['Hall of Fame', 'Ultimate title', 'Complete mastery'],
+    color: 'rainbow'
+  }
+];
+
+/**
+ * Calculate Total Level from skill levels array
+ * @param skills - Array of { level: number } objects
+ * @returns Total level (sum of all skill levels)
+ */
+export function calculateTotalLevel(skills: Array<{ level: number }>): number {
+  if (!skills || skills.length === 0) {
+    return SKILL_PROGRESSION.SKILL_COUNT; // 26 skills at level 1
+  }
+  return skills.reduce((sum, skill) => sum + (skill.level || 1), 0);
+}
+
+/**
+ * Get the Total Level milestone tier for a given total level
+ */
+export function getTotalLevelMilestone(totalLevel: number): TotalLevelMilestone {
+  // Find highest milestone at or below current total level
+  for (let i = TOTAL_LEVEL_MILESTONES.length - 1; i >= 0; i--) {
+    if (totalLevel >= TOTAL_LEVEL_MILESTONES[i].totalLevel) {
+      return TOTAL_LEVEL_MILESTONES[i];
+    }
+  }
+  return TOTAL_LEVEL_MILESTONES[0];
+}
+
+/**
+ * Get the next Total Level milestone
+ */
+export function getNextTotalLevelMilestone(totalLevel: number): TotalLevelMilestone | null {
+  for (const milestone of TOTAL_LEVEL_MILESTONES) {
+    if (milestone.totalLevel > totalLevel) {
+      return milestone;
+    }
+  }
+  return null; // Already at max
+}
+
+// ============================================
+// COMBAT LEVEL SYSTEM
+// Derived from total combat XP earned (1-138 scale)
+// ============================================
+
+/**
+ * Combat Level configuration
+ */
+export const COMBAT_LEVEL = {
+  /** Minimum combat level */
+  MIN_LEVEL: 1,
+  /** Maximum combat level (RuneScape style) */
+  MAX_LEVEL: 138,
+  /** XP scaling factors */
+  LOG_SCALE: 15,
+  SQRT_SCALE: 1000,
+  XP_OFFSET: 100
+} as const;
+
+/**
+ * Combat Level milestone interface
+ */
+export interface CombatLevelMilestone {
+  /** Combat level required */
+  level: number;
+  /** Title earned */
+  title: string;
+  /** What unlocks at this level */
+  unlocks: string[];
+}
+
+/**
+ * Combat Level milestones
+ */
+export const COMBAT_LEVEL_MILESTONES: CombatLevelMilestone[] = [
+  { level: 10, title: 'Scrapper', unlocks: ['Basic dueling'] },
+  { level: 25, title: 'Brawler', unlocks: ['Gang war participation'] },
+  { level: 50, title: 'Gunslinger', unlocks: ['Ranked duels', 'Bounty hunting license'] },
+  { level: 75, title: 'Desperado', unlocks: ['Prestige requirement met', 'Elite bounties'] },
+  { level: 100, title: 'Legendary', unlocks: ['Challenge legendary NPCs', 'Elite gang positions'] },
+  { level: 126, title: 'Death Dealer', unlocks: ['Elite PvP tournaments', 'Legendary duels'] },
+  { level: 138, title: 'God of Death', unlocks: ['Ultimate combat title', 'Hall of Fame'] }
+];
+
+/**
+ * Calculate Combat Level from total combat XP
+ *
+ * Formula: 15 * log10(xp/100 + 1) + sqrt(xp/1000)
+ * - Logarithmic base provides early progression
+ * - Square root provides long-term scaling
+ *
+ * XP requirements:
+ * - Level 10: ~5,000 XP
+ * - Level 50: ~250,000 XP
+ * - Level 100: ~2,500,000 XP
+ * - Level 138: ~10,000,000 XP
+ */
+export function calculateCombatLevel(combatXp: number): number {
+  if (combatXp <= 0) return COMBAT_LEVEL.MIN_LEVEL;
+
+  const level = Math.floor(
+    COMBAT_LEVEL.LOG_SCALE * Math.log10(combatXp / COMBAT_LEVEL.XP_OFFSET + 1) +
+    Math.sqrt(combatXp / COMBAT_LEVEL.SQRT_SCALE)
+  );
+
+  return Math.min(Math.max(level, COMBAT_LEVEL.MIN_LEVEL), COMBAT_LEVEL.MAX_LEVEL);
+}
+
+/**
+ * Calculate XP needed for a specific combat level (inverse of calculateCombatLevel)
+ * Used for progress bars and goal tracking
+ */
+export function xpForCombatLevel(targetLevel: number): number {
+  if (targetLevel <= 1) return 0;
+  if (targetLevel >= COMBAT_LEVEL.MAX_LEVEL) targetLevel = COMBAT_LEVEL.MAX_LEVEL;
+
+  // Numerical approximation - find XP where calculateCombatLevel returns target
+  let low = 0;
+  let high = 50000000; // 50M XP max search
+
+  while (high - low > 100) {
+    const mid = Math.floor((low + high) / 2);
+    const level = calculateCombatLevel(mid);
+    if (level < targetLevel) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+
+  return high;
+}
+
+/**
+ * Get Combat Level milestone for a given combat level
+ */
+export function getCombatLevelMilestone(combatLevel: number): CombatLevelMilestone | null {
+  for (let i = COMBAT_LEVEL_MILESTONES.length - 1; i >= 0; i--) {
+    if (combatLevel >= COMBAT_LEVEL_MILESTONES[i].level) {
+      return COMBAT_LEVEL_MILESTONES[i];
+    }
+  }
+  return null;
+}
+
+/**
+ * Get next Combat Level milestone
+ */
+export function getNextCombatLevelMilestone(combatLevel: number): CombatLevelMilestone | null {
+  for (const milestone of COMBAT_LEVEL_MILESTONES) {
+    if (milestone.level > combatLevel) {
+      return milestone;
+    }
+  }
+  return null;
+}
+
+// ============================================
+// PRESTIGE SYSTEM
+// Unlock at Total Level 1000, Combat Level 75
+// ============================================
+
+/**
+ * Prestige requirements
+ */
+export const PRESTIGE_REQUIREMENTS = {
+  /** Minimum Total Level to prestige */
+  MIN_TOTAL_LEVEL: 1000,
+  /** Minimum Combat Level to prestige */
+  MIN_COMBAT_LEVEL: 75,
+  /** Minimum number of skills at level 50+ */
+  MIN_SKILLS_AT_50: 5,
+  /** Maximum prestige rank */
+  MAX_PRESTIGE: 10
+} as const;
+
+/**
+ * Prestige tier bonuses
+ */
+export interface PrestigeTier {
+  rank: number;
+  title: string;
+  xpMultiplier: number;
+  goldMultiplier: number;
+  special: string;
+}
+
+export const PRESTIGE_TIERS: PrestigeTier[] = [
+  { rank: 1, title: 'The Reborn', xpMultiplier: 1.05, goldMultiplier: 1.03, special: 'Gold cosmetics' },
+  { rank: 2, title: 'Twice-Lived', xpMultiplier: 1.10, goldMultiplier: 1.06, special: 'Silver horse' },
+  { rank: 3, title: 'Thrice-Blessed', xpMultiplier: 1.15, goldMultiplier: 1.09, special: 'Special mount' },
+  { rank: 5, title: 'The Phoenix', xpMultiplier: 1.25, goldMultiplier: 1.15, special: 'Legendary weapon' },
+  { rank: 10, title: 'Eternal', xpMultiplier: 1.50, goldMultiplier: 1.30, special: 'Hall of Fame' }
+];
+
+/**
+ * Check if character can prestige
+ */
+export function canPrestige(
+  totalLevel: number,
+  combatLevel: number,
+  skillsAt50Plus: number,
+  currentPrestige: number
+): { canPrestige: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+
+  if (currentPrestige >= PRESTIGE_REQUIREMENTS.MAX_PRESTIGE) {
+    reasons.push('Already at maximum prestige');
+  }
+  if (totalLevel < PRESTIGE_REQUIREMENTS.MIN_TOTAL_LEVEL) {
+    reasons.push(`Total Level must be ${PRESTIGE_REQUIREMENTS.MIN_TOTAL_LEVEL}+ (currently ${totalLevel})`);
+  }
+  if (combatLevel < PRESTIGE_REQUIREMENTS.MIN_COMBAT_LEVEL) {
+    reasons.push(`Combat Level must be ${PRESTIGE_REQUIREMENTS.MIN_COMBAT_LEVEL}+ (currently ${combatLevel})`);
+  }
+  if (skillsAt50Plus < PRESTIGE_REQUIREMENTS.MIN_SKILLS_AT_50) {
+    reasons.push(`Need ${PRESTIGE_REQUIREMENTS.MIN_SKILLS_AT_50} skills at level 50+ (currently ${skillsAt50Plus})`);
+  }
+
+  return {
+    canPrestige: reasons.length === 0,
+    reasons
+  };
+}
+
+/**
+ * Get prestige tier for a given prestige rank
+ */
+export function getPrestigeTier(prestigeRank: number): PrestigeTier | null {
+  // Find highest tier at or below current rank
+  for (let i = PRESTIGE_TIERS.length - 1; i >= 0; i--) {
+    if (prestigeRank >= PRESTIGE_TIERS[i].rank) {
+      return PRESTIGE_TIERS[i];
+    }
+  }
+  return null;
 }

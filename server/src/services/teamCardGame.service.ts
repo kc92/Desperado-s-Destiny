@@ -180,7 +180,7 @@ export async function createSession(
       lastActionAt: Date.now(),
       isReady: false,
       gamblingSkill,
-      perceptionSkill: character.getSkillLevel?.('perception') || 1,
+      duelInstinctSkill: character.getSkillLevel?.('duel_instinct') || 1,
       deceptionSkill: character.getSkillLevel?.('deception') || 1,
       sleightOfHandSkill: character.getSkillLevel?.('sleight_of_hand') || 1,
       contributionScore: 0,
@@ -313,7 +313,7 @@ export async function joinSession(
       lastActionAt: Date.now(),
       isReady: false,
       gamblingSkill,
-      perceptionSkill: character.getSkillLevel?.('perception') || 1,
+      duelInstinctSkill: character.getSkillLevel?.('duel_instinct') || 1,
       deceptionSkill: character.getSkillLevel?.('deception') || 1,
       sleightOfHandSkill: character.getSkillLevel?.('sleight_of_hand') || 1,
       contributionScore: 0,
@@ -499,7 +499,7 @@ export async function requestNPC(
       lastActionAt: Date.now(),
       isReady: true, // NPCs are always ready
       gamblingSkill: npcSkill,
-      perceptionSkill: Math.floor(npcSkill * 0.8),
+      duelInstinctSkill: Math.floor(npcSkill * 0.8),
       deceptionSkill: Math.floor(npcSkill * 0.7),
       sleightOfHandSkill: Math.floor(npcSkill * 0.6),
       contributionScore: 0,
@@ -1796,8 +1796,8 @@ function canCounterMechanic(mechanic: any, player: ITeamCardPlayer): boolean {
   switch (skill) {
     case 'gambling':
       return player.gamblingSkill >= threshold;
-    case 'perception':
-      return player.perceptionSkill >= threshold;
+    case 'duel_instinct':
+      return player.duelInstinctSkill >= threshold;
     case 'deception':
       return player.deceptionSkill >= threshold;
     case 'sleight_of_hand':

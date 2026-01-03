@@ -25,6 +25,7 @@ import { NotificationService } from './notification.service';
 import { BountyService } from './bounty.service';
 import { BountyFaction } from '@desperados/shared';
 import logger from '../utils/logger';
+import { createContainsRegex } from '../utils/stringUtils';
 
 export class NewspaperService {
   /**
@@ -232,9 +233,11 @@ export class NewspaperService {
 
     if (characterName) {
       // Search in headline and content
+      // SECURITY: Use createContainsRegex to prevent NoSQL injection via regex patterns
+      const safeRegex = createContainsRegex(characterName);
       query.$or = [
-        { headline: { $regex: characterName, $options: 'i' } },
-        { content: { $regex: characterName, $options: 'i' } },
+        { headline: { $regex: safeRegex } },
+        { content: { $regex: safeRegex } },
       ];
     }
 

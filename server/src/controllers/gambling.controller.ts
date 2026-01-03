@@ -71,9 +71,11 @@ export const getGameDetails = asyncHandler(
     let canPlay = true;
     let reason = '';
     if (req.character) {
-      if (req.character.level < game.minimumLevel) {
+      // Use Total Level for content gating (divided by 10 for backward compat)
+      const effectiveLevel = Math.floor((req.character.totalLevel || 30) / 10);
+      if (effectiveLevel < game.minimumLevel) {
         canPlay = false;
-        reason = `Requires level ${game.minimumLevel}`;
+        reason = `Requires Total Level ${game.minimumLevel * 10}`;
       }
     }
 

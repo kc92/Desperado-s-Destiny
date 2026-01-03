@@ -125,8 +125,9 @@ export class MoralReputationService {
     const previousValue = character.moralReputation || 0;
     const previousTier = getMoralReputationTier(previousValue);
 
-    // Calculate new value with limits
-    const newValue = calculateReputationChange(previousValue, change, character.level);
+    // Calculate new value with limits (use Total Level / 10 for backward compat)
+    const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+    const newValue = calculateReputationChange(previousValue, change, effectiveLevel);
     const actualChange = newValue - previousValue;
 
     // Update character

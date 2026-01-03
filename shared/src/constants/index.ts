@@ -51,3 +51,15 @@ export * from './moralReputation.constants';
 
 // Criminal Skills constants (Crime balance)
 export * from './criminalSkills.constants';
+
+// Tavern Rest & Social System constants
+export * from './tavern.constants';
+
+// Destiny Deck Effectiveness System constants
+export * from './destinyDeck.constants';
+
+// Skill Training Activity constants (Phase 19: Core Loop Overhaul)
+export * from './skillTraining.constants';
+
+// Skill Academy Tutorial constants
+export * from './academy.constants';

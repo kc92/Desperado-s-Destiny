@@ -8,9 +8,11 @@
  * - Prestige System for endgame replayability
  */
 
+import mongoose from 'mongoose';
 import { Character, ICharacter } from '../models/Character.model';
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
+import { SkillService } from './skill.service';
 
 // =============================================================================
 // TYPES & INTERFACES
@@ -1211,7 +1213,19 @@ export class ProgressionService {
 
     const nextRankIndex = playerPrestige.currentRank;
     const nextRank = nextRankIndex < PRESTIGE_RANKS.length ? PRESTIGE_RANKS[nextRankIndex] : null;
-    const canPrestige = nextRank !== null && character.level >= nextRank.requiredLevel;
+
+    // NEW PRESTIGE REQUIREMENTS (replacing old character.level check):
+    // - Total Level >= 1000
+    // - Combat Level >= 75
+    // - At least 5 skills at level 50+
+    const totalLevel = character.totalLevel || 30;
+    const combatLevel = character.combatLevel || 1;
+    const skillsAt50Plus = character.skills.filter(s => s.level >= 50).length;
+
+    const canPrestige = nextRank !== null &&
+      totalLevel >= 1000 &&
+      combatLevel >= 75 &&
+      skillsAt50Plus >= 5;
 
     return {
       currentRank: playerPrestige,
@@ -1228,59 +1242,84 @@ export class ProgressionService {
     newRank?: PrestigeRank;
     error?: string;
   }> {
-    const character = await Character.findById(characterId);
-    if (!character) {
-      return { success: false, error: 'Character not found' };
-    }
-
+    // Pre-flight checks before starting transaction
     const { canPrestige, nextRank } = await this.getPrestigeInfo(characterId);
     if (!canPrestige || !nextRank) {
       return { success: false, error: 'Cannot prestige - requirements not met' };
     }
 
-    // Get/create prestige data
-    const playerPrestige: PlayerPrestige = (character as any).prestige || {
-      currentRank: 0,
-      totalPrestiges: 0,
-      permanentBonuses: [],
-      prestigeHistory: []
-    };
+    // Wrap entire prestige operation in a transaction for atomicity
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Record prestige
-    playerPrestige.prestigeHistory.push({
-      rank: nextRank.rank,
-      achievedAt: new Date(),
-      levelAtPrestige: character.level
-    });
+    try {
+      const character = await Character.findById(characterId).session(session);
+      if (!character) {
+        await session.abortTransaction();
+        session.endSession();
+        return { success: false, error: 'Character not found' };
+      }
 
-    // Add permanent bonuses
-    playerPrestige.permanentBonuses.push(...nextRank.permanentBonuses);
-    playerPrestige.currentRank = nextRank.rank;
-    playerPrestige.totalPrestiges += 1;
+      // Get/create prestige data
+      const playerPrestige: PlayerPrestige = (character as any).prestige || {
+        currentRank: 0,
+        totalPrestiges: 0,
+        permanentBonuses: [],
+        prestigeHistory: []
+      };
 
-    // Calculate starting dollars from bonuses
-    const startingDollars = nextRank.permanentBonuses
-      .filter(b => b.type === 'starting_bonus')
-      .reduce((sum, b) => sum + b.value, 0);
+      // Record prestige (use totalLevel instead of old character.level)
+      playerPrestige.prestigeHistory.push({
+        rank: nextRank.rank,
+        achievedAt: new Date(),
+        levelAtPrestige: character.totalLevel || 30
+      });
 
-    // Reset character but keep prestige
-    character.level = 1;
-    character.experience = 0;
-    character.dollars = startingDollars;
-    // Reset skills to level 1
-    for (const skill of character.skills) {
-      skill.level = 1;
-      skill.experience = 0;
+      // Add permanent bonuses
+      playerPrestige.permanentBonuses.push(...nextRank.permanentBonuses);
+      playerPrestige.currentRank = nextRank.rank;
+      playerPrestige.totalPrestiges += 1;
+
+      // Calculate starting dollars from bonuses
+      const startingDollars = nextRank.permanentBonuses
+        .filter(b => b.type === 'starting_bonus')
+        .reduce((sum, b) => sum + b.value, 0);
+
+      // Reset character but keep prestige
+      character.level = 1;  // Kept for backward compatibility
+      character.experience = 0;
+      character.dollars = startingDollars;
+
+      // Reset skills to level 1
+      for (const skill of character.skills) {
+        skill.level = 1;
+        skill.experience = 0;
+      }
+
+      // Reset Total Level system using consistent calculation
+      SkillService.updateTotalLevel(character);
+
+      // Reset Combat XP and Combat Level
+      character.combatXp = 0;
+      character.combatLevel = 1;
+
+      // Clear talents (but keep prestige)
+      (character as any).talents = [];
+      (character as any).prestige = playerPrestige;
+
+      await character.save({ session });
+      await session.commitTransaction();
+      session.endSession();
+
+      logger.info(`Character ${characterId} prestiged to rank ${nextRank.rank} (${nextRank.name})`);
+
+      return { success: true, newRank: nextRank };
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      logger.error(`Prestige failed for ${characterId}:`, error);
+      throw error;
     }
-    // Clear talents (but keep prestige)
-    (character as any).talents = [];
-    (character as any).prestige = playerPrestige;
-
-    await character.save();
-
-    logger.info(`Character ${characterId} prestiged to rank ${nextRank.rank} (${nextRank.name})`);
-
-    return { success: true, newRank: nextRank };
   }
 
   /**

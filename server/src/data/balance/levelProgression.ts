@@ -279,7 +279,7 @@ export const LEVEL_PROGRESSION_TABLE: Record<number, LevelProgression> = {
     tier: LevelTier.JOURNEYMAN,
     statPoints: 2,
     skillUnlocks: [
-      { skillId: 'herbalism', name: 'Herbalism', description: 'Identify and use medicinal herbs' }
+      { skillId: 'alchemy', name: 'Alchemy', description: 'Create potions and identify medicinal herbs' }
     ],
     contentUnlocks: [
       { type: 'crafting', id: 'alchemy', name: 'Alchemy', description: 'Brew potions and tonics' }

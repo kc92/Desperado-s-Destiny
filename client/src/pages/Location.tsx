@@ -15,6 +15,7 @@ import { actionService } from '@/services/action.service';
 import { ActionModal, CombatModal } from '@/components/location';
 import { TavernTables } from '@/components/tavern';
 import { LocationGraveyard } from '@/components/location/LocationGraveyard';
+import { SaloonLocationView } from '@/components/saloon';
 import { DeathRiskIndicator } from '@/components/danger/DeathRiskIndicator';
 import type { Action, NPC } from '@desperados/shared';
 
@@ -113,6 +114,7 @@ interface LocationData {
   parentId?: string;
   icon?: string;
   atmosphere?: string;
+  features?: string[];
   jobs: LocationJob[];
   shops: LocationShop[];
   npcs: LocationNPC[];
@@ -573,7 +575,8 @@ export const Location: React.FC = () => {
         </div>
       )}
 
-      {/* Location Header */}
+      {/* Location Header - Hidden for saloon locations (SaloonLocationView handles this) */}
+      {!isSaloonLocation(location.type) && (
       <Card className="p-6 bg-gradient-to-r from-amber-900/50 to-amber-800/50 border-amber-700">
         <div className="flex items-start justify-between">
           <div>
@@ -622,6 +625,7 @@ export const Location: React.FC = () => {
           </div>
         </div>
       </Card>
+      )}
 
       {/* Buildings Section */}
       {buildings.length > 0 && (
@@ -720,8 +724,8 @@ export const Location: React.FC = () => {
         </Modal>
       )}
 
-      {/* Location-Specific Actions Section (Phase 7) */}
-      {locationActions && (
+      {/* Location-Specific Actions Section (Phase 7) - Hidden for saloon locations */}
+      {locationActions && !isSaloonLocation(location.type) && (
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-amber-400">Available Actions</h2>
@@ -960,8 +964,8 @@ export const Location: React.FC = () => {
         </Card>
       )}
 
-      {/* Jobs Section - Only show when inside a building, not in parent town */}
-      {!isParentTown && location.jobs.length > 0 && (
+      {/* Jobs Section - Only show when inside a building, not in parent town, hidden for saloons */}
+      {!isParentTown && !isSaloonLocation(location.type) && location.jobs.length > 0 && (
         <Card className="p-6">
           <h2 className="text-xl font-bold text-amber-400 mb-4">💼 Available Jobs</h2>
 
@@ -1010,8 +1014,8 @@ export const Location: React.FC = () => {
         </Card>
       )}
 
-      {/* Crimes Section - Only show when inside a building, not in parent town */}
-      {!isParentTown && crimes.length > 0 && (
+      {/* Crimes Section - Only show when inside a building, not in parent town, hidden for saloons */}
+      {!isParentTown && !isSaloonLocation(location.type) && crimes.length > 0 && (
         <Card className="p-6">
           <h2 className="text-xl font-bold text-red-400 mb-4">🔫 Criminal Opportunities</h2>
 
@@ -1069,8 +1073,8 @@ export const Location: React.FC = () => {
         </Card>
       )}
 
-      {/* Shops Section - Only show when inside a building, not in parent town */}
-      {!isParentTown && location.shops.length > 0 && (
+      {/* Shops Section - Only show when inside a building, not in parent town, hidden for saloons */}
+      {!isParentTown && !isSaloonLocation(location.type) && location.shops.length > 0 && (
         <Card className="p-6">
           <h2 className="text-xl font-bold text-amber-400 mb-4">🏪 Shops</h2>
 
@@ -1099,10 +1103,47 @@ export const Location: React.FC = () => {
         </Card>
       )}
 
-      {/* NPCs Section - Only show when inside a building, not in parent town */}
-      {!isParentTown && location.npcs.length > 0 && (
+      {/* Saloon Location View - Immersive saloon experience */}
+      {location && isSaloonLocation(location.type) && (
+        <SaloonLocationView
+          location={{
+            id: location._id,
+            name: location.name,
+            type: location.type,
+            shortDescription: location.shortDescription,
+            description: location.description,
+            icon: location.icon,
+            atmosphere: location.atmosphere,
+            dangerLevel: location.dangerLevel,
+            factionInfluence: location.factionInfluence,
+            features: location.features || [],
+            npcs: location.npcs,
+            connections: location.connections?.map(conn => ({
+              targetId: conn.targetLocationId,
+              targetName: conn.description || conn.targetLocationId,
+              travelCost: conn.energyCost,
+              isLocked: false
+            })) || []
+          }}
+          onRefresh={fetchLocation}
+          onTravel={handleTravel}
+          onNPCInteract={(npcId) => {
+            const npc = location.npcs.find(n => n.id === npcId);
+            if (npc) setSelectedNPC(npc);
+          }}
+          gamblingTablesSlot={
+            <TavernTables
+              locationId={location._id}
+              locationName={location.name}
+            />
+          }
+        />
+      )}
+
+      {/* NPCs Section - Only show for non-saloon locations */}
+      {!isParentTown && !isSaloonLocation(location.type) && location.npcs.length > 0 && (
         <Card className="p-6">
-          <h2 className="text-xl font-bold text-amber-400 mb-4">👤 People Here</h2>
+          <h2 className="text-xl font-bold text-amber-400 mb-4">People Here</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {location.npcs.map(npc => (
               <div
@@ -1116,16 +1157,6 @@ export const Location: React.FC = () => {
               </div>
             ))}
           </div>
-        </Card>
-      )}
-
-      {/* Card Tables Section - Only show at saloon-type locations */}
-      {location && isSaloonLocation(location.type) && (
-        <Card className="p-6">
-          <TavernTables
-            locationId={location._id}
-            locationName={location.name}
-          />
         </Card>
       )}
 

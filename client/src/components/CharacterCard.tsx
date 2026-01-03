@@ -63,10 +63,16 @@ export const CharacterCard: React.FC<CharacterCardProps> = React.memo(({
     [character.faction]
   );
 
-  // Memoize experience percentage
-  const experiencePercentage = useMemo(
-    () => Math.min((character.experience / character.experienceToNextLevel) * 100, 100),
-    [character.experience, character.experienceToNextLevel]
+  // Total Level from character (new system)
+  const totalLevel = useMemo(
+    () => (character as any).totalLevel || 30,
+    [(character as any).totalLevel]
+  );
+
+  // Combat Level from character (new system)
+  const combatLevel = useMemo(
+    () => (character as any).combatLevel || 1,
+    [(character as any).combatLevel]
   );
 
   // Memoize event handlers with useCallback
@@ -122,7 +128,10 @@ export const CharacterCard: React.FC<CharacterCardProps> = React.memo(({
           </h3>
 
           <div className="flex justify-between items-center text-sm text-desert-stone">
-            <span>Level {character.level}</span>
+            <span className="flex gap-2">
+              <span title="Total Level">TL {totalLevel}</span>
+              <span title="Combat Level" className="text-red-400">CL {combatLevel}</span>
+            </span>
             <span className={colors.text}>{factionName}</span>
           </div>
 
@@ -134,21 +143,20 @@ export const CharacterCard: React.FC<CharacterCardProps> = React.memo(({
             showLabel={true}
           />
 
-          {/* Experience Progress */}
+          {/* Total Level Progress Info */}
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-desert-stone">
-              <span>Experience</span>
-              <span>
-                {character.experience} / {character.experienceToNextLevel}
+              <span>Total Level</span>
+              <span className="text-cyan-400 font-bold">
+                {totalLevel}
               </span>
             </div>
-            <div className="w-full h-2 bg-wood-dark rounded-full overflow-hidden border border-wood-medium">
-              <div
-                className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-500"
-                style={{
-                  width: `${experiencePercentage}%`,
-                }}
-              />
+            <div className="text-xs text-desert-stone/70 text-center">
+              {totalLevel >= 1000 ? 'Prestige Ready!' :
+               totalLevel >= 500 ? 'Trailblazer' :
+               totalLevel >= 250 ? 'Frontier Hand' :
+               totalLevel >= 100 ? 'Tenderfoot' :
+               'Greenhorn'}
             </div>
           </div>
         </div>
@@ -186,12 +194,11 @@ export const CharacterCard: React.FC<CharacterCardProps> = React.memo(({
   return (
     prevProps.character._id === nextProps.character._id &&
     prevProps.character.name === nextProps.character.name &&
-    prevProps.character.level === nextProps.character.level &&
+    (prevProps.character as any).totalLevel === (nextProps.character as any).totalLevel &&
+    (prevProps.character as any).combatLevel === (nextProps.character as any).combatLevel &&
     prevProps.character.faction === nextProps.character.faction &&
     prevProps.character.energy === nextProps.character.energy &&
     prevProps.character.maxEnergy === nextProps.character.maxEnergy &&
-    prevProps.character.experience === nextProps.character.experience &&
-    prevProps.character.experienceToNextLevel === nextProps.character.experienceToNextLevel &&
     prevProps.showActions === nextProps.showActions &&
     prevProps.onSelect === nextProps.onSelect &&
     prevProps.onDelete === nextProps.onDelete

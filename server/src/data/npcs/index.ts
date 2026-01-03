@@ -355,6 +355,12 @@ export const WILDERNESS_GUIDE: LocationNPC = {
 };
 
 /**
+ * Skill Academy Mentors
+ */
+export * from './academy-mentors';
+import { ACADEMY_MENTORS } from './academy-mentors';
+
+/**
  * All interactive NPCs
  */
 export const ALL_NPCS: LocationNPC[] = [
@@ -368,7 +374,8 @@ export const ALL_NPCS: LocationNPC[] = [
   GRAVE_DIGGER,
   OUTLAW_INFORMANT,
   HORSE_TRADER,
-  WILDERNESS_GUIDE
+  WILDERNESS_GUIDE,
+  ...ACADEMY_MENTORS,
 ];
 
 /**

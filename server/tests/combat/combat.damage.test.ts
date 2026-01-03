@@ -9,7 +9,7 @@
  * - NPC difficulty modifiers
  */
 
-import { CombatService } from '../../src/services/combat.service';
+import { CombatService } from '../../src/services/combat';
 import { HandRank } from '@desperados/shared';
 import { ICharacter } from '../../src/models/Character.model';
 

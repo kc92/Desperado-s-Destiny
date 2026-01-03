@@ -9,6 +9,7 @@ import { ALL_GREENHORN_QUESTS } from './greenhorns-trail';
 import { FRONTIER_JUSTICE_QUESTS } from './frontier-justice';
 import { HEART_OF_TERRITORY_QUESTS } from './heart-of-territory';
 import { LEGENDS_OF_WEST_QUESTS } from './legends-of-west';
+import { SKILL_ACADEMY_QUESTS } from './skill-academy';
 
 /**
  * ========================================
@@ -629,6 +630,9 @@ export const ALL_STARTER_QUESTS: QuestSeedData[] = [
 
   // Legends of the West (Phase 19.5) - L36-45 Ghost Towns + Supernatural
   ...LEGENDS_OF_WEST_QUESTS,
+
+  // Skill Academy (Optional) - 26 skill tutorial quests
+  ...SKILL_ACADEMY_QUESTS,
 ];
 
 // Re-export Newcomer's Trail utilities for convenience

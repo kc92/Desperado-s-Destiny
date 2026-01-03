@@ -277,11 +277,13 @@ export const travelToLocation = asyncHandler(
     // Check requirements
     if (targetLocation.requirements) {
       const req = targetLocation.requirements;
+      // Use Total Level for content gating (divided by 10 for backward compat)
+      const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
 
-      if (req.minLevel && character.level < req.minLevel) {
+      if (req.minLevel && effectiveLevel < req.minLevel) {
         return res.status(400).json({
           success: false,
-          message: `Requires level ${req.minLevel}`,
+          message: `Requires Total Level ${req.minLevel * 10}`,
         });
       }
 
@@ -795,11 +797,13 @@ export const enterBuilding = asyncHandler(
     // Check requirements
     if (building.requirements) {
       const req = building.requirements;
+      // Use Total Level for content gating (divided by 10 for backward compat)
+      const buildingEffectiveLevel = Math.floor((character.totalLevel || 30) / 10);
 
-      if (req.minLevel && character.level < req.minLevel) {
+      if (req.minLevel && buildingEffectiveLevel < req.minLevel) {
         return res.status(400).json({
           success: false,
-          message: `Requires level ${req.minLevel}`,
+          message: `Requires Total Level ${req.minLevel * 10}`,
         });
       }
 

@@ -118,12 +118,14 @@ export class DailyContractService {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    // Generate 3-5 contracts based on level
-    const contractCount = this.getContractCount(character.level);
+    // Generate 3-5 contracts based on Total Level (divide by 10 for old level equivalent)
+    const totalLevel = character.totalLevel || 30;
+    const effectiveOldLevel = Math.floor(totalLevel / 10);
+    const contractCount = this.getContractCount(effectiveOldLevel);
     const seed = generateSeed(characterId, today);
 
-    // Get difficulty distribution for character level
-    const distribution = getDifficultyDistribution(character.level);
+    // Get difficulty distribution for Total Level
+    const distribution = getDifficultyDistribution(effectiveOldLevel);
 
     const contracts: GeneratedContract[] = [];
     const usedTemplateIds = new Set<string>();
@@ -174,9 +176,9 @@ export class DailyContractService {
       usedTemplateIds.add(template.id);
       usedTypes.add(template.type);
 
-      // Generate contract from template
+      // Generate contract from template (use effective old level for reward scaling)
       currentSeed = Math.abs(currentSeed * 1664525 + 1013904223) % Math.pow(2, 32);
-      const contract = this.generateContractFromTemplate(template, character.level, currentSeed);
+      const contract = this.generateContractFromTemplate(template, effectiveOldLevel, currentSeed);
       contracts.push(contract);
     }
 
@@ -844,9 +846,10 @@ export class DailyContractService {
 
       usedTemplateIds.add(selectedTemplate.id);
 
-      // Generate contract from template
+      // Generate contract from template (use Total Level / 10 for backward compat)
       currentSeed = Math.abs(currentSeed * 1664525 + 1013904223) % Math.pow(2, 32);
-      const contract = this.generateContractFromTemplate(selectedTemplate, character.level, currentSeed);
+      const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+      const contract = this.generateContractFromTemplate(selectedTemplate, effectiveLevel, currentSeed);
 
       // Mark as gang contract in requirements
       contract.requirements = {
@@ -895,9 +898,13 @@ export class DailyContractService {
       ? dailyContract.premiumCooldowns
       : new Map(Object.entries(dailyContract.premiumCooldowns || {}));
 
+    // Use Total Level for premium contract filtering (old level × 10)
+    const totalLevel = character.totalLevel || 30;
+    const effectiveOldLevel = Math.floor(totalLevel / 10);
+
     const availableTemplates = PREMIUM_CONTRACT_TEMPLATES.filter(template => {
-      // Check level requirement
-      if (character.level < template.levelRequired) {
+      // Check Total Level requirement (template level × 10)
+      if (totalLevel < template.levelRequired * 10) {
         return false;
       }
 
@@ -910,13 +917,13 @@ export class DailyContractService {
       return true;
     });
 
-    // Determine how many premium contracts to offer (1-2 based on level)
-    const count = character.level >= 40 ? 2 : 1;
+    // Determine how many premium contracts to offer (1-2 based on Total Level)
+    const count = totalLevel >= 400 ? 2 : 1;  // Old level 40 = Total Level 400
     const selectedTemplates = availableTemplates.slice(0, count);
 
     // Generate contracts from templates
     const contracts: IContract[] = selectedTemplates.map(template =>
-      this.generatePremiumContractFromTemplate(template, character.level)
+      this.generatePremiumContractFromTemplate(template, effectiveOldLevel)
     );
 
     return contracts;
@@ -982,9 +989,11 @@ export class DailyContractService {
         throw new NotFoundError('Premium contract template');
       }
 
-      // Check level requirement
-      if (character.level < template.levelRequired) {
-        throw new ValidationError(`Requires level ${template.levelRequired}`);
+      // Check Total Level requirement (template level × 10)
+      const totalLevel = character.totalLevel || 30;
+      const requiredTotalLevel = template.levelRequired * 10;
+      if (totalLevel < requiredTotalLevel) {
+        throw new ValidationError(`Requires Total Level ${requiredTotalLevel} (current: ${totalLevel})`);
       }
 
       // Check skill requirements
@@ -1030,8 +1039,9 @@ export class DailyContractService {
       // Deduct energy
       await EnergyService.spend(characterId, template.energyCost);
 
-      // Generate the contract
-      const contract = this.generatePremiumContractFromTemplate(template, character.level);
+      // Generate the contract (use effective old level for reward scaling)
+      const effectiveOldLevel = Math.floor(totalLevel / 10);
+      const contract = this.generatePremiumContractFromTemplate(template, effectiveOldLevel);
       contract.status = 'in_progress';
       contract.acceptedAt = new Date();
 

@@ -55,8 +55,10 @@ export class DivinePathService {
         throw new AppError('Character not found', 404);
       }
 
-      if (character.level < 25) {
-        throw new AppError('Character must be level 25 to begin the divine path', 400);
+      // Total Level 250 required (old level 25 × 10)
+      const totalLevel = character.totalLevel || 30;
+      if (totalLevel < 250) {
+        throw new AppError(`Requires Total Level 250 to begin the divine path (current: ${totalLevel})`, 400);
       }
 
       // Check if already started
@@ -481,9 +483,11 @@ export class DivinePathService {
         return [];
       }
 
+      // Total Level for filtering (old level × 10)
+      const totalLevel = character.totalLevel || 30;
       return DIVINE_QUESTS.filter(quest => {
-        // Level requirement
-        if (character.level < quest.levelRequirement) {
+        // Total Level requirement (old level × 10)
+        if (totalLevel < quest.levelRequirement * 10) {
           return false;
         }
 

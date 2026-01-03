@@ -9,6 +9,7 @@ import { Character } from '../models/Character.model';
 import { Location } from '../models/Location.model';
 import { EnergyService } from './energy.service';
 import { SkillService } from './skill.service';
+import { CharacterProgressionService } from './characterProgression.service';
 import {
   GATHERING_NODES,
   GatheringNode,
@@ -21,6 +22,7 @@ import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
 import { SecureRNG } from './base/SecureRNG';
 import { getRedisClient } from '../config/redis';
+import { createExactMatchRegex } from '../utils/stringUtils';
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -58,8 +60,9 @@ async function resolveLocationSlug(locationIdOrSlug: string): Promise<string> {
   }
 
   // Fallback: try to find by name
+  // SECURITY: Use createExactMatchRegex to prevent NoSQL injection via regex patterns
   const locationByName = await Location.findOne({
-    name: { $regex: new RegExp(`^${locationIdOrSlug}$`, 'i') }
+    name: { $regex: createExactMatchRegex(locationIdOrSlug) }
   }).lean();
   if (locationByName) {
     return nameToSlug(locationByName.name);
@@ -78,6 +81,7 @@ export interface GatheringResult {
   message: string;
   loot: GatheringLootItem[];
   xpGained: number;
+  characterXpGained: number;  // PHASE 19: Character XP for crafter path viability
   skillLevelUp?: {
     skillId: string;
     newLevel: number;
@@ -331,9 +335,9 @@ export class GatheringService {
         const skill = character.skills[skillIndex];
         skill.experience += xpGained;
 
-        // Check for level up (simple formula: 100 * level^1.5)
-        const xpForNextLevel = Math.floor(100 * Math.pow(skill.level, 1.5));
-        if (skill.experience >= xpForNextLevel) {
+        // Check for level up using shared formula
+        const xpForNextLevel = SkillService.calculateXPForNextLevel(skill.level);
+        if (skill.experience >= xpForNextLevel && xpForNextLevel > 0) {
           skill.level += 1;
           skill.experience -= xpForNextLevel;
           skillLevelUp = {
@@ -351,8 +355,47 @@ export class GatheringService {
       character.markModified('inventory');
       character.markModified('skills');
 
+      // Update Total Level if gathering skill leveled up
+      if (skillLevelUp) {
+        SkillService.updateTotalLevel(character);
+      }
+
       // Save character
       await character.save({ session });
+
+      // Check Total Level milestones after skill level-up (within transaction)
+      if (skillLevelUp) {
+        try {
+          await CharacterProgressionService.checkTotalLevelMilestones(
+            characterId,
+            character.totalLevel,
+            session
+          );
+        } catch (milestoneError) {
+          logger.error('Failed to check Total Level milestones for gathering skill:', milestoneError);
+        }
+      }
+
+      // PHASE 19 FIX: Award character XP for gathering (makes Crafter path viable from L1)
+      // Base XP = 10, +1 per quality item found, +5 for rare items
+      const baseCharacterXP = 10;
+      const qualityBonus = loot.filter(l => l.quality === 'excellent').length * 5 +
+                           loot.filter(l => l.quality === 'good').length * 2;
+      const characterXpToAward = baseCharacterXP + qualityBonus;
+
+      try {
+        await CharacterProgressionService.addExperience(
+          characterId,
+          characterXpToAward,
+          'gathering',
+          session
+        );
+        logger.debug(`Awarded ${characterXpToAward} character XP for gathering`);
+      } catch (xpError) {
+        logger.error('Failed to award character XP for gathering:', xpError);
+        // Don't fail gathering for XP award failure
+      }
+
       await session.commitTransaction();
 
       logger.info(
@@ -364,6 +407,7 @@ export class GatheringService {
         message: `Successfully gathered from ${node.name}`,
         loot,
         xpGained,
+        characterXpGained: characterXpToAward,
         skillLevelUp,
         cooldownEndsAt,
         energySpent: node.energyCost,

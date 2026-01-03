@@ -17,10 +17,12 @@ import {
   GangSearchFilters,
 } from '@desperados/shared';
 import { TransactionSource } from '../models/GoldTransaction.model';
-import { calculateUpgradeCost, canUpgrade } from '../utils/gangUpgrades';
+import { calculateUpgradeCost, canUpgrade, getUpgradeBenefit } from '../utils/gangUpgrades';
 import logger from '../utils/logger';
 import karmaService from './karma.service';
 import { AppError } from '../utils/errors';
+import { GangBankingService } from './gangBanking.service';
+import { isSuccess } from '../types/serviceResult';
 
 export class GangService {
   /**
@@ -53,8 +55,10 @@ export class GangService {
         throw new Error('Character does not belong to this user');
       }
 
-      if (character.level < GANG_CREATION.MIN_LEVEL) {
-        throw new AppError(`Character must be level ${GANG_CREATION.MIN_LEVEL} or higher to create a gang`, 400);
+      // Total Level requirement (sum of all skill levels)
+      const totalLevel = character.totalLevel || 30;
+      if (totalLevel < GANG_CREATION.MIN_TOTAL_LEVEL) {
+        throw new AppError(`Requires Total Level ${GANG_CREATION.MIN_TOTAL_LEVEL}+ to create a gang (current: ${totalLevel})`, 400);
       }
 
       if (character.dollars < GANG_CREATION.COST) {
@@ -426,6 +430,7 @@ export class GangService {
 
   /**
    * Deposit gold to gang bank
+   * REFACTOR: Delegates to GangBankingService for implementation
    *
    * @param gangId - Gang ID
    * @param characterId - Character depositing
@@ -437,111 +442,21 @@ export class GangService {
     characterId: string,
     amount: number
   ): Promise<{ gang: IGang; transaction: IGangBankTransaction }> {
-    if (amount <= 0) {
-      throw new Error('Deposit amount must be positive');
+    const result = await GangBankingService.deposit(gangId, characterId, amount);
+
+    if (!isSuccess(result)) {
+      throw new Error(result.error?.message || 'Failed to deposit to gang bank');
     }
 
-    const session = await mongoose.startSession();
-
-    try {
-      await session.startTransaction();
-
-      const gang = await Gang.findById(gangId).session(session);
-      if (!gang) {
-        throw new Error('Gang not found');
-      }
-
-      if (!gang.isMember(characterId)) {
-        throw new Error('Character is not a member of this gang');
-      }
-
-      const character = await Character.findById(characterId).session(session);
-      if (!character) {
-        throw new Error('Character not found');
-      }
-
-      const { DollarService } = await import('./dollar.service');
-      await DollarService.deductDollars(
-        characterId,
-        amount,
-        TransactionSource.GANG_DEPOSIT,
-        { gangId: gang._id, gangName: gang.name },
-        session
-      );
-
-      // ATOMIC OPERATION: Add to gang bank and update contribution
-      const updateResult = await Gang.findOneAndUpdate(
-        {
-          _id: gangId,
-          'members.characterId': new mongoose.Types.ObjectId(characterId)
-        },
-        {
-          $inc: {
-            bank: amount,
-            'stats.totalRevenue': amount,
-            'members.$.contribution': amount
-          }
-        },
-        {
-          new: true,
-          session
-        }
-      );
-
-      if (!updateResult) {
-        throw new Error('Failed to deposit to gang bank. Please try again.');
-      }
-
-      const balanceAfter = updateResult.bank;
-      const balanceBefore = balanceAfter - amount;
-
-      const transaction = await GangBankTransaction.create([{
-        gangId: gang._id,
-        characterId: character._id,
-        type: GangBankTransactionType.DEPOSIT,
-        amount,
-        balanceBefore,
-        balanceAfter,
-        timestamp: new Date(),
-      }], { session });
-
-      await session.commitTransaction();
-
-      // DEITY SYSTEM: Record karma for generous gang contributions
-      // Large deposits (>10% of dollars) show loyalty and generosity
-      try {
-        const depositRatio = amount / (character.dollars + amount); // Before deposit dollars
-        if (depositRatio > 0.1) {
-          await karmaService.recordAction(
-            characterId,
-            'GANG_SHARED_LOOT',
-            `Donated ${amount} dollars to gang ${gang.name} (${Math.round(depositRatio * 100)}% of wealth)`
-          );
-          logger.debug(`Karma recorded for generous deposit: GANG_SHARED_LOOT`);
-        }
-      } catch (karmaError) {
-        logger.warn('Failed to record karma for gang deposit:', karmaError);
-      }
-
-      logger.info(
-        `Character ${character.name} deposited ${amount} dollars to gang ${gang.name} bank`
-      );
-
-      return {
-        gang,
-        transaction: transaction[0],
-      };
-    } catch (error) {
-      await session.abortTransaction();
-      logger.error('Error depositing to gang bank:', error);
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    return {
+      gang: result.data.gang,
+      transaction: result.data.transaction,
+    };
   }
 
   /**
    * Withdraw gold from gang bank
+   * REFACTOR: Delegates to GangBankingService for implementation
    *
    * @param gangId - Gang ID
    * @param characterId - Character withdrawing (must be officer+)
@@ -553,108 +468,16 @@ export class GangService {
     characterId: string,
     amount: number
   ): Promise<{ gang: IGang; transaction: IGangBankTransaction }> {
-    if (amount <= 0) {
-      throw new Error('Withdrawal amount must be positive');
+    const result = await GangBankingService.withdraw(gangId, characterId, amount);
+
+    if (!isSuccess(result)) {
+      throw new Error(result.error?.message || 'Failed to withdraw from gang bank');
     }
 
-    const session = await mongoose.startSession();
-
-    try {
-      await session.startTransaction();
-
-      const gang = await Gang.findById(gangId).session(session);
-      if (!gang) {
-        throw new Error('Gang not found');
-      }
-
-      if (!gang.isOfficer(characterId)) {
-        throw new Error('Only officers and leaders can withdraw from gang bank');
-      }
-
-      const character = await Character.findById(characterId).session(session);
-      if (!character) {
-        throw new Error('Character not found');
-      }
-
-      // ATOMIC OPERATION: Deduct from gang bank only if sufficient funds
-      const updateResult = await Gang.findOneAndUpdate(
-        {
-          _id: gangId,
-          bank: { $gte: amount }  // Atomic check: must have enough funds
-        },
-        {
-          $inc: { bank: -amount }
-        },
-        {
-          new: true,
-          session
-        }
-      );
-
-      if (!updateResult) {
-        // Re-check to provide accurate error message
-        const currentGang = await Gang.findById(gangId).session(session);
-        throw new Error(`Insufficient gang bank funds. Have ${currentGang?.bank || 0}, need ${amount}`);
-      }
-
-      const balanceAfter = updateResult.bank;
-      const balanceBefore = balanceAfter + amount;
-
-      const { DollarService: DollarServiceWithdraw } = await import('./dollar.service');
-      await DollarServiceWithdraw.addDollars(
-        characterId,
-        amount,
-        TransactionSource.GANG_WITHDRAWAL,
-        { gangId: gang._id, gangName: gang.name },
-        session
-      );
-
-      const transaction = await GangBankTransaction.create([{
-        gangId: gang._id,
-        characterId: character._id,
-        type: GangBankTransactionType.WITHDRAWAL,
-        amount: -amount,
-        balanceBefore,
-        balanceAfter,
-        timestamp: new Date(),
-      }], { session });
-
-      await session.commitTransaction();
-
-      // DEITY SYSTEM: Record karma for withdrawals exceeding contributions (hoarding)
-      try {
-        // Find member's contribution to compare against withdrawal
-        const member = gang.members.find(m => m.characterId.toString() === characterId);
-        const contribution = member?.contribution || 0;
-
-        // If withdrawing more than they ever contributed, it's seen as hoarding
-        if (amount > contribution) {
-          await karmaService.recordAction(
-            characterId,
-            'GANG_HOARDED_LOOT',
-            `Withdrew ${amount} dollars from gang ${gang.name} (contribution: ${contribution})`
-          );
-          logger.debug(`Karma recorded for hoarding: GANG_HOARDED_LOOT`);
-        }
-      } catch (karmaError) {
-        logger.warn('Failed to record karma for gang withdrawal:', karmaError);
-      }
-
-      logger.info(
-        `Character ${character.name} withdrew ${amount} dollars from gang ${gang.name} bank`
-      );
-
-      return {
-        gang,
-        transaction: transaction[0],
-      };
-    } catch (error) {
-      await session.abortTransaction();
-      logger.error('Error withdrawing from gang bank:', error);
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    return {
+      gang: result.data.gang,
+      transaction: result.data.transaction,
+    };
   }
 
   /**
@@ -1059,5 +882,65 @@ export class GangService {
     );
 
     return invitation;
+  }
+
+  // ==========================================================================
+  // TRAINING GROUNDS - Passive Training Time Reduction
+  // ==========================================================================
+
+  /**
+   * Get training time reduction bonus from gang Training Grounds upgrade
+   * Used by skill.service.ts to calculate passive training time
+   *
+   * @param gangId - Gang ID (or null if character has no gang)
+   * @returns Reduction as decimal (0.05 = 5%, 0.10 = 10%, 0.15 = 15%)
+   */
+  static async getTrainingFacilityBonus(gangId: string | null): Promise<number> {
+    if (!gangId) {
+      return 0;
+    }
+
+    try {
+      const gang = await Gang.findById(gangId);
+      if (!gang || !gang.isActive) {
+        return 0;
+      }
+
+      const trainingLevel = gang.upgrades?.trainingGrounds || 0;
+      if (trainingLevel === 0) {
+        return 0;
+      }
+
+      // getUpgradeBenefit returns 0.05 * level (5% per level)
+      const bonus = getUpgradeBenefit(GangUpgradeType.TRAINING_GROUNDS, trainingLevel);
+
+      logger.debug(`Gang ${gang.name} Training Grounds L${trainingLevel} = ${bonus * 100}% reduction`);
+
+      return bonus;
+    } catch (error) {
+      logger.error('Error getting training facility bonus:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get training time reduction for a character by their character ID
+   * Convenience method that looks up the character's gang first
+   *
+   * @param characterId - Character ID
+   * @returns Reduction as decimal
+   */
+  static async getTrainingFacilityBonusByCharacter(characterId: string): Promise<number> {
+    try {
+      const character = await Character.findById(characterId);
+      if (!character || !character.gangId) {
+        return 0;
+      }
+
+      return this.getTrainingFacilityBonus(character.gangId.toString());
+    } catch (error) {
+      logger.error('Error getting training facility bonus by character:', error);
+      return 0;
+    }
   }
 }

@@ -68,9 +68,11 @@ export const getRaceDetails = asyncHandler(
           const rep = req.character.reputation as { outlaws?: number; coalition?: number; settlers?: number };
           repValue = (rep.outlaws || 0) + (rep.coalition || 0) + (rep.settlers || 0);
         }
+        // Use Total Level for event qualification (divided by 10 for backward compat)
+        const effectiveLevel = Math.floor((req.character.totalLevel || 30) / 10);
         qualification = checkEventQualification(
           prestigiousEvent,
-          req.character.level,
+          effectiveLevel,
           repValue,
           0 // TODO: Get actual race wins
         );

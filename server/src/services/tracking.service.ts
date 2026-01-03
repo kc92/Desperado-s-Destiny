@@ -106,13 +106,14 @@ export class TrackingService {
         };
       }
 
-      // Check level requirements
-      if (character.level < animalDef.levelRequired) {
+      // Check level requirements (use Total Level / 10 for backward compat)
+      const effectiveLevel = Math.floor((character.totalLevel || 30) / 10);
+      if (effectiveLevel < animalDef.levelRequired) {
         await session.abortTransaction();
         session.endSession();
         return {
           success: false,
-          message: `Requires level ${animalDef.levelRequired} to track ${animalDef.name}`
+          message: `Requires Total Level ${animalDef.levelRequired * 10} to track ${animalDef.name}`
         };
       }
 

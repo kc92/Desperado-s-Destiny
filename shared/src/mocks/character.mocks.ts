@@ -58,9 +58,11 @@ export function mockSafeCharacter(overrides?: Partial<SafeCharacter>): SafeChara
       hairStyle: 0,
       hairColor: 0
     },
-    level: 1,
-    experience: 0,
-    experienceToNextLevel: 100,
+    level: 1,  // Deprecated - kept for backward compatibility
+    totalLevel: 30,  // Sum of all skill levels (starting value)
+    combatLevel: 1,  // Combat Level (starting value)
+    experience: 0,  // Deprecated
+    experienceToNextLevel: 100,  // Deprecated
     energy: ENERGY.FREE_MAX,
     maxEnergy: ENERGY.FREE_MAX,
     dollars: 100,
@@ -77,6 +79,7 @@ export function mockSafeCharacter(overrides?: Partial<SafeCharacter>): SafeChara
     },
     skills: [],
     inventory: [],
+    activeEffects: [],
     combatStats: {
       wins: 0,
       losses: 0,

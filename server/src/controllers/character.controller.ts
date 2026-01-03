@@ -112,6 +112,9 @@ export async function createCharacter(req: AuthRequest, res: Response): Promise<
       isActive: true
     });
 
+    // Initialize totalLevel (sum of all skill levels)
+    SkillService.updateTotalLevel(character);
+
     await character.save();
 
     logger.info(`Character created: ${character.name} (${character._id}) by user ${userId}`);

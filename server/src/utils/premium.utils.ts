@@ -65,6 +65,8 @@ export interface SubscriptionPlan {
     skillXpBonus: number; // Skill training XP bonus (NEW in Phase 19)
     bankSlotBonus: number; // Extra bank slots (convenience)
     fastTravelDiscount: number; // Discount on fast travel costs (convenience)
+    trainingTimeReduction: number; // Percentage reduction (e.g., 0.25 = 25% faster)
+    maxConcurrentTraining: number; // Number of skills that can train simultaneously
   };
 }
 
@@ -90,6 +92,8 @@ const FREE_PLAN: SubscriptionPlan = {
     skillXpBonus: 1.0,
     bankSlotBonus: 0,
     fastTravelDiscount: 0,
+    trainingTimeReduction: 0, // No reduction
+    maxConcurrentTraining: 1, // 1 skill at a time
   },
 };
 
@@ -111,6 +115,8 @@ const FREE_PLAN: SubscriptionPlan = {
  * - skillXpBonus: 1.25 (+25% skill XP) - TIME advantage for skill training
  * - bankSlotBonus: 50 extra slots - Convenience
  * - fastTravelDiscount: 0.50 (50% off) - Convenience
+ * - trainingTimeReduction: 0.25 (25% faster) - TIME advantage for passive training
+ * - maxConcurrentTraining: 2 (train 2 skills at once) - Convenience
  */
 const PREMIUM_PLAN: SubscriptionPlan = {
   id: 'premium',
@@ -125,6 +131,8 @@ const PREMIUM_PLAN: SubscriptionPlan = {
     skillXpBonus: 1.25, // NEW: +25% skill training XP (TIME advantage)
     bankSlotBonus: 50, // NEW: +50 bank slots (convenience)
     fastTravelDiscount: 0.50, // NEW: 50% off fast travel (convenience)
+    trainingTimeReduction: 0.25, // NEW: 25% faster passive training (TIME advantage)
+    maxConcurrentTraining: 2, // NEW: Train 2 skills simultaneously (convenience)
   },
 };
 
@@ -342,6 +350,61 @@ export class PremiumUtils {
   static async calculateFastTravelCost(baseCost: number, userId: string): Promise<number> {
     const discount = await this.getFastTravelDiscount(userId);
     return Math.floor(baseCost * (1 - discount));
+  }
+
+  /**
+   * Get training time multiplier for passive skill training
+   * Premium users get 25% faster training (multiplier of 0.75)
+   *
+   * @param userId - User ID
+   * @returns Multiplier for training time (1.0 = normal, 0.75 = 25% faster)
+   */
+  static async getTrainingTimeMultiplier(userId: string): Promise<number> {
+    const benefits = await this.getPremiumBenefits(userId);
+    // Convert reduction percentage to multiplier (0.25 reduction = 0.75 multiplier)
+    return 1 - benefits.plan.benefits.trainingTimeReduction;
+  }
+
+  /**
+   * Get maximum concurrent training slots
+   * Free users can train 1 skill, Premium users can train 2
+   *
+   * @param userId - User ID
+   * @returns Maximum number of skills that can train simultaneously
+   */
+  static async getMaxConcurrentTraining(userId: string): Promise<number> {
+    const benefits = await this.getPremiumBenefits(userId);
+    return benefits.plan.benefits.maxConcurrentTraining;
+  }
+
+  /**
+   * Get training time multiplier by character ID
+   * Convenience wrapper for skill.service.ts
+   *
+   * @param characterId - Character ID
+   * @returns Multiplier for training time
+   */
+  static async getTrainingTimeMultiplierByCharacter(characterId: string): Promise<number> {
+    const character = await Character.findById(characterId);
+    if (!character) {
+      return 1.0; // No reduction for unknown character
+    }
+    return this.getTrainingTimeMultiplier(character.userId.toString());
+  }
+
+  /**
+   * Get max concurrent training slots by character ID
+   * Convenience wrapper for skill.service.ts
+   *
+   * @param characterId - Character ID
+   * @returns Maximum concurrent training slots
+   */
+  static async getMaxConcurrentTrainingByCharacter(characterId: string): Promise<number> {
+    const character = await Character.findById(characterId);
+    if (!character) {
+      return 1; // Default to 1 for unknown character
+    }
+    return this.getMaxConcurrentTraining(character.userId.toString());
   }
 
   /**

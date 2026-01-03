@@ -13,6 +13,7 @@
 import mongoose from 'mongoose';
 import { AuditLog } from '../../models/AuditLog.model';
 import logger from '../../utils/logger';
+import { escapeRegex } from '../../utils/stringUtils';
 
 /**
  * Audit event categories
@@ -468,7 +469,8 @@ export async function queryAuditLogs(filters: {
     query.characterId = new mongoose.Types.ObjectId(filters.characterId);
   }
   if (filters.category) {
-    query.action = { $regex: `^${filters.category}:` };
+    // SECURITY: Use escapeRegex to prevent NoSQL injection via regex patterns
+    query.action = { $regex: `^${escapeRegex(filters.category)}:` };
   }
   if (filters.action) {
     query.action = filters.action;
