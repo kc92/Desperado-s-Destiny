@@ -199,29 +199,31 @@ export async function logSecurityEvent(params: SecurityEventParams): Promise<voi
     ...rest
   });
 
-  // Persist to database asynchronously
-  setImmediate(async () => {
-    try {
-      await AuditLog.create({
-        userId: userId ? new mongoose.Types.ObjectId(userId.toString()) : undefined,
-        characterId: characterId ? new mongoose.Types.ObjectId(characterId.toString()) : undefined,
-        action: `${AuditCategory.SECURITY}:${event}`,
-        endpoint: 'INTERNAL',
-        method: 'POST',
-        ip: ip || 'internal',
-        metadata: {
-          category: AuditCategory.SECURITY,
-          event,
-          severity,
-          ...rest.metadata,
-          attemptedResource: rest.attemptedResource,
-          blockedAction: rest.blockedAction
-        }
-      });
-    } catch (error) {
-      logger.error('Failed to persist security audit log', { error, event });
-    }
-  });
+  // Persist to database asynchronously (only if userId is available - required for audit logs)
+  if (userId) {
+    setImmediate(async () => {
+      try {
+        await AuditLog.create({
+          userId: new mongoose.Types.ObjectId(userId.toString()),
+          characterId: characterId ? new mongoose.Types.ObjectId(characterId.toString()) : undefined,
+          action: `${AuditCategory.SECURITY}:${event}`,
+          endpoint: 'INTERNAL',
+          method: 'POST',
+          ip: ip || 'internal',
+          metadata: {
+            category: AuditCategory.SECURITY,
+            event,
+            severity,
+            ...rest.metadata,
+            attemptedResource: rest.attemptedResource,
+            blockedAction: rest.blockedAction
+          }
+        });
+      } catch (error) {
+        logger.error('Failed to persist security audit log', { error, event });
+      }
+    });
+  }
 }
 
 /**
@@ -250,23 +252,24 @@ export async function logEconomyEvent(params: EconomyEventParams): Promise<void>
     ...rest
   });
 
-  // Persist to database asynchronously
-  setImmediate(async () => {
-    try {
-      await AuditLog.create({
-        userId: userId ? new mongoose.Types.ObjectId(userId.toString()) : undefined,
-        characterId: characterId ? new mongoose.Types.ObjectId(characterId.toString()) : undefined,
-        action: `${AuditCategory.ECONOMY}:${event}`,
-        endpoint: 'INTERNAL',
-        method: 'POST',
-        ip: rest.ip || 'internal',
-        metadata: {
-          category: AuditCategory.ECONOMY,
-          event,
-          amount,
-          beforeBalance,
-          afterBalance,
-          ...rest.metadata,
+  // Persist to database asynchronously (only if userId is available - required for audit logs)
+  if (userId) {
+    setImmediate(async () => {
+      try {
+        await AuditLog.create({
+          userId: new mongoose.Types.ObjectId(userId.toString()),
+          characterId: characterId ? new mongoose.Types.ObjectId(characterId.toString()) : undefined,
+          action: `${AuditCategory.ECONOMY}:${event}`,
+          endpoint: 'INTERNAL',
+          method: 'POST',
+          ip: rest.ip || 'internal',
+          metadata: {
+            category: AuditCategory.ECONOMY,
+            event,
+            amount,
+            beforeBalance,
+            afterBalance,
+            ...rest.metadata,
           itemId: rest.itemId,
           itemName: rest.itemName,
           listingId: rest.listingId,
@@ -277,7 +280,8 @@ export async function logEconomyEvent(params: EconomyEventParams): Promise<void>
     } catch (error) {
       logger.error('Failed to persist economy audit log', { error, event });
     }
-  });
+    });
+  }
 }
 
 /**

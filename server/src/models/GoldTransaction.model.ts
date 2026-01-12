@@ -287,15 +287,15 @@ const GoldTransactionSchema = new Schema<IGoldTransaction>({
   characterId: {
     type: Schema.Types.ObjectId,
     ref: 'Character',
-    required: true,
-    index: true
+    required: true
+    // Note: indexed via compound indexes below
   },
   currencyType: {
     type: String,
     enum: Object.values(CurrencyType),
     required: true,
-    default: CurrencyType.DOLLAR,
-    index: true
+    default: CurrencyType.DOLLAR
+    // Note: indexed via compound indexes below
   },
   amount: {
     type: Number,
@@ -335,8 +335,8 @@ const GoldTransactionSchema = new Schema<IGoldTransaction>({
   },
   timestamp: {
     type: Date,
-    default: Date.now,
-    index: true
+    default: Date.now
+    // Note: indexed via compound indexes below
   }
 });
 

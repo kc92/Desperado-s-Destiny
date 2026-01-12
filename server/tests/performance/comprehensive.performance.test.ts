@@ -11,8 +11,6 @@
  */
 
 import request from 'supertest';
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { createTestApp } from '../testApp';
 import { setupCompleteGameState } from '../helpers/testHelpers';
 import { apiPost, apiGet } from '../helpers/api.helpers';
@@ -22,7 +20,6 @@ import { CombatEncounter } from '../../src/models/CombatEncounter.model';
 import { NPC } from '../../src/models/NPC.model';
 import { NPCType } from '@desperados/shared';
 
-let mongoServer: MongoMemoryServer;
 const app = createTestApp();
 
 // Performance metrics tracking
@@ -59,15 +56,6 @@ function calculateMetrics(endpoint: string, times: number[], failures: number): 
 
 describe('Comprehensive Performance Testing Suite', () => {
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
-
-    await mongoose.connect(mongoUri);
-
     // Seed test NPCs
     await NPC.create({
       name: 'Test Bandit',
@@ -89,9 +77,6 @@ describe('Comprehensive Performance Testing Suite', () => {
   });
 
   afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-
     // Print performance summary
     console.log('\n========================================');
     console.log('PERFORMANCE TEST RESULTS');
@@ -276,7 +261,7 @@ describe('Comprehensive Performance Testing Suite', () => {
         members: [
           {
             characterId: character._id,
-            role: 'LEADER',
+            role: 'leader',
             joinedAt: new Date(),
             contribution: 0
           }
@@ -622,7 +607,7 @@ describe('Comprehensive Performance Testing Suite', () => {
         members: [
           {
             characterId: character._id,
-            role: 'LEADER',
+            role: 'leader',
             joinedAt: new Date(),
             contribution: 0
           }

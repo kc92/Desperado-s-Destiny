@@ -8,7 +8,7 @@ import api from './api';
 
 // ===== Types =====
 
-export type GatheringType = 'mining' | 'herbalism' | 'woodcutting' | 'foraging';
+export type GatheringType = 'mining' | 'herbalism' | 'woodcutting' | 'foraging' | 'hunting' | 'fishing';
 
 export interface GatheringYield {
   itemId: string;
@@ -177,6 +177,8 @@ export const gatheringService = {
       herbalism: 'Herbalism',
       woodcutting: 'Woodcutting',
       foraging: 'Foraging',
+      hunting: 'Hunting',
+      fishing: 'Fishing',
     };
     return names[type] || type;
   },
@@ -190,6 +192,8 @@ export const gatheringService = {
       herbalism: '🌿',  // Herb
       woodcutting: '🪓',  // Axe
       foraging: '🔍',  // Magnifying glass
+      hunting: '🏹',  // Bow
+      fishing: '🎣',  // Fishing pole
     };
     return icons[type] || '📦';
   },
@@ -287,6 +291,8 @@ export const gatheringService = {
       herbalism: [],
       woodcutting: [],
       foraging: [],
+      hunting: [],
+      fishing: [],
     };
 
     for (const node of nodes) {

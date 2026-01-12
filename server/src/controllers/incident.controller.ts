@@ -147,38 +147,77 @@ export const getIncidentStats = asyncHandler(
     // Get active count
     const activeCount = await Incident.countActiveByCharacter(characterId);
 
-    // Get history stats (last 30 days)
+    // Get history stats (last 30 days) - use aggregation to prevent OOM
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const recentIncidents = await Incident.find({
-      characterId,
-      occurredAt: { $gte: thirtyDaysAgo },
-    });
+
+    const statsAgg = await Incident.aggregate([
+      {
+        $match: {
+          characterId,
+          occurredAt: { $gte: thirtyDaysAgo },
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          resolved: { $sum: { $cond: [{ $eq: ['$status', IncidentStatus.RESOLVED] }, 1, 0] } },
+          failed: { $sum: { $cond: [{ $eq: ['$status', IncidentStatus.FAILED] }, 1, 0] } },
+          prevented: { $sum: { $cond: [{ $eq: ['$status', IncidentStatus.PREVENTED] }, 1, 0] } },
+          totalDamage: { $sum: { $ifNull: ['$actualDamage', 0] } },
+          totalRecovered: { $sum: { $ifNull: ['$recoveredAmount', 0] } },
+          insuranceClaimCount: { $sum: { $cond: ['$insuranceClaimed', 1, 0] } },
+          insuranceRecovery: { $sum: { $ifNull: ['$insuranceRecovery', 0] } },
+        }
+      }
+    ]);
+
+    // Get type breakdown
+    const byTypeAgg = await Incident.aggregate([
+      { $match: { characterId, occurredAt: { $gte: thirtyDaysAgo } } },
+      { $group: { _id: '$type', count: { $sum: 1 } } }
+    ]);
+
+    // Get severity breakdown
+    const bySeverityAgg = await Incident.aggregate([
+      { $match: { characterId, occurredAt: { $gte: thirtyDaysAgo } } },
+      { $group: { _id: '$severity', count: { $sum: 1 } } }
+    ]);
+
+    const baseStats = statsAgg[0] || {
+      total: 0,
+      resolved: 0,
+      failed: 0,
+      prevented: 0,
+      totalDamage: 0,
+      totalRecovered: 0,
+      insuranceClaimCount: 0,
+      insuranceRecovery: 0,
+    };
+
+    const byType: Record<string, number> = {};
+    for (const item of byTypeAgg) {
+      byType[item._id] = item.count;
+    }
+
+    const bySeverity: Record<string, number> = {};
+    for (const item of bySeverityAgg) {
+      bySeverity[item._id] = item.count;
+    }
 
     const stats = {
       activeIncidents: activeCount,
       last30Days: {
-        total: recentIncidents.length,
-        resolved: recentIncidents.filter(i => i.status === IncidentStatus.RESOLVED).length,
-        failed: recentIncidents.filter(i => i.status === IncidentStatus.FAILED).length,
-        prevented: recentIncidents.filter(i => i.status === IncidentStatus.PREVENTED).length,
-        totalDamage: recentIncidents.reduce((sum, i) => sum + (i.actualDamage || 0), 0),
-        totalRecovered: recentIncidents.reduce((sum, i) => sum + (i.recoveredAmount || 0), 0),
-        insuranceClaimCount: recentIncidents.filter(i => i.insuranceClaimed).length,
-        insuranceRecovery: recentIncidents.reduce((sum, i) => sum + (i.insuranceRecovery || 0), 0),
+        total: baseStats.total,
+        resolved: baseStats.resolved,
+        failed: baseStats.failed,
+        prevented: baseStats.prevented,
+        totalDamage: baseStats.totalDamage,
+        totalRecovered: baseStats.totalRecovered,
+        insuranceClaimCount: baseStats.insuranceClaimCount,
+        insuranceRecovery: baseStats.insuranceRecovery,
       },
     };
-
-    // Group by type
-    const byType: Record<string, number> = {};
-    for (const incident of recentIncidents) {
-      byType[incident.type] = (byType[incident.type] || 0) + 1;
-    }
-
-    // Group by severity
-    const bySeverity: Record<string, number> = {};
-    for (const incident of recentIncidents) {
-      bySeverity[incident.severity] = (bySeverity[incident.severity] || 0) + 1;
-    }
 
     res.status(200).json({
       success: true,

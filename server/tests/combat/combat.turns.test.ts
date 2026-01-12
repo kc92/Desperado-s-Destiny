@@ -10,30 +10,10 @@
  */
 
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { CombatEncounter, ICombatEncounter } from '../../src/models/CombatEncounter.model';
 import { CombatStatus } from '@desperados/shared';
 
-let mongoServer: MongoMemoryServer;
-
 describe('Turn-Based Combat Mechanics', () => {
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.connect(mongoUri);
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
-
-  afterEach(async () => {
-    const collections = mongoose.connection.collections;
-    for (const key in collections) {
-      await collections[key].deleteMany({});
-    }
-  });
 
   describe('Turn Order', () => {
     it('should make player go first (turn 0)', async () => {

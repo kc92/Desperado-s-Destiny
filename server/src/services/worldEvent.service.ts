@@ -433,6 +433,21 @@ export class WorldEventService {
    */
   static async getActiveEventsForLocation(locationId: string): Promise<IWorldEvent[]> {
     const now = new Date();
+
+    // Validate locationId is a valid ObjectId before querying
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(locationId) &&
+      String(new mongoose.Types.ObjectId(locationId)) === String(locationId);
+
+    if (!isValidObjectId) {
+      // If locationId is not a valid ObjectId (e.g., "villa-esperanza"), only return global events
+      return WorldEvent.find({
+        status: EventStatus.ACTIVE,
+        isGlobal: true,
+        scheduledStart: { $lte: now },
+        scheduledEnd: { $gte: now }
+      });
+    }
+
     return WorldEvent.find({
       status: EventStatus.ACTIVE,
       $or: [

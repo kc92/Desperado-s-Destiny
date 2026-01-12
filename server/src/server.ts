@@ -25,6 +25,7 @@ import {
 } from './middleware';
 import { auditLogMiddleware } from './middleware/auditLog.middleware';
 import { requireCsrfToken } from './middleware/csrf.middleware';
+import { httpsRedirect } from './middleware/httpsRedirect.middleware';
 import routes from './routes';
 import { metricsMiddleware, getMetrics } from './services/metrics.service';
 import { KeyRotationService } from './services/keyRotation.service';
@@ -54,6 +55,9 @@ function configureMiddleware(): void {
   // Trust X-Forwarded-For from reverse proxy (Docker, Kubernetes, AWS ELB, Railway)
   // Required for correct client IP detection in rate limiting and security checks
   app.set('trust proxy', 1);
+
+  // HTTPS redirect - Force HTTPS in production (must be early in middleware chain)
+  app.use(httpsRedirect);
 
   // Performance monitoring - track request timing and percentiles
   app.use(performanceMiddleware);
@@ -427,6 +431,15 @@ async function shutdown(signal: string): Promise<void> {
 
       const { stopDeckGameCleanup } = await import('./controllers/deckGame.controller');
       stopDeckGameCleanup();
+
+      const { stopDivineInterventionTimers } = await import('./services/divineIntervention.service');
+      stopDivineInterventionTimers();
+
+      const { stopRealityDistortionTimers } = await import('./services/realityDistortion.service');
+      stopRealityDistortionTimers();
+
+      const { stopTeamCardGameTimers } = await import('./services/teamCardGame.service');
+      stopTeamCardGameTimers();
 
       logger.info('All module intervals stopped');
     } catch (error) {

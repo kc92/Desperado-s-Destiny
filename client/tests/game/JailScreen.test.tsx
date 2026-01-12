@@ -22,7 +22,7 @@ describe('JailScreen', () => {
         isJailed={false}
         jailedUntil={null}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={vi.fn()}
       />
     );
@@ -38,7 +38,7 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         offense="Bank Robbery"
         onPayBail={vi.fn()}
       />
@@ -56,7 +56,7 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={vi.fn()}
       />
     );
@@ -73,7 +73,7 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={vi.fn()}
       />
     );
@@ -95,7 +95,7 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={vi.fn()}
         onJailExpired={onJailExpired}
       />
@@ -110,7 +110,7 @@ describe('JailScreen', () => {
     });
   });
 
-  it('should enable bail button when player has enough gold', () => {
+  it('should enable bail button when player has enough dollars', () => {
     const jailedUntil = new Date(Date.now() + 1000 * 60 * 30);
 
     render(
@@ -118,16 +118,16 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={vi.fn()}
       />
     );
 
-    const bailButton = screen.getByRole('button', { name: /Pay Bail: 100g/i });
+    const bailButton = screen.getByRole('button', { name: /Pay Bail: \$100/i });
     expect(bailButton).toBeEnabled();
   });
 
-  it('should disable bail button when player lacks gold', () => {
+  it('should disable bail button when player lacks dollars', () => {
     const jailedUntil = new Date(Date.now() + 1000 * 60 * 30);
 
     render(
@@ -135,14 +135,14 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={50}
+        currentDollars={50}
         onPayBail={vi.fn()}
       />
     );
 
-    const bailButton = screen.getByRole('button', { name: /Pay Bail: 100g/i });
+    const bailButton = screen.getByRole('button', { name: /Pay Bail: \$100/i });
     expect(bailButton).toBeDisabled();
-    expect(screen.getByText(/Insufficient gold/i)).toBeInTheDocument();
+    expect(screen.getByText(/Insufficient dollars/i)).toBeInTheDocument();
   });
 
   it('should call onPayBail when bail button is clicked', () => {
@@ -154,12 +154,12 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={onPayBail}
       />
     );
 
-    const bailButton = screen.getByRole('button', { name: /Pay Bail: 100g/i });
+    const bailButton = screen.getByRole('button', { name: /Pay Bail: \$100/i });
     fireEvent.click(bailButton);
 
     expect(onPayBail).toHaveBeenCalled();
@@ -173,7 +173,7 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={vi.fn()}
       />
     );
@@ -191,7 +191,7 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={vi.fn()}
       />
     );
@@ -209,7 +209,7 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={vi.fn()}
       />
     );
@@ -225,7 +225,7 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={vi.fn()}
       />
     );
@@ -243,7 +243,7 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         offense="Horse Theft"
         onPayBail={vi.fn()}
       />
@@ -260,7 +260,7 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={vi.fn()}
       />
     );
@@ -276,7 +276,7 @@ describe('JailScreen', () => {
         isJailed={true}
         jailedUntil={jailedUntil}
         bailCost={100}
-        currentGold={200}
+        currentDollars={200}
         onPayBail={vi.fn()}
       />
     );

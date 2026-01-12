@@ -159,7 +159,8 @@ const TeamCardPlayerSchema = new Schema<ITeamCardPlayer>({
 }, { _id: false });
 
 const TeamCardGameSessionSchema = new Schema<ITeamCardGameSession>({
-  sessionId: { type: String, required: true, unique: true, index: true },
+  sessionId: { type: String, required: true, unique: true },
+  // Note: sessionId unique constraint provides the index
   gameType: {
     type: String,
     enum: Object.values(TeamCardGameType),
@@ -232,7 +233,8 @@ const TeamCardGameSessionSchema = new Schema<ITeamCardGameSession>({
   turnTimeLimit: { type: Number, default: 30 },
   turnStartedAt: { type: Number, default: Date.now },
   createdAt: { type: Date, default: Date.now },
-  expiresAt: { type: Date, required: true, index: true },
+  expiresAt: { type: Date, required: true },
+  // Note: expiresAt indexed via TTL index below
 
   // Location
   locationId: { type: String },

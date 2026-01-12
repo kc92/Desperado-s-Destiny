@@ -195,6 +195,7 @@ export const DeckGame: React.FC<DeckGameProps> = ({
       } else if (data.completed === false && data.gameState) {
         // Job game continues - use gameState from response, merge availableActions if separate
         setGameState({ ...data.gameState, availableActions: data.availableActions || data.gameState.availableActions });
+        setSelectedCards([]);  // Clear card selections for next turn
       } else {
         // Game continues - include all Phase 3 and Phase 5 state updates
         setGameState(prev => ({
@@ -479,7 +480,7 @@ export const DeckGame: React.FC<DeckGameProps> = ({
                 gameState.wagerTier === 'medium' ? 'bg-yellow-900/50 text-yellow-300' :
                 'bg-green-900/50 text-green-300'
               }`}>
-                💰 Wager: {gameState.wagerAmount}g ({gameState.wagerMultiplier}x)
+                💰 Wager: ${gameState.wagerAmount} ({gameState.wagerMultiplier}x)
               </span>
             )}
 
@@ -512,7 +513,7 @@ export const DeckGame: React.FC<DeckGameProps> = ({
                 className="px-2 py-1 rounded bg-yellow-700 hover:bg-yellow-600 text-white font-bold transition-colors"
                 title={`Cash out now for ${gameState.partialRewardPercent}% of rewards`}
               >
-                🏃 Bail Out: {gameState.bailOutValue}g ({gameState.partialRewardPercent}%)
+                🏃 Bail Out: ${gameState.bailOutValue} ({gameState.partialRewardPercent}%)
               </button>
             )}
           </div>

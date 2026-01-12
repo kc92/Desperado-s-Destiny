@@ -162,8 +162,8 @@ const GossipItemSchema = new Schema<GossipItem>(
     },
     expiresAt: {
       type: Date,
-      required: true,
-      index: true
+      required: true
+      // Note: TTL index defined below
     },
     peakInterest: {
       type: Date

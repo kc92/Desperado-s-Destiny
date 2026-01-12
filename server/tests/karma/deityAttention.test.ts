@@ -9,35 +9,10 @@
  * - Race condition prevention
  */
 
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { DeityAttention, IDeityAttention, DeityName } from '../../src/models/DeityAttention.model';
 import { Character, ICharacter } from '../../src/models/Character.model';
 import { User } from '../../src/models/User.model';
 import { Faction } from '@desperados/shared';
-
-let mongoServer: MongoMemoryServer;
-
-beforeAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
-});
-
-afterAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  await mongoServer.stop();
-});
-
-afterEach(async () => {
-  await Character.deleteMany({});
-  await User.deleteMany({});
-  await DeityAttention.deleteMany({});
-});
 
 describe('DeityAttention Model', () => {
   let testUser: any;
@@ -62,7 +37,7 @@ describe('DeityAttention Model', () => {
         hairColor: 2,
       },
       currentLocation: 'el-paso',
-      gold: 100,
+      dollars: 100,
     });
   });
 
@@ -214,10 +189,10 @@ describe('DeityAttention Model', () => {
       });
 
       attention.updateKarmaTrajectory(5);
-      expect(attention.karmaTrajectory).toBe('RISING');
+      expect(attention.karmaTrajectory).toBe('IMPROVING');
 
       attention.updateKarmaTrajectory(-5);
-      expect(attention.karmaTrajectory).toBe('FALLING');
+      expect(attention.karmaTrajectory).toBe('DECLINING');
 
       attention.updateKarmaTrajectory(0.5);
       expect(attention.karmaTrajectory).toBe('STABLE');
@@ -275,7 +250,7 @@ describe('DeityAttention Model', () => {
           hairColor: 2
         },
         currentLocation: 'el-paso',
-        gold: 100
+        dollars: 100
       });
       await DeityAttention.create({
         characterId: secondCharacter._id,

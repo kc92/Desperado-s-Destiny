@@ -29,6 +29,7 @@ import {
   GANG_PROTECTION,
   getSuspicionLevel,
 } from '@desperados/shared';
+import { handleServiceError, logServiceWarning } from '../utils/errorHandling';
 
 /**
  * Result of staking an illegal claim
@@ -105,7 +106,7 @@ export class IllegalMiningService {
 
       return { success: true, claim };
     } catch (error) {
-      console.error('[IllegalMiningService] stakeIllegalClaim error:', error);
+      handleServiceError(error, { service: 'IllegalMiningService', method: 'stakeIllegalClaim', characterId, locationId });
       return { success: false, error: 'Failed to stake illegal claim' };
     }
   }
@@ -151,7 +152,7 @@ export class IllegalMiningService {
         recommendedActions: recommendations,
       };
     } catch (error) {
-      console.error('[IllegalMiningService] getClaimStatus error:', error);
+      handleServiceError(error, { service: 'IllegalMiningService', method: 'getClaimStatus', claimId });
       return null;
     }
   }
@@ -196,7 +197,7 @@ export class IllegalMiningService {
         newAlertLevel: claim.currentAlertLevel,
       };
     } catch (error) {
-      console.error('[IllegalMiningService] recordOreCollection error:', error);
+      handleServiceError(error, { service: 'IllegalMiningService', method: 'recordOreCollection', claimId, oreValue, oreQuantity });
       return {
         success: false,
         suspicionGained: 0,
@@ -219,7 +220,7 @@ export class IllegalMiningService {
 
       await claim.save();
     } catch (error) {
-      console.error('[IllegalMiningService] recordLegalSale error:', error);
+      handleServiceError(error, { service: 'IllegalMiningService', method: 'recordLegalSale', claimId, saleValue });
     }
   }
 
@@ -306,7 +307,7 @@ export class IllegalMiningService {
 
       return { success: true, weeklyFee };
     } catch (error) {
-      console.error('[IllegalMiningService] requestGangProtection error:', error);
+      handleServiceError(error, { service: 'IllegalMiningService', method: 'requestGangProtection', claimId, characterId });
       return { success: false, error: 'Failed to request gang protection' };
     }
   }
@@ -330,7 +331,7 @@ export class IllegalMiningService {
       await claim.save();
       return true;
     } catch (error) {
-      console.error('[IllegalMiningService] removeGangProtection error:', error);
+      handleServiceError(error, { service: 'IllegalMiningService', method: 'removeGangProtection', claimId, characterId });
       return false;
     }
   }
@@ -378,7 +379,11 @@ export class IllegalMiningService {
       } catch (feeError) {
         await session.abortTransaction();
         // If player can't afford fee, remove gang protection
-        console.warn(`[IllegalMiningService] Character ${claim.characterId} cannot afford gang protection fee of $${dailyFee}, removing protection`);
+        logServiceWarning(
+          { service: 'IllegalMiningService', method: 'processDailyGangProtection' },
+          `Character ${claim.characterId} cannot afford gang protection fee of $${dailyFee}, removing protection`,
+          { characterId: claim.characterId.toString(), dailyFee, claimId: claim._id.toString() }
+        );
         claim.gangId = undefined;
         claim.legalStatus = claim.suspicionLevel > 75
           ? ClaimLegalStatus.ILLEGAL
@@ -389,7 +394,7 @@ export class IllegalMiningService {
         session.endSession();
       }
     } catch (error) {
-      console.error('[IllegalMiningService] processDailyGangProtection error:', error);
+      handleServiceError(error, { service: 'IllegalMiningService', method: 'processDailyGangProtection', claimId });
     }
   }
 
@@ -475,7 +480,7 @@ export class IllegalMiningService {
         return { success: false, suspicionChange: bribeFailedAmount };
       }
     } catch (error) {
-      console.error('[IllegalMiningService] processBribeAttempt error:', error);
+      handleServiceError(error, { service: 'IllegalMiningService', method: 'processBribeAttempt', claimId, characterId, bribeAmount, inspectorType });
       return { success: false, suspicionChange: 0 };
     }
   }
@@ -500,7 +505,7 @@ export class IllegalMiningService {
 
       return { condemned: true, seizuredValue };
     } catch (error) {
-      console.error('[IllegalMiningService] condemnClaim error:', error);
+      handleServiceError(error, { service: 'IllegalMiningService', method: 'condemnClaim', claimId, reason });
       return { condemned: false, seizuredValue: 0 };
     }
   }
@@ -542,7 +547,7 @@ export class IllegalMiningService {
 
       await claim.save();
     } catch (error) {
-      console.error('[IllegalMiningService] recordPatrolSpotted error:', error);
+      handleServiceError(error, { service: 'IllegalMiningService', method: 'recordPatrolSpotted', claimId });
     }
   }
 
@@ -580,7 +585,7 @@ export class IllegalMiningService {
 
       await claim.save();
     } catch (error) {
-      console.error('[IllegalMiningService] recordInspectionResult error:', error);
+      handleServiceError(error, { service: 'IllegalMiningService', method: 'recordInspectionResult', claimId, inspectorType, result });
     }
   }
 }

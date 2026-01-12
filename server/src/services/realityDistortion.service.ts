@@ -26,6 +26,11 @@ const activeDistortions = new Map<string, {
 }>();
 
 /**
+ * Track pending distortion cleanup timeouts to prevent timer leaks in tests
+ */
+const pendingDistortionCleanups = new Map<string, NodeJS.Timeout>();
+
+/**
  * Reality distortion definitions
  */
 const REALITY_DISTORTIONS: RealityDistortion[] = [
@@ -371,11 +376,13 @@ export class RealityDistortionService {
         break;
     }
 
-    // Schedule cleanup if temporary
-    if (expiresAt) {
-      setTimeout(() => {
+    // Schedule cleanup if temporary (skip in test environment to prevent timer leaks)
+    if (expiresAt && process.env.NODE_ENV !== 'test') {
+      const timeoutId = setTimeout(() => {
         this.removeDistortion(distortionId);
+        pendingDistortionCleanups.delete(distortionId);
       }, distortion.effect.duration! * 60 * 1000);
+      pendingDistortionCleanups.set(distortionId, timeoutId);
     }
   }
 
@@ -587,4 +594,15 @@ export class RealityDistortionService {
     // Roll for distortion
     await this.rollForDistortion(characterId, character.currentLocation);
   }
+}
+
+/**
+ * Cleanup function to stop all pending distortion timers
+ * Called during graceful shutdown to prevent timer leaks
+ */
+export function stopRealityDistortionTimers(): void {
+  for (const timeoutId of pendingDistortionCleanups.values()) {
+    clearTimeout(timeoutId);
+  }
+  pendingDistortionCleanups.clear();
 }

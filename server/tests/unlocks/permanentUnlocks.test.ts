@@ -3,32 +3,13 @@
  */
 
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { AccountUnlocks } from '../../src/models/AccountUnlocks.model';
 import { User } from '../../src/models/User.model';
 import { Character } from '../../src/models/Character.model';
 import * as unlockService from '../../src/services/permanentUnlock.service';
 import * as triggerService from '../../src/services/unlockTrigger.service';
 import { UnlockCategory, UnlockRequirementType } from '../../../shared/src/types/permanentUnlocks.types';
-
-let mongoServer: MongoMemoryServer;
-
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
-  await mongoose.connect(uri);
-});
-
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-});
-
-afterEach(async () => {
-  await AccountUnlocks.deleteMany({});
-  await User.deleteMany({});
-  await Character.deleteMany({});
-});
+import { createTestCharacter } from '../helpers/testHelpers';
 
 describe('Permanent Unlocks System', () => {
   describe('Account Unlocks Model', () => {
@@ -168,8 +149,8 @@ describe('Permanent Unlocks System', () => {
       const userId = user._id.toString();
 
       // Create 2 characters (max default)
-      await Character.create({ userId: user._id, name: 'Char1', location: 'town' });
-      await Character.create({ userId: user._id, name: 'Char2', location: 'town' });
+      await createTestCharacter({ userId: user._id, name: 'Char1' });
+      await createTestCharacter({ userId: user._id, name: 'Char2' });
 
       // Should not be able to create more
       const canCreate = await unlockService.canCreateCharacter(userId);
@@ -239,11 +220,10 @@ describe('Permanent Unlocks System', () => {
         emailVerified: true
       });
 
-      await Character.create({
+      await createTestCharacter({
         userId: user._id,
         name: 'TestChar',
-        level: 15,
-        location: 'town'
+        level: 15
       });
 
       const userId = user._id.toString();
@@ -335,11 +315,10 @@ describe('Permanent Unlocks System', () => {
         totalCrimesCommitted: 100
       });
 
-      await Character.create({
+      await createTestCharacter({
         userId: user._id,
         name: 'TestChar',
-        level: 30,
-        location: 'town'
+        level: 30
       });
 
       const userId = user._id.toString();

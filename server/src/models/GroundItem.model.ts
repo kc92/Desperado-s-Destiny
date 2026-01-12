@@ -46,7 +46,7 @@ const GroundItemSchema = new Schema<IGroundItem>({
   expiresAt: {
     type: Date,
     required: true,
-    index: true,
+    // Note: TTL index defined below
     comment: 'Items automatically deleted after this time',
   },
 });

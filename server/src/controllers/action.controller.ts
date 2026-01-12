@@ -33,7 +33,7 @@ import { InventoryService } from '../services/inventory.service';
  * Maps character stats to poker suit bonuses
  */
 function calculateSuitBonuses(character: any): SuitBonuses {
-  const stats = character.stats;
+  const stats = character.stats || { cunning: 0, spirit: 0, combat: 0, craft: 0 };
 
   return {
     spades: stats.cunning * 2,    // Cunning affects Spades (crime/deception)

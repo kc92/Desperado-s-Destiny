@@ -10,7 +10,68 @@ import logger from '../utils/logger';
 import { Location } from '../models/Location.model';
 import { frontierLocations } from '../data/locations/frontier_locations';
 import { academyLocations } from '../data/locations/skill-academy';
-import { ZONES } from '@desperados/shared';
+import { ZONES, CraftingFacilityType } from '@desperados/shared';
+
+/**
+ * Map positions for the travel map display
+ * Coordinates are relative to an 800x550 SVG viewbox
+ */
+export const MAP_POSITIONS: Record<string, { x: number; y: number }> = {
+  // Settler Territory (North-Central)
+  RED_GULCH: { x: 400, y: 150 },
+  FORT_ASHFORD: { x: 480, y: 100 },
+  RED_GULCH_BANK: { x: 350, y: 130 },
+  RED_GULCH_CHURCH: { x: 430, y: 180 },
+  RED_GULCH_COURTHOUSE: { x: 370, y: 170 },
+  RED_GULCH_SALOON: { x: 420, y: 130 },
+
+  // Outlaw Territory (Southwest)
+  THE_FRONTERA: { x: 180, y: 350 },
+  THE_BADLANDS: { x: 120, y: 420 },
+  FRONTERA_BANK: { x: 150, y: 330 },
+  FRONTERA_CHAPEL: { x: 210, y: 370 },
+  FRONTERA_CANTINA: { x: 160, y: 380 },
+
+  // Coalition Lands (Northeast)
+  KAIOWA_MESA: { x: 620, y: 180 },
+  THUNDERBIRDS_PERCH: { x: 700, y: 120 },
+  WHISPERING_STONES: { x: 680, y: 200 },
+  ANCESTORS_SPRING: { x: 640, y: 240 },
+  BONE_GARDEN: { x: 720, y: 180 },
+  SACRED_HEART_MOUNTAINS: { x: 750, y: 100 },
+
+  // Sangre Canyon (Center)
+  SANGRE_CANYON: { x: 300, y: 280 },
+  THE_SCAR: { x: 350, y: 320 },
+  DUSTY_TRAIL: { x: 250, y: 240 },
+  ECHO_CAVES: { x: 280, y: 350 },
+  COYOTES_CROSSROADS: { x: 340, y: 260 },
+  RAILROAD_WOUND: { x: 450, y: 220 },
+  DEAD_MANS_STRETCH: { x: 200, y: 300 },
+
+  // Frontier (South-Central)
+  WHISKEY_BEND: { x: 500, y: 400 },
+  WHISKEY_BEND_BANK: { x: 470, y: 380 },
+  WHISKEY_BEND_CHAPEL: { x: 530, y: 420 },
+  WHISKEY_BEND_SALOON: { x: 480, y: 430 },
+  PERDITION: { x: 560, y: 480 },
+
+  // Ranch Country (East)
+  LONGHORN_RANCH: { x: 650, y: 350 },
+  SNAKE_CREEK: { x: 700, y: 320 },
+
+  // Mining & Industrial (West-Central)
+  GOLDFINGERS_MINE: { x: 200, y: 180 },
+  ABANDONED_MINE: { x: 150, y: 220 },
+  THE_WASTES: { x: 80, y: 280 },
+
+  // Sacred Sites (North)
+  SPIRIT_SPRINGS: { x: 580, y: 280 },
+  DUSTY_CROSSROADS: { x: 320, y: 200 },
+
+  // Skill Academy
+  DESPERADOS_ACADEMY: { x: 440, y: 200 },
+};
 
 // Location IDs for consistent references
 export const LOCATION_IDS = {
@@ -79,6 +140,7 @@ const locationSeeds = [
     zone: ZONES.SETTLER_TERRITORY,
     isZoneHub: true,
     icon: '🏘️',
+    mapPosition: MAP_POSITIONS.RED_GULCH,
     atmosphere: 'The dusty streets buzz with activity. Piano music drifts from saloons, hammers ring from the blacksmith, and the constant murmur of commerce fills the air. The red canyon walls tower above, glowing like blood at sunset.',
     availableActions: [],
     availableCrimes: ['Pickpocket Drunk', 'Steal from Market', 'Burglarize Store', 'Pick Lock'],
@@ -139,6 +201,14 @@ const locationSeeds = [
         buyMultiplier: 0.4
       }
     ],
+    craftingFacilities: [
+      { type: CraftingFacilityType.FORGE, tier: 3, name: "Cole's Forge" },
+      { type: CraftingFacilityType.ANVIL, tier: 3, name: "Cole's Anvil" },
+      { type: CraftingFacilityType.SEWING_TABLE, tier: 2, name: "Henderson's Sewing Corner" },
+      { type: CraftingFacilityType.GUN_LATHE, tier: 3, name: "Cole's Gun Lathe" },
+      { type: CraftingFacilityType.POWDER_PRESS, tier: 2, name: "Cole's Powder Press" },
+      { type: CraftingFacilityType.STOVE, tier: 2, name: "Saloon Kitchen" }
+    ],
     npcs: [
       {
         id: 'marshal-blackwood',
@@ -165,7 +235,8 @@ const locationSeeds = [
       { targetLocationId: LOCATION_IDS.GOLDFINGERS_MINE.toString(), travelTime: 0, energyCost: 10, description: 'To Goldfinger\'s Mine' },
       { targetLocationId: LOCATION_IDS.WHISKEY_BEND.toString(), travelTime: 0, energyCost: 15, description: 'South to Whiskey Bend' },
       { targetLocationId: '6501a0000000000000000020', travelTime: 0, energyCost: 3, description: 'To Western Outpost' },
-      { targetLocationId: LOCATION_IDS.RAILROAD_WOUND.toString(), travelTime: 0, energyCost: 8, description: 'East to Railroad Wound' }
+      { targetLocationId: LOCATION_IDS.RAILROAD_WOUND.toString(), travelTime: 0, energyCost: 8, description: 'East to Railroad Wound' },
+      { targetLocationId: LOCATION_IDS.DESPERADOS_ACADEMY.toString(), travelTime: 0, energyCost: 2, description: 'To Desperados Academy' }
     ],
     dangerLevel: 3,
     factionInfluence: { settlerAlliance: 80, nahiCoalition: 5, frontera: 15 },
@@ -220,6 +291,12 @@ const locationSeeds = [
         ],
         buyMultiplier: 0.6
       }
+    ],
+    craftingFacilities: [
+      { type: CraftingFacilityType.DISTILLERY, tier: 3, name: "La Vibora's Still" },
+      { type: CraftingFacilityType.CAULDRON, tier: 2, name: "Curandero's Cauldron" },
+      { type: CraftingFacilityType.LEATHER_WORKBENCH, tier: 3, name: "Smuggler's Leatherworks" },
+      { type: CraftingFacilityType.TANNING_RACK, tier: 2, name: "Hide Tannery" }
     ],
     npcs: [
       {
@@ -301,6 +378,13 @@ const locationSeeds = [
         buyMultiplier: 0.3
       }
     ],
+    craftingFacilities: [
+      { type: CraftingFacilityType.GUN_LATHE, tier: 4, name: "Army Armory Lathe" },
+      { type: CraftingFacilityType.POWDER_PRESS, tier: 4, name: "Munitions Press" },
+      { type: CraftingFacilityType.FORGE, tier: 3, name: "Fort Blacksmith" },
+      { type: CraftingFacilityType.ANVIL, tier: 3, name: "Army Anvil" },
+      { type: CraftingFacilityType.LEATHER_WORKBENCH, tier: 2, name: "Tack & Harness Shop" }
+    ],
     npcs: [
       {
         id: 'captain-cross',
@@ -368,6 +452,14 @@ const locationSeeds = [
         ],
         buyMultiplier: 0.5
       }
+    ],
+    craftingFacilities: [
+      { type: CraftingFacilityType.MEDICINE_LODGE, tier: 4, name: "Elder's Medicine Lodge" },
+      { type: CraftingFacilityType.CRAFT_CIRCLE, tier: 4, name: "Sacred Craft Circle" },
+      { type: CraftingFacilityType.SACRED_FIRE, tier: 3, name: "Ceremonial Fire" },
+      { type: CraftingFacilityType.TANNING_RACK, tier: 3, name: "Traditional Tanning Rack" },
+      { type: CraftingFacilityType.SKINNING_RACK, tier: 3, name: "Hunter's Skinning Station" },
+      { type: CraftingFacilityType.WOODWORKING_BENCH, tier: 2, name: "Bow Crafter's Bench" }
     ],
     npcs: [
       {
@@ -512,6 +604,13 @@ const locationSeeds = [
         ],
         buyMultiplier: 0.3
       }
+    ],
+    craftingFacilities: [
+      { type: CraftingFacilityType.ASSAY_TABLE, tier: 4, name: "Company Assay Office" },
+      { type: CraftingFacilityType.ORE_REFINERY, tier: 4, name: "Main Ore Refinery" },
+      { type: CraftingFacilityType.BLAST_FURNACE, tier: 3, name: "Industrial Blast Furnace" },
+      { type: CraftingFacilityType.FORGE, tier: 3, name: "Tool Repair Forge" },
+      { type: CraftingFacilityType.ANVIL, tier: 2, name: "Repair Anvil" }
     ],
     npcs: [
       {
@@ -683,6 +782,16 @@ const locationSeeds = [
       }
     ],
     shops: [],
+    craftingFacilities: [
+      { type: CraftingFacilityType.TANNING_RACK, tier: 3, name: "Ranch Tannery" },
+      { type: CraftingFacilityType.SKINNING_RACK, tier: 3, name: "Cattle Skinning Station" },
+      { type: CraftingFacilityType.LEATHER_WORKBENCH, tier: 2, name: "Saddle & Tack Shop" },
+      { type: CraftingFacilityType.STOVE, tier: 2, name: "Chuck Wagon Kitchen" },
+      { type: CraftingFacilityType.SMOKER, tier: 3, name: "Beef Smokehouse" },
+      { type: CraftingFacilityType.SAWMILL, tier: 2, name: "Ranch Sawmill" },
+      { type: CraftingFacilityType.WOODWORKING_BENCH, tier: 2, name: "Fence & Furniture Shop" },
+      { type: CraftingFacilityType.BAIT_STATION, tier: 2, name: "Varmint Control Station" }
+    ],
     npcs: [
       {
         id: 'ranch-foreman',
@@ -742,6 +851,12 @@ const locationSeeds = [
         ],
         buyMultiplier: 0.5
       }
+    ],
+    craftingFacilities: [
+      { type: CraftingFacilityType.CAULDRON, tier: 3, name: "Healing Waters Cauldron" },
+      { type: CraftingFacilityType.MEDICINE_LODGE, tier: 3, name: "Spirit Springs Lodge" },
+      { type: CraftingFacilityType.STORAGE_RACKS, tier: 2, name: "Herb Drying Racks" },
+      { type: CraftingFacilityType.DISTILLERY, tier: 2, name: "Tincture Still" }
     ],
     npcs: [
       {
@@ -820,6 +935,11 @@ const locationSeeds = [
         ],
         buyMultiplier: 0.5
       }
+    ],
+    craftingFacilities: [
+      { type: CraftingFacilityType.STOVE, tier: 3, name: "Saloon Kitchen" },
+      { type: CraftingFacilityType.DISTILLERY, tier: 4, name: "Premium Whiskey Still" },
+      { type: CraftingFacilityType.ICE_BOX, tier: 2, name: "Ice House Storage" }
     ],
     npcs: [
       {
@@ -1685,15 +1805,79 @@ const locationSeeds = [
 /**
  * Seed locations into the database
  */
+/**
+ * Get map position key from location ID
+ */
+function getMapPositionKey(locationId: string): string | null {
+  const idToKey: Record<string, string> = {
+    '6501a0000000000000000001': 'RED_GULCH',
+    '6501a0000000000000000002': 'THE_FRONTERA',
+    '6501a0000000000000000003': 'FORT_ASHFORD',
+    '6501a0000000000000000004': 'KAIOWA_MESA',
+    '6501a0000000000000000005': 'SANGRE_CANYON',
+    '6501a0000000000000000006': 'GOLDFINGERS_MINE',
+    '6501a0000000000000000007': 'THUNDERBIRDS_PERCH',
+    '6501a0000000000000000008': 'THE_SCAR',
+    '6501a0000000000000000009': 'DUSTY_TRAIL',
+    '6501a000000000000000000a': 'LONGHORN_RANCH',
+    '6501a000000000000000000b': 'SPIRIT_SPRINGS',
+    '6501a000000000000000000c': 'WHISKEY_BEND',
+    '6501a000000000000000000d': 'THE_WASTES',
+    '6501a0000000000000000010': 'ABANDONED_MINE',
+    '6501a0000000000000000011': 'DUSTY_CROSSROADS',
+    '6501a0000000000000000012': 'SNAKE_CREEK',
+    '6501a0000000000000000030': 'WHISPERING_STONES',
+    '6501a0000000000000000031': 'ANCESTORS_SPRING',
+    '6501a0000000000000000032': 'BONE_GARDEN',
+    '6501a0000000000000000033': 'ECHO_CAVES',
+    '6501a0000000000000000034': 'COYOTES_CROSSROADS',
+    '6501a0000000000000000035': 'RAILROAD_WOUND',
+    '6501a0000000000000000036': 'THE_BADLANDS',
+    '6501a0000000000000000037': 'SACRED_HEART_MOUNTAINS',
+    '6501a0000000000000000038': 'DEAD_MANS_STRETCH',
+    '6501a0000000000000000040': 'RED_GULCH_BANK',
+    '6501a0000000000000000041': 'RED_GULCH_CHURCH',
+    '6501a0000000000000000042': 'RED_GULCH_COURTHOUSE',
+    '6501a0000000000000000043': 'RED_GULCH_SALOON',
+    '6501a0000000000000000044': 'FRONTERA_BANK',
+    '6501a0000000000000000045': 'FRONTERA_CHAPEL',
+    '6501a0000000000000000046': 'FRONTERA_CANTINA',
+    '6501a0000000000000000047': 'WHISKEY_BEND_BANK',
+    '6501a0000000000000000048': 'WHISKEY_BEND_CHAPEL',
+    '6501a0000000000000000049': 'WHISKEY_BEND_SALOON',
+    '6501a000000000000000004a': 'PERDITION',
+    '6601a0000000000000000001': 'DESPERADOS_ACADEMY',
+  };
+  return idToKey[locationId] || null;
+}
+
+/**
+ * Apply map positions to location data
+ */
+function applyMapPositions(locations: any[]): any[] {
+  return locations.map(loc => {
+    const id = loc._id?.toString();
+    const key = id ? getMapPositionKey(id) : null;
+    if (key && MAP_POSITIONS[key] && !loc.mapPosition) {
+      return { ...loc, mapPosition: MAP_POSITIONS[key] };
+    }
+    return loc;
+  });
+}
+
 export async function seedLocations(): Promise<void> {
   try {
     // Clear existing locations
     await Location.deleteMany({});
 
-    // Insert new locations
-    await Location.insertMany([...locationSeeds, ...frontierLocations, ...academyLocations]);
+    // Combine all locations and apply map positions
+    const allLocations = [...locationSeeds, ...frontierLocations, ...academyLocations];
+    const locationsWithPositions = applyMapPositions(allLocations);
 
-    console.log(`Successfully seeded ${locationSeeds.length + frontierLocations.length + academyLocations.length} locations`);
+    // Insert new locations
+    await Location.insertMany(locationsWithPositions);
+
+    console.log(`Successfully seeded ${locationsWithPositions.length} locations with map positions`);
   } catch (error) {
     logger.error('Error seeding locations', { error: error instanceof Error ? error.message : error });
     throw error;

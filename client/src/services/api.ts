@@ -19,10 +19,22 @@ import { logger } from '@/services/logger.service';
 let isRefreshing = false;
 let refreshSubscribers: ((success: boolean) => void)[] = [];
 
+// SECURITY FIX: Limit subscriber queue to prevent memory exhaustion
+const MAX_REFRESH_SUBSCRIBERS = 50;
+
+// SECURITY FIX: Timeout for token refresh (10 seconds)
+const REFRESH_TIMEOUT_MS = 10000;
+
 /**
  * Subscribe to token refresh completion
+ * SECURITY FIX: Limits queue size to prevent memory exhaustion
  */
 function subscribeToRefresh(callback: (success: boolean) => void): void {
+  if (refreshSubscribers.length >= MAX_REFRESH_SUBSCRIBERS) {
+    logger.warn('[API] Too many pending refresh subscribers, rejecting request');
+    callback(false);
+    return;
+  }
   refreshSubscribers.push(callback);
 }
 
@@ -160,21 +172,34 @@ apiClient.interceptors.response.use(
           isRefreshing = true;
 
           try {
-            // Attempt to refresh the token
-            await apiClient.post('/auth/refresh');
+            // SECURITY FIX: Attempt to refresh the token with timeout
+            // This prevents indefinite hangs if the refresh endpoint doesn't respond
+            const refreshPromise = apiClient.post('/auth/refresh');
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Token refresh timeout')), REFRESH_TIMEOUT_MS)
+            );
+            await Promise.race([refreshPromise, timeoutPromise]);
 
-            // Refresh succeeded - notify subscribers and retry original request
-            isRefreshing = false;
+            // Refresh succeeded
+            logger.info('[API] Token refreshed successfully, retrying request');
+
+            // CRITICAL FIX: Notify subscribers BEFORE setting isRefreshing = false
+            // This prevents new requests from starting a second refresh before
+            // waiting subscribers are notified and can retry with the new token
             notifyRefreshSubscribers(true);
 
-            logger.info('[API] Token refreshed successfully, retrying request');
+            // Now safe to allow new refresh attempts
+            isRefreshing = false;
+
             return apiClient(originalRequest);
           } catch (refreshError) {
             // Refresh failed - logout user
-            isRefreshing = false;
-            notifyRefreshSubscribers(false);
-
             logger.warn('[API] Token refresh failed, logging out user');
+
+            // CRITICAL FIX: Same ordering - notify before clearing flag
+            notifyRefreshSubscribers(false);
+            isRefreshing = false;
+
             useAuthStore.getState().setUser(null);
             useCsrfStore.getState().clearToken();
 
@@ -189,8 +214,28 @@ apiClient.interceptors.response.use(
           // Check if it's a CSRF error - attempt token refresh and retry
           const errorCode = error.response.data?.code;
           if (errorCode === 'CSRF_INVALID' || errorCode === 'CSRF_MISSING') {
-            // CSRF token was invalid - clear it so next request fetches fresh one
-            useCsrfStore.getState().clearToken();
+            const csrfRequest = error.config as InternalAxiosRequestConfig & { _csrfRetry?: boolean };
+
+            // Only retry once to prevent infinite loops
+            if (!csrfRequest?._csrfRetry) {
+              csrfRequest._csrfRetry = true;
+
+              // Clear stale token
+              useCsrfStore.getState().clearToken();
+
+              // Fetch fresh CSRF token by making a GET request to an authenticated endpoint
+              try {
+                logger.debug('[API] CSRF token invalid, fetching fresh token...');
+                await apiClient.get('/auth/me');
+
+                // Retry the original request with the new CSRF token
+                logger.info('[API] CSRF token refreshed, retrying request');
+                return apiClient(csrfRequest);
+              } catch (csrfError) {
+                logger.error('[API] Failed to refresh CSRF token', csrfError as Error);
+                // Fall through to error handling
+              }
+            }
           }
           // Error is added to error store below
           break;

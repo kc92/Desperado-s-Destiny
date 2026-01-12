@@ -42,9 +42,12 @@ export class GangService {
     tag: string
   ): Promise<IGang> {
     const session = await mongoose.startSession();
+    const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
 
     try {
-      await session.startTransaction();
+      if (!disableTransactions) {
+        await session.startTransaction();
+      }
 
       const character = await Character.findById(characterId).session(session);
       if (!character) {
@@ -133,7 +136,9 @@ export class GangService {
       const { GangEconomyService } = await import('./gangEconomy.service');
       await GangEconomyService.initializeEconomy(gang[0]._id.toString(), gang[0].name);
 
-      await session.commitTransaction();
+      if (!disableTransactions) {
+        await session.commitTransaction();
+      }
 
       logger.info(
         `Gang created: ${name} [${tag}] by character ${character.name} (${characterId})`
@@ -141,7 +146,10 @@ export class GangService {
 
       return gang[0];
     } catch (error) {
-      await session.abortTransaction();
+      // Only abort if transaction is still active (not already committed/aborted)
+      if (!disableTransactions && session.inTransaction()) {
+        await session.abortTransaction();
+      }
       logger.error('Error creating gang:', error);
       throw error;
     } finally {
@@ -151,6 +159,11 @@ export class GangService {
 
   /**
    * Join a gang (via invitation)
+   *
+   * PRODUCTION FIX: Uses atomic operations to prevent race conditions
+   * - Uses $expr with $size to check capacity atomically
+   * - Prevents duplicate members
+   * - Wraps all operations in a transaction
    *
    * @param gangId - Gang to join
    * @param characterId - Character joining
@@ -163,13 +176,18 @@ export class GangService {
     invitationId: string
   ): Promise<IGang> {
     const session = await mongoose.startSession();
+    const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
 
     try {
-      await session.startTransaction();
+      if (!disableTransactions) {
+        await session.startTransaction();
+      }
 
       const gang = await Gang.findById(gangId).session(session);
-      if (!gang) {
-        throw new Error('Gang not found');
+      // BUG FIX: Check if gang exists AND is active (not disbanded)
+      // This prevents joining a gang that was disbanded after invitation was sent
+      if (!gang || !gang.isActive) {
+        throw new Error('Gang not found or has been disbanded');
       }
 
       const character = await Character.findById(characterId).session(session);
@@ -228,13 +246,25 @@ export class GangService {
         throw new Error('Gang is at maximum capacity');
       }
 
+      // BUG FIX: Recalculate gang level after member joins
+      // The findOneAndUpdate bypasses pre-save hooks, so we must recalculate manually
+      const newLevel = await gangUpdateResult.calculateLevel();
+      if (newLevel !== gangUpdateResult.level) {
+        gangUpdateResult.level = newLevel;
+        gangUpdateResult.perks = gangUpdateResult.getActivePerks();
+        await gangUpdateResult.save({ session });
+        logger.info(`Gang ${gangUpdateResult.name} level updated to ${newLevel} after new member joined`);
+      }
+
       invitation.accept();
       await invitation.save({ session });
 
       character.gangId = gangUpdateResult._id as mongoose.Types.ObjectId;
       await character.save({ session });
 
-      await session.commitTransaction();
+      if (!disableTransactions) {
+        await session.commitTransaction();
+      }
 
       logger.info(
         `Character ${character.name} joined gang ${gangUpdateResult.name}`
@@ -242,7 +272,9 @@ export class GangService {
 
       return gangUpdateResult;
     } catch (error) {
-      await session.abortTransaction();
+      if (!disableTransactions && session.inTransaction()) {
+        await session.abortTransaction();
+      }
       logger.error('Error joining gang:', error);
       throw error;
     } finally {
@@ -258,9 +290,12 @@ export class GangService {
    */
   static async leaveGang(gangId: string, characterId: string): Promise<void> {
     const session = await mongoose.startSession();
+    const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
 
     try {
-      await session.startTransaction();
+      if (!disableTransactions) {
+        await session.startTransaction();
+      }
 
       const gang = await Gang.findById(gangId).session(session);
       if (!gang) {
@@ -287,13 +322,17 @@ export class GangService {
       character.gangId = null;
       await character.save({ session });
 
-      await session.commitTransaction();
+      if (!disableTransactions) {
+        await session.commitTransaction();
+      }
 
       logger.info(
         `Character ${character.name} left gang ${gang.name}`
       );
     } catch (error) {
-      await session.abortTransaction();
+      if (!disableTransactions && session.inTransaction()) {
+        await session.abortTransaction();
+      }
       logger.error('Error leaving gang:', error);
       throw error;
     } finally {
@@ -315,9 +354,12 @@ export class GangService {
     targetId: string
   ): Promise<IGang> {
     const session = await mongoose.startSession();
+    const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
 
     try {
-      await session.startTransaction();
+      if (!disableTransactions) {
+        await session.startTransaction();
+      }
 
       const gang = await Gang.findById(gangId).session(session);
       if (!gang) {
@@ -347,7 +389,9 @@ export class GangService {
       targetCharacter.gangId = null;
       await targetCharacter.save({ session });
 
-      await session.commitTransaction();
+      if (!disableTransactions) {
+        await session.commitTransaction();
+      }
 
       // DEITY SYSTEM: Record karma for kicking a gang member
       // This is seen as betrayal by deities
@@ -368,7 +412,9 @@ export class GangService {
 
       return gang;
     } catch (error) {
-      await session.abortTransaction();
+      if (!disableTransactions && session.inTransaction()) {
+        await session.abortTransaction();
+      }
       logger.error('Error kicking member:', error);
       throw error;
     } finally {
@@ -392,9 +438,12 @@ export class GangService {
     newRole: GangRole
   ): Promise<IGang> {
     const session = await mongoose.startSession();
+    const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
 
     try {
-      await session.startTransaction();
+      if (!disableTransactions) {
+        await session.startTransaction();
+      }
 
       const gang = await Gang.findById(gangId).session(session);
       if (!gang) {
@@ -412,7 +461,9 @@ export class GangService {
       gang.promoteMember(targetId, newRole);
       await gang.save({ session });
 
-      await session.commitTransaction();
+      if (!disableTransactions) {
+        await session.commitTransaction();
+      }
 
       logger.info(
         `Character ${targetId} promoted to ${newRole} in gang ${gang.name}`
@@ -420,7 +471,9 @@ export class GangService {
 
       return gang;
     } catch (error) {
-      await session.abortTransaction();
+      if (!disableTransactions && session.inTransaction()) {
+        await session.abortTransaction();
+      }
       logger.error('Error promoting member:', error);
       throw error;
     } finally {
@@ -494,9 +547,12 @@ export class GangService {
     upgradeType: GangUpgradeType
   ): Promise<IGang> {
     const session = await mongoose.startSession();
+    const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
 
     try {
-      await session.startTransaction();
+      if (!disableTransactions) {
+        await session.startTransaction();
+      }
 
       const gang = await Gang.findById(gangId).session(session);
       if (!gang) {
@@ -559,15 +615,19 @@ export class GangService {
         timestamp: new Date(),
       }], { session });
 
-      await session.commitTransaction();
+      if (!disableTransactions) {
+        await session.commitTransaction();
+      }
 
       logger.info(
         `Gang ${gang.name} purchased ${upgradeType} upgrade level ${currentLevel + 1} for ${cost} dollars`
       );
 
-      return gang;
+      return updateResult;
     } catch (error) {
-      await session.abortTransaction();
+      if (!disableTransactions && session.inTransaction()) {
+        await session.abortTransaction();
+      }
       logger.error('Error purchasing upgrade:', error);
       throw error;
     } finally {
@@ -584,9 +644,12 @@ export class GangService {
    */
   static async disbandGang(gangId: string, characterId: string): Promise<void> {
     const session = await mongoose.startSession();
+    const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
 
     try {
-      await session.startTransaction();
+      if (!disableTransactions) {
+        await session.startTransaction();
+      }
 
       const gang = await Gang.findById(gangId).session(session);
       if (!gang) {
@@ -600,9 +663,14 @@ export class GangService {
       const memberCount = gang.members.length;
       const distributionAmount = memberCount > 0 ? Math.floor(gang.bank / memberCount) : 0;
 
+      // BATCH QUERY FIX: Get all member IDs and batch update characters
+      const memberIds = gang.members.map(m => m.characterId);
+
       if (distributionAmount > 0) {
+        const { DollarService: DollarServiceDisband } = await import('./dollar.service');
+
+        // Process dollar distributions and transaction records
         for (const member of gang.members) {
-          const { DollarService: DollarServiceDisband } = await import('./dollar.service');
           await DollarServiceDisband.addDollars(
             member.characterId,
             distributionAmount,
@@ -620,34 +688,31 @@ export class GangService {
             balanceAfter: gang.bank - distributionAmount,
             timestamp: new Date(),
           }], { session });
-
-          const character = await Character.findById(member.characterId).session(session);
-          if (character) {
-            character.gangId = null;
-            await character.save({ session });
-          }
-        }
-      } else {
-        for (const member of gang.members) {
-          const character = await Character.findById(member.characterId).session(session);
-          if (character) {
-            character.gangId = null;
-            await character.save({ session });
-          }
         }
       }
+
+      // BATCH UPDATE: Clear gangId for all members in a single operation instead of N queries
+      await Character.updateMany(
+        { _id: { $in: memberIds } },
+        { $set: { gangId: null } },
+        { session }
+      );
 
       gang.bank = 0;
       gang.isActive = false;
       await gang.save({ session });
 
-      await session.commitTransaction();
+      if (!disableTransactions) {
+        await session.commitTransaction();
+      }
 
       logger.info(
         `Gang ${gang.name} disbanded. Distributed ${distributionAmount} dollars to each of ${memberCount} members`
       );
     } catch (error) {
-      await session.abortTransaction();
+      if (!disableTransactions && session.inTransaction()) {
+        await session.abortTransaction();
+      }
       logger.error('Error disbanding gang:', error);
       throw error;
     } finally {

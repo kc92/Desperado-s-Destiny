@@ -205,10 +205,13 @@ export const getMyContests = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
     const characterId = req.character!._id;
 
+    // Limit to prevent OOM - a character shouldn't be in more than 50 active contests
     const contests = await ShootingContest.find({
       'registeredShooters.characterId': characterId,
       status: { $in: ['registration', 'ready', 'in_progress'] },
-    }).sort({ scheduledStart: 1 });
+    })
+      .sort({ scheduledStart: 1 })
+      .limit(50);
 
     res.status(200).json({
       success: true,

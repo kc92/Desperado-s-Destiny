@@ -12,6 +12,8 @@ import express from 'express';
 import { CurrencyController } from '../controllers/currency.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { requireCsrfToken } from '../middleware/csrf.middleware';
+import { currencyExchangeRateLimiter } from '../middleware/rateLimiter';
 
 const router = express.Router();
 
@@ -81,13 +83,13 @@ router.get('/rates/history', requireAuth, asyncHandler(CurrencyController.getPri
  * Sell resource (gold/silver) for dollars
  * Body: { type: 'gold' | 'silver', amount: number }
  */
-router.post('/exchange/sell', requireAuth, asyncHandler(CurrencyController.sellResource));
+router.post('/exchange/sell', requireAuth, requireCsrfToken, currencyExchangeRateLimiter, asyncHandler(CurrencyController.sellResource));
 
 /**
  * POST /api/currency/exchange/buy
  * Buy resource (gold/silver) with dollars
  * Body: { type: 'gold' | 'silver', amount: number }
  */
-router.post('/exchange/buy', requireAuth, asyncHandler(CurrencyController.buyResource));
+router.post('/exchange/buy', requireAuth, requireCsrfToken, currencyExchangeRateLimiter, asyncHandler(CurrencyController.buyResource));
 
 export default router;

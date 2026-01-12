@@ -656,7 +656,7 @@ describe('Admin Access Security Tests', () => {
 
     describe('World Boss Admin Endpoints', () => {
       it('should reject world boss spawn without auth (401)', async () => {
-        const response = await apiPost(app, '/api/world-boss/test-boss/spawn', {});
+        const response = await apiPost(app, '/api/world-bosses/test-boss/spawn', {});
         expect(response.status).toBe(401);
       });
 
@@ -674,7 +674,7 @@ describe('Admin Access Security Tests', () => {
       });
 
       it('should reject world boss end without auth (401)', async () => {
-        const response = await apiPost(app, '/api/world-boss/test-boss/end', {});
+        const response = await apiPost(app, '/api/world-bosses/test-boss/end', {});
         expect(response.status).toBe(401);
       });
 

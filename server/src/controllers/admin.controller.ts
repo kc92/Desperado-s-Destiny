@@ -475,16 +475,13 @@ export async function getAnalytics(req: AuthenticatedRequest, res: Response): Pr
   // Get average gold per character
   const averageGold = totalCharacters > 0 ? totalGoldInCirculation / totalCharacters : 0;
 
-  // Get gold transaction volume (last 24 hours)
+  // Get gold transaction volume (last 24 hours) - use aggregation to avoid OOM
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const recentTransactions = await GoldTransaction.find({
-    createdAt: { $gte: twentyFourHoursAgo }
-  });
-
-  const transactionVolume24h = recentTransactions.reduce(
-    (sum, tx) => sum + Math.abs(tx.amount),
-    0
-  );
+  const transactionVolumeAgg = await GoldTransaction.aggregate([
+    { $match: { createdAt: { $gte: twentyFourHoursAgo } } },
+    { $group: { _id: null, total: { $sum: { $abs: '$amount' } } } }
+  ]);
+  const transactionVolume24h = transactionVolumeAgg[0]?.total || 0;
 
   // Get new users (last 7 days)
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);

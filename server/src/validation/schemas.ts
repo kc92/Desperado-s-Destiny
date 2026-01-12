@@ -37,14 +37,6 @@ export const AuthSchemas = {
         min: 8,
         max: 128,
         message: 'Password must be between 8 and 128 characters'
-      },
-      username: {
-        required: true,
-        type: 'string',
-        min: 3,
-        max: 30,
-        pattern: /^[a-zA-Z0-9_-]+$/,
-        message: 'Username can only contain letters, numbers, underscores, and hyphens'
       }
     }
   } as ValidationSchema,
@@ -165,7 +157,7 @@ export const GangSchemas = {
 
   deposit: {
     params: {
-      gangId: { required: true, type: 'objectId' }
+      id: { required: true, type: 'objectId' }
     },
     body: {
       amount: {
@@ -179,7 +171,7 @@ export const GangSchemas = {
 
   withdraw: {
     params: {
-      gangId: { required: true, type: 'objectId' }
+      id: { required: true, type: 'objectId' }
     },
     body: {
       amount: {

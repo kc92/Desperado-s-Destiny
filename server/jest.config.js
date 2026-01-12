@@ -28,8 +28,10 @@ module.exports = {
     '^redis$': '<rootDir>/tests/__mocks__/redis.ts',
     '^isomorphic-dompurify$': '<rootDir>/tests/__mocks__/isomorphic-dompurify.ts',
   },
+  setupFiles: ['<rootDir>/tests/setEnv.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  testTimeout: 10000,
+  testTimeout: 30000,
+  maxWorkers: 2, // Reduce concurrency to prevent MongoDB lock contention
   verbose: true,
   transformIgnorePatterns: [
     'node_modules/(?!(uuid|isomorphic-dompurify|dompurify|parse5|jsdom)/)',

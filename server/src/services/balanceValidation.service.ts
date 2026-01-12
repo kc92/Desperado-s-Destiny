@@ -3,6 +3,11 @@
  *
  * Provides tools to validate and monitor economic balance.
  * Detects inflation, exploits, and broken economics.
+ *
+ * PRODUCTION FIX: Added Redis caching and sampling to prevent performance bombs
+ * - Gini coefficient cached for 5 minutes
+ * - Samples max 10k characters for large datasets
+ * - Aggregation pipelines optimized
  */
 
 import { Character } from '../models/Character.model';
@@ -10,6 +15,27 @@ import { GoldTransaction, TransactionSource, TransactionType } from '../models/G
 import { Item, ItemRarity } from '../models/Item.model';
 import { BALANCE_TARGETS, EXPLOIT_THRESHOLDS, getLevelTier } from '../config/economy.config';
 import logger from '../utils/logger';
+import { getRedisClient } from '../config/redis';
+
+/**
+ * Cache configuration for expensive calculations
+ * PRODUCTION FIX: Prevents performance bombs from repeated calculations
+ */
+const CACHE_CONFIG = {
+  GINI_COEFFICIENT: {
+    KEY: 'balance:gini_coefficient',
+    TTL: 300, // 5 minutes in seconds
+  },
+  WEALTH_BY_TIER: {
+    KEY: 'balance:wealth_by_tier',
+    TTL: 300, // 5 minutes
+  },
+  GOLD_FLOW_RATIO: {
+    KEY: 'balance:gold_flow_ratio',
+    TTL: 60, // 1 minute (more volatile)
+  },
+  MAX_SAMPLE_SIZE: 10000, // Maximum characters to sample for large datasets
+} as const;
 
 /**
  * Expected price ranges by rarity for validation
@@ -150,75 +176,202 @@ export class BalanceValidationService {
 
   /**
    * Calculate gold flow ratio (earned / spent)
+   * PRODUCTION FIX: Added Redis caching (1 min TTL)
    */
   private static async calculateGoldFlowRatio(): Promise<number> {
-    const now = new Date();
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const redis = getRedisClient();
 
-    const transactions = await GoldTransaction.find({
-      timestamp: { $gte: oneDayAgo }
-    });
+    try {
+      // Check cache first
+      if (redis?.isOpen) {
+        const cached = await redis.get(CACHE_CONFIG.GOLD_FLOW_RATIO.KEY);
+        if (cached) {
+          logger.debug('[BalanceValidation] Gold flow ratio retrieved from cache');
+          return parseFloat(cached);
+        }
+      }
 
-    const totalEarned = transactions
-      .filter(t => t.type === TransactionType.EARNED)
-      .reduce((sum, t) => sum + t.amount, 0);
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    const totalSpent = Math.abs(
-      transactions
-        .filter(t => t.type === TransactionType.SPENT)
-        .reduce((sum, t) => sum + t.amount, 0)
-    );
+      // Use aggregation for better performance
+      const result = await GoldTransaction.aggregate([
+        { $match: { timestamp: { $gte: oneDayAgo } } },
+        {
+          $group: {
+            _id: '$type',
+            total: { $sum: '$amount' },
+          },
+        },
+      ]);
 
-    return totalSpent > 0 ? totalEarned / totalSpent : 1.0;
+      const earned = result.find(r => r._id === TransactionType.EARNED)?.total || 0;
+      const spent = Math.abs(result.find(r => r._id === TransactionType.SPENT)?.total || 0);
+      const ratio = spent > 0 ? earned / spent : 1.0;
+
+      // Cache the result
+      if (redis?.isOpen) {
+        await redis.setEx(
+          CACHE_CONFIG.GOLD_FLOW_RATIO.KEY,
+          CACHE_CONFIG.GOLD_FLOW_RATIO.TTL,
+          ratio.toString()
+        );
+      }
+
+      return ratio;
+    } catch (error) {
+      logger.error('[BalanceValidation] Error calculating gold flow ratio:', error);
+      return 1.0;
+    }
   }
 
   /**
    * Calculate average wealth by level tier
+   * PRODUCTION FIX: Added Redis caching (5 min TTL) and aggregation pipeline
    */
   private static async calculateAverageWealthByTier(): Promise<Record<string, number>> {
-    const characters = await Character.find({ isActive: true }).select('level gold').lean();
+    const redis = getRedisClient();
 
-    const wealthByTier: Record<string, { total: number; count: number }> = {};
-
-    for (const char of characters) {
-      const tier = getLevelTier(char.level);
-      if (!wealthByTier[tier]) {
-        wealthByTier[tier] = { total: 0, count: 0 };
+    try {
+      // Check cache first
+      if (redis?.isOpen) {
+        const cached = await redis.get(CACHE_CONFIG.WEALTH_BY_TIER.KEY);
+        if (cached) {
+          logger.debug('[BalanceValidation] Wealth by tier retrieved from cache');
+          return JSON.parse(cached);
+        }
       }
-      wealthByTier[tier].total += char.gold;
-      wealthByTier[tier].count += 1;
-    }
 
-    const averages: Record<string, number> = {};
-    for (const [tier, data] of Object.entries(wealthByTier)) {
-      averages[tier] = data.count > 0 ? data.total / data.count : 0;
-    }
+      // Use aggregation pipeline for better performance - prevents OOM with large player bases
+      // Tier boundaries based on totalLevel: NOVICE(<100), JOURNEYMAN(100-249), VETERAN(250-499), EXPERT(500-999), MASTER(1000+)
+      const wealthByTierAgg = await Character.aggregate([
+        { $match: { isActive: true } },
+        {
+          $addFields: {
+            tier: {
+              $switch: {
+                branches: [
+                  { case: { $lt: ['$level', 100] }, then: 'NOVICE' },
+                  { case: { $lt: ['$level', 250] }, then: 'JOURNEYMAN' },
+                  { case: { $lt: ['$level', 500] }, then: 'VETERAN' },
+                  { case: { $lt: ['$level', 1000] }, then: 'EXPERT' }
+                ],
+                default: 'MASTER'
+              }
+            }
+          }
+        },
+        {
+          $group: {
+            _id: '$tier',
+            total: { $sum: '$gold' },
+            count: { $sum: 1 }
+          }
+        }
+      ]);
 
-    return averages;
+      const averages: Record<string, number> = {};
+      for (const item of wealthByTierAgg) {
+        averages[item._id] = item.count > 0 ? item.total / item.count : 0;
+      }
+
+      // Cache the result
+      if (redis?.isOpen) {
+        await redis.setEx(
+          CACHE_CONFIG.WEALTH_BY_TIER.KEY,
+          CACHE_CONFIG.WEALTH_BY_TIER.TTL,
+          JSON.stringify(averages)
+        );
+      }
+
+      return averages;
+    } catch (error) {
+      logger.error('[BalanceValidation] Error calculating wealth by tier:', error);
+      return {};
+    }
   }
 
   /**
    * Calculate Gini coefficient (wealth inequality measure)
    * 0 = perfect equality, 1 = perfect inequality
+   *
+   * PRODUCTION FIX: Added Redis caching and sampling to prevent O(n²) performance bomb
+   * - Checks cache first (5 min TTL)
+   * - Samples max 10k characters for large datasets
+   * - Uses optimized aggregation pipeline
    */
   private static async calculateGiniCoefficient(): Promise<number> {
-    const characters = await Character.find({ isActive: true }).select('gold').sort({ gold: 1 }).lean();
+    const redis = getRedisClient();
 
-    if (characters.length < 2) return 0;
-
-    const n = characters.length;
-    let sumOfDifferences = 0;
-    let sumOfWealth = 0;
-
-    for (let i = 0; i < n; i++) {
-      sumOfWealth += characters[i].gold;
-      for (let j = 0; j < n; j++) {
-        sumOfDifferences += Math.abs(characters[i].gold - characters[j].gold);
+    try {
+      // Check cache first
+      if (redis?.isOpen) {
+        const cached = await redis.get(CACHE_CONFIG.GINI_COEFFICIENT.KEY);
+        if (cached) {
+          logger.debug('[BalanceValidation] Gini coefficient retrieved from cache');
+          return parseFloat(cached);
+        }
       }
-    }
 
-    const meanWealth = sumOfWealth / n;
-    return meanWealth > 0 ? sumOfDifferences / (2 * n * n * meanWealth) : 0;
+      // Get total count to determine if sampling is needed
+      const totalCount = await Character.countDocuments({ isActive: true });
+
+      if (totalCount < 2) {
+        return 0;
+      }
+
+      let characters: { gold: number }[];
+
+      // Use sampling for large datasets to prevent memory issues
+      if (totalCount > CACHE_CONFIG.MAX_SAMPLE_SIZE) {
+        logger.info(`[BalanceValidation] Sampling ${CACHE_CONFIG.MAX_SAMPLE_SIZE} of ${totalCount} characters for Gini calculation`);
+
+        // Use aggregation pipeline with random sampling
+        characters = await Character.aggregate([
+          { $match: { isActive: true } },
+          { $sample: { size: CACHE_CONFIG.MAX_SAMPLE_SIZE } },
+          { $project: { gold: 1, _id: 0 } },
+          { $sort: { gold: 1 } },
+        ]);
+      } else {
+        // Load all characters for small datasets
+        characters = await Character.find({ isActive: true })
+          .select('gold')
+          .sort({ gold: 1 })
+          .lean();
+      }
+
+      // Calculate Gini using optimized formula
+      const n = characters.length;
+      let sumOfWealth = 0;
+      let sumOfWeightedWealth = 0;
+
+      for (let i = 0; i < n; i++) {
+        const wealth = characters[i].gold || 0;
+        sumOfWealth += wealth;
+        // Weighted sum: (2 * rank - n - 1) * wealth
+        sumOfWeightedWealth += (2 * (i + 1) - n - 1) * wealth;
+      }
+
+      const meanWealth = sumOfWealth / n;
+      const gini = meanWealth > 0 ? sumOfWeightedWealth / (n * sumOfWealth) : 0;
+
+      // Cache the result
+      if (redis?.isOpen) {
+        await redis.setEx(
+          CACHE_CONFIG.GINI_COEFFICIENT.KEY,
+          CACHE_CONFIG.GINI_COEFFICIENT.TTL,
+          gini.toString()
+        );
+        logger.debug('[BalanceValidation] Gini coefficient cached');
+      }
+
+      return gini;
+    } catch (error) {
+      logger.error('[BalanceValidation] Error calculating Gini coefficient:', error);
+      // Return conservative estimate on error
+      return 0.5;
+    }
   }
 
   /**
@@ -247,9 +400,14 @@ export class BalanceValidationService {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    // Get current average gold
-    const currentChars = await Character.find({ isActive: true }).select('gold').lean();
-    const currentAverage = currentChars.reduce((sum, c) => sum + c.gold, 0) / currentChars.length;
+    // Get current average gold using aggregation - prevents OOM with large player bases
+    const currentAvgAgg = await Character.aggregate([
+      { $match: { isActive: true } },
+      { $group: { _id: null, avgGold: { $avg: '$gold' }, count: { $sum: 1 } } }
+    ]);
+    const currentAverage = currentAvgAgg[0]?.avgGold || 0;
+    const charCount = currentAvgAgg[0]?.count || 0;
+    if (charCount === 0) return 0;
 
     // Estimate past average from transactions
     const pastTransactions = await GoldTransaction.find({
@@ -276,7 +434,7 @@ export class BalanceValidationService {
     const largeTransactions = await GoldTransaction.find({
       amount: { $gt: EXPLOIT_THRESHOLDS.maxGoldPerTransaction },
       timestamp: { $gte: oneDayAgo }
-    }).populate('characterId', 'name');
+    }).populate('characterId', 'name').lean();
 
     if (largeTransactions.length > 0) {
       issues.push({
@@ -297,7 +455,7 @@ export class BalanceValidationService {
 
     if (recentTransactions.length > 0) {
       const characterIds = recentTransactions.map(t => t._id);
-      const chars = await Character.find({ _id: { $in: characterIds } }).select('name');
+      const chars = await Character.find({ _id: { $in: characterIds } }).select('name').lean();
 
       issues.push({
         severity: BalanceIssueSeverity.WARNING,
@@ -322,7 +480,7 @@ export class BalanceValidationService {
 
     if (excessiveTraders.length > 0) {
       const characterIds = excessiveTraders.map(t => t._id);
-      const chars = await Character.find({ _id: { $in: characterIds } }).select('name');
+      const chars = await Character.find({ _id: { $in: characterIds } }).select('name').lean();
 
       issues.push({
         severity: BalanceIssueSeverity.WARNING,
@@ -458,7 +616,7 @@ export class BalanceValidationService {
     const transactions = await GoldTransaction.find({
       characterId,
       timestamp: { $gte: windowStart }
-    }).sort({ timestamp: 1 });
+    }).sort({ timestamp: 1 }).lean();
 
     // Check for impossible balance changes
     for (let i = 1; i < transactions.length; i++) {
@@ -488,7 +646,7 @@ export class BalanceValidationService {
     goldPerHour: number;
     expectedMax: number;
   }> {
-    const character = await Character.findById(characterId).select('level');
+    const character = await Character.findById(characterId).select('level').lean();
     if (!character) {
       return { suspicious: false, goldPerHour: 0, expectedMax: 0 };
     }
@@ -500,7 +658,7 @@ export class BalanceValidationService {
       characterId,
       type: TransactionType.EARNED,
       timestamp: { $gte: oneHourAgo }
-    });
+    }).lean();
 
     const goldPerHour = earnedTransactions.reduce((sum, t) => sum + t.amount, 0);
     const expectedMax = EXPLOIT_THRESHOLDS.maxGoldPerHour;

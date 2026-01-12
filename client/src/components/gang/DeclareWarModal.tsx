@@ -105,9 +105,9 @@ export const DeclareWarModal: React.FC<DeclareWarModalProps> = ({
             className="w-full h-2 bg-wood-dark rounded-lg appearance-none cursor-pointer"
           />
           <div className="flex justify-between text-sm text-desert-stone mt-1">
-            <span>1,000g (min)</span>
-            <span className="text-gold-light font-bold">{fundingAmount.toLocaleString()}g</span>
-            <span>{gangBank.toLocaleString()}g (max)</span>
+            <span>$1,000 (min)</span>
+            <span className="text-gold-light font-bold">${fundingAmount.toLocaleString()}</span>
+            <span>${gangBank.toLocaleString()} (max)</span>
           </div>
         </div>
 

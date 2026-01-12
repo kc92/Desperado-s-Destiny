@@ -129,6 +129,60 @@ export const useGlobalTutorialActionHandlers = () => {
         };
     }, []);
 
+    // Subscribe to tutorial state changes to check if player is already at required location
+    // This handles the case where the tutorial step advances to require a location
+    // the player is already at (no location change event fires)
+    useEffect(() => {
+        let prevStep: string | undefined;
+        let prevSection: string | undefined;
+
+        // Immediate check on effect mount - handles the case where tutorial is already active
+        // and player is already at the required location when this component mounts
+        const checkCurrentLocationForTutorial = () => {
+            const tutorialState = useTutorialStore.getState();
+            if (!tutorialState.currentSection || (!tutorialState.isActive && !tutorialState.isPaused)) return;
+
+            const currentStep = tutorialState.getCurrentStep();
+            const requiredAction = currentStep?.requiresAction;
+            if (!requiredAction) return;
+
+            // Skip if already completed
+            if (tutorialState.completedActions.includes(requiredAction)) return;
+            if (completedActionsRef.current.has(requiredAction)) return;
+
+            // Get current location from character store
+            const locationId = useCharacterStore.getState().currentCharacter?.locationId;
+            if (!locationId) return;
+
+            // Check if current location satisfies the action requirement
+            if (checkLocationActions(locationId, requiredAction)) {
+                completedActionsRef.current.add(requiredAction);
+                tutorialState.completeAction(requiredAction);
+            }
+        };
+
+        // Run immediate check
+        checkCurrentLocationForTutorial();
+
+        const unsubscribeTutorial = useTutorialStore.subscribe((state) => {
+            const currentStep = state.getCurrentStep();
+            const stepId = currentStep?.id;
+            const sectionId = state.currentSection;
+
+            // Only process if step or section changed
+            if (stepId === prevStep && sectionId === prevSection) return;
+            prevStep = stepId;
+            prevSection = sectionId ?? undefined;
+
+            // Re-run the location check when tutorial step changes
+            checkCurrentLocationForTutorial();
+        });
+
+        return () => {
+            unsubscribeTutorial();
+        };
+    }, []);
+
     // Subscribe to URL changes for navigation actions
     useEffect(() => {
         const checkNavigation = () => {

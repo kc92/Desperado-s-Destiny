@@ -8,6 +8,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireCsrfToken } from '../middleware/csrf.middleware';
+import { requireCharacterOwnership } from '../middleware/characterOwnership.middleware';
 import {
   getAvailableLocations,
   stakeClaim,
@@ -26,8 +27,9 @@ router.use(authenticate);
 /**
  * GET /api/mining/locations/:characterId
  * Get available claim locations and owned claims
+ * Protected: User must own this character
  */
-router.get('/locations/:characterId', getAvailableLocations);
+router.get('/locations/:characterId', requireCharacterOwnership, getAvailableLocations);
 
 /**
  * POST /api/mining/stake
@@ -67,7 +69,8 @@ router.post('/contest', requireCsrfToken, contestClaim);
 /**
  * GET /api/mining/stats/:characterId
  * Get mining statistics
+ * Protected: User must own this character
  */
-router.get('/stats/:characterId', getStatistics);
+router.get('/stats/:characterId', requireCharacterOwnership, getStatistics);
 
 export default router;

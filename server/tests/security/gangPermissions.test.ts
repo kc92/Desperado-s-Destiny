@@ -22,17 +22,33 @@ describe('Gang Permission Security Tests', () => {
     await clearDatabase();
   });
 
+  // Generate unique email for test isolation
+  function uniqueEmail(prefix: string): string {
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}@example.com`;
+  }
+
+  // Generate unique gang name for test isolation (max 20 chars)
+  function uniqueGangName(prefix: string = 'TG'): string {
+    const suffix = Math.random().toString(36).substr(2, 8);
+    return `${prefix}_${suffix}`.substring(0, 20);
+  }
+
+  // Generate unique gang tag for test isolation (max 4 chars)
+  function uniqueGangTag(): string {
+    return Math.random().toString(36).substr(2, 4).toUpperCase();
+  }
+
   /**
    * Helper to create a gang with multiple members
    */
   async function createGangWithMembers() {
-    // Create leader
-    const leader = await setupCompleteGameState(app, 'leader@example.com');
+    // Create leader with unique email
+    const leader = await setupCompleteGameState(app, uniqueEmail('leader'));
 
-    // Create gang
+    // Create gang with unique name/tag
     const gang = new Gang({
-      name: 'Test Gang',
-      tag: 'TEST',
+      name: uniqueGangName(),
+      tag: uniqueGangTag(),
       leaderId: leader.character._id,
       members: [
         {
@@ -53,8 +69,8 @@ describe('Gang Permission Security Tests', () => {
     leader.character.gangId = gang._id;
     await leader.character.save();
 
-    // Create officer
-    const officer = await setupCompleteGameState(app, 'officer@example.com');
+    // Create officer with unique email
+    const officer = await setupCompleteGameState(app, uniqueEmail('officer'));
     gang.members.push({
       characterId: officer.character._id,
       role: GangRole.OFFICER,
@@ -64,8 +80,8 @@ describe('Gang Permission Security Tests', () => {
     officer.character.gangId = gang._id;
     await officer.character.save();
 
-    // Create regular member
-    const member = await setupCompleteGameState(app, 'member@example.com');
+    // Create regular member with unique email
+    const member = await setupCompleteGameState(app, uniqueEmail('member'));
     gang.members.push({
       characterId: member.character._id,
       role: GangRole.MEMBER,
@@ -83,7 +99,7 @@ describe('Gang Permission Security Tests', () => {
   describe('Member Kick Permissions', () => {
     it('should prevent members from kicking other members', async () => {
       const { gang, member } = await createGangWithMembers();
-      const targetMember = await setupCompleteGameState(app, 'target@example.com');
+      const targetMember = await setupCompleteGameState(app, uniqueEmail('target'));
 
       gang.members.push({
         characterId: targetMember.character._id,
@@ -107,7 +123,7 @@ describe('Gang Permission Security Tests', () => {
 
     it('should allow officers to kick regular members', async () => {
       const { gang, officer } = await createGangWithMembers();
-      const targetMember = await setupCompleteGameState(app, 'target@example.com');
+      const targetMember = await setupCompleteGameState(app, uniqueEmail('target'));
 
       gang.members.push({
         characterId: targetMember.character._id,
@@ -133,7 +149,7 @@ describe('Gang Permission Security Tests', () => {
 
     it('should prevent officers from kicking other officers', async () => {
       const { gang, officer } = await createGangWithMembers();
-      const otherOfficer = await setupCompleteGameState(app, 'officer2@example.com');
+      const otherOfficer = await setupCompleteGameState(app, uniqueEmail('officer2'));
 
       gang.members.push({
         characterId: otherOfficer.character._id,
@@ -175,7 +191,7 @@ describe('Gang Permission Security Tests', () => {
   describe('Promotion Permissions', () => {
     it('should prevent members from promoting others', async () => {
       const { gang, member } = await createGangWithMembers();
-      const targetMember = await setupCompleteGameState(app, 'target@example.com');
+      const targetMember = await setupCompleteGameState(app, uniqueEmail('target'));
 
       gang.members.push({
         characterId: targetMember.character._id,
@@ -325,7 +341,7 @@ describe('Gang Permission Security Tests', () => {
 
     it('should prevent non-members from accessing gang bank', async () => {
       const { gang } = await createGangWithMembers();
-      const outsider = await setupCompleteGameState(app, 'outsider@example.com');
+      const outsider = await setupCompleteGameState(app, uniqueEmail('outsider'));
 
       const response = await apiGet(
         app,
@@ -341,7 +357,7 @@ describe('Gang Permission Security Tests', () => {
   describe('Gang Invitation Permissions', () => {
     it('should prevent members from inviting others', async () => {
       const { gang, member } = await createGangWithMembers();
-      const invitee = await setupCompleteGameState(app, 'invitee@example.com');
+      const invitee = await setupCompleteGameState(app, uniqueEmail('invitee'));
 
       const response = await apiPost(
         app,
@@ -356,7 +372,7 @@ describe('Gang Permission Security Tests', () => {
 
     it('should allow officers to invite new members', async () => {
       const { gang, officer } = await createGangWithMembers();
-      const invitee = await setupCompleteGameState(app, 'invitee@example.com');
+      const invitee = await setupCompleteGameState(app, uniqueEmail('invitee'));
 
       const response = await apiPost(
         app,
@@ -374,7 +390,7 @@ describe('Gang Permission Security Tests', () => {
 
     it('should allow leaders to invite new members', async () => {
       const { gang, leader } = await createGangWithMembers();
-      const invitee = await setupCompleteGameState(app, 'invitee@example.com');
+      const invitee = await setupCompleteGameState(app, uniqueEmail('invitee'));
 
       const response = await apiPost(
         app,
@@ -603,7 +619,7 @@ describe('Gang Permission Security Tests', () => {
 
     it('should prevent non-members from viewing private gang details', async () => {
       const { gang } = await createGangWithMembers();
-      const outsider = await setupCompleteGameState(app, 'outsider@example.com');
+      const outsider = await setupCompleteGameState(app, uniqueEmail('outsider'));
 
       const response = await apiGet(
         app,
@@ -697,7 +713,7 @@ describe('Gang Permission Security Tests', () => {
 
     it('should prevent transferring leadership to non-member', async () => {
       const { gang, leader } = await createGangWithMembers();
-      const outsider = await setupCompleteGameState(app, 'outsider@example.com');
+      const outsider = await setupCompleteGameState(app, uniqueEmail('outsider'));
 
       const response = await apiPost(
         app,
@@ -731,7 +747,7 @@ describe('Gang Permission Security Tests', () => {
 
     it('should prevent non-members from participating in gang wars', async () => {
       const { gang } = await createGangWithMembers();
-      const outsider = await setupCompleteGameState(app, 'outsider@example.com');
+      const outsider = await setupCompleteGameState(app, uniqueEmail('outsider'));
 
       const response = await apiPost(
         app,
@@ -764,7 +780,7 @@ describe('Gang Permission Security Tests', () => {
 
     it('should prevent non-members from viewing transaction history', async () => {
       const { gang } = await createGangWithMembers();
-      const outsider = await setupCompleteGameState(app, 'outsider@example.com');
+      const outsider = await setupCompleteGameState(app, uniqueEmail('outsider'));
 
       const response = await apiGet(
         app,

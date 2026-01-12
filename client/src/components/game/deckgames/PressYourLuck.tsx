@@ -311,7 +311,7 @@ export const PressYourLuck: React.FC<PressYourLuckProps> = ({
                   `}
                   title={`Draw a safe card (no J/Q/K) for ${safeDrawCost} gold`}
                 >
-                  🛡️ Safe Draw (-{safeDrawCost}g)
+                  🛡️ Safe Draw (-${safeDrawCost})
                 </button>
               )}
               {canDoubleDown && (

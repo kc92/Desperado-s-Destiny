@@ -6,35 +6,15 @@
  */
 
 import request from 'supertest';
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import app from '../../src/app';
+import app from '../testApp';
 import { User } from '../../src/models/User.model';
 import { Character } from '../../src/models/Character.model';
 import { GoldService } from '../../src/services/gold.service';
 import { TransactionSource } from '../../src/models/GoldTransaction.model';
 import { Faction } from '@desperados/shared';
 
-let mongoServer: MongoMemoryServer;
 let authToken: string;
 let testCharacter: any;
-
-beforeAll(async () => {
-  // Disconnect if already connected
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
-});
-
-afterAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  await mongoServer.stop();
-});
 
 beforeEach(async () => {
   // Clean database
@@ -77,7 +57,7 @@ describe('GET /api/gold/balance', () => {
       .expect(200);
 
     expect(res.body.success).toBe(true);
-    expect(res.body.data.gold).toBe(100); // Starting gold
+    expect(res.body.data.dollars).toBe(100); // Starting dollars
     expect(res.body.data.characterName).toBe('GoldRouteTester');
   });
 
@@ -175,7 +155,7 @@ describe('GET /api/gold/statistics', () => {
     expect(res.body.data.currentBalance).toBe(230); // 100 + 50 + 100 - 20
     expect(res.body.data.totalEarned).toBe(150);
     expect(res.body.data.totalSpent).toBe(20);
-    expect(res.body.data.netGold).toBe(130);
+    expect(res.body.data.netAmount).toBe(130);
     expect(res.body.data.transactionCount).toBe(3);
   });
 });

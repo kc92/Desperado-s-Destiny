@@ -34,7 +34,9 @@ export const frontierLocations: Partial<ILocation>[] = [
     ],
     shops: [],
     npcs: [],
-    connections: [],
+    connections: [
+      { targetLocationId: '6501a0000000000000000020', travelTime: 0, energyCost: 5, description: 'Back to Western Outpost' }
+    ],
     dangerLevel: 3,
     factionInfluence: { settlerAlliance: 30, nahiCoalition: 10, frontera: 60 },
     isUnlocked: true,
@@ -132,7 +134,8 @@ export const frontierLocations: Partial<ILocation>[] = [
     shops: [],
     npcs: [],
     connections: [
-      { targetLocationId: '6501a0000000000000000001', travelTime: 0, energyCost: 3, description: 'Back to Red Gulch' }
+      { targetLocationId: '6501a0000000000000000001', travelTime: 0, energyCost: 3, description: 'Back to Red Gulch' },
+      { targetLocationId: '6501a0000000000000000010', travelTime: 0, energyCost: 5, description: 'To the Abandoned Mine' }
     ],
     dangerLevel: 2,
     factionInfluence: { settlerAlliance: 100, nahiCoalition: 0, frontera: 0 },

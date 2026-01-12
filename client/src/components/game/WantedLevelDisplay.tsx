@@ -9,7 +9,7 @@ import React from 'react';
 interface WantedLevelDisplayProps {
   /** Current wanted level (0-5) */
   wantedLevel: number;
-  /** Current bounty amount in gold */
+  /** Current bounty amount in dollars */
   bountyAmount: number;
   /** Callback when clicked to expand poster */
   onClick?: () => void;
@@ -94,7 +94,7 @@ export const WantedLevelDisplay: React.FC<WantedLevelDisplayProps> = ({
       <div className="text-center p-2 bg-gold-dark/20 rounded border border-gold-dark">
         <div className="text-xs text-wood-grain uppercase tracking-wide">Bounty</div>
         <div className="text-lg font-bold text-gold-dark">
-          {bountyAmount}g
+          ${bountyAmount}
         </div>
       </div>
 

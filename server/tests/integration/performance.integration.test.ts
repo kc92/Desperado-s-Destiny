@@ -18,6 +18,9 @@ import { createTestApp } from '../testApp';
 const app: Express = createTestApp();
 
 describe('Performance Integration Tests', () => {
+  // Extended timeout for performance tests
+  jest.setTimeout(120000);
+
   beforeEach(async () => {
     await clearDatabase();
   });

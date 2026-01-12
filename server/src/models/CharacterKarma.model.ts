@@ -250,7 +250,7 @@ const CharacterKarmaSchema = new Schema<ICharacterKarma>({
 });
 
 // Indexes for efficient queries
-CharacterKarmaSchema.index({ characterId: 1 }, { unique: true });
+// Note: characterId already indexed via unique: true constraint on the field
 CharacterKarmaSchema.index({ gamblerAffinity: -1 });
 CharacterKarmaSchema.index({ outlawKingAffinity: -1 });
 CharacterKarmaSchema.index({ 'karma.mercy': -1 });

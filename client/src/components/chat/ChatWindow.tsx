@@ -286,7 +286,7 @@ export const ChatWindow = React.memo(function ChatWindow({
 
   return (
     <>
-      <div className={`fixed bottom-4 right-4 w-full md:w-[600px] h-[600px] bg-desert-sand rounded-lg shadow-wood overflow-hidden flex flex-col z-40 md:max-w-[calc(100vw-2rem)] ${className || ''}`}>
+      <div className={`fixed bottom-4 right-4 w-full md:w-[500px] h-[400px] bg-desert-sand rounded-lg shadow-wood overflow-hidden flex flex-col z-40 md:max-w-[calc(100vw-2rem)] ${className || ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-wood-dark border-b border-wood-grain">
           <div className="flex items-center gap-3">

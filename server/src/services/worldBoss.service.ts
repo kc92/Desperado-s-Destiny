@@ -272,10 +272,14 @@ export class WorldBossService {
       await this.distributeRewards(session);
     }
 
-    // Clean up after 5 minutes
-    setTimeout(async () => {
-      await worldBossStateManager.delete(bossId);
-    }, 5 * 60 * 1000);
+    // Clean up after 5 minutes (skip in tests to prevent Jest hanging)
+    if (process.env.NODE_ENV !== 'test') {
+      const timeoutId = setTimeout(async () => {
+        await worldBossStateManager.delete(bossId);
+        pendingCleanups.delete(bossId);
+      }, 5 * 60 * 1000);
+      pendingCleanups.set(bossId, timeoutId);
+    }
   }
 
   /**
@@ -433,6 +437,11 @@ export class WorldBossService {
  */
 let worldBossEnrageInterval: NodeJS.Timeout | null = null;
 
+/**
+ * Track pending cleanup timeouts for proper cleanup during tests
+ */
+const pendingCleanups = new Map<WorldBossType, NodeJS.Timeout>();
+
 function startWorldBossEnrageCheck(): void {
   if (!worldBossEnrageInterval) {
     worldBossEnrageInterval = setInterval(() => {
@@ -448,9 +457,16 @@ function stopWorldBossEnrageCheck(): void {
     clearInterval(worldBossEnrageInterval);
     worldBossEnrageInterval = null;
   }
+  // Clear all pending cleanup timeouts
+  for (const timeoutId of pendingCleanups.values()) {
+    clearTimeout(timeoutId);
+  }
+  pendingCleanups.clear();
 }
 
-// Auto-start on module load
-startWorldBossEnrageCheck();
+// Auto-start on module load (skip in tests)
+if (process.env.NODE_ENV !== 'test') {
+  startWorldBossEnrageCheck();
+}
 
 export { startWorldBossEnrageCheck, stopWorldBossEnrageCheck };

@@ -44,7 +44,7 @@ describe('Gold Transaction Atomicity', () => {
       faction: 'SETTLER_ALLIANCE' as any,
       level: 5,
       experience: 500,
-      gold: 1000,
+      dollars: 1000,
       currentLocation: 'el-paso',
       energy: 100,
       maxEnergy: 100,
@@ -70,7 +70,7 @@ describe('Gold Transaction Atomicity', () => {
       faction: 'NAHI_COALITION' as any,
       level: 5,
       experience: 500,
-      gold: 500,
+      dollars: 500,
       currentLocation: 'el-paso',
       energy: 100,
       maxEnergy: 100,
@@ -93,7 +93,7 @@ describe('Gold Transaction Atomicity', () => {
 
   describe('Transfer Rollback', () => {
     it('should rollback transfer when recipient not found', async () => {
-      const initialBalance = character1.gold;
+      const initialBalance = character1.dollars;
       const fakeId = new mongoose.Types.ObjectId();
 
       await expect(
@@ -108,7 +108,7 @@ describe('Gold Transaction Atomicity', () => {
 
       // Verify sender's balance unchanged
       const updatedChar1 = await Character.findById(character1._id);
-      expect(updatedChar1?.gold).toBe(initialBalance);
+      expect(updatedChar1?.dollars).toBe(initialBalance);
 
       // Verify no transactions created
       const transactions = await GoldTransaction.find({
@@ -118,8 +118,8 @@ describe('Gold Transaction Atomicity', () => {
     });
 
     it('should rollback transfer when sender has insufficient funds', async () => {
-      const initialBalance1 = character1.gold;
-      const initialBalance2 = character2.gold;
+      const initialBalance1 = character1.dollars;
+      const initialBalance2 = character2.dollars;
 
       await expect(
         GoldService.transferGold(
@@ -134,8 +134,8 @@ describe('Gold Transaction Atomicity', () => {
       const updatedChar1 = await Character.findById(character1._id);
       const updatedChar2 = await Character.findById(character2._id);
 
-      expect(updatedChar1?.gold).toBe(initialBalance1);
-      expect(updatedChar2?.gold).toBe(initialBalance2);
+      expect(updatedChar1?.dollars).toBe(initialBalance1);
+      expect(updatedChar2?.dollars).toBe(initialBalance2);
 
       // Verify no transactions created
       const transactions = await GoldTransaction.find({});
@@ -159,8 +159,8 @@ describe('Gold Transaction Atomicity', () => {
       const updatedChar1 = await Character.findById(character1._id);
       const updatedChar2 = await Character.findById(character2._id);
 
-      expect(updatedChar1?.gold).toBe(800);
-      expect(updatedChar2?.gold).toBe(700);
+      expect(updatedChar1?.dollars).toBe(800);
+      expect(updatedChar2?.dollars).toBe(700);
 
       // Verify transactions created
       const transactions = await GoldTransaction.find({});
@@ -179,7 +179,7 @@ describe('Gold Transaction Atomicity', () => {
     });
 
     it('should prevent self-transfer', async () => {
-      const initialBalance = character1.gold;
+      const initialBalance = character1.dollars;
 
       await expect(
         GoldService.transferGold(
@@ -188,16 +188,16 @@ describe('Gold Transaction Atomicity', () => {
           100,
           TransactionSource.PLAYER_TRADE
         )
-      ).rejects.toThrow(/cannot transfer gold to yourself/i);
+      ).rejects.toThrow(/cannot transfer dollars to yourself/i);
 
       // Verify balance unchanged
       const updatedChar = await Character.findById(character1._id);
-      expect(updatedChar?.gold).toBe(initialBalance);
+      expect(updatedChar?.dollars).toBe(initialBalance);
     });
 
     it('should reject negative transfer amounts', async () => {
-      const initialBalance1 = character1.gold;
-      const initialBalance2 = character2.gold;
+      const initialBalance1 = character1.dollars;
+      const initialBalance2 = character2.dollars;
 
       await expect(
         GoldService.transferGold(
@@ -212,8 +212,8 @@ describe('Gold Transaction Atomicity', () => {
       const updatedChar1 = await Character.findById(character1._id);
       const updatedChar2 = await Character.findById(character2._id);
 
-      expect(updatedChar1?.gold).toBe(initialBalance1);
-      expect(updatedChar2?.gold).toBe(initialBalance2);
+      expect(updatedChar1?.dollars).toBe(initialBalance1);
+      expect(updatedChar2?.dollars).toBe(initialBalance2);
     });
 
     it('should reject zero transfer amounts', async () => {
@@ -245,7 +245,7 @@ describe('Gold Transaction Atomicity', () => {
         faction: 'FRONTERA' as any,
         level: 5,
         experience: 500,
-        gold: 300,
+        dollars: 300,
         currentLocation: 'el-paso',
         energy: 100,
         maxEnergy: 100,
@@ -267,9 +267,9 @@ describe('Gold Transaction Atomicity', () => {
     });
 
     it('should rollback entire batch if one recipient not found', async () => {
-      const initialBalance1 = character1.gold;
-      const initialBalance2 = character2.gold;
-      const initialBalance3 = character3.gold;
+      const initialBalance1 = character1.dollars;
+      const initialBalance2 = character2.dollars;
+      const initialBalance3 = character3.dollars;
       const fakeId = new mongoose.Types.ObjectId();
 
       await expect(
@@ -289,9 +289,9 @@ describe('Gold Transaction Atomicity', () => {
       const updatedChar2 = await Character.findById(character2._id);
       const updatedChar3 = await Character.findById(character3._id);
 
-      expect(updatedChar1?.gold).toBe(initialBalance1);
-      expect(updatedChar2?.gold).toBe(initialBalance2);
-      expect(updatedChar3?.gold).toBe(initialBalance3);
+      expect(updatedChar1?.dollars).toBe(initialBalance1);
+      expect(updatedChar2?.dollars).toBe(initialBalance2);
+      expect(updatedChar3?.dollars).toBe(initialBalance3);
 
       // Verify no transactions created
       const transactions = await GoldTransaction.find({});
@@ -299,9 +299,9 @@ describe('Gold Transaction Atomicity', () => {
     });
 
     it('should rollback if sender has insufficient funds for batch', async () => {
-      const initialBalance1 = character1.gold;
-      const initialBalance2 = character2.gold;
-      const initialBalance3 = character3.gold;
+      const initialBalance1 = character1.dollars;
+      const initialBalance2 = character2.dollars;
+      const initialBalance3 = character3.dollars;
 
       await expect(
         GoldService.batchTransferGold(
@@ -319,9 +319,9 @@ describe('Gold Transaction Atomicity', () => {
       const updatedChar2 = await Character.findById(character2._id);
       const updatedChar3 = await Character.findById(character3._id);
 
-      expect(updatedChar1?.gold).toBe(initialBalance1);
-      expect(updatedChar2?.gold).toBe(initialBalance2);
-      expect(updatedChar3?.gold).toBe(initialBalance3);
+      expect(updatedChar1?.dollars).toBe(initialBalance1);
+      expect(updatedChar2?.dollars).toBe(initialBalance2);
+      expect(updatedChar3?.dollars).toBe(initialBalance3);
     });
 
     it('should successfully complete full batch transfer', async () => {
@@ -339,14 +339,14 @@ describe('Gold Transaction Atomicity', () => {
 
       // Verify sender's balance
       const updatedChar1 = await Character.findById(character1._id);
-      expect(updatedChar1?.gold).toBe(500); // 1000 - 200 - 300
+      expect(updatedChar1?.dollars).toBe(500); // 1000 - 200 - 300
 
       // Verify recipients' balances
       const updatedChar2 = await Character.findById(character2._id);
       const updatedChar3 = await Character.findById(character3._id);
 
-      expect(updatedChar2?.gold).toBe(700); // 500 + 200
-      expect(updatedChar3?.gold).toBe(600); // 300 + 300
+      expect(updatedChar2?.dollars).toBe(700); // 500 + 200
+      expect(updatedChar3?.dollars).toBe(600); // 300 + 300
 
       // Verify transactions created (1 for sender + 2 for recipients)
       const transactions = await GoldTransaction.find({});
@@ -386,7 +386,7 @@ describe('Gold Transaction Atomicity', () => {
 
   describe('Deduct Gold Rollback', () => {
     it('should not create transaction record on insufficient funds', async () => {
-      const initialBalance = character1.gold;
+      const initialBalance = character1.dollars;
 
       await expect(
         GoldService.deductGold(
@@ -398,7 +398,7 @@ describe('Gold Transaction Atomicity', () => {
 
       // Verify balance unchanged
       const updatedChar = await Character.findById(character1._id);
-      expect(updatedChar?.gold).toBe(initialBalance);
+      expect(updatedChar?.dollars).toBe(initialBalance);
 
       // Verify no transaction created
       const transactions = await GoldTransaction.find({
@@ -427,13 +427,13 @@ describe('Gold Transaction Atomicity', () => {
       expect(result.newBalance).toBe(0);
 
       const updatedChar = await Character.findById(character1._id);
-      expect(updatedChar?.gold).toBe(0);
+      expect(updatedChar?.dollars).toBe(0);
     });
   });
 
   describe('Add Gold Rollback', () => {
     it('should reject negative add amounts', async () => {
-      const initialBalance = character1.gold;
+      const initialBalance = character1.dollars;
 
       await expect(
         GoldService.addGold(
@@ -445,7 +445,7 @@ describe('Gold Transaction Atomicity', () => {
 
       // Verify balance unchanged
       const updatedChar = await Character.findById(character1._id);
-      expect(updatedChar?.gold).toBe(initialBalance);
+      expect(updatedChar?.dollars).toBe(initialBalance);
     });
 
     it('should successfully add gold', async () => {
@@ -460,7 +460,7 @@ describe('Gold Transaction Atomicity', () => {
 
       // Verify in database
       const updatedChar = await Character.findById(character1._id);
-      expect(updatedChar?.gold).toBe(1500);
+      expect(updatedChar?.dollars).toBe(1500);
 
       // Verify transaction created
       const transaction = await GoldTransaction.findOne({
@@ -503,7 +503,7 @@ describe('Gold Transaction Atomicity', () => {
         0
       );
 
-      expect(updatedChar?.gold).toBe(1000 - totalDeducted);
+      expect(updatedChar?.dollars).toBe(1000 - totalDeducted);
     });
 
     it('should maintain consistency with concurrent transfers', async () => {
@@ -520,7 +520,7 @@ describe('Gold Transaction Atomicity', () => {
         name: 'Charlie',
         faction: 'SETTLER_ALLIANCE' as any,
         level: 1,
-        gold: 0,
+        dollars: 0,
         currentLocation: 'el-paso',
         energy: 100,
         maxEnergy: 100,
@@ -569,7 +569,7 @@ describe('Gold Transaction Atomicity', () => {
         .filter(t => t.amount < 0)
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-      expect(updatedChar1?.gold).toBe(1000 - totalSent);
+      expect(updatedChar1?.dollars).toBe(1000 - totalSent);
     });
   });
 });

@@ -45,7 +45,7 @@ describe('MailService', () => {
         hairColor: 0
       },
       currentLocation: 'frontera-town',
-      gold: 1000
+      dollars: 1000
     });
 
     recipient = await Character.create({
@@ -60,7 +60,7 @@ describe('MailService', () => {
         hairColor: 1
       },
       currentLocation: 'frontera-town',
-      gold: 500
+      dollars: 500
     });
   });
 
@@ -105,7 +105,7 @@ describe('MailService', () => {
       expect(mail.goldClaimed).toBe(false);
 
       const updatedSender = await Character.findById(sender._id);
-      expect(updatedSender?.gold).toBe(900);
+      expect(updatedSender?.dollars).toBe(900);
 
       const goldTx = await GoldTransaction.findOne({
         characterId: sender._id,
@@ -115,15 +115,15 @@ describe('MailService', () => {
       expect(goldTx?.amount).toBe(-100);
     });
 
-    it('should fail if sender has insufficient gold', async () => {
+    it('should fail if sender has insufficient dollars', async () => {
       await expect(
         MailService.sendMail(sender._id, recipient._id, 'Subject', 'Body', 2000)
-      ).rejects.toThrow('Insufficient gold');
+      ).rejects.toThrow('Insufficient dollars');
 
       const mailCount = await Mail.countDocuments();
       expect(mailCount).toBe(0);
 
-      const senderGold = (await Character.findById(sender._id))?.gold;
+      const senderGold = (await Character.findById(sender._id))?.dollars;
       expect(senderGold).toBe(1000);
     });
 
@@ -241,7 +241,7 @@ describe('MailService', () => {
       expect(updatedMail?.goldClaimed).toBe(true);
 
       const updatedRecipient = await Character.findById(recipient._id);
-      expect(updatedRecipient?.gold).toBe(700);
+      expect(updatedRecipient?.dollars).toBe(700);
 
       const goldTx = await GoldTransaction.findOne({
         characterId: recipient._id,
@@ -270,7 +270,7 @@ describe('MailService', () => {
       ).rejects.toThrow('already claimed');
 
       const updatedRecipient = await Character.findById(recipient._id);
-      expect(updatedRecipient?.gold).toBe(600);
+      expect(updatedRecipient?.dollars).toBe(600);
     });
 
     it('should fail if non-recipient tries to claim', async () => {

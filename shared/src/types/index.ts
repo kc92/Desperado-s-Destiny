@@ -266,3 +266,6 @@ export * from './teamCardGame.types';
 
 // Permadeath System types (High-Stakes Death System)
 export * from './permadeath.types';
+
+// Expedition System types (Offline Progression)
+export * from './expedition.types';

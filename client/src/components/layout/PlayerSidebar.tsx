@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useSkillStore } from '@/store/useSkillStore';
 import { useEnergyStore } from '@/store/useEnergyStore';
+import { useLocationStore } from '@/store/useLocationStore';
 import { useEnergy } from '@/hooks/useEnergy';
 import { useLiveEnergy } from '@/hooks/useLiveEnergy';
 import { useDeath } from '@/hooks/useDeath';
@@ -44,6 +45,8 @@ export const PlayerSidebar: React.FC = () => {
   const [countdownSeconds, setCountdownSeconds] = useState(0);
   const [locationName, setLocationName] = useState<string>('Loading...');
   const { currentCharacter } = useCharacterStore();
+  // Subscribe to location store for most up-to-date location name
+  const storeLocationName = useLocationStore((state) => state.location?.name);
   const { skills, skillData, fetchSkills } = useSkillStore();
   const energyState = useEnergyStore((state) => state.energy);
   const { timeToFull, fetchStatus: fetchEnergyStatus } = useEnergy();
@@ -58,7 +61,6 @@ export const PlayerSidebar: React.FC = () => {
   const {
     displayEnergy: energy,
     maxEnergy,
-    isRegenerating
   } = useLiveEnergy({ updateInterval: 1000 });
 
   // Regen rate for display purposes (from store or default)
@@ -94,8 +96,15 @@ export const PlayerSidebar: React.FC = () => {
     }
   }, [skillData.length, fetchSkills]);
 
-  // Fetch location name when locationId changes
+  // Fetch location name - prefer location store (most up-to-date), fallback to API
   useEffect(() => {
+    // First check location store (most up-to-date after travel/job completion)
+    if (storeLocationName) {
+      setLocationName(storeLocationName);
+      return;
+    }
+
+    // Fallback: fetch by character's locationId
     const fetchLocationName = async () => {
       if (currentCharacter?.locationId) {
         try {
@@ -113,7 +122,7 @@ export const PlayerSidebar: React.FC = () => {
       }
     };
     fetchLocationName();
-  }, [currentCharacter?.locationId]);
+  }, [currentCharacter?.locationId, storeLocationName]);
 
   if (!currentCharacter) {
     return null;
@@ -262,7 +271,7 @@ export const PlayerSidebar: React.FC = () => {
         <div className="flex items-center justify-between bg-wood-dark/50 rounded px-3 py-2">
           <span className="text-desert-sand text-sm">Dollars</span>
           <span className="text-gold-light font-bold text-lg">
-            ${currentCharacter.gold?.toLocaleString() || 0}
+            ${currentCharacter.dollars?.toLocaleString() || 0}
           </span>
         </div>
 
@@ -655,7 +664,10 @@ const QuickLinksSection: React.FC<QuickLinksSectionProps> = ({
     { label: 'Inventory', path: '/game/inventory', icon: '🎒' },
     { label: 'Crafting', path: '/game/crafting', icon: '🔨' },
     { label: 'Gathering', path: '/game/gathering', icon: '⛏️' },
+    { label: 'Expeditions', path: '/game/expeditions', icon: '🏕️' },
     { label: 'Crimes', path: '/game/crimes', icon: '🔪' },
+    { label: 'Bounties', path: '/game/bounty-hunting', icon: '🎯' },
+    { label: 'Legendaries', path: '/game/legendary-hunts', icon: '🦁' },
     { label: 'Gang', path: '/game/gang', icon: '👥' },
     { label: 'Territory', path: '/game/territory', icon: '🗺️' },
     { label: 'Mail', path: '/game/mail', icon: '✉️', badge: mailUnread },

@@ -74,11 +74,11 @@ export const WarCard: React.FC<WarCardProps> = ({ war, currentGangId, onClick })
       <div className="grid grid-cols-2 gap-4 text-center">
         <div>
           <p className="text-xs text-red-400">Attacker Funding</p>
-          <p className="font-western text-gold-light">{war.attackerFunding.toLocaleString()}g</p>
+          <p className="font-western text-gold-light">${war.attackerFunding.toLocaleString()}</p>
         </div>
         <div>
           <p className="text-xs text-blue-400">Defender Funding</p>
-          <p className="font-western text-gold-light">{war.defenderFunding.toLocaleString()}g</p>
+          <p className="font-western text-gold-light">${war.defenderFunding.toLocaleString()}</p>
         </div>
       </div>
 

@@ -10,7 +10,7 @@
 import { Express } from 'express';
 import request from 'supertest';
 import mongoose from 'mongoose';
-import { Faction } from '@desperados/shared';
+import { Faction, NPCType } from '@desperados/shared';
 import {
   clearDatabase,
   createTestToken,
@@ -19,7 +19,7 @@ import {
   apiDelete,
   expectSuccess
 } from '../helpers';
-import app from '../../src/server';
+import app from '../testApp';
 import { User } from '../../src/models/User.model';
 import { Character } from '../../src/models/Character.model';
 
@@ -746,18 +746,17 @@ describe('API Contract Tests', () => {
         const npc = await NPC.create({
           name: 'Test Bandit',
           level: 1,
-          type: 'BANDIT',
-          difficulty: 'EASY',
+          type: NPCType.OUTLAW,
+          difficulty: 1,
           maxHP: 50,
-          combat: 5,
-          cunning: 3,
-          spirit: 2,
-          craft: 1,
-          loot: {
-            gold: { min: 10, max: 20 },
-            xp: 25,
+          lootTable: {
+            goldMin: 10,
+            goldMax: 20,
+            xpReward: 25,
             items: []
           },
+          location: 'Test Location',
+          respawnTime: 60,
           description: 'A test bandit',
           isActive: true
         });
@@ -802,18 +801,17 @@ describe('API Contract Tests', () => {
         const npc = await NPC.create({
           name: 'Test Bandit',
           level: 1,
-          type: 'BANDIT',
-          difficulty: 'EASY',
+          type: NPCType.OUTLAW,
+          difficulty: 1,
           maxHP: 50,
-          combat: 5,
-          cunning: 3,
-          spirit: 2,
-          craft: 1,
-          loot: {
-            gold: { min: 10, max: 20 },
-            xp: 25,
+          lootTable: {
+            goldMin: 10,
+            goldMax: 20,
+            xpReward: 25,
             items: []
           },
+          location: 'Test Location',
+          respawnTime: 60,
           description: 'A test bandit',
           isActive: true
         });
@@ -865,18 +863,17 @@ describe('API Contract Tests', () => {
         await NPC.create({
           name: 'Test Bandit',
           level: 1,
-          type: 'BANDIT',
-          difficulty: 'EASY',
+          type: NPCType.OUTLAW,
+          difficulty: 1,
           maxHP: 50,
-          combat: 5,
-          cunning: 3,
-          spirit: 2,
-          craft: 1,
-          loot: {
-            gold: { min: 10, max: 20 },
-            xp: 25,
+          lootTable: {
+            goldMin: 10,
+            goldMax: 20,
+            xpReward: 25,
             items: []
           },
+          location: 'Test Location',
+          respawnTime: 60,
           description: 'A test bandit',
           isActive: true
         });

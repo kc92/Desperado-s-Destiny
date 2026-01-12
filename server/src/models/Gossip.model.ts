@@ -116,8 +116,8 @@ const GossipSchema = new Schema<IGossip>(
       index: true
     },
     expiresAt: {
-      type: Date,
-      index: true
+      type: Date
+      // Note: TTL index defined below
     },
     isStale: {
       type: Boolean,

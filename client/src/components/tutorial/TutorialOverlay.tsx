@@ -109,8 +109,12 @@ const TutorialProgress: React.FC = () => {
 };
 
 // Minimized tutorial indicator (floating button to resume)
-const MinimizedIndicator: React.FC = () => {
-  const { resumeTutorial, getCurrentStep, skipTutorial } = useTutorialStore();
+interface MinimizedIndicatorProps {
+  onSkipRequest: () => void;
+}
+
+const MinimizedIndicator: React.FC<MinimizedIndicatorProps> = ({ onSkipRequest }) => {
+  const { resumeTutorial, getCurrentStep } = useTutorialStore();
   const currentStepData = getCurrentStep();
 
   return (
@@ -133,7 +137,7 @@ const MinimizedIndicator: React.FC = () => {
       {/* Resume/Skip buttons */}
       <div className="flex gap-2">
         <button
-          onClick={skipTutorial}
+          onClick={onSkipRequest}
           className="bg-leather-dark/90 hover:bg-leather-brown text-desert-stone hover:text-desert-sand border border-wood-grain rounded-lg px-3 py-2 text-sm transition-colors shadow-lg"
         >
           Skip Tutorial
@@ -241,7 +245,13 @@ export const TutorialOverlay: React.FC = () => {
     return (
       <>
         {autoTrigger}
-        <MinimizedIndicator />
+        <MinimizedIndicator onSkipRequest={handleSkipRequest} />
+        {/* Skip confirmation modal for minimized state */}
+        <SkipConfirmModal
+          isOpen={showSkipConfirm}
+          onConfirm={handleSkipConfirm}
+          onCancel={handleSkipCancel}
+        />
       </>
     );
   }

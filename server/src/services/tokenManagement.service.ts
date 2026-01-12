@@ -108,7 +108,7 @@ export class TokenManagementService {
 
   /**
    * Refresh access token using refresh token
-   * Updates lastUsedAt timestamp on refresh token
+   * Uses atomic findOneAndUpdate to prevent race conditions
    *
    * @param refreshTokenValue - Refresh token from client
    * @param ipAddress - Client IP address (for security monitoring)
@@ -118,11 +118,19 @@ export class TokenManagementService {
     refreshTokenValue: string,
     ipAddress?: string
   ): Promise<{ accessToken: string }> {
-    const refreshToken = await RefreshToken.findOne({
-      token: refreshTokenValue,
-      isRevoked: false,
-      expiresAt: { $gt: new Date() },
-    });
+    // RACE CONDITION FIX: Use atomic findOneAndUpdate to both validate and update in one operation
+    // This prevents multiple concurrent requests from racing to refresh the same token
+    const refreshToken = await RefreshToken.findOneAndUpdate(
+      {
+        token: refreshTokenValue,
+        isRevoked: false,
+        expiresAt: { $gt: new Date() },
+      },
+      {
+        $set: { lastUsedAt: new Date() }
+      },
+      { new: true }
+    );
 
     if (!refreshToken) {
       throw new Error('Invalid or expired refresh token');
@@ -135,10 +143,11 @@ export class TokenManagementService {
         `[SECURITY] Refresh token used from different IP: ${ipAddress} vs ${refreshToken.ipAddress} for user ${refreshToken.userId}`
       );
 
-      // Revoke this specific token - it may have been stolen
-      refreshToken.isRevoked = true;
-      refreshToken.lastUsedAt = new Date();
-      await refreshToken.save();
+      // Revoke this specific token atomically - it may have been stolen
+      await RefreshToken.findByIdAndUpdate(refreshToken._id, {
+        isRevoked: true,
+        lastUsedAt: new Date()
+      });
 
       logger.warn(
         `[SECURITY] Token revoked due to IP mismatch for user ${refreshToken.userId}. User must re-authenticate.`
@@ -146,10 +155,6 @@ export class TokenManagementService {
 
       throw new Error('Session invalidated due to suspicious activity. Please log in again.');
     }
-
-    // Update last used timestamp
-    refreshToken.lastUsedAt = new Date();
-    await refreshToken.save();
 
     // Load user
     const user = await User.findById(refreshToken.userId);

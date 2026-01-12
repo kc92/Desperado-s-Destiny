@@ -117,11 +117,12 @@ export const getWeather = asyncHandler(async (req: Request, res: Response) => {
  * Get active and upcoming world events
  */
 export const getActiveEvents = asyncHandler(async (req: Request, res: Response) => {
-  // Get active events
+  // Get active events - limit to prevent OOM
   const activeEvents = await WorldEvent.find({
     status: EventStatus.ACTIVE,
   })
     .sort({ priority: -1, scheduledStart: -1 })
+    .limit(50)
     .select({
       name: 1,
       description: 1,

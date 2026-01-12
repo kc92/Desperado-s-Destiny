@@ -4,17 +4,18 @@
  * Tests for character listing and retrieval endpoints
  */
 
-import app from '../../src/server';
+import app from '../testApp';
 import { Character } from '../../src/models/Character.model';
-import { createTestToken } from '../helpers/auth.helpers';
+import { User } from '../../src/models/User.model';
+import { createTestToken, createTestUserWithPassword } from '../helpers/auth.helpers';
 import { apiPost, apiGet, expectSuccess, expectError } from '../helpers/api.helpers';
 import { Faction } from '@desperados/shared';
 
 describe('Character Retrieval', () => {
-  const user1Id = '507f1f77bcf86cd799439011';
-  const user2Id = '507f1f77bcf86cd799439012';
-  const token1 = createTestToken(user1Id, 'user1@example.com');
-  const token2 = createTestToken(user2Id, 'user2@example.com');
+  let user1Id: string;
+  let user2Id: string;
+  let token1: string;
+  let token2: string;
 
   const validCharacterData = {
     name: 'Jack Thornton',
@@ -27,6 +28,28 @@ describe('Character Retrieval', () => {
       hairColor: 2
     }
   };
+
+  beforeEach(async () => {
+    // Create User 1
+    const email1 = `user1.retrieval.${Date.now()}@example.com`;
+    const userData1 = await createTestUserWithPassword(email1, 'TestPass123!');
+    const user1 = await User.create({
+      ...userData1,
+      emailVerified: true
+    });
+    user1Id = user1._id.toString();
+    token1 = createTestToken(user1Id, email1);
+
+    // Create User 2
+    const email2 = `user2.retrieval.${Date.now()}@example.com`;
+    const userData2 = await createTestUserWithPassword(email2, 'TestPass123!');
+    const user2 = await User.create({
+      ...userData2,
+      emailVerified: true
+    });
+    user2Id = user2._id.toString();
+    token2 = createTestToken(user2Id, email2);
+  });
 
   describe('GET /api/characters - List Characters', () => {
     it('should return empty array when user has no characters', async () => {
@@ -155,14 +178,20 @@ describe('Character Retrieval', () => {
       // Manually reduce energy and set old lastEnergyUpdate
       const character = await Character.findById(characterId);
       character!.energy = 50;
-      character!.lastEnergyUpdate = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      character!.lastEnergyUpdate = oneHourAgo;
       await character!.save();
 
       // Get character - should regenerate energy
       const response = await apiGet(app, `/api/characters/${characterId}`, token1);
 
       expectSuccess(response);
-      expect(response.body.data.character.energy).toBeGreaterThan(50);
+      
+      // Should have gained roughly 30 energy (free regen rate is 30/hr)
+      // Allow for small timing differences (±1)
+      const expectedEnergy = 50 + 30; 
+      expect(response.body.data.character.energy).toBeGreaterThanOrEqual(expectedEnergy - 1);
+      expect(response.body.data.character.energy).toBeLessThanOrEqual(expectedEnergy + 1);
     });
 
     it('should not allow access to other user\'s character', async () => {

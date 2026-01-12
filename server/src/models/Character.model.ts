@@ -190,7 +190,7 @@ export interface ICharacter extends Document {
   experience: number;
 
   // NEW: Total Level System (sum of all skill levels)
-  /** Total Level = sum of all skill levels (30-2970) */
+  /** Total Level = sum of all skill levels (27-2673) */
   totalLevel: number;
   /** Total combat XP earned (for Combat Level calculation) */
   combatXp: number;
@@ -426,6 +426,9 @@ export interface ICharacter extends Document {
   canArrestTarget(targetId: string): boolean;
   recordArrest(targetId: string): void;
 
+  // Utility methods
+  reload(): Promise<void>;
+
   // Virtuals
   energyRegenRate: number;
   nextLevelXP: number;
@@ -449,15 +452,14 @@ const CharacterSchema = new Schema<ICharacter>(
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
-      index: true
+      required: true
+      // Note: indexed via compound indexes below (userId, isActive, etc.)
     },
 
     // Identity
     name: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
       minlength: 3,
       maxlength: 20
@@ -517,13 +519,13 @@ const CharacterSchema = new Schema<ICharacter>(
     },
 
     // NEW: Total Level System (RuneScape/Therian Saga style)
-    /** Total Level = sum of all skill levels (30-2970) */
+    /** Total Level = sum of all skill levels (27-2673) */
     totalLevel: {
       type: Number,
-      default: 30, // 30 skills at level 1
-      min: 30,
-      max: 2970,
-      index: true // For leaderboards
+      default: 27, // 27 trainable skills at level 1
+      min: 27,
+      max: 2673 // 27 skills × 99 max level
+      // Note: indexed via compound indexes below for leaderboards
     },
     /** Total combat XP earned (for Combat Level calculation) */
     combatXp: {
@@ -536,8 +538,8 @@ const CharacterSchema = new Schema<ICharacter>(
       type: Number,
       default: 1,
       min: 1,
-      max: 138,
-      index: true // For PvP matchmaking
+      max: 138
+      // Note: indexed via compound indexes below for PvP matchmaking
     },
     /** Claimed Total Level milestones */
     claimedTotalLevelMilestones: {
@@ -634,8 +636,8 @@ const CharacterSchema = new Schema<ICharacter>(
     gangId: {
       type: Schema.Types.ObjectId,
       ref: 'Gang',
-      default: null,
-      index: true
+      default: null
+      // Note: indexed via compound indexes below (gangId, level, etc.)
     },
 
     // Mount System
@@ -643,7 +645,7 @@ const CharacterSchema = new Schema<ICharacter>(
       type: Schema.Types.ObjectId,
       ref: 'Mount',
       default: null,
-      index: true,
+      // Note: not commonly queried, no schema-level index needed
       comment: 'Currently active mount for carry capacity bonus'
     },
 
@@ -807,8 +809,8 @@ const CharacterSchema = new Schema<ICharacter>(
     // Legendary Quest System - Unlocked locations and NPC relationships
     unlockedLocations: {
       type: [String],
-      default: [],
-      index: true,
+      default: []
+      // Note: array index not commonly used for lookups
     },
     npcRelationships: {
       type: Map,
@@ -1038,7 +1040,8 @@ const CharacterSchema = new Schema<ICharacter>(
  * Indexes for efficient querying
  */
 CharacterSchema.index({ userId: 1, isActive: 1 });
-CharacterSchema.index({ name: 1 }, { unique: true });
+// Partial unique index for name: allows reusing names if the previous character is soft-deleted
+CharacterSchema.index({ name: 1 }, { unique: true, partialFilterExpression: { isActive: true } });
 // Performance optimization indexes
 CharacterSchema.index({ wantedLevel: 1, isActive: 1 }); // For wanted player queries
 CharacterSchema.index({ level: -1, experience: -1 }); // For leaderboards
@@ -1472,6 +1475,74 @@ CharacterSchema.methods.recordArrest = function(this: ICharacter, targetId: stri
   cooldowns.set(targetId, new Date());
   this.arrestCooldowns = cooldowns;
 };
+
+/**
+ * Instance method: Reload document from database
+ * This is useful in tests when the document has been modified externally
+ */
+CharacterSchema.methods.reload = async function(this: ICharacter): Promise<void> {
+  const fresh = await mongoose.model('Character').findById(this._id);
+  if (fresh) {
+    // Copy all fields from fresh document to this
+    const fieldsToUpdate = Object.keys(fresh.toObject());
+    for (const field of fieldsToUpdate) {
+      if (field !== '_id' && field !== '__v') {
+        (this as any)[field] = (fresh as any)[field];
+      }
+    }
+  }
+};
+
+/**
+ * Pre-delete hook: Clean up references when character is deleted
+ * CASCADE DELETE: Prevents orphaned references in Gang.members and other collections
+ */
+CharacterSchema.pre('deleteOne', { document: true, query: false }, async function (next) {
+  try {
+    const Gang = mongoose.model('Gang');
+    const characterId = this._id;
+
+    // Remove character from any gang's members array
+    if (this.gangId) {
+      await Gang.updateOne(
+        { _id: this.gangId },
+        { $pull: { members: { characterId: characterId } } }
+      );
+    }
+
+    // If this character is a gang leader, the gang should be handled separately
+    // (gang dissolution should be a deliberate action, not automatic)
+
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
+
+/**
+ * Pre-delete hook for query-based deletion (findOneAndDelete, deleteOne query)
+ * CASCADE DELETE: Handles Character.findOneAndDelete() and Character.deleteOne() queries
+ */
+CharacterSchema.pre('findOneAndDelete', async function (next) {
+  try {
+    const Gang = mongoose.model('Gang');
+    const character = await this.model.findOne(this.getFilter());
+
+    if (character) {
+      // Remove character from any gang's members array
+      if (character.gangId) {
+        await Gang.updateOne(
+          { _id: character.gangId },
+          { $pull: { members: { characterId: character._id } } }
+        );
+      }
+    }
+
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
 
 /**
  * Static method: Find all active characters for a user

@@ -7,22 +7,17 @@
  */
 
 import request from 'supertest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import mongoose from 'mongoose';
-import { app } from '../../src/server';
+import app from '../testApp';
 import { setupCompleteGameState } from '../helpers/testHelpers';
 import { apiPost } from '../helpers/api.helpers';
 import { NPC, INPC } from '../../src/models/NPC.model';
 import { NPCType } from '@desperados/shared';
 
-let mongoServer: MongoMemoryServer;
-
 describe('Combat Performance Tests', () => {
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.connect(mongoUri);
+  // Extended timeout for performance tests
+  jest.setTimeout(120000);
 
+  beforeAll(async () => {
     // Create test NPCs
     await NPC.create({
       name: 'Test Bandit',
@@ -41,20 +36,6 @@ describe('Combat Performance Tests', () => {
       description: 'Test NPC',
       isActive: true
     });
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
-
-  afterEach(async () => {
-    const collections = mongoose.connection.collections;
-    for (const key in collections) {
-      if (key !== 'npcs') {
-        await collections[key].deleteMany({});
-      }
-    }
   });
 
   describe('Concurrent Combat Operations', () => {

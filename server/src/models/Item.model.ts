@@ -5,7 +5,7 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-export type ItemType = 'weapon' | 'armor' | 'consumable' | 'mount' | 'material' | 'quest' | 'tool' | 'accessory';
+export type ItemType = 'weapon' | 'armor' | 'consumable' | 'mount' | 'material' | 'quest' | 'tool' | 'accessory' | 'misc' | 'furniture';
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 export type EquipmentSlot = 'weapon' | 'head' | 'body' | 'feet' | 'mount' | 'accessory';
 
@@ -61,10 +61,13 @@ export interface IItem extends Document {
   type: ItemType;
   rarity: ItemRarity;
 
-  // Shop
-  price: number; // Buy price
-  sellPrice: number; // Sell price (usually 50% of buy)
-  inShop: boolean; // Available in shop
+  // Shop Pricing
+  // NOTE: `price` is the purchase/buy price (what player pays to buy from shop)
+  // NOTE: `sellPrice` is the sell-back price (what player receives when selling, typically ~25-50% of price)
+  // There is no separate `buyPrice` field - `price` serves that purpose
+  price: number; // Purchase price from shop (player pays this amount)
+  sellPrice: number; // Sell-back price to vendors (player receives this amount)
+  inShop: boolean; // Whether item is available for purchase in shop
 
   // Requirements
   levelRequired: number;

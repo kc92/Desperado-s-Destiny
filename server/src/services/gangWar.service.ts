@@ -106,6 +106,12 @@ export class GangWarService {
         throw new Error('Gang is already involved in an active war');
       }
 
+      // BATCH QUERY FIX: Fetch defender gang ONCE instead of 3 times
+      let defenderGang: IGang | null = null;
+      if (territory.controllingGangId) {
+        defenderGang = await Gang.findById(territory.controllingGangId).session(session);
+      }
+
       gang.bank -= funding;
       await gang.save({ session });
 
@@ -127,12 +133,8 @@ export class GangWarService {
         attackerGangName: gang.name,
         attackerGangTag: gang.tag || '',
         defenderGangId: territory.controllingGangId,
-        defenderGangName: territory.controllingGangId ?
-          (await Gang.findById(territory.controllingGangId).session(session))?.name || null :
-          null,
-        defenderGangTag: territory.controllingGangId ?
-          (await Gang.findById(territory.controllingGangId).session(session))?.tag || '' :
-          '',
+        defenderGangName: defenderGang?.name || null,
+        defenderGangTag: defenderGang?.tag || '',
         territoryId,
         status: WarStatus.DECLARED,
         declaredAt,
@@ -155,9 +157,7 @@ export class GangWarService {
           event: 'WAR_DECLARED',
           data: {
             attackerGang: gang.name,
-            defenderGang: territory.controllingGangId ?
-              (await Gang.findById(territory.controllingGangId).session(session))?.name :
-              'Unclaimed',
+            defenderGang: defenderGang?.name || 'Unclaimed',
             territory: territory.name,
             initialFunding: funding,
             tier: powerRating.tier,

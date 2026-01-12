@@ -2529,6 +2529,627 @@ const storyEncounters: Encounter[] = [
 ];
 
 // ========================================
+// NEW ENCOUNTERS (20 additions for 100 total)
+// ========================================
+
+const newCombatEncounters: Encounter[] = [
+  {
+    id: 'feral-dog-pack',
+    name: 'Feral Dog Pack',
+    description: 'A pack of feral dogs emerges from an abandoned homestead, scarred and aggressive. Years of survival have made them cunning hunters.',
+    type: 'combat',
+    minDangerLevel: 2,
+    maxDangerLevel: 5,
+    regions: ['frontier', 'ghost_towns', 'dusty_flats'],
+    timeRestriction: 'any',
+    outcomes: [
+      {
+        id: 'fight-dogs',
+        label: 'Fight Them Off',
+        description: 'You stand your ground and drive them back with gunfire.',
+        effects: { xp: 35, damage: 15, items: ['dog-pelt'] }
+      },
+      {
+        id: 'use-food',
+        label: 'Distract with Food',
+        description: 'You toss some rations and slip away while they eat.',
+        effects: { xp: 20, gold: -5 }
+      },
+      {
+        id: 'tame-alpha',
+        label: 'Calm the Pack (Spirit)',
+        description: 'You approach slowly and gain their trust. The alpha follows you.',
+        effects: { xp: 50, items: ['loyal-hound'] },
+        requirements: { skill: { id: 'spirit', level: 12 } }
+      }
+    ]
+  },
+  {
+    id: 'bounty-hunter-ambush',
+    name: 'Mistaken Identity',
+    description: 'A bounty hunter blocks your path, poster in hand. "Gotcha, you\'re coming with me dead or alive." He thinks you\'re someone else entirely.',
+    type: 'combat',
+    minDangerLevel: 4,
+    maxDangerLevel: 7,
+    regions: ['frontier', 'dusty_flats', 'outlaw_territory'],
+    timeRestriction: 'any',
+    outcomes: [
+      {
+        id: 'prove-identity',
+        label: 'Prove Your Identity',
+        description: 'You show papers and convince him of the mistake.',
+        effects: { xp: 40 }
+      },
+      {
+        id: 'fight-hunter',
+        label: 'Fight Your Way Out',
+        description: 'No time for talk. Lead starts flying.',
+        effects: { xp: 65, gold: 80, damage: 35, items: ['bounty-hunter-rifle'] }
+      },
+      {
+        id: 'bluff-location',
+        label: 'Point Him Elsewhere (Cunning)',
+        description: 'You claim to know where the real target is hiding.',
+        effects: { xp: 55, gold: 30 },
+        requirements: { skill: { id: 'cunning', level: 14 } }
+      }
+    ]
+  },
+  {
+    id: 'bar-fight-spillover',
+    name: 'Saloon Brawl',
+    description: 'A massive bar fight spills out into the street. Chairs fly, bottles break, and someone grabs you by the collar.',
+    type: 'combat',
+    minDangerLevel: 2,
+    maxDangerLevel: 4,
+    regions: ['town', 'frontier'],
+    timeRestriction: 'night',
+    outcomes: [
+      {
+        id: 'join-brawl',
+        label: 'Join the Chaos',
+        description: 'When in Rome... You throw punches with the best of them.',
+        effects: { xp: 30, damage: 20, gold: 25 }
+      },
+      {
+        id: 'escape-brawl',
+        label: 'Slip Away',
+        description: 'You duck and weave through the chaos untouched.',
+        effects: { xp: 15 }
+      },
+      {
+        id: 'end-brawl',
+        label: 'Fire into the Ceiling',
+        description: 'Your gunshot stops everyone cold. The brawl ends.',
+        effects: { xp: 45, reputation: { faction: 'settlerAlliance', amount: 10 } }
+      }
+    ]
+  },
+  {
+    id: 'cattle-stampede',
+    name: 'Cattle Stampede',
+    description: 'Thunder shakes the ground - not from the sky, but from a thousand hooves. A cattle herd stampedes directly toward you, spooked by lightning.',
+    type: 'combat',
+    minDangerLevel: 4,
+    maxDangerLevel: 7,
+    regions: ['dusty_flats', 'frontier'],
+    timeRestriction: 'day',
+    outcomes: [
+      {
+        id: 'outrun-herd',
+        label: 'Ride Like the Wind',
+        description: 'You spur your horse and barely outpace the stampede.',
+        effects: { xp: 45, damage: 15 }
+      },
+      {
+        id: 'divert-herd',
+        label: 'Turn the Herd (Combat)',
+        description: 'You ride alongside firing shots to turn the leaders.',
+        effects: { xp: 75, gold: 100, damage: 25, reputation: { faction: 'settlerAlliance', amount: 25 } },
+        requirements: { skill: { id: 'combat', level: 15 } }
+      },
+      {
+        id: 'hide-in-rocks',
+        label: 'Take Cover',
+        description: 'You scramble behind boulders as the herd thunders past.',
+        effects: { xp: 30 }
+      }
+    ]
+  },
+  {
+    id: 'scorpion-swarm',
+    name: 'Scorpion Swarm',
+    description: 'You disturbed something under that rock. Dozens of scorpions pour out, stingers raised and ready.',
+    type: 'combat',
+    minDangerLevel: 1,
+    maxDangerLevel: 3,
+    regions: ['dusty_flats', 'devils_canyon', 'border_territories'],
+    timeRestriction: 'day',
+    outcomes: [
+      {
+        id: 'stomp-scorpions',
+        label: 'Stomp Them Out',
+        description: 'You crush as many as you can before retreating.',
+        effects: { xp: 20, damage: 15, items: ['scorpion-venom'] }
+      },
+      {
+        id: 'run-away',
+        label: 'Run for It',
+        description: 'You bolt before any can sting you.',
+        effects: { xp: 10 }
+      },
+      {
+        id: 'harvest-scorpions',
+        label: 'Collect Specimens (Craft)',
+        description: 'You carefully capture several for their valuable venom.',
+        effects: { xp: 35, gold: 40, items: ['scorpion-venom', 'scorpion-venom'] },
+        requirements: { skill: { id: 'craft', level: 8 } }
+      }
+    ]
+  }
+];
+
+const newEventEncounters: Encounter[] = [
+  {
+    id: 'quicksand-trap',
+    name: 'Quicksand',
+    description: 'The ground gives way beneath you - quicksand! You\'re already waist-deep and sinking fast.',
+    type: 'event',
+    minDangerLevel: 3,
+    maxDangerLevel: 6,
+    regions: ['devils_canyon', 'sacred_lands', 'border_territories'],
+    timeRestriction: 'any',
+    outcomes: [
+      {
+        id: 'struggle-out',
+        label: 'Struggle Free (Combat)',
+        description: 'With tremendous effort, you pull yourself out.',
+        effects: { xp: 50, damage: 20 },
+        requirements: { skill: { id: 'combat', level: 10 } }
+      },
+      {
+        id: 'float-slowly',
+        label: 'Stay Calm and Float',
+        description: 'You spread your weight and slowly work your way to solid ground.',
+        effects: { xp: 35 }
+      },
+      {
+        id: 'call-for-help',
+        label: 'Signal for Help',
+        description: 'Your calls attract a passing traveler who throws you a rope.',
+        effects: { xp: 25, gold: -10 }
+      }
+    ]
+  },
+  {
+    id: 'coded-message',
+    name: 'Mysterious Cipher',
+    description: 'You find a coded message tucked in a dead drop - strange symbols that seem to hide important information.',
+    type: 'event',
+    minDangerLevel: 4,
+    maxDangerLevel: 7,
+    regions: ['town', 'frontier', 'outlaw_territory'],
+    timeRestriction: 'any',
+    outcomes: [
+      {
+        id: 'decode-message',
+        label: 'Decode It (Cunning)',
+        description: 'You crack the cipher - it reveals a cache location.',
+        effects: { xp: 60, items: ['decoded-cache-map'] },
+        requirements: { skill: { id: 'cunning', level: 15 } }
+      },
+      {
+        id: 'sell-message',
+        label: 'Sell to Interested Party',
+        description: 'Someone in town pays well for encoded secrets.',
+        effects: { xp: 40, gold: 75 }
+      },
+      {
+        id: 'burn-message',
+        label: 'Destroy It',
+        description: 'Some secrets are better left unknown.',
+        effects: { xp: 20 }
+      }
+    ]
+  },
+  {
+    id: 'wounded-animal',
+    name: 'Wounded Wolf',
+    description: 'A magnificent wolf lies wounded by a trap, leg caught in steel jaws. It snarls but its eyes plead for help.',
+    type: 'event',
+    minDangerLevel: 2,
+    maxDangerLevel: 5,
+    regions: ['sangre_mountains', 'sacred_lands', 'frontier'],
+    timeRestriction: 'any',
+    outcomes: [
+      {
+        id: 'free-wolf',
+        label: 'Free the Wolf (Spirit)',
+        description: 'You calm the creature and release the trap. It licks your hand before limping away.',
+        effects: { xp: 55, reputation: { faction: 'nahiCoalition', amount: 15 } },
+        requirements: { skill: { id: 'spirit', level: 10 } }
+      },
+      {
+        id: 'mercy-kill',
+        label: 'End Its Suffering',
+        description: 'You give the wolf a quick death and take its pelt.',
+        effects: { xp: 30, items: ['wolf-pelt'] }
+      },
+      {
+        id: 'leave-wolf',
+        label: 'Walk Away',
+        description: 'Nature is cruel. You move on.',
+        effects: { xp: 10 }
+      }
+    ]
+  },
+  {
+    id: 'cave-in-survivor',
+    name: 'Trapped Miner',
+    description: 'Muffled cries echo from a collapsed mine tunnel. Someone\'s alive in there, but the supports are unstable.',
+    type: 'event',
+    minDangerLevel: 5,
+    maxDangerLevel: 8,
+    regions: ['sangre_mountains', 'devils_canyon'],
+    timeRestriction: 'any',
+    outcomes: [
+      {
+        id: 'engineer-rescue',
+        label: 'Shore Up and Dig (Craft)',
+        description: 'You reinforce the tunnel and extract the miner safely.',
+        effects: { xp: 80, gold: 100, reputation: { faction: 'settlerAlliance', amount: 25 } },
+        requirements: { skill: { id: 'craft', level: 18 } }
+      },
+      {
+        id: 'risky-rescue',
+        label: 'Dig Without Support',
+        description: 'You dig frantically. You save them, but rocks fall on you.',
+        effects: { xp: 65, gold: 50, damage: 35, reputation: { faction: 'settlerAlliance', amount: 20 } }
+      },
+      {
+        id: 'get-help',
+        label: 'Ride for Help',
+        description: 'You race to town for a rescue team. They arrive in time.',
+        effects: { xp: 45, reputation: { faction: 'settlerAlliance', amount: 15 } }
+      }
+    ]
+  },
+  {
+    id: 'poison-water-hole',
+    name: 'Tainted Water',
+    description: 'Dead animals lie around a water hole. Something\'s poisoned the water - accidentally or deliberately.',
+    type: 'event',
+    minDangerLevel: 3,
+    maxDangerLevel: 6,
+    regions: ['dusty_flats', 'frontier', 'border_territories'],
+    timeRestriction: 'day',
+    outcomes: [
+      {
+        id: 'identify-poison',
+        label: 'Identify the Toxin (Craft)',
+        description: 'You recognize the poison - arsenic from a nearby mine.',
+        effects: { xp: 55, items: ['poison-evidence'] },
+        requirements: { skill: { id: 'craft', level: 12 } }
+      },
+      {
+        id: 'warn-travelers',
+        label: 'Mark as Dangerous',
+        description: 'You post warning signs to save future travelers.',
+        effects: { xp: 40, reputation: { faction: 'settlerAlliance', amount: 15 } }
+      },
+      {
+        id: 'investigate-source',
+        label: 'Track the Source',
+        description: 'You follow the contamination upstream to its origin.',
+        effects: { xp: 50, items: ['pollution-evidence'] }
+      }
+    ]
+  }
+];
+
+const newDiscoveryEncounters: Encounter[] = [
+  {
+    id: 'prospectors-ore-cache',
+    name: 'Prospector\'s Hidden Stash',
+    description: 'Behind a false rock, you discover bags of unrefined ore. Some prospector hid their findings here and never returned.',
+    type: 'discovery',
+    minDangerLevel: 3,
+    maxDangerLevel: 6,
+    regions: ['sangre_mountains', 'devils_canyon'],
+    timeRestriction: 'any',
+    outcomes: [
+      {
+        id: 'take-ore',
+        label: 'Take the Ore',
+        description: 'You load up the valuable minerals.',
+        effects: { xp: 45, gold: 90, items: ['raw-silver-ore'] }
+      },
+      {
+        id: 'investigate-owner',
+        label: 'Find the Owner',
+        description: 'You track down the claim owner\'s widow and return the ore.',
+        effects: { xp: 60, gold: 40, reputation: { faction: 'settlerAlliance', amount: 20 } }
+      }
+    ]
+  },
+  {
+    id: 'cavalry-saddlebag',
+    name: 'Lost Cavalry Supplies',
+    description: 'A cavalry saddlebag lies half-buried in the sand, still bearing military markings. The horse and rider are nowhere to be seen.',
+    type: 'discovery',
+    minDangerLevel: 3,
+    maxDangerLevel: 5,
+    regions: ['dusty_flats', 'frontier', 'sacred_lands'],
+    timeRestriction: 'any',
+    outcomes: [
+      {
+        id: 'search-saddlebag',
+        label: 'Search the Bag',
+        description: 'You find ammunition, rations, and military dispatches.',
+        effects: { xp: 40, gold: 30, items: ['army-rations', 'ammunition'] }
+      },
+      {
+        id: 'return-to-fort',
+        label: 'Return to Fort Ashford',
+        description: 'You deliver the supplies and dispatches to the Army.',
+        effects: { xp: 55, gold: 60, reputation: { faction: 'settlerAlliance', amount: 20 } }
+      },
+      {
+        id: 'sell-dispatches',
+        label: 'Sell Dispatches to Coalition',
+        description: 'The military information is valuable to the Nahi.',
+        effects: { xp: 50, gold: 100, reputation: { faction: 'nahiCoalition', amount: 25 } }
+      }
+    ]
+  },
+  {
+    id: 'wrecked-stagecoach',
+    name: 'Crashed Stagecoach',
+    description: 'A stagecoach lies overturned in a ravine. The horses are gone, but luggage is scattered everywhere.',
+    type: 'discovery',
+    minDangerLevel: 4,
+    maxDangerLevel: 6,
+    regions: ['dusty_flats', 'devils_canyon', 'frontier'],
+    timeRestriction: 'any',
+    outcomes: [
+      {
+        id: 'salvage-goods',
+        label: 'Salvage the Cargo',
+        description: 'You recover valuables from the wreckage.',
+        effects: { xp: 45, gold: 75, items: ['salvaged-goods'] }
+      },
+      {
+        id: 'check-passengers',
+        label: 'Search for Survivors',
+        description: 'You find a survivor pinned under the coach.',
+        effects: { xp: 60, gold: 50, reputation: { faction: 'settlerAlliance', amount: 20 } }
+      },
+      {
+        id: 'report-wreck',
+        label: 'Report to Stage Company',
+        description: 'You notify the company and claim a finder\'s fee.',
+        effects: { xp: 40, gold: 40 }
+      }
+    ]
+  },
+  {
+    id: 'hidden-hot-spring',
+    name: 'Hidden Hot Spring',
+    description: 'Steam rises from a secluded pool fed by underground hot springs. The water is crystal clear and inviting.',
+    type: 'discovery',
+    minDangerLevel: 2,
+    maxDangerLevel: 4,
+    regions: ['sangre_mountains', 'sacred_lands'],
+    timeRestriction: 'any',
+    outcomes: [
+      {
+        id: 'rest-in-spring',
+        label: 'Rest and Recover',
+        description: 'The hot water soothes your aches and restores your energy.',
+        effects: { xp: 30, damage: -20 }
+      },
+      {
+        id: 'mark-location',
+        label: 'Map the Location',
+        description: 'You mark this spot for future visits.',
+        effects: { xp: 25, items: ['hot-spring-map'] }
+      },
+      {
+        id: 'collect-minerals',
+        label: 'Collect Mineral Deposits',
+        description: 'The spring deposits valuable minerals on the rocks.',
+        effects: { xp: 35, gold: 50, items: ['mineral-salts'] }
+      }
+    ]
+  },
+  {
+    id: 'bee-tree',
+    name: 'Bee Tree',
+    description: 'A massive hollow tree buzzes with activity - a wild beehive with honey dripping from the comb.',
+    type: 'discovery',
+    minDangerLevel: 1,
+    maxDangerLevel: 3,
+    regions: ['frontier', 'sangre_mountains', 'sacred_lands'],
+    timeRestriction: 'day',
+    outcomes: [
+      {
+        id: 'harvest-honey',
+        label: 'Harvest the Honey',
+        description: 'You brave the stings and collect sweet golden honey.',
+        effects: { xp: 35, damage: 10, items: ['wild-honey', 'wild-honey'] }
+      },
+      {
+        id: 'smoke-bees',
+        label: 'Smoke Out the Bees (Craft)',
+        description: 'You use smoke to calm the bees and harvest safely.',
+        effects: { xp: 45, items: ['wild-honey', 'wild-honey', 'beeswax'] },
+        requirements: { skill: { id: 'craft', level: 6 } }
+      },
+      {
+        id: 'leave-bees',
+        label: 'Leave Them Be',
+        description: 'Not worth getting stung.',
+        effects: { xp: 10 }
+      }
+    ]
+  }
+];
+
+const newStoryEncounters: Encounter[] = [
+  {
+    id: 'traveling-preacher',
+    name: 'The Traveling Preacher',
+    description: 'A fire-and-brimstone preacher stands on a rock, Bible in hand, calling out your sins to the empty desert. He seems to know things about you he shouldn\'t.',
+    type: 'story',
+    minDangerLevel: 2,
+    maxDangerLevel: 5,
+    regions: ['frontier', 'dusty_flats', 'ghost_towns'],
+    timeRestriction: 'day',
+    outcomes: [
+      {
+        id: 'receive-blessing',
+        label: 'Ask for a Blessing',
+        description: 'He lays hands on you and prays. You feel... something.',
+        effects: { xp: 40, items: ['preacher-blessing'] }
+      },
+      {
+        id: 'challenge-preacher',
+        label: 'Challenge His Words',
+        description: 'You argue theology. He admits you have wisdom.',
+        effects: { xp: 50 }
+      },
+      {
+        id: 'donate-to-church',
+        label: 'Give a Donation',
+        description: 'You contribute to his mission. He promises prayers for your soul.',
+        effects: { xp: 35, gold: -25, reputation: { faction: 'settlerAlliance', amount: 10 } }
+      }
+    ]
+  },
+  {
+    id: 'lost-child',
+    name: 'Lost Child',
+    description: 'A young child sits crying by the trail, dirty and frightened. They wandered away from their family\'s wagon and have been lost for hours.',
+    type: 'story',
+    minDangerLevel: 1,
+    maxDangerLevel: 3,
+    regions: ['frontier', 'dusty_flats', 'town'],
+    timeRestriction: 'day',
+    outcomes: [
+      {
+        id: 'return-child',
+        label: 'Find Their Family',
+        description: 'You track down their wagon and return the grateful child.',
+        effects: { xp: 55, gold: 40, reputation: { faction: 'settlerAlliance', amount: 25 } }
+      },
+      {
+        id: 'take-to-town',
+        label: 'Take to the Sheriff',
+        description: 'You bring the child to town where they\'ll be safe.',
+        effects: { xp: 45, reputation: { faction: 'settlerAlliance', amount: 15 } }
+      },
+      {
+        id: 'ignore-child',
+        label: 'Keep Riding',
+        description: 'Not your problem. Someone else will find them.',
+        effects: { xp: 10, reputation: { faction: 'settlerAlliance', amount: -15 } }
+      }
+    ]
+  },
+  {
+    id: 'dying-outlaw-confession',
+    name: 'Outlaw\'s Confession',
+    description: 'A gut-shot outlaw lies against a rock, blood pooling beneath him. "Come closer," he gasps. "I gotta tell someone before I go..."',
+    type: 'story',
+    minDangerLevel: 4,
+    maxDangerLevel: 7,
+    regions: ['outlaw_territory', 'devils_canyon', 'frontier'],
+    timeRestriction: 'any',
+    outcomes: [
+      {
+        id: 'hear-confession',
+        label: 'Hear His Confession',
+        description: 'He reveals where his gang buried their biggest haul.',
+        effects: { xp: 60, items: ['outlaw-treasure-map'] }
+      },
+      {
+        id: 'ease-passing',
+        label: 'Comfort Him',
+        description: 'You hold his hand as he passes. No treasure, but peace.',
+        effects: { xp: 45, reputation: { faction: 'frontera', amount: 15 } }
+      },
+      {
+        id: 'search-body',
+        label: 'Wait and Search',
+        description: 'You wait for him to die and take what\'s on him.',
+        effects: { xp: 30, gold: 40, items: ['outlaw-revolver'] }
+      }
+    ]
+  },
+  {
+    id: 'railroad-surveyor-encounter',
+    name: 'Railroad Surveyor',
+    description: 'A railroad surveyor sits frustrated at his camp, maps spread before him. "Blast it all! I need someone who knows these trails..."',
+    type: 'story',
+    minDangerLevel: 3,
+    maxDangerLevel: 5,
+    regions: ['frontier', 'dusty_flats', 'sangre_mountains'],
+    timeRestriction: 'day',
+    outcomes: [
+      {
+        id: 'guide-surveyor',
+        label: 'Offer Your Services',
+        description: 'You guide him through the territory for good pay.',
+        effects: { xp: 50, gold: 80 }
+      },
+      {
+        id: 'mislead-surveyor',
+        label: 'Lead Him Astray',
+        description: 'You send him the wrong direction, protecting Coalition lands.',
+        effects: { xp: 45, gold: 40, reputation: { faction: 'nahiCoalition', amount: 20 } }
+      },
+      {
+        id: 'share-information',
+        label: 'Trade Information',
+        description: 'You exchange knowledge - he shares what the railroad knows.',
+        effects: { xp: 55, gold: 30, items: ['railroad-plans'] }
+      }
+    ]
+  },
+  {
+    id: 'spirit-vision',
+    name: 'Vision Quest',
+    description: 'At a sacred site, you experience an overwhelming vision - spirits of the land show you glimpses of past, present, and future.',
+    type: 'story',
+    minDangerLevel: 5,
+    maxDangerLevel: 8,
+    regions: ['sacred_lands', 'sangre_mountains'],
+    timeRestriction: 'night',
+    outcomes: [
+      {
+        id: 'embrace-vision',
+        label: 'Embrace the Vision (Spirit)',
+        description: 'You open yourself to the experience and gain profound insight.',
+        effects: { xp: 90, items: ['spirit-vision-quest'], reputation: { faction: 'nahiCoalition', amount: 25 } },
+        requirements: { skill: { id: 'spirit', level: 20 } }
+      },
+      {
+        id: 'resist-vision',
+        label: 'Fight the Vision',
+        description: 'You struggle against the supernatural experience.',
+        effects: { xp: 50, damage: 20 }
+      },
+      {
+        id: 'flee-vision',
+        label: 'Flee the Sacred Site',
+        description: 'You run from the overwhelming power of this place.',
+        effects: { xp: 30 }
+      }
+    ]
+  }
+];
+
+// ========================================
 // COMBINED ENCOUNTER ARRAY
 // ========================================
 
@@ -2536,7 +3157,11 @@ export const encounterSeeds: Encounter[] = [
   ...combatEncounters,
   ...eventEncounters,
   ...discoveryEncounters,
-  ...storyEncounters
+  ...storyEncounters,
+  ...newCombatEncounters,
+  ...newEventEncounters,
+  ...newDiscoveryEncounters,
+  ...newStoryEncounters
 ];
 
 /**
@@ -2545,10 +3170,10 @@ export const encounterSeeds: Encounter[] = [
 export async function seedEncounters(): Promise<void> {
   console.log('Seeding encounters...');
   console.log(`Total encounters: ${encounterSeeds.length}`);
-  console.log(`- Combat: ${combatEncounters.length}`);
-  console.log(`- Event: ${eventEncounters.length}`);
-  console.log(`- Discovery: ${discoveryEncounters.length}`);
-  console.log(`- Story: ${storyEncounters.length}`);
+  console.log(`- Combat: ${combatEncounters.length + newCombatEncounters.length}`);
+  console.log(`- Event: ${eventEncounters.length + newEventEncounters.length}`);
+  console.log(`- Discovery: ${discoveryEncounters.length + newDiscoveryEncounters.length}`);
+  console.log(`- Story: ${storyEncounters.length + newStoryEncounters.length}`);
 }
 
 /**

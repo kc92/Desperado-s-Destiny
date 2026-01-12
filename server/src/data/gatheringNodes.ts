@@ -5,10 +5,12 @@
  */
 
 export enum GatheringType {
-  MINING = 'mining',
+  MINING = 'prospecting',
   HERBALISM = 'alchemy',
-  WOODCUTTING = 'woodcutting',
-  FORAGING = 'foraging'
+  WOODCUTTING = 'woodworking',
+  FORAGING = 'foraging',
+  HUNTING = 'trapping',
+  FISHING = 'fishing'
 }
 
 export interface GatheringYield {
@@ -49,7 +51,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Iron Vein',
     description: 'A vein of iron ore exposed in the rock face. Common but essential.',
     locationIds: ['goldfingers-mine', 'red-gulch', 'whiskeyville'],
-    skillRequired: 'mining',
+    skillRequired: 'prospecting',
     levelRequired: 1,
     energyCost: 15,
     cooldownSeconds: 180, // 3 minutes
@@ -67,7 +69,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Silver Vein',
     description: 'A glinting vein of silver ore. Worth more than iron, but harder to find.',
     locationIds: ['goldfingers-mine', 'the-scar'],
-    skillRequired: 'mining',
+    skillRequired: 'prospecting',
     levelRequired: 10,
     energyCost: 20,
     cooldownSeconds: 300, // 5 minutes
@@ -85,7 +87,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Gold Deposit',
     description: 'The legendary gold that brought prospectors west. A rich deposit awaits.',
     locationIds: ['goldfingers-mine'],
-    skillRequired: 'mining',
+    skillRequired: 'prospecting',
     levelRequired: 20,
     energyCost: 30,
     cooldownSeconds: 600, // 10 minutes
@@ -103,7 +105,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Coal Seam',
     description: 'Dark coal embedded in the rock. Essential fuel for smelting.',
     locationIds: ['goldfingers-mine', 'red-gulch', 'the-wastes'],
-    skillRequired: 'mining',
+    skillRequired: 'prospecting',
     levelRequired: 1,
     energyCost: 12,
     cooldownSeconds: 120, // 2 minutes
@@ -190,7 +192,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Pine Tree',
     description: 'A tall pine tree. Common wood used for basic construction.',
     locationIds: ['western-outpost', 'whiskeyville', 'red-gulch'],
-    skillRequired: 'carpentry',
+    skillRequired: 'woodworking',
     levelRequired: 1,
     energyCost: 15,
     cooldownSeconds: 180, // 3 minutes
@@ -208,7 +210,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Oak Tree',
     description: 'A mighty oak. Harder wood, better for crafting quality items.',
     locationIds: ['kaiowa-mesa', 'frontera'],
-    skillRequired: 'carpentry',
+    skillRequired: 'woodworking',
     levelRequired: 10,
     energyCost: 20,
     cooldownSeconds: 300, // 5 minutes
@@ -226,7 +228,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Mesquite Tree',
     description: 'Desert mesquite. Dense wood that burns hot and long.',
     locationIds: ['the-wastes', 'the-scar'],
-    skillRequired: 'carpentry',
+    skillRequired: 'woodworking',
     levelRequired: 15,
     energyCost: 25,
     cooldownSeconds: 360, // 6 minutes
@@ -247,7 +249,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Scrap Pile',
     description: 'A pile of discarded metal and materials. One man\'s trash...',
     locationIds: ['red-gulch', 'frontera', 'whiskeyville'],
-    skillRequired: 'mining',
+    skillRequired: 'prospecting',
     levelRequired: 1,
     energyCost: 8,
     cooldownSeconds: 90, // 1.5 minutes
@@ -264,7 +266,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Abandoned Camp',
     description: 'A deserted campsite. Previous owners left in a hurry.',
     locationIds: ['western-outpost', 'the-wastes'],
-    skillRequired: 'mining',
+    skillRequired: 'prospecting',
     levelRequired: 5,
     energyCost: 12,
     cooldownSeconds: 180, // 3 minutes
@@ -281,7 +283,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Animal Carcass',
     description: 'Remains of a dead animal. Salvageable materials within.',
     locationIds: ['western-outpost', 'kaiowa-mesa', 'the-wastes'],
-    skillRequired: 'mining',
+    skillRequired: 'prospecting',
     levelRequired: 3,
     energyCost: 10,
     cooldownSeconds: 120, // 2 minutes
@@ -298,7 +300,7 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Water Source',
     description: 'A natural spring or well. Clean water is precious out here.',
     locationIds: ['western-outpost', 'red-gulch', 'kaiowa-mesa', 'frontera'],
-    skillRequired: 'mining',
+    skillRequired: 'prospecting',
     levelRequired: 1,
     energyCost: 5,
     cooldownSeconds: 60, // 1 minute
@@ -313,13 +315,166 @@ export const GATHERING_NODES: GatheringNode[] = [
     name: 'Hemp Plants',
     description: 'Wild hemp. Useful fibers for rope and cloth.',
     locationIds: ['western-outpost', 'frontera', 'kaiowa-mesa'],
-    skillRequired: 'mining',
+    skillRequired: 'prospecting',
     levelRequired: 5,
     energyCost: 10,
     cooldownSeconds: 150, // 2.5 minutes
     yields: [
       { itemId: 'hemp', name: 'Hemp', minQuantity: 2, maxQuantity: 4, chance: 100, qualityAffected: false, rarity: 'common' },
       { itemId: 'cloth', name: 'Cloth', minQuantity: 0, maxQuantity: 1, chance: 30, qualityAffected: false, rarity: 'common' },
+    ]
+  },
+
+  // ============================================================================
+  // NEW MINING NODES (Phase Skill Expansion)
+  // ============================================================================
+  {
+    id: 'copper_vein',
+    type: GatheringType.MINING,
+    name: 'Copper Vein',
+    description: 'Greenish copper ore streaking through the rock. Malleable and useful for alloys.',
+    locationIds: ['abandoned-mine', 'sangre-canyon', 'goldfingers-mine'],
+    skillRequired: 'prospecting',
+    levelRequired: 5,
+    energyCost: 15,
+    cooldownSeconds: 180, // 3 minutes
+    toolRequired: 'pickaxe',
+    toolBonus: 25,
+    yields: [
+      { itemId: 'copper_ore', name: 'Copper Ore', minQuantity: 1, maxQuantity: 3, chance: 100, qualityAffected: true, rarity: 'common' },
+      { itemId: 'malachite', name: 'Malachite', minQuantity: 0, maxQuantity: 1, chance: 20, qualityAffected: true, rarity: 'uncommon' },
+      { itemId: 'stone', name: 'Stone', minQuantity: 0, maxQuantity: 2, chance: 35, qualityAffected: false, rarity: 'common' },
+    ]
+  },
+  {
+    id: 'sulfur_deposit',
+    type: GatheringType.MINING,
+    name: 'Sulfur Deposit',
+    description: 'Yellow crystalline sulfur near volcanic vents. Essential for gunpowder and alchemy.',
+    locationIds: ['the-badlands', 'the-wastes', 'the-scar'],
+    skillRequired: 'prospecting',
+    levelRequired: 15,
+    energyCost: 20,
+    cooldownSeconds: 300, // 5 minutes
+    toolRequired: 'pickaxe',
+    toolBonus: 20,
+    yields: [
+      { itemId: 'sulfur', name: 'Sulfur', minQuantity: 2, maxQuantity: 4, chance: 100, qualityAffected: false, rarity: 'uncommon' },
+      { itemId: 'brimstone', name: 'Brimstone', minQuantity: 0, maxQuantity: 1, chance: 25, qualityAffected: false, rarity: 'rare' },
+    ]
+  },
+
+  // ============================================================================
+  // NEW HERBALISM NODES (Phase Skill Expansion)
+  // ============================================================================
+  {
+    id: 'sacred_sage',
+    type: GatheringType.HERBALISM,
+    name: 'Sacred Sage',
+    description: 'White sage growing on sacred ground. Used in ceremonies and powerful remedies.',
+    locationIds: ['kaiowa-mesa', 'thunderbirds-perch', 'bone-garden', 'spirit-springs'],
+    skillRequired: 'alchemy',
+    levelRequired: 20,
+    energyCost: 20,
+    cooldownSeconds: 360, // 6 minutes
+    yields: [
+      { itemId: 'sacred_sage', name: 'Sacred Sage', minQuantity: 1, maxQuantity: 2, chance: 100, qualityAffected: true, rarity: 'rare' },
+      { itemId: 'spirit_herb', name: 'Spirit Herb', minQuantity: 0, maxQuantity: 1, chance: 30, qualityAffected: true, rarity: 'rare' },
+      { itemId: 'herbs', name: 'Herbs', minQuantity: 1, maxQuantity: 2, chance: 60, qualityAffected: false, rarity: 'common' },
+    ]
+  },
+  {
+    id: 'desert_cactus',
+    type: GatheringType.HERBALISM,
+    name: 'Desert Cactus',
+    description: 'Prickly pear and barrel cacti. Water and medicine in hostile land.',
+    locationIds: ['the-wastes', 'dusty-trail', 'sangre-canyon', 'the-badlands'],
+    skillRequired: 'alchemy',
+    levelRequired: 8,
+    energyCost: 12,
+    cooldownSeconds: 180, // 3 minutes
+    yields: [
+      { itemId: 'cactus_fruit', name: 'Cactus Fruit', minQuantity: 1, maxQuantity: 3, chance: 100, qualityAffected: true, rarity: 'common' },
+      { itemId: 'cactus_spine', name: 'Cactus Spine', minQuantity: 1, maxQuantity: 4, chance: 80, qualityAffected: false, rarity: 'common' },
+      { itemId: 'cactus_water', name: 'Cactus Water', minQuantity: 0, maxQuantity: 2, chance: 50, qualityAffected: false, rarity: 'common' },
+    ]
+  },
+
+  // ============================================================================
+  // NEW WOODCUTTING NODES (Phase Skill Expansion)
+  // ============================================================================
+  {
+    id: 'cottonwood_tree',
+    type: GatheringType.WOODCUTTING,
+    name: 'Cottonwood Tree',
+    description: 'A tall cottonwood growing near water. Light, workable wood with cotton-like seeds.',
+    locationIds: ['snake-creek', 'spirit-springs', 'longhorn-ranch'],
+    skillRequired: 'woodworking',
+    levelRequired: 5,
+    energyCost: 15,
+    cooldownSeconds: 180, // 3 minutes
+    toolRequired: 'hatchet',
+    toolBonus: 25,
+    yields: [
+      { itemId: 'cottonwood', name: 'Cottonwood', minQuantity: 2, maxQuantity: 4, chance: 100, qualityAffected: false, rarity: 'common' },
+      { itemId: 'cotton_fluff', name: 'Cotton Fluff', minQuantity: 1, maxQuantity: 3, chance: 60, qualityAffected: false, rarity: 'common' },
+      { itemId: 'wood', name: 'Wood', minQuantity: 0, maxQuantity: 2, chance: 40, qualityAffected: false, rarity: 'common' },
+    ]
+  },
+  {
+    id: 'juniper_tree',
+    type: GatheringType.WOODCUTTING,
+    name: 'Juniper Tree',
+    description: 'Gnarled juniper from the high country. Fragrant wood prized for bows and crafts.',
+    locationIds: ['kaiowa-mesa', 'sacred-heart-mountains', 'thunderbirds-perch'],
+    skillRequired: 'woodworking',
+    levelRequired: 12,
+    energyCost: 18,
+    cooldownSeconds: 240, // 4 minutes
+    toolRequired: 'hatchet',
+    toolBonus: 30,
+    yields: [
+      { itemId: 'juniper_wood', name: 'Juniper Wood', minQuantity: 1, maxQuantity: 3, chance: 100, qualityAffected: true, rarity: 'uncommon' },
+      { itemId: 'juniper_berries', name: 'Juniper Berries', minQuantity: 1, maxQuantity: 4, chance: 70, qualityAffected: false, rarity: 'common' },
+      { itemId: 'bow_stave', name: 'Bow Stave', minQuantity: 0, maxQuantity: 1, chance: 20, qualityAffected: true, rarity: 'uncommon' },
+    ]
+  },
+
+  // ============================================================================
+  // NEW HUNTING/TRAPPING NODES (Phase Skill Expansion)
+  // ============================================================================
+  {
+    id: 'game_trail',
+    type: GatheringType.HUNTING,
+    name: 'Game Trail',
+    description: 'A well-worn path used by wildlife. Set traps here for pelts and meat.',
+    locationIds: ['sangre-canyon', 'dusty-trail', 'longhorn-ranch', 'snake-creek'],
+    skillRequired: 'trapping',
+    levelRequired: 1,
+    energyCost: 20,
+    cooldownSeconds: 300, // 5 minutes
+    yields: [
+      { itemId: 'rabbit_pelt', name: 'Rabbit Pelt', minQuantity: 1, maxQuantity: 2, chance: 100, qualityAffected: true, rarity: 'common' },
+      { itemId: 'game_meat', name: 'Game Meat', minQuantity: 1, maxQuantity: 3, chance: 80, qualityAffected: true, rarity: 'common' },
+      { itemId: 'deer_pelt', name: 'Deer Pelt', minQuantity: 0, maxQuantity: 1, chance: 25, qualityAffected: true, rarity: 'uncommon' },
+      { itemId: 'fox_pelt', name: 'Fox Pelt', minQuantity: 0, maxQuantity: 1, chance: 15, qualityAffected: true, rarity: 'uncommon' },
+    ]
+  },
+  {
+    id: 'fishing_hole',
+    type: GatheringType.FISHING,
+    name: 'Fishing Hole',
+    description: 'A calm pool where fish gather. Patience and skill yield fresh catches.',
+    locationIds: ['snake-creek', 'spirit-springs', 'sangre-canyon'],
+    skillRequired: 'trapping',
+    levelRequired: 1,
+    energyCost: 15,
+    cooldownSeconds: 180, // 3 minutes
+    yields: [
+      { itemId: 'fish', name: 'Fish', minQuantity: 1, maxQuantity: 3, chance: 100, qualityAffected: true, rarity: 'common' },
+      { itemId: 'catfish', name: 'Catfish', minQuantity: 0, maxQuantity: 1, chance: 40, qualityAffected: true, rarity: 'common' },
+      { itemId: 'trout', name: 'Trout', minQuantity: 0, maxQuantity: 1, chance: 30, qualityAffected: true, rarity: 'uncommon' },
+      { itemId: 'crayfish', name: 'Crayfish', minQuantity: 0, maxQuantity: 2, chance: 25, qualityAffected: false, rarity: 'common' },
     ]
   },
 ];
@@ -371,6 +526,8 @@ export function getNodeStats(): { total: number; byType: Record<GatheringType, n
     [GatheringType.HERBALISM]: 0,
     [GatheringType.WOODCUTTING]: 0,
     [GatheringType.FORAGING]: 0,
+    [GatheringType.HUNTING]: 0,
+    [GatheringType.FISHING]: 0,
   };
 
   for (const node of GATHERING_NODES) {

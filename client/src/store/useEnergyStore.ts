@@ -60,11 +60,13 @@ export const useEnergyStore = create<EnergyStore>((set, _get) => ({
     set((state) => {
       if (!state.energy) return state;
 
+      // Always update lastUpdate to prevent stale timestamp interpolation errors
+      // Use serverTimestamp if provided, otherwise use current time as baseline
       return {
         energy: {
           ...state.energy,
           currentEnergy: current,
-          lastUpdate: serverTimestamp || state.energy.lastUpdate,
+          lastUpdate: serverTimestamp || new Date(),
           isOptimistic: false,
         },
       };

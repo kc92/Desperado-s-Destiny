@@ -126,8 +126,8 @@ const ChineseDiasporaRepSchema = new Schema<IChineseDiasporaRep>(
       type: Schema.Types.ObjectId,
       ref: 'Character',
       required: true,
-      unique: true,
-      index: true
+      unique: true
+      // Note: unique: true creates an index
     },
 
     // Discovery
@@ -249,8 +249,8 @@ const ChineseDiasporaRepSchema = new Schema<IChineseDiasporaRep>(
 
 /**
  * Indexes for efficient querying
+ * Note: characterId already indexed via unique: true constraint
  */
-ChineseDiasporaRepSchema.index({ characterId: 1 }, { unique: true });
 ChineseDiasporaRepSchema.index({ trustLevel: -1, reputationPoints: -1 }); // Leaderboards
 ChineseDiasporaRepSchema.index({ networkStanding: 1 });
 ChineseDiasporaRepSchema.index({ discoveredNetwork: 1 });

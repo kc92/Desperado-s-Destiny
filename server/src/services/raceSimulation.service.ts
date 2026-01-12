@@ -269,10 +269,12 @@ function checkForIncidents(
         }]
       });
 
-      // Recover speed gradually
-      setTimeout(() => {
-        horse.currentSpeed *= 2;
-      }, 1000);
+      // Recover speed gradually (skip in test environment to prevent timer leaks)
+      if (process.env.NODE_ENV !== 'test') {
+        setTimeout(() => {
+          horse.currentSpeed *= 2;
+        }, 1000);
+      }
     }
   }
 }

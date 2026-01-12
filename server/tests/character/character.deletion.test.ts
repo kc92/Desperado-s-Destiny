@@ -5,17 +5,18 @@
  */
 
 import request from 'supertest';
-import app from '../../src/server';
+import app from '../testApp';
 import { Character } from '../../src/models/Character.model';
-import { createTestToken } from '../helpers/auth.helpers';
+import { User } from '../../src/models/User.model';
+import { createTestToken, createTestUserWithPassword } from '../helpers/auth.helpers';
 import { apiPost, apiDelete, apiGet, expectSuccess, expectError } from '../helpers/api.helpers';
 import { Faction } from '@desperados/shared';
 
 describe('Character Deletion', () => {
-  const user1Id = '507f1f77bcf86cd799439011';
-  const user2Id = '507f1f77bcf86cd799439012';
-  const token1 = createTestToken(user1Id, 'user1@example.com');
-  const token2 = createTestToken(user2Id, 'user2@example.com');
+  let user1Id: string;
+  let user2Id: string;
+  let token1: string;
+  let token2: string;
 
   const validCharacterData = {
     name: 'Jack Thornton',
@@ -28,6 +29,28 @@ describe('Character Deletion', () => {
       hairColor: 2
     }
   };
+
+  beforeEach(async () => {
+    // Create User 1
+    const email1 = `user1.deletion.${Date.now()}@example.com`;
+    const userData1 = await createTestUserWithPassword(email1, 'TestPass123!');
+    const user1 = await User.create({
+      ...userData1,
+      emailVerified: true
+    });
+    user1Id = user1._id.toString();
+    token1 = createTestToken(user1Id, email1);
+
+    // Create User 2
+    const email2 = `user2.deletion.${Date.now()}@example.com`;
+    const userData2 = await createTestUserWithPassword(email2, 'TestPass123!');
+    const user2 = await User.create({
+      ...userData2,
+      emailVerified: true
+    });
+    user2Id = user2._id.toString();
+    token2 = createTestToken(user2Id, email2);
+  });
 
   describe('DELETE /api/characters/:id - Success Cases', () => {
     it('should soft delete a character', async () => {

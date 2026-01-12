@@ -11,7 +11,13 @@ import { useActionStore } from '@/store/useActionStore';
 import { useTerritoryStore } from '@/store/useTerritoryStore';
 import { locationService } from '@/services/location.service';
 import { Card, Button } from '@/components/ui';
-import type { Territory as TerritoryData } from '@desperados/shared';
+import {
+  TerritoryWarStatus,
+  InfluenceContribution,
+  FactionAlignmentUI,
+} from '@/components/territory';
+import { useToast } from '@/store/useToastStore';
+import { TerritoryFactionId, type Territory as TerritoryData } from '@desperados/shared';
 // import { formatDistanceToNow } from 'date-fns';
 
 interface TerritoryLocation {
@@ -43,19 +49,36 @@ export const Territory: React.FC = () => {
     fetchActions,
   } = useActionStore();
 
-  // Use territory store instead of local state
+  // Use territory store
   const {
     territories: storeData,
+    currentInfluence,
+    alignmentBenefits,
+    factionOverview,
     isLoading,
+    isLoadingInfluence,
+    isContributing,
     error: storeError,
     fetchTerritories,
+    fetchTerritoryInfluence,
+    donateForInfluence,
+    fetchAlignmentBenefits,
+    fetchFactionOverview,
   } = useTerritoryStore();
+
+  const toast = useToast();
 
   // Local UI state
   const [selectedTerritory, setSelectedTerritory] = useState<TerritoryLocation | null>(null);
   const [travelTime, setTravelTime] = useState<number>(0);
   const [isTraveling, setIsTraveling] = useState(false);
   const [resolvedLocationName, setResolvedLocationName] = useState<string | null>(null);
+  const [showInfluence, setShowInfluence] = useState(false);
+
+  // User's faction (mock - would come from character data)
+  const userFaction: TerritoryFactionId | null = TerritoryFactionId.SETTLER_ALLIANCE;
+  const isGangMember = true; // Mock - would check if user is in a gang
+  const userGangId = 'mock-gang-id';
 
   // Convert Territory[] from store to TerritoryLocation[] for UI
   // This is a temporary mapping layer until we fully migrate to Territory types
@@ -77,6 +100,17 @@ export const Territory: React.FC = () => {
       }
     }
   }, [territories, currentLocation, selectedTerritory]);
+
+  // Fetch influence when a territory is selected
+  useEffect(() => {
+    if (selectedTerritory && showInfluence) {
+      fetchTerritoryInfluence(selectedTerritory.id);
+      if (userFaction) {
+        fetchAlignmentBenefits(selectedTerritory.id, userFaction);
+        fetchFactionOverview(userFaction);
+      }
+    }
+  }, [selectedTerritory, showInfluence, userFaction, fetchTerritoryInfluence, fetchAlignmentBenefits, fetchFactionOverview]);
 
   // Fetch location name from location service (same approach as PlayerSidebar)
   useEffect(() => {
@@ -206,7 +240,7 @@ export const Territory: React.FC = () => {
       const locationsResponse = await locationService.getAllLocations();
 
       if (!locationsResponse.success || !locationsResponse.data?.locations) {
-        console.error('Failed to fetch locations for travel');
+        toast.error('Travel Failed', 'Could not load travel destinations. Please try again.');
         return;
       }
 
@@ -216,8 +250,7 @@ export const Territory: React.FC = () => {
       );
 
       if (!targetLocation) {
-        console.error(`No hub location found for territory: ${territory.name}`);
-        // TODO: Show user-friendly error toast
+        toast.error('Destination Not Found', `Cannot travel to ${territory.name}. This area may not be accessible yet.`);
         return;
       }
 
@@ -235,15 +268,35 @@ export const Territory: React.FC = () => {
 
         await fetchActions(locationId);
         setSelectedTerritory(territory);
+
+        toast.success('Arrived!', `You have arrived at ${territory.name}.`);
       } else {
-        console.error('Travel failed:', response.error);
+        toast.error('Travel Failed', response.error || 'Something went wrong during travel. Please try again.');
       }
     } catch (error) {
-      console.error('Travel error:', error);
+      toast.error('Travel Error', error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.');
     } finally {
       setIsTraveling(false);
       setTravelTime(0);
     }
+  };
+
+  // Handle influence donation
+  const handleDonateInfluence = async (factionId: TerritoryFactionId, amount: number) => {
+    if (!selectedTerritory) return;
+
+    try {
+      await donateForInfluence(selectedTerritory.id, factionId, amount);
+      toast.success('Donation Successful', `Contributed $${amount} to ${factionId.replace(/_/g, ' ')}`);
+    } catch (err: any) {
+      toast.error('Donation Failed', err.message || 'Could not donate');
+    }
+  };
+
+  // Get current territory data for war status
+  const getCurrentTerritoryData = (): TerritoryData | null => {
+    if (!selectedTerritory) return null;
+    return storeData.find(t => t._id === selectedTerritory.id) || null;
   };
 
   const getDangerColor = (level: number) => {
@@ -557,8 +610,70 @@ export const Territory: React.FC = () => {
               </div>
             </div>
           </Card>
+
+          {/* War & Influence Toggle */}
+          {selectedTerritory && (
+            <Card variant="leather" className="mt-4">
+              <div className="p-6">
+                <Button
+                  variant={showInfluence ? 'primary' : 'secondary'}
+                  className="w-full"
+                  onClick={() => setShowInfluence(!showInfluence)}
+                >
+                  {showInfluence ? 'Hide War & Influence' : 'Show War & Influence'}
+                </Button>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
+
+      {/* War & Influence Section */}
+      {showInfluence && selectedTerritory && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          {/* Territory War Status */}
+          <div>
+            {(() => {
+              const territoryData = getCurrentTerritoryData();
+              return territoryData ? (
+                <TerritoryWarStatus
+                  territory={territoryData}
+                  isGangMember={isGangMember}
+                  userGangId={userGangId}
+                  onJoinWar={() => toast.info('Coming Soon', 'War mechanics coming soon!')}
+                  onContribute={() => toast.info('Coming Soon', 'Contribution coming soon!')}
+                  isLoading={isLoading}
+                />
+              ) : (
+                <Card className="p-4 text-center text-gray-500">
+                  <p>No active wars in this territory</p>
+                </Card>
+              );
+            })()}
+          </div>
+
+          {/* Influence Contribution */}
+          <div>
+            <InfluenceContribution
+              influence={currentInfluence}
+              userFaction={userFaction}
+              userGold={currentCharacter?.dollars || 0}
+              onDonate={handleDonateInfluence}
+              isLoading={isLoadingInfluence || isContributing}
+            />
+          </div>
+
+          {/* Faction Alignment */}
+          <div>
+            <FactionAlignmentUI
+              currentFaction={userFaction}
+              alignmentBenefits={alignmentBenefits}
+              factionOverview={factionOverview}
+              isLoading={isLoadingInfluence}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

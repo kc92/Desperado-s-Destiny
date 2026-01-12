@@ -157,7 +157,7 @@ export const PerformanceList: React.FC<PerformanceListProps> = ({
                   )}
                   {performance.rewards.gold && (
                     <span className="text-xs px-1.5 py-0.5 bg-yellow-900/30 text-gold-light rounded">
-                      +{performance.rewards.gold}g
+                      +${performance.rewards.gold}
                     </span>
                   )}
                   {performance.rewards.buff && (
@@ -205,7 +205,7 @@ export const PerformanceList: React.FC<PerformanceListProps> = ({
                   {result.goldEarned && (
                     <div className="flex justify-between">
                       <span className="text-desert-sand">Gold</span>
-                      <span className="text-gold-light">+{result.goldEarned}g</span>
+                      <span className="text-gold-light">+${result.goldEarned}</span>
                     </div>
                   )}
                   {result.itemReceived && (
@@ -312,7 +312,7 @@ export const PerformanceList: React.FC<PerformanceListProps> = ({
                     {selectedPerformance.rewards.gold && (
                       <div className="flex justify-between text-sm">
                         <span className="text-desert-sand">Gold</span>
-                        <span className="text-gold-light">+{selectedPerformance.rewards.gold}g</span>
+                        <span className="text-gold-light">+${selectedPerformance.rewards.gold}</span>
                       </div>
                     )}
                     {selectedPerformance.rewards.buff && (

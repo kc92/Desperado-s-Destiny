@@ -30,6 +30,7 @@ import {
 } from './trickTaking.service';
 import { SecureRNG } from './base/SecureRNG';
 import { ITeamCardPlayer, ITeamCardGameSession } from '../models/TeamCardGameSession.model';
+import logger from '../utils/logger';
 
 // =============================================================================
 // TYPES
@@ -177,7 +178,7 @@ export function chooseCard(context: NPCDecisionContext): number {
   );
 
   if (playable.length === 0) {
-    console.error('NPC has no playable cards!');
+    logger.error('[NPCPartnerService] chooseCard: NPC has no playable cards!', { npcIndex, handLength: npcPlayer.hand.length });
     return 0;
   }
 

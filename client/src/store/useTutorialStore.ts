@@ -21,6 +21,7 @@ import type {
 import { logger } from '@/services/logger.service';
 import { useCharacterStore } from './useCharacterStore';
 import { useSkillStore } from './useSkillStore';
+import { useToastStore } from './useToastStore';
 
 // Tutorial step with action requirements
 export interface TutorialStep {
@@ -508,7 +509,18 @@ export const useTutorialStore = create<TutorialState>()(
 
         // Check if mandatory steps are completed before allowing skip
         if (!get().canSkipTutorial()) {
-          logger.warn(`Cannot skip tutorial yet. Complete ${MANDATORY_STEPS} mandatory steps first. Currently at ${get().getTotalStepsCompleted()} steps.`, { context: 'useTutorialStore.skipTutorial', mandatorySteps: MANDATORY_STEPS, totalStepsCompleted: get().getTotalStepsCompleted() });
+          const stepsCompleted = get().getTotalStepsCompleted();
+          const stepsRemaining = MANDATORY_STEPS - stepsCompleted;
+
+          // Show user-facing toast notification explaining why skip is blocked
+          useToastStore.getState().addToast({
+            type: 'warning',
+            title: 'Cannot Skip Yet',
+            message: `Complete ${stepsRemaining} more step${stepsRemaining > 1 ? 's' : ''} before skipping. (${stepsCompleted}/${MANDATORY_STEPS} done)`,
+            duration: 5000,
+          });
+
+          logger.warn(`Cannot skip tutorial yet. Complete ${MANDATORY_STEPS} mandatory steps first. Currently at ${stepsCompleted} steps.`, { context: 'useTutorialStore.skipTutorial', mandatorySteps: MANDATORY_STEPS, totalStepsCompleted: stepsCompleted });
           return;
         }
 

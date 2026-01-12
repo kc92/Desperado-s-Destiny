@@ -4,41 +4,29 @@
  */
 
 import request from 'supertest';
-import { Express } from 'express';
 import mongoose from 'mongoose';
 import { Location } from '../../src/models/Location.model';
 import { Character } from '../../src/models/Character.model';
+import app from '../testApp';
+import { setupCompleteGameState } from '../helpers/testHelpers';
+import { seedAllLocations } from '../helpers/seedHelpers';
 
 describe('📍 ALL LOCATIONS & BUILDINGS EXHAUSTIVE TEST', () => {
-  let app: Express;
   let authToken: string;
   let testCharacterId: string;
   let testUserId: string;
 
   beforeAll(async () => {
-    const { default: createApp } = await import('../testApp');
-    app = createApp();
+    // Seed all locations before running tests
+    await seedAllLocations();
 
-    const registerRes = await request(app)
-      .post('/api/auth/register')
-      .send({
-        email: `location-test-${Date.now()}@test.com`,
-        password: 'TestPassword123!',
-      });
+    // Use the proven setupCompleteGameState helper
+    const gameState = await setupCompleteGameState(app);
+    authToken = gameState.token;
+    testCharacterId = gameState.character._id.toString();
+    testUserId = gameState.user._id;
 
-    authToken = registerRes.body.data.token;
-    testUserId = registerRes.body.data.user._id;
-
-    const charRes = await request(app)
-      .post('/api/characters')
-      .set('Cookie', `token=${authToken}`)
-      .send({
-        name: `LocationTester${Date.now()}`,
-        faction: 'SETTLER_ALLIANCE',
-      });
-
-    testCharacterId = charRes.body.data.character._id;
-
+    // Select the character
     await request(app)
       .patch(`/api/characters/${testCharacterId}/select`)
       .set('Cookie', `token=${authToken}`);

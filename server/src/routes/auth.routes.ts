@@ -10,6 +10,7 @@ import {
   loginRateLimiter,
   registrationRateLimiter,
   passwordResetRateLimiter,
+  passwordResetEmailLimiter,
   twoFactorRateLimiter,
   emailVerificationRateLimiter
 } from '../middleware/rateLimiter';
@@ -176,9 +177,11 @@ router.get('/me', requireAuth, asyncHandler(getCurrentUser));
  * Response:
  * - 200: Reset link sent (always, to prevent email enumeration)
  *
- * Rate limited: 3 requests per hour (prevents spam and enumeration)
+ * Rate limited:
+ * - Per-IP: 3 requests per hour (prevents spam from single source)
+ * - Per-Email: 5 requests per 24 hours (prevents distributed DoS flooding victim's inbox)
  */
-router.post('/forgot-password', passwordResetRateLimiter, asyncHandler(forgotPassword));
+router.post('/forgot-password', passwordResetRateLimiter, passwordResetEmailLimiter, asyncHandler(forgotPassword));
 
 /**
  * POST /api/auth/reset-password

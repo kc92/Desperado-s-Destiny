@@ -12,10 +12,10 @@ interface JailScreenProps {
   isJailed: boolean;
   /** Timestamp when jail time ends */
   jailedUntil: Date | null;
-  /** Cost to pay bail and get out early */
+  /** Cost to pay bail and get out early (in dollars) */
   bailCost: number;
-  /** Character's current gold */
-  currentGold: number;
+  /** Character's current dollars */
+  currentDollars: number;
   /** Offense that led to jail */
   offense?: string;
   /** Callback when player pays bail */
@@ -75,7 +75,7 @@ export const JailScreen: React.FC<JailScreenProps> = ({
   isJailed,
   jailedUntil,
   bailCost,
-  currentGold,
+  currentDollars,
   offense = "Criminal Activities",
   onPayBail,
   onJailExpired,
@@ -85,7 +85,7 @@ export const JailScreen: React.FC<JailScreenProps> = ({
   const [flavorText, setFlavorText] = useState<string>('');
   const [isExpired, setIsExpired] = useState(false);
 
-  const canAffordBail = currentGold >= bailCost;
+  const canAffordBail = currentDollars >= bailCost;
 
   // Initialize flavor text
   useEffect(() => {
@@ -231,11 +231,11 @@ export const JailScreen: React.FC<JailScreenProps> = ({
                   disabled={!canAffordBail}
                   onClick={onPayBail}
                 >
-                  Pay Bail: {bailCost}g
+                  Pay Bail: ${bailCost}
                 </Button>
                 {!canAffordBail && (
                   <p className="text-xs text-blood-red mt-2 text-center">
-                    Insufficient gold (need {bailCost - currentGold} more)
+                    Insufficient dollars (need ${bailCost - currentDollars} more)
                   </p>
                 )}
               </div>

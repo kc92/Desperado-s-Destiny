@@ -152,7 +152,7 @@ export const MerchantInventory: React.FC<MerchantInventoryProps> = ({
                 <p className="text-xs text-desert-stone capitalize">{item.rarity}</p>
                 <div className="flex justify-between items-center mt-2">
                   <span className={`font-bold ${affordable ? 'text-gold-light' : 'text-red-500'}`}>
-                    {item.price}g
+                    ${item.price}
                   </span>
                   {item.quantity !== undefined && (
                     <span className="text-xs text-desert-stone">
@@ -256,7 +256,7 @@ export const MerchantInventory: React.FC<MerchantInventoryProps> = ({
                 <p className={`text-2xl font-western ${
                   canAfford(selectedItem) ? 'text-gold-light' : 'text-red-500'
                 }`}>
-                  {selectedItem.price}g
+                  ${selectedItem.price}
                 </p>
               </div>
               {onBuyItem && (

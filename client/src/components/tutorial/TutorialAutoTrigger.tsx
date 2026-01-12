@@ -33,6 +33,8 @@ export const TutorialAutoTrigger: React.FC = () => {
     dismissResumePrompt,
   } = useTutorialStore();
 
+  const [showSkipConfirm, setShowSkipConfirm] = React.useState(false);
+
   // Helper to get start params
   const getStartParams = () => {
     if (!currentCharacter?.faction) return { section: 'intro_settler', factionId: 'SETTLER_ALLIANCE' };
@@ -46,16 +48,48 @@ export const TutorialAutoTrigger: React.FC = () => {
     // Only check when authenticated with a character
     if (!isAuthenticated || !currentCharacter) return;
 
-    // Don't auto-trigger if tutorial is completed or already active
-    if (tutorialCompleted || isActive || isPaused || showResumePrompt) return;
-
-    // Check if this is a brand new character
+    // Check if this is a brand new character (level 1, no XP)
     const isNewCharacter =
       currentCharacter.level === 1 &&
-      currentCharacter.experience === 0;
+      (currentCharacter.experience === 0 || currentCharacter.experience === undefined);
 
+    // Check if tutorial state belongs to a DIFFERENT character
+    const isDifferentCharacter = tutorialCharacterId && tutorialCharacterId !== currentCharacter._id;
+
+    // CASE 1: New character, but localStorage has tutorial state from a different character
+    // Reset and start fresh for this new character
+    if (isNewCharacter && isDifferentCharacter) {
+      resetTutorial();
+      const timer = setTimeout(() => {
+        const { section, factionId } = getStartParams();
+        startTutorial(section, 'core', factionId);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+
+    // CASE 2: New character, tutorial marked complete from previous character (stale localStorage)
+    // Also reset and start fresh
+    if (isNewCharacter && tutorialCompleted && !tutorialCharacterId) {
+      // Tutorial was completed but characterId is null - likely stale data
+      resetTutorial();
+      const timer = setTimeout(() => {
+        const { section, factionId } = getStartParams();
+        startTutorial(section, 'core', factionId);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+
+    // CASE 3: Tutorial is already active/paused/completed for THIS character - don't interfere
+    if (tutorialCharacterId === currentCharacter._id) {
+      // Tutorial state belongs to this character, respect it
+      return;
+    }
+
+    // CASE 4: Don't auto-trigger if tutorial is already running or completed
+    if (tutorialCompleted || isActive || isPaused || showResumePrompt) return;
+
+    // CASE 5: Brand new character with no tutorial history at all - start tutorial
     if (isNewCharacter) {
-      // Small delay to let the UI settle
       const timer = setTimeout(() => {
         const { section, factionId } = getStartParams();
         startTutorial(section, 'core', factionId);
@@ -63,7 +97,7 @@ export const TutorialAutoTrigger: React.FC = () => {
 
       return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, currentCharacter, tutorialCompleted, isActive, isPaused, showResumePrompt, startTutorial]);
+  }, [isAuthenticated, currentCharacter, tutorialCompleted, isActive, isPaused, showResumePrompt, tutorialCharacterId, startTutorial, resetTutorial]);
 
   // Only show resume prompt if it's for the current character
   const isCurrentCharacterTutorial = tutorialCharacterId === currentCharacter?._id;
@@ -121,7 +155,7 @@ export const TutorialAutoTrigger: React.FC = () => {
           </Button>
           <Button
             variant="ghost"
-            onClick={skipTutorial}
+            onClick={() => setShowSkipConfirm(true)}
             fullWidth
           >
             Skip Tutorial
@@ -131,6 +165,39 @@ export const TutorialAutoTrigger: React.FC = () => {
         <p className="text-xs text-desert-stone text-center">
           You can replay the tutorial anytime from Settings.
         </p>
+
+        {/* Skip confirmation nested modal */}
+        {showSkipConfirm && (
+          <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/60">
+            <div className="bg-gradient-to-b from-leather-brown to-leather-dark border-4 border-gold-dark rounded-lg shadow-2xl p-6 max-w-md mx-4">
+              <h3 className="text-lg font-western text-gold-light mb-3">
+                Skip Tutorial?
+              </h3>
+              <p className="text-desert-sand mb-4">
+                Are you sure you want to skip the tutorial? You can resume it later from the Settings menu.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowSkipConfirm(false)}
+                >
+                  Continue Tutorial
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setShowSkipConfirm(false);
+                    skipTutorial();
+                  }}
+                >
+                  Skip Tutorial
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Modal>
   );

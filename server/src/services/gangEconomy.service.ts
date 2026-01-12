@@ -41,9 +41,12 @@ export class GangEconomyService {
    */
   static async initializeEconomy(gangId: string, gangName: string): Promise<IGangEconomy> {
     const session = await mongoose.startSession();
+    const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
 
     try {
-      await session.startTransaction();
+      if (!disableTransactions) {
+        await session.startTransaction();
+      }
 
       // Check if economy already exists
       const existing = await GangEconomy.findOne({ gangId: new mongoose.Types.ObjectId(gangId) }).session(session);
@@ -80,13 +83,18 @@ export class GangEconomyService {
         { session }
       );
 
-      await session.commitTransaction();
+      if (!disableTransactions) {
+        await session.commitTransaction();
+      }
 
       logger.info(`Economy initialized for gang ${gangName} (${gangId})`);
 
       return economy[0];
     } catch (error) {
-      await session.abortTransaction();
+      // Only abort if transaction is still active (not already committed/aborted)
+      if (!disableTransactions && session.inTransaction()) {
+        await session.abortTransaction();
+      }
       logger.error('Error initializing gang economy:', error);
       throw error;
     } finally {

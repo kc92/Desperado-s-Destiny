@@ -298,8 +298,8 @@ export const CHARACTER_LIMITS = {
   MIN_NAME_LENGTH: 3,
   /** Maximum name length */
   MAX_NAME_LENGTH: 20,
-  /** Name regex pattern */
-  NAME_PATTERN: /^[a-zA-Z0-9_-]+$/
+  /** Name regex pattern (alphanumeric, spaces, hyphens, apostrophes) */
+  NAME_PATTERN: /^[a-zA-Z0-9\s'-]+$/
 } as const;
 
 /**

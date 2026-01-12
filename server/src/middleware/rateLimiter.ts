@@ -301,7 +301,7 @@ export const shopRateLimiter = createRateLimiter({
 });
 
 /**
- * Rate limiter for password reset endpoints
+ * Rate limiter for password reset endpoints (per-IP)
  * Prevents password reset spam and enumeration attacks
  *
  * SECURITY: Very strict limit to prevent account enumeration and email spam
@@ -316,6 +316,37 @@ export const passwordResetRateLimiter = createRateLimiter({
 
     throw new AppError(
       'Too many password reset attempts, please try again later',
+      HttpStatus.TOO_MANY_REQUESTS
+    );
+  },
+  skip: () => {
+    return process.env.NODE_ENV === 'test'; // SECURITY: Only skip rate limiting in test mode
+  },
+});
+
+/**
+ * Rate limiter for password reset endpoints (per-EMAIL)
+ * Prevents distributed DoS attacks where multiple IPs target the same email
+ *
+ * SECURITY: Max 5 reset emails per email address per 24 hours
+ * This protects users from inbox flooding even when attackers use multiple IPs
+ */
+export const passwordResetEmailLimiter = createRateLimiter({
+  prefix: 'password-reset-email',
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 5, // Max 5 resets per email per day
+  message: 'Too many password reset attempts for this email, please try again later',
+  keyGenerator: (req) => {
+    // Rate limit by email address (normalized to lowercase)
+    const email = req.body?.email?.toLowerCase?.() || 'unknown';
+    return `email:${email}`;
+  },
+  handler: (req, _res) => {
+    const email = req.body?.email || 'unknown';
+    logger.warn(`Password reset email rate limit exceeded for email: ${email.substring(0, 3)}***`);
+
+    throw new AppError(
+      'Too many password reset attempts for this email. Please try again tomorrow.',
       HttpStatus.TOO_MANY_REQUESTS
     );
   },
@@ -625,6 +656,164 @@ export const robberyRateLimiter = createRateLimiter({
   },
 });
 
+/**
+ * Rate limiter for currency exchange operations
+ * Prevents rapid currency manipulation and economic exploits
+ *
+ * SECURITY: Very strict user-based limit (10/min) to prevent:
+ * - Currency exchange arbitrage abuse
+ * - Economic manipulation through rapid trades
+ * - Automated trading bots
+ */
+export const currencyExchangeRateLimiter = createRateLimiter({
+  prefix: 'currency-exchange',
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 exchanges per minute per user
+  message: 'Too many currency exchanges, please slow down',
+  keyGenerator: (req) => {
+    // Rate limit by character ID for per-character limiting
+    const characterId = (req as any).character?._id?.toString() || (req as any).body?.characterId;
+    return characterId || req.ip || 'unknown';
+  },
+  handler: (req, _res) => {
+    const characterId = (req as any).character?._id?.toString() || (req as any).body?.characterId;
+    logger.warn(`Currency exchange rate limit exceeded. Character: ${characterId || 'N/A'}, IP: ${req.ip}`);
+
+    throw new AppError(
+      'Too many currency exchange attempts. Limit: 10 per minute. Please slow down.',
+      HttpStatus.TOO_MANY_REQUESTS
+    );
+  },
+  skip: () => {
+    return process.env.NODE_ENV === 'test';
+  },
+});
+
+/**
+ * Rate limiter for duel challenges
+ * Prevents duel spam and harassment
+ *
+ * SECURITY: Strict limit (5/min) to prevent:
+ * - Harassment via constant duel challenges
+ * - System abuse through rapid challenges
+ */
+export const duelRateLimiter = createRateLimiter({
+  prefix: 'duel-challenge',
+  windowMs: 60 * 1000, // 1 minute
+  max: 5, // 5 duel challenges per minute
+  message: 'Too many duel challenges, please slow down',
+  keyGenerator: (req) => {
+    const characterId = (req as any).character?._id?.toString() || (req as any).body?.characterId;
+    return characterId || req.ip || 'unknown';
+  },
+  handler: (req, _res) => {
+    const characterId = (req as any).character?._id?.toString() || (req as any).body?.characterId;
+    logger.warn(`Duel rate limit exceeded. Character: ${characterId || 'N/A'}, IP: ${req.ip}`);
+
+    throw new AppError(
+      'Too many duel challenges. Limit: 5 per minute. Please slow down.',
+      HttpStatus.TOO_MANY_REQUESTS
+    );
+  },
+  skip: () => {
+    return process.env.NODE_ENV === 'test';
+  },
+});
+
+/**
+ * Rate limiter for investment operations
+ * Prevents rapid investment manipulation
+ *
+ * SECURITY: Moderate limit (20/min) to allow normal investing while preventing:
+ * - Market manipulation through rapid trades
+ * - Automated trading abuse
+ */
+export const investmentRateLimiter = createRateLimiter({
+  prefix: 'investment',
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // 20 investment operations per minute
+  message: 'Too many investment operations, please slow down',
+  keyGenerator: (req) => {
+    const characterId = (req as any).character?._id?.toString() || (req as any).body?.characterId;
+    return characterId || req.ip || 'unknown';
+  },
+  handler: (req, _res) => {
+    const characterId = (req as any).character?._id?.toString() || (req as any).body?.characterId;
+    logger.warn(`Investment rate limit exceeded. Character: ${characterId || 'N/A'}, IP: ${req.ip}`);
+
+    throw new AppError(
+      'Too many investment operations. Limit: 20 per minute. Please slow down.',
+      HttpStatus.TOO_MANY_REQUESTS
+    );
+  },
+  skip: () => {
+    return process.env.NODE_ENV === 'test';
+  },
+});
+
+/**
+ * Rate limiter for activity endpoints (bounty hunting, cattle drives, deep mining)
+ * Prevents XP/resource farming through rapid actions
+ *
+ * SECURITY: Moderate limit (30/min) to allow active gameplay while preventing:
+ * - XP farming bots
+ * - Resource exploitation
+ * - Rapid action spam
+ */
+export const activityRateLimiter = createRateLimiter({
+  prefix: 'activity',
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 activity actions per minute
+  message: 'Too many actions, please slow down',
+  keyGenerator: (req) => {
+    const characterId = (req as any).character?._id?.toString() || (req as any).body?.characterId;
+    return characterId || req.ip || 'unknown';
+  },
+  handler: (req, _res) => {
+    const characterId = (req as any).character?._id?.toString() || (req as any).body?.characterId;
+    logger.warn(`Activity rate limit exceeded. Character: ${characterId || 'N/A'}, IP: ${req.ip}, Path: ${req.path}`);
+
+    throw new AppError(
+      'Too many actions. Limit: 30 per minute. Please slow down.',
+      HttpStatus.TOO_MANY_REQUESTS
+    );
+  },
+  skip: () => {
+    return process.env.NODE_ENV === 'test';
+  },
+});
+
+/**
+ * Rate limiter for reputation spreading operations
+ * Prevents rapid reputation manipulation
+ *
+ * SECURITY: Strict limit (10/min) to prevent:
+ * - Reputation manipulation abuse
+ * - Coordinated reputation attacks
+ */
+export const reputationRateLimiter = createRateLimiter({
+  prefix: 'reputation',
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 reputation operations per minute
+  message: 'Too many reputation actions, please slow down',
+  keyGenerator: (req) => {
+    const characterId = (req as any).character?._id?.toString() || (req as any).body?.characterId;
+    return characterId || req.ip || 'unknown';
+  },
+  handler: (req, _res) => {
+    const characterId = (req as any).character?._id?.toString() || (req as any).body?.characterId;
+    logger.warn(`Reputation rate limit exceeded. Character: ${characterId || 'N/A'}, IP: ${req.ip}`);
+
+    throw new AppError(
+      'Too many reputation actions. Limit: 10 per minute. Please slow down.',
+      HttpStatus.TOO_MANY_REQUESTS
+    );
+  },
+  skip: () => {
+    return process.env.NODE_ENV === 'test';
+  },
+});
+
 export default {
   rateLimiter,
   authRateLimiter,
@@ -634,6 +823,7 @@ export default {
   goldTransferRateLimiter,
   shopRateLimiter,
   passwordResetRateLimiter,
+  passwordResetEmailLimiter,
   twoFactorRateLimiter,
   characterCreationRateLimiter,
   gangOperationRateLimiter,
@@ -643,4 +833,9 @@ export default {
   chatHttpRateLimiter,
   transportationRateLimiter,
   robberyRateLimiter,
+  currencyExchangeRateLimiter,
+  duelRateLimiter,
+  investmentRateLimiter,
+  activityRateLimiter,
+  reputationRateLimiter,
 };

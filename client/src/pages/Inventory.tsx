@@ -187,9 +187,9 @@ export const Inventory: React.FC = () => {
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-gold-light">
-                {currentCharacter.gold}g
+                ${currentCharacter.gold}
               </div>
-              <div className="text-sm text-desert-stone uppercase">Gold</div>
+              <div className="text-sm text-desert-stone uppercase">Dollars</div>
             </div>
           </div>
         </div>
@@ -416,7 +416,7 @@ export const Inventory: React.FC = () => {
                 disabled={isActioning}
                 fullWidth
               >
-                {isActioning ? 'Selling...' : `Sell for ${selectedItem.item.sellPrice}g`}
+                {isActioning ? 'Selling...' : `Sell for $${selectedItem.item.sellPrice}`}
               </Button>
             </div>
           </div>

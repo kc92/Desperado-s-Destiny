@@ -95,26 +95,28 @@ const ActionResultSchema = new Schema<IActionResult>(
     characterId: {
       type: Schema.Types.ObjectId,
       ref: 'Character',
-      required: true,
-      index: true
+      required: true
+      // Note: indexed via compound indexes below
     },
     actionId: {
       type: Schema.Types.ObjectId,
       ref: 'Action',
-      required: true,
-      index: true
+      required: true
+      // Note: indexed via compound indexes below
     },
     cardsDrawn: {
       type: [CardSchema],
       required: true,
       validate: {
-        validator: (cards: Card[]) => cards.length >= 1 && cards.length <= 10,
-        message: 'Must draw between 1 and 10 cards'
+        validator: (cards: Card[]) => cards.length === 5,
+        message: 'Must draw exactly 5 cards'
       }
     },
     handRank: {
-      type: Schema.Types.Mixed,
-      required: true
+      type: Number,
+      required: true,
+      enum: Object.values(HandRank).filter(v => typeof v === 'number'),
+      message: 'Invalid hand rank'
     },
     handScore: {
       type: Number,
@@ -147,8 +149,8 @@ const ActionResultSchema = new Schema<IActionResult>(
     },
     timestamp: {
       type: Date,
-      default: Date.now,
-      index: true
+      default: Date.now
+      // Note: indexed via compound indexes below
     }
   },
   {

@@ -66,8 +66,9 @@ describe('Character Ownership Security Tests', () => {
         userA.token
       );
 
-      expect(response.status).toBe(403);
-      expectError(response, 403);
+      // API returns 404 to hide resource existence (security best practice)
+      expect(response.status).toBe(404);
+      expectError(response, 404);
     });
 
     it('should prevent User A from deleting User B\'s character', async () => {
@@ -97,8 +98,9 @@ describe('Character Ownership Security Tests', () => {
         userA.token
       );
 
-      expect(response.status).toBe(403);
-      expectError(response, 403);
+      // API returns 404 to hide resource existence (security best practice)
+      expect(response.status).toBe(404);
+      expectError(response, 404);
     });
   });
 
@@ -375,8 +377,9 @@ describe('Character Ownership Security Tests', () => {
         userA.token
       );
 
-      expect(response.status).toBe(403);
-      expectError(response, 403);
+      // API returns 404 to hide resource existence (security best practice)
+      expect(response.status).toBe(404);
+      expectError(response, 404);
     });
 
     it('should allow users to access their own inventory', async () => {
@@ -402,7 +405,7 @@ describe('Character Ownership Security Tests', () => {
       const userB = await setupCompleteGameState(app, 'userb@example.com');
 
       // Get initial gold
-      const initialGold = userB.character.gold;
+      const initialGold = userB.character.dollars;
 
       const response = await apiPost(
         app,
@@ -415,11 +418,12 @@ describe('Character Ownership Security Tests', () => {
         userA.token
       );
 
-      expect(response.status).toBe(403);
+      // API returns 404 to hide resource existence (security best practice)
+      expect(response.status).toBe(404);
 
       // Verify gold unchanged
       const updatedChar = await Character.findById(userB.character._id);
-      expect(updatedChar?.gold).toBe(initialGold);
+      expect(updatedChar?.dollars).toBe(initialGold);
     });
 
     it('should allow spending own gold', async () => {
@@ -459,8 +463,9 @@ describe('Character Ownership Security Tests', () => {
         userA.token
       );
 
-      expect(response.status).toBe(403);
-      expectError(response, 403);
+      // API returns 404 to hide resource existence (security best practice)
+      expect(response.status).toBe(404);
+      expectError(response, 404);
     });
 
     it('should allow performing actions with own character', async () => {
@@ -487,7 +492,7 @@ describe('Character Ownership Security Tests', () => {
   describe('Concurrent Modification Prevention', () => {
     it('should prevent race conditions in gold transfers', async () => {
       const { character, token } = await setupCompleteGameState(app);
-      const initialGold = character.gold;
+      const initialGold = character.dollars;
 
       // Attempt multiple simultaneous gold spends
       const promises = Array(5).fill(null).map(() =>
@@ -507,7 +512,7 @@ describe('Character Ownership Security Tests', () => {
 
       // Verify gold is consistent (no race condition)
       const updatedChar = await Character.findById(character._id);
-      const spentGold = initialGold - updatedChar!.gold;
+      const spentGold = initialGold - updatedChar!.dollars;
 
       // Each successful spend should deduct exactly 100
       expect(spentGold % 100).toBe(0);

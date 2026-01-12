@@ -10,6 +10,7 @@ import { Action, IAction, ActionType } from '../../src/models/Action.model';
 import { CrimeService } from '../../src/services/crime.service';
 import { clearDatabase } from '../helpers';
 import { Faction, Suit } from '@desperados/shared';
+import { seedMinimalLocations, TEST_LOCATION_IDS } from '../helpers/seedHelpers';
 
 describe('Crime Service', () => {
   let testCharacter: ICharacter;
@@ -18,6 +19,8 @@ describe('Crime Service', () => {
 
   beforeEach(async () => {
     await clearDatabase();
+    // Seed minimal locations for valid ObjectId references
+    await seedMinimalLocations();
 
     // Create test character
     testCharacter = await Character.create({
@@ -31,7 +34,7 @@ describe('Crime Service', () => {
         hairStyle: 1,
         hairColor: 1
       },
-      currentLocation: 'villa-esperanza',
+      currentLocation: TEST_LOCATION_IDS.THE_FRONTERA,
       level: 5,
       experience: 0,
       energy: 150,
@@ -64,7 +67,7 @@ describe('Crime Service', () => {
         hairStyle: 3,
         hairColor: 4
       },
-      currentLocation: 'fort-liberty',
+      currentLocation: TEST_LOCATION_IDS.RED_GULCH,
       level: 10,
       experience: 0,
       energy: 150,

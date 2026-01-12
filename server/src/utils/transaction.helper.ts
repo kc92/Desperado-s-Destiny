@@ -27,9 +27,43 @@ const DEFAULT_OPTIONS: Required<TransactionOptions> = {
 };
 
 /**
- * Checks if transactions are disabled (test environment)
+ * PRODUCTION SAFEGUARD: Fatal error if transactions disabled in production
+ * This check runs at module load time to prevent misconfiguration
+ */
+if (process.env.DISABLE_TRANSACTIONS === 'true' && process.env.NODE_ENV === 'production') {
+  const errorMsg = `
+================================================================================
+FATAL SECURITY ERROR: DISABLE_TRANSACTIONS=true in production environment!
+================================================================================
+
+MongoDB transactions CANNOT be disabled in production. This would expose the
+application to:
+  - Race conditions in currency operations (double-spend exploits)
+  - Data inconsistency during multi-document updates
+  - Economic exploits that could destabilize the game economy
+
+To fix this:
+  1. Remove DISABLE_TRANSACTIONS from your production .env
+  2. Ensure your MongoDB deployment supports transactions (replica set or sharded)
+  3. If using Atlas, transactions are supported by default
+
+The server will NOT start until this is resolved.
+================================================================================
+`;
+  console.error(errorMsg);
+  logger.error('FATAL: DISABLE_TRANSACTIONS=true in production - server refusing to start');
+  process.exit(1);
+}
+
+/**
+ * Checks if transactions are disabled (test environment only)
+ * SECURITY: This can only return true in non-production environments
  */
 export function areTransactionsDisabled(): boolean {
+  // Double-check: never disable in production (belt + suspenders)
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
   return process.env.DISABLE_TRANSACTIONS === 'true' || process.env.NODE_ENV === 'test';
 }
 

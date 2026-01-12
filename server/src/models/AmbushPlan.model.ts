@@ -16,7 +16,7 @@ export interface IAmbushPlan extends Document {
 }
 
 const AmbushPlanSchema = new Schema<IAmbushPlan>({
-  characterId: { type: Schema.Types.ObjectId, ref: 'Character', required: true, index: true },
+  characterId: { type: Schema.Types.ObjectId, ref: 'Character', required: true },
   routeId: { type: String, required: true },
   ambushSpotId: { type: String, required: true },
   scheduledTime: { type: Date, required: true },
@@ -35,11 +35,12 @@ const AmbushPlanSchema = new Schema<IAmbushPlan>({
   status: {
     type: String,
     enum: ['planning', 'setup', 'ready', 'executed', 'failed', 'cancelled'],
-    default: 'planning',
-    index: true
+    default: 'planning'
+    // Note: indexed via compound index below
   },
   createdAt: { type: Date, default: Date.now },
-  expiresAt: { type: Date, required: true, index: true }
+  expiresAt: { type: Date, required: true }
+  // Note: expiresAt indexed via TTL index below
 });
 
 // TTL index - automatically delete documents after they expire

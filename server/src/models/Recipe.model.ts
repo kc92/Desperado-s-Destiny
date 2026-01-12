@@ -22,6 +22,11 @@ export interface IRecipe extends Document {
     skillId: string;
     level: number;
   };
+  facilityRequired?: {
+    type: string;
+    tier?: number;
+    optional?: boolean;
+  };
   craftTime: number; // minutes
   xpReward: number;
   isUnlocked: boolean;
@@ -61,6 +66,14 @@ const RecipeSchema = new Schema<IRecipe>(
     skillRequired: {
       skillId: { type: String, required: true },
       level: { type: Number, required: true, min: 1 }
+    },
+    facilityRequired: {
+      type: {
+        type: String,
+        required: function(this: any) { return !!this.facilityRequired; }
+      },
+      tier: { type: Number, min: 1, max: 5, default: 1 },
+      optional: { type: Boolean, default: false }
     },
     craftTime: {
       type: Number,

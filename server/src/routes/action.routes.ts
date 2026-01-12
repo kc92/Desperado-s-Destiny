@@ -21,7 +21,7 @@ import {
   getActionGame,
   forfeitActionGame
 } from '../controllers/actionDeck.controller';
-import { requireCharacter } from '../middleware/characterOwnership.middleware';
+import { requireCharacter, requireCharacterOwnership } from '../middleware/characterOwnership.middleware';
 import { detectSuspiciousEarning } from '../middleware/antiExploit.middleware';
 import { requireCsrfToken } from '../middleware/csrf.middleware';
 
@@ -57,7 +57,8 @@ router.get('/', requireAuth, asyncHandler(getActions));
 router.get('/:id', requireAuth, asyncHandler(getAction));
 
 // Get action history for a character
-router.get('/history/:characterId', requireAuth, asyncHandler(getActionHistory));
+// Protected: User must own this character
+router.get('/history/:characterId', requireAuth, requireCharacterOwnership, asyncHandler(getActionHistory));
 
 /**
  * Interactive Deck Game Action Routes

@@ -8,6 +8,7 @@ import { Request, Response } from 'express';
 import { GangEconomyService } from '../services/gangEconomy.service';
 import { HeistService } from '../services/heist.service';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { validateCurrencyAmount, validateEnum } from '../utils/validation';
 import {
   AccountTransferRequest,
   BusinessPurchaseRequest,
@@ -65,21 +66,34 @@ export class GangEconomyController {
       return;
     }
 
-    if (!accountType || !amount) {
-      res.status(400).json({ success: false, error: 'Account type and amount are required' });
+    // Validate account type
+    const accountTypeResult = validateEnum(
+      accountType,
+      Object.values(GangBankAccountType) as GangBankAccountType[],
+      'accountType'
+    );
+    if (!accountTypeResult.success) {
+      res.status(400).json({ success: false, errors: accountTypeResult.errors });
       return;
     }
 
-    if (!Object.values(GangBankAccountType).includes(accountType)) {
-      res.status(400).json({ success: false, error: 'Invalid account type' });
+    // Validate amount (positive integer, within bounds)
+    const amountResult = validateCurrencyAmount(amount, 'amount');
+    if (!amountResult.success) {
+      res.status(400).json({ success: false, errors: amountResult.errors });
       return;
     }
 
-    const economy = await GangEconomyService.depositToAccount(gangId, characterId, accountType, amount);
+    const economy = await GangEconomyService.depositToAccount(
+      gangId,
+      characterId,
+      accountTypeResult.data,
+      amountResult.data
+    );
 
     res.status(200).json({
       success: true,
-      message: `Deposited $${amount} to ${accountType}`,
+      message: `Deposited $${amountResult.data.toLocaleString()} to ${accountTypeResult.data}`,
       data: economy,
     });
   });
@@ -98,21 +112,34 @@ export class GangEconomyController {
       return;
     }
 
-    if (!accountType || !amount) {
-      res.status(400).json({ success: false, error: 'Account type and amount are required' });
+    // Validate account type
+    const accountTypeResult = validateEnum(
+      accountType,
+      Object.values(GangBankAccountType) as GangBankAccountType[],
+      'accountType'
+    );
+    if (!accountTypeResult.success) {
+      res.status(400).json({ success: false, errors: accountTypeResult.errors });
       return;
     }
 
-    if (!Object.values(GangBankAccountType).includes(accountType)) {
-      res.status(400).json({ success: false, error: 'Invalid account type' });
+    // Validate amount (positive integer, within bounds)
+    const amountResult = validateCurrencyAmount(amount, 'amount');
+    if (!amountResult.success) {
+      res.status(400).json({ success: false, errors: amountResult.errors });
       return;
     }
 
-    const economy = await GangEconomyService.withdrawFromAccount(gangId, characterId, accountType, amount);
+    const economy = await GangEconomyService.withdrawFromAccount(
+      gangId,
+      characterId,
+      accountTypeResult.data,
+      amountResult.data
+    );
 
     res.status(200).json({
       success: true,
-      message: `Withdrew $${amount} from ${accountType}`,
+      message: `Withdrew $${amountResult.data.toLocaleString()} from ${accountTypeResult.data}`,
       data: economy,
     });
   });
@@ -123,7 +150,7 @@ export class GangEconomyController {
    */
   static transfer = asyncHandler(async (req: Request, res: Response) => {
     const { gangId } = req.params;
-    const request: AccountTransferRequest = req.body;
+    const { fromAccount, toAccount, amount } = req.body;
     const characterId = req.character?._id?.toString();
 
     if (!characterId) {
@@ -131,16 +158,46 @@ export class GangEconomyController {
       return;
     }
 
-    if (!request.fromAccount || !request.toAccount || !request.amount) {
-      res.status(400).json({ success: false, error: 'From account, to account, and amount are required' });
+    // Validate fromAccount
+    const fromAccountResult = validateEnum(
+      fromAccount,
+      Object.values(GangBankAccountType) as GangBankAccountType[],
+      'fromAccount'
+    );
+    if (!fromAccountResult.success) {
+      res.status(400).json({ success: false, errors: fromAccountResult.errors });
       return;
     }
+
+    // Validate toAccount
+    const toAccountResult = validateEnum(
+      toAccount,
+      Object.values(GangBankAccountType) as GangBankAccountType[],
+      'toAccount'
+    );
+    if (!toAccountResult.success) {
+      res.status(400).json({ success: false, errors: toAccountResult.errors });
+      return;
+    }
+
+    // Validate amount (positive integer, within bounds)
+    const amountResult = validateCurrencyAmount(amount, 'amount');
+    if (!amountResult.success) {
+      res.status(400).json({ success: false, errors: amountResult.errors });
+      return;
+    }
+
+    const request: AccountTransferRequest = {
+      fromAccount: fromAccountResult.data,
+      toAccount: toAccountResult.data,
+      amount: amountResult.data,
+    };
 
     const economy = await GangEconomyService.transferBetweenAccounts(gangId, characterId, request);
 
     res.status(200).json({
       success: true,
-      message: `Transferred $${request.amount} from ${request.fromAccount} to ${request.toAccount}`,
+      message: `Transferred $${amountResult.data.toLocaleString()} from ${fromAccountResult.data} to ${toAccountResult.data}`,
       data: economy,
     });
   });

@@ -215,21 +215,21 @@ describe('Gang War Service', () => {
     });
 
     it('should deduct gold from contributing character', async () => {
-      const initialGold = testCharacter.gold;
+      const initialGold = testCharacter.dollars;
 
       await GangWarService.contributeToWar(war._id, testCharacter._id, 2000);
 
       const updatedCharacter = await Character.findById(testCharacter._id);
-      expect(updatedCharacter?.gold).toBe(initialGold - 2000);
+      expect(updatedCharacter?.dollars).toBe(initialGold - 2000);
     });
 
     it('should reject contribution if character has insufficient gold', async () => {
-      testCharacter.gold = 500;
+      testCharacter.dollars = 500;
       await testCharacter.save();
 
       await expect(
         GangWarService.contributeToWar(war._id, testCharacter._id, 1000)
-      ).rejects.toThrow('Insufficient gold');
+      ).rejects.toThrow('Insufficient dollars');
     });
 
     it('should reject contribution with negative or zero amount', async () => {

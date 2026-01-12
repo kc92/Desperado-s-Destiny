@@ -280,7 +280,7 @@ export class BountyService {
    */
   static async getWantedLevel(characterId: string): Promise<IWantedLevel> {
     try {
-      const character = await Character.findById(characterId);
+      const character = await Character.findById(characterId).lean();
       if (!character) {
         throw new Error('Character not found');
       }
@@ -321,7 +321,7 @@ export class BountyService {
           { expiresAt: null },
           { expiresAt: { $gt: new Date() } },
         ],
-      }).sort({ amount: -1 });
+      }).sort({ amount: -1 }).lean();
     } catch (error) {
       logger.error('Error getting active bounties:', error);
       throw error;
@@ -344,30 +344,41 @@ export class BountyService {
         ],
       })
         .sort({ amount: -1, createdAt: -1 })
-        .limit(limit);
+        .limit(limit)
+        .lean();
 
-      // Enrich with character data
-      const entries: BountyBoardEntry[] = [];
-
-      for (const bounty of bounties) {
-        const target = await Character.findById(bounty.targetId).select('level');
-        const wantedLevel = await WantedLevel.findOne({ characterId: bounty.targetId });
-
-        entries.push({
-          id: bounty._id.toString(),
-          targetId: bounty.targetId.toString(),
-          targetName: bounty.targetName,
-          targetLevel: target?.level || 1,
-          amount: bounty.amount,
-          reason: bounty.reason,
-          issuerFaction: bounty.issuerFaction,
-          wantedRank: wantedLevel?.wantedRank || WantedRank.UNKNOWN,
-          lastSeenLocation: bounty.lastSeenLocation,
-          crimes: bounty.crimes,
-          createdAt: bounty.createdAt,
-          expiresAt: bounty.expiresAt,
-        });
+      if (bounties.length === 0) {
+        return [];
       }
+
+      // BATCH QUERY FIX: Fetch all targets and wanted levels in two queries instead of N+1
+      const targetIds = bounties.map(b => b.targetId);
+
+      // Batch fetch characters
+      const targets = await Character.find({ _id: { $in: targetIds } })
+        .select('_id level')
+        .lean();
+      const targetMap = new Map(targets.map(t => [t._id.toString(), t.level]));
+
+      // Batch fetch wanted levels
+      const wantedLevels = await WantedLevel.find({ characterId: { $in: targetIds } }).lean();
+      const wantedMap = new Map(wantedLevels.map(w => [w.characterId.toString(), w.wantedRank]));
+
+      // Enrich bounties with cached data
+      const entries: BountyBoardEntry[] = bounties.map(bounty => ({
+        id: bounty._id.toString(),
+        targetId: bounty.targetId.toString(),
+        targetName: bounty.targetName,
+        targetLevel: targetMap.get(bounty.targetId.toString()) || 1,
+        amount: bounty.amount,
+        reason: bounty.reason,
+        issuerFaction: bounty.issuerFaction,
+        wantedRank: wantedMap.get(bounty.targetId.toString()) || WantedRank.UNKNOWN,
+        lastSeenLocation: bounty.lastSeenLocation,
+        crimes: bounty.crimes,
+        createdAt: bounty.createdAt,
+        expiresAt: bounty.expiresAt,
+      }));
 
       return entries;
     } catch (error) {
@@ -384,7 +395,7 @@ export class BountyService {
     session?: mongoose.ClientSession
   ): Promise<IWantedLevel> {
     try {
-      const character = await Character.findById(characterId);
+      const character = await Character.findById(characterId).lean();
       if (!character) {
         throw new Error('Character not found');
       }
@@ -397,7 +408,7 @@ export class BountyService {
           { expiresAt: null },
           { expiresAt: { $gt: new Date() } },
         ],
-      });
+      }).lean();
 
       // Calculate bounty by faction
       let settlerAlliance = 0;
@@ -521,6 +532,10 @@ export class BountyService {
 
       let bountiesDecayed = 0;
       let totalReduced = 0;
+      const affectedTargetIds = new Set<string>();
+
+      // Process bounties and collect saves
+      const saveOperations: Promise<any>[] = [];
 
       for (const bounty of bounties) {
         const reduction = Math.floor(bounty.amount * 0.1);
@@ -533,13 +548,28 @@ export class BountyService {
             bounty.status = BountyStatus.CANCELLED;
           }
 
-          await bounty.save();
+          saveOperations.push(bounty.save());
           bountiesDecayed++;
 
-          // Update wanted level for this character
-          await this.updateWantedLevel(bounty.targetId.toString());
+          // Track unique target IDs for batch wanted level update
+          affectedTargetIds.add(bounty.targetId.toString());
         }
       }
+
+      // Execute all bounty saves in parallel
+      if (saveOperations.length > 0) {
+        await Promise.all(saveOperations);
+      }
+
+      // BATCH UPDATE: Update wanted levels for all affected targets
+      // Instead of N individual updateWantedLevel calls, batch the updates
+      const wantedLevelUpdates = Array.from(affectedTargetIds).map(targetId =>
+        this.updateWantedLevel(targetId).catch(err => {
+          logger.warn(`Failed to update wanted level for ${targetId}:`, err);
+        })
+      );
+
+      await Promise.all(wantedLevelUpdates);
 
       logger.info(
         `Bounty decay: ${bountiesDecayed} bounties decayed, ${totalReduced} gold reduced`
@@ -589,7 +619,8 @@ export class BountyService {
         totalBounty: { $gt: 0 },
       })
         .sort({ totalBounty: -1 })
-        .limit(limit);
+        .limit(limit)
+        .lean();
     } catch (error) {
       logger.error('Error getting most wanted:', error);
       throw error;

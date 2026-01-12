@@ -111,6 +111,7 @@ import teamCardGameRoutes from './teamCardGame.routes';
 import subscriptionRoutes from './subscription.routes';
 import tavernRoutes from './tavern.routes';
 import skillTrainingRoutes from './skillTraining.routes';
+import expeditionRoutes from './expedition.routes';
 import { apiRateLimiter } from '../middleware';
 
 const router = Router();
@@ -455,6 +456,9 @@ router.use('/tavern', apiRateLimiter, tavernRoutes);
 
 // Skill Training routes (with API rate limiting) - Phase 19: Core Loop Overhaul
 router.use('/skill-training', apiRateLimiter, skillTrainingRoutes);
+
+// Expedition routes (with API rate limiting) - Offline Progression System
+router.use('/expeditions', apiRateLimiter, expeditionRoutes);
 
 export default router;
 

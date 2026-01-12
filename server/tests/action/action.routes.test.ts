@@ -5,7 +5,7 @@
  */
 
 import { Express } from 'express';
-import app from '../../src/server';
+import app from '../testApp';
 import { Action, ActionType } from '../../src/models/Action.model';
 import { ActionResult } from '../../src/models/ActionResult.model';
 import { Character } from '../../src/models/Character.model';

@@ -18,6 +18,7 @@ import {
 import { requireAuth, requireAdmin } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { requireCsrfToken } from '../middleware/csrf.middleware';
+import { requireCharacterOwnership } from '../middleware/characterOwnership.middleware';
 
 const router = Router();
 
@@ -55,8 +56,9 @@ router.get('/hunter-check', asyncHandler(checkBountyHunter));
 /**
  * GET /api/bounty/:characterId
  * Get active bounties for a specific character
+ * Protected: User must own this character
  */
-router.get('/:characterId', asyncHandler(getCharacterBounties));
+router.get('/:characterId', requireCharacterOwnership, asyncHandler(getCharacterBounties));
 
 /**
  * POST /api/bounty/place

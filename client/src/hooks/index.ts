@@ -636,3 +636,40 @@ export type { StatKey, StatInfo, StatsHookResult } from './useStats';
 export { useCurrency } from './useCurrency';
 export { default as useCurrencyDefault } from './useCurrency';
 export type { CurrencyState } from './useCurrency';
+
+// Form Validation (existing)
+export { useFormValidation } from './useFormValidation';
+export { default as useFormValidationDefault } from './useFormValidation';
+export type {
+  ValidationRule,
+  ValidationRules,
+  UseFormValidationReturn,
+} from './useFormValidation';
+
+// Async Action (Phase 1: UI Polish)
+export { useAsyncAction, useAsyncMutation } from './useAsyncAction';
+export { default as useAsyncActionDefault } from './useAsyncAction';
+export type {
+  AsyncActionStatus,
+  UseAsyncActionOptions,
+  UseAsyncActionReturn,
+} from './useAsyncAction';
+
+// Confirm Action (Phase 1: UI Polish)
+export { useConfirmAction, useConfirmAndExecute, confirmPresets } from './useConfirmAction';
+export { default as useConfirmActionDefault } from './useConfirmAction';
+export type {
+  ConfirmOptions,
+  UseConfirmActionReturn,
+} from './useConfirmAction';
+
+// Feature Discovery (Phase 1: UI Polish)
+export { useFeatureDiscovery } from './useFeatureDiscovery';
+export { default as useFeatureDiscoveryDefault } from './useFeatureDiscovery';
+export type {
+  FeatureId,
+  FeatureStatus,
+  FeatureInfo,
+  FeatureRequirement,
+  UseFeatureDiscoveryReturn,
+} from './useFeatureDiscovery';

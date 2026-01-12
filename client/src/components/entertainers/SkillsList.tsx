@@ -146,7 +146,7 @@ export const SkillsList: React.FC<SkillsListProps> = ({
                       </p>
                       <div className="flex items-center gap-4 mt-2 text-xs">
                         <span className={playerGold >= skill.goldCost ? 'text-gold-light' : 'text-red-500'}>
-                          {skill.goldCost}g
+                          ${skill.goldCost}
                         </span>
                         <span className={playerEnergy >= skill.energyCost ? 'text-blue-400' : 'text-red-500'}>
                           {skill.energyCost} energy
@@ -243,7 +243,7 @@ export const SkillsList: React.FC<SkillsListProps> = ({
                 <div className="space-y-1">
                   <div className="flex justify-between text-sm">
                     <span className="text-desert-sand">Gold Spent</span>
-                    <span className="text-red-400">-{learnResult.goldCost}g</span>
+                    <span className="text-red-400">-${learnResult.goldCost}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-desert-sand">Energy Used</span>
@@ -285,7 +285,7 @@ export const SkillsList: React.FC<SkillsListProps> = ({
                   <div>
                     <p className="text-xs text-desert-stone">Gold Cost</p>
                     <p className={playerGold >= selectedSkill.goldCost ? 'text-gold-light' : 'text-red-500'}>
-                      {selectedSkill.goldCost}g
+                      ${selectedSkill.goldCost}
                     </p>
                   </div>
                   <div>

@@ -5,7 +5,7 @@
  */
 
 import { Express } from 'express';
-import app from '../../src/server';
+import app from '../testApp';
 import { Territory } from '../../src/models/Territory.model';
 import { Gang } from '../../src/models/Gang.model';
 import { GangWar } from '../../src/models/GangWar.model';
@@ -31,7 +31,7 @@ describe('Territory Routes', () => {
     characterId = gameState.character._id;
 
     const character = await Character.findById(characterId);
-    character!.gold = 50000;
+    character!.dollars = 50000;
     await character!.save();
 
     const gang = await Gang.create({
@@ -244,7 +244,7 @@ describe('Territory Routes', () => {
 
     it('should reject contribution with insufficient gold', async () => {
       const character = await Character.findById(characterId);
-      character!.gold = 100;
+      character!.dollars = 100;
       await character!.save();
 
       const res = await apiPost(testApp, `/api/wars/${warId}/contribute`, { amount: 5000 }, token);

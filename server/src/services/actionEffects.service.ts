@@ -252,7 +252,8 @@ export class ActionEffectsService {
     const gangBonus = await this.getGangBonus(character, targetFaction);
 
     // Event bonus: Sum reputation modifiers from active events affecting this faction
-    const activeEvents = await WorldEvent.find({ status: EventStatus.ACTIVE });
+    // Limit to prevent OOM - there shouldn't be more than 50 active events at once
+    const activeEvents = await WorldEvent.find({ status: EventStatus.ACTIVE }).limit(50).lean();
     const eventBonus = activeEvents.reduce((sum, event) => {
       const factionEffects = event.worldEffects.filter(
         effect => effect.type === 'reputation_modifier' && effect.target === targetFaction
@@ -316,7 +317,7 @@ export class ActionEffectsService {
       return 0;
     }
 
-    const gang = await Gang.findById(character.gangId);
+    const gang = await Gang.findById(character.gangId).lean();
     if (!gang) {
       return 0;
     }
@@ -393,10 +394,11 @@ export class ActionEffectsService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Limit to prevent OOM - a character shouldn't have contributions in more than 100 territories
     const contributions = await PlayerInfluenceContribution.find({
       characterId,
       'dailyContributions.date': today,
-    });
+    }).limit(100).lean();
 
     let totalActionsToday = 0;
     for (const contrib of contributions) {
@@ -582,6 +584,6 @@ export class ActionEffectsService {
   static async getAllPlayerContributions(
     characterId: mongoose.Types.ObjectId
   ): Promise<IPlayerInfluenceContribution[]> {
-    return PlayerInfluenceContribution.find({ characterId }).sort({ totalInfluenceContributed: -1 });
+    return PlayerInfluenceContribution.find({ characterId }).sort({ totalInfluenceContributed: -1 }).lean();
   }
 }

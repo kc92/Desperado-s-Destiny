@@ -11,6 +11,7 @@ import { requireAuth } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { rateLimitGoldTransactions, checkGoldDuplication, logEconomicTransaction } from '../middleware/antiExploit.middleware';
 import { requireCsrfToken, requireCsrfTokenWithRotation } from '../middleware/csrf.middleware';
+import { requireCharacterOwnership } from '../middleware/characterOwnership.middleware';
 import { validate, GangSchemas } from '../validation';
 
 const router = Router();
@@ -77,7 +78,7 @@ router.delete('/:id', requireAuth, requireCsrfTokenWithRotation, asyncHandler(Ga
 router.get('/:id/transactions', requireAuth, asyncHandler(GangController.getTransactions));
 
 router.post('/:id/invitations', requireAuth, requireCsrfToken, asyncHandler(GangController.sendInvitation));
-router.get('/invitations/:characterId', requireAuth, asyncHandler(GangController.getInvitations));
+router.get('/invitations/:characterId', requireAuth, requireCharacterOwnership, asyncHandler(GangController.getInvitations));
 router.post('/invitations/:id/accept', requireAuth, requireCsrfToken, asyncHandler(GangController.acceptInvitation));
 router.post('/invitations/:id/reject', requireAuth, requireCsrfToken, asyncHandler(GangController.rejectInvitation));
 

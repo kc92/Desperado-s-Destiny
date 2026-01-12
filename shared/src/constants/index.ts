@@ -63,3 +63,6 @@ export * from './skillTraining.constants';
 
 // Skill Academy Tutorial constants
 export * from './academy.constants';
+
+// Expedition System constants (Offline Progression)
+export * from './expedition.constants';

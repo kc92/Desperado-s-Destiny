@@ -13,9 +13,7 @@
  */
 
 import request from 'supertest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import mongoose from 'mongoose';
-import { app } from '../../src/server';
+import app from '../testApp';
 import { setupCompleteGameState, TimeSimulator } from '../helpers/testHelpers';
 import { apiPost, apiGet, apiPut } from '../helpers/api.helpers';
 import {
@@ -24,30 +22,10 @@ import {
   createPair,
 } from '../helpers/testHelpers';
 
-let mongoServer: MongoMemoryServer;
-
 // Note: Some tests marked with .skip() as they depend on Agent 1-4 implementations
 // Remove .skip() once all systems are complete
 
 describe('Combat + Crime Combined Integration Tests', () => {
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.connect(mongoUri);
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
-
-  afterEach(async () => {
-    // Clean up all collections after each test
-    const collections = mongoose.connection.collections;
-    for (const key in collections) {
-      await collections[key].deleteMany({});
-    }
-  });
 
   describe('Complete Gameplay Loop', () => {
     describe.skip('End-to-End Scenarios', () => {

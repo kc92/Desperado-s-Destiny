@@ -19,12 +19,12 @@ export function errorHandler(
   let errors: Record<string, string[]> | undefined;
   let isOperational = false;
 
-  // Check if it's our custom AppError
-  if (err instanceof AppError) {
-    statusCode = err.statusCode;
+  // Check if it's our custom AppError (instanceof or duck typing)
+  if (err instanceof AppError || ('statusCode' in err && 'isOperational' in err)) {
+    statusCode = (err as any).statusCode || 500;
     message = err.message;
-    errors = err.errors;
-    isOperational = err.isOperational;
+    errors = (err as any).errors || (err as any).fieldErrors;
+    isOperational = (err as any).isOperational;
   }
   // Handle Mongoose validation errors
   else if (err.name === 'ValidationError') {
@@ -96,31 +96,83 @@ export function errorHandler(
 
 /**
  * Parses Mongoose validation errors into a structured format
+ * SECURITY: Returns generic field identifiers to prevent information disclosure
  */
 function parseMongooseValidationError(err: Error): Record<string, string[]> {
   const errors: Record<string, string[]> = {};
 
   if ('errors' in err && typeof err.errors === 'object' && err.errors !== null) {
-    for (const [field, error] of Object.entries(err.errors)) {
+    const fieldErrors = Object.entries(err.errors);
+
+    // Log actual field names server-side for debugging
+    logger.debug('Validation error details:', {
+      fields: fieldErrors.map(([field, error]) => ({
+        field,
+        message: error && typeof error === 'object' && 'message' in error ? error.message : 'unknown'
+      }))
+    });
+
+    // Return sanitized errors to client (don't expose internal field names)
+    fieldErrors.forEach(([, error], index) => {
       if (error && typeof error === 'object' && 'message' in error) {
-        errors[field] = [String(error.message)];
+        // Use generic field identifier instead of actual field name
+        const sanitizedMessage = sanitizeValidationMessage(String(error.message));
+        errors[`field_${index + 1}`] = [sanitizedMessage];
       }
-    }
+    });
   }
 
   return errors;
 }
 
 /**
+ * Sanitizes validation error messages to remove internal field names
+ */
+function sanitizeValidationMessage(message: string): string {
+  // Remove common Mongoose patterns that leak field names
+  // e.g., "Path `email` is required" -> "This field is required"
+  // e.g., "Cast to ObjectId failed for value..." -> "Invalid value provided"
+
+  if (message.includes('is required')) {
+    return 'This field is required';
+  }
+  if (message.includes('Cast to')) {
+    return 'Invalid value provided';
+  }
+  if (message.includes('is not a valid')) {
+    return 'Invalid format';
+  }
+  if (message.includes('must be')) {
+    return 'Value does not meet requirements';
+  }
+  if (message.includes('minimum') || message.includes('maximum')) {
+    return 'Value is out of allowed range';
+  }
+
+  // For any other message, return a generic error
+  return 'Validation failed for this field';
+}
+
+/**
  * Parses MongoDB duplicate key errors
+ * SECURITY: Returns generic message to prevent information disclosure
  */
 function parseDuplicateKeyError(err: Error & { keyValue?: Record<string, unknown> }): Record<string, string[]> {
   const errors: Record<string, string[]> = {};
 
   if (err.keyValue) {
-    for (const field of Object.keys(err.keyValue)) {
-      errors[field] = [`${field} already exists`];
-    }
+    // Log actual field names server-side for debugging
+    logger.debug('Duplicate key error details:', {
+      fields: Object.keys(err.keyValue),
+      values: Object.entries(err.keyValue).map(([k, v]) => ({
+        field: k,
+        // Truncate value to avoid logging sensitive data
+        value: typeof v === 'string' ? `${v.substring(0, 10)}...` : '[non-string]'
+      }))
+    });
+
+    // Return generic error to client (don't expose which field or value)
+    errors['duplicate'] = ['A record with this value already exists'];
   }
 
   return errors;

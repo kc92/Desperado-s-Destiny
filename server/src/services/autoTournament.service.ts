@@ -90,14 +90,14 @@ export class AutoTournamentService {
       ],
       weekScheduleId: schedule._id,
       status: { $in: ['declared', 'scheduled', 'active'] },
-    });
+    }).lean();
 
     if (existingWar) {
       return { success: false, message: 'Gang already has a war this week' };
     }
 
     // Get gang info
-    const gang = await Gang.findById(gangId);
+    const gang = await Gang.findById(gangId).lean();
     if (!gang) {
       return { success: false, message: 'Gang not found' };
     }
@@ -149,7 +149,7 @@ export class AutoTournamentService {
     schedule.autoTournament.participatingGangs.splice(participantIndex, 1);
     await schedule.save();
 
-    const gang = await Gang.findById(gangId);
+    const gang = await Gang.findById(gangId).lean();
     logger.info(`Gang ${gang?.name || gangId} unregistered from auto-tournament`);
 
     return { success: true, message: 'Successfully unregistered from auto-tournament' };
@@ -464,7 +464,7 @@ export class AutoTournamentService {
       ],
       weekScheduleId: schedule._id,
       isAutoTournament: true,
-    });
+    }).lean();
 
     if (war) {
       warId = war._id;
@@ -510,7 +510,7 @@ export class AutoTournamentService {
     const tournamentWars = await GangWar.find({
       weekScheduleId: schedule._id,
       isAutoTournament: true,
-    }).select('attackerGangId defenderGangId');
+    }).select('attackerGangId defenderGangId').lean();
 
     const matchedGangIds = new Set<string>();
     tournamentWars.forEach(war => {

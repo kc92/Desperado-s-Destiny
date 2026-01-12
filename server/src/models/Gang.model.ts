@@ -255,8 +255,8 @@ const GangSchema = new Schema<IGang>(
     },
     baseId: {
       type: Schema.Types.ObjectId,
-      ref: 'GangBase',
-      index: true,
+      ref: 'GangBase'
+      // Note: indexed via schema-level index below
     },
 
     // Phase 2.1: Weekly War Schedule
@@ -280,8 +280,8 @@ const GangSchema = new Schema<IGang>(
 
     isActive: {
       type: Boolean,
-      default: true,
-      index: true,
+      default: true
+      // Note: indexed via compound index below (isActive, level)
     },
   },
   {
@@ -408,12 +408,29 @@ GangSchema.methods.hasPermission = async function (
 
 /**
  * Instance method: Add member to gang
+ *
+ * @deprecated RACE CONDITION WARNING - This method is unsafe for concurrent use!
+ * DO NOT USE THIS METHOD - Use GangService.joinGang() instead.
+ *
+ * This method has a race condition where multiple concurrent calls can cause:
+ * 1. Gang to exceed maximum capacity
+ * 2. Duplicate member entries
+ *
+ * Instead, use GangService.joinGang() which uses atomic operations with $expr
+ * conditions to prevent race conditions.
+ *
+ * @see GangService.joinGang() for the safe, atomic implementation
  */
 GangSchema.methods.addMember = function (
   this: IGang,
   characterId: mongoose.Types.ObjectId,
   role: GangRole = GangRole.MEMBER
 ): void {
+  // Log deprecation warning
+  console.warn(
+    '[DEPRECATED] Gang.addMember() is deprecated due to race conditions. Use GangService.joinGang() instead.'
+  );
+
   if (this.isMember(characterId)) {
     throw new Error('Character is already a member of this gang');
   }
@@ -635,6 +652,50 @@ GangSchema.pre('save', async function (next) {
   }
 
   next();
+});
+
+/**
+ * Pre-delete hook: Clear gangId references on all member characters
+ * CASCADE DELETE: Prevents orphaned gangId references when gang is deleted
+ */
+GangSchema.pre('deleteOne', { document: true, query: false }, async function (next) {
+  try {
+    const Character = mongoose.model('Character');
+    const gangId = this._id;
+
+    // Clear gangId on all characters that were members of this gang
+    await Character.updateMany(
+      { gangId: gangId },
+      { $set: { gangId: null } }
+    );
+
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
+
+/**
+ * Pre-delete hook for query-based deletion (findOneAndDelete, deleteOne query)
+ * CASCADE DELETE: Handles Gang.findOneAndDelete() and Gang.deleteOne() queries
+ */
+GangSchema.pre('findOneAndDelete', async function (next) {
+  try {
+    const Character = mongoose.model('Character');
+    const gang = await this.model.findOne(this.getFilter());
+
+    if (gang) {
+      // Clear gangId on all characters that were members of this gang
+      await Character.updateMany(
+        { gangId: gang._id },
+        { $set: { gangId: null } }
+      );
+    }
+
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
 });
 
 /**

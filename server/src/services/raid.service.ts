@@ -548,27 +548,44 @@ export class RaidService {
     participants: IRaidParticipant[],
     session?: ClientSession
   ): Promise<number> {
+    if (participants.length === 0) {
+      return 0;
+    }
+
+    // BATCH QUERY FIX: Fetch all participants in one query instead of N queries
+    const participantIds = participants.map(p => p.characterId);
+    const characters = await Character.find({ _id: { $in: participantIds } })
+      .select('_id combatLevel stats')
+      .session(session || null)
+      .lean();
+
+    // Build a map for efficient lookups
+    const characterMap = new Map(characters.map(c => [c._id.toString(), c]));
+
+    // Build a role map for efficient lookups
+    const roleMap = new Map(participants.map(p => [p.characterId.toString(), p.role]));
+
     let totalPower = 0;
 
-    for (const participant of participants) {
-      const character = await Character.findById(participant.characterId).session(session || null);
-      if (character) {
-        // Base power from character stats (combat + cunning for tactical ability)
-        // Use Combat Level for combat-related power calculation
-        const combatLevel = character.combatLevel || 1;
-        const combatPower = (character.stats?.combat || 10) +
-                           (character.stats?.cunning || 10) +
-                           (combatLevel * 2);
+    for (const character of characters) {
+      const charId = character._id.toString();
+      const role = roleMap.get(charId);
 
-        // Role multipliers
-        const roleMultiplier = participant.role === RaidParticipantRole.LEADER
-          ? 1.5
-          : participant.role === RaidParticipantRole.SCOUT
-            ? 0.8
-            : 1.0;
+      // Base power from character stats (combat + cunning for tactical ability)
+      // Use Combat Level for combat-related power calculation
+      const combatLevel = character.combatLevel || 1;
+      const combatPower = (character.stats?.combat || 10) +
+                         (character.stats?.cunning || 10) +
+                         (combatLevel * 2);
 
-        totalPower += combatPower * roleMultiplier;
-      }
+      // Role multipliers
+      const roleMultiplier = role === RaidParticipantRole.LEADER
+        ? 1.5
+        : role === RaidParticipantRole.SCOUT
+          ? 0.8
+          : 1.0;
+
+      totalPower += combatPower * roleMultiplier;
     }
 
     // Participant count bonus

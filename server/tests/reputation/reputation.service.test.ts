@@ -26,7 +26,7 @@ describe('ReputationService', () => {
     const character = await Character.create({
       userId: new mongoose.Types.ObjectId(),
       name: 'TestOutlaw',
-      faction: 'neutral',
+      faction: 'SETTLER_ALLIANCE',
       appearance: {
         bodyType: 'male',
         skinTone: 5,

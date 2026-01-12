@@ -26,8 +26,10 @@ export interface IGangWarSession extends Document {
 }
 
 const GangWarSessionSchema = new Schema<IGangWarSession>({
-  sessionId: { type: String, required: true, unique: true, index: true },
-  warId: { type: Schema.Types.ObjectId, ref: 'GangWar', required: true, index: true },
+  sessionId: { type: String, required: true, unique: true },
+  // Note: sessionId unique constraint provides the index
+  warId: { type: Schema.Types.ObjectId, ref: 'GangWar', required: true },
+  // Note: warId indexed via compound index below
   type: { type: String, enum: ['raid', 'champion_duel', 'leader_showdown'], required: true },
   characterId: { type: Schema.Types.ObjectId, ref: 'Character' },
   characterName: String,
@@ -42,7 +44,8 @@ const GangWarSessionSchema = new Schema<IGangWarSession>({
   attackerResult: { type: Schema.Types.Mixed },
   defenderResult: { type: Schema.Types.Mixed },
   createdAt: { type: Date, default: Date.now },
-  expiresAt: { type: Date, required: true, index: true }
+  expiresAt: { type: Date, required: true }
+  // Note: expiresAt indexed via TTL index below
 }, { timestamps: true });
 
 // TTL index for automatic cleanup

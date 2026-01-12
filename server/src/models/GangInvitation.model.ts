@@ -90,8 +90,8 @@ const GangInvitationSchema = new Schema<IGangInvitation>(
 
 /**
  * Indexes for efficient querying
+ * Note: gangId + recipientId index is defined below with unique partial filter
  */
-GangInvitationSchema.index({ gangId: 1, recipientId: 1 });
 GangInvitationSchema.index({ recipientId: 1, status: 1 });
 GangInvitationSchema.index({ gangId: 1, status: 1 });
 

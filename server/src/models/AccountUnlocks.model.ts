@@ -103,8 +103,8 @@ const AccountUnlocksSchema = new Schema<IAccountUnlocks>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true,
-      index: true
+      unique: true
+      // Note: unique: true creates an index, no need for additional index
     },
 
     unlocks: {
@@ -251,9 +251,9 @@ const AccountUnlocksSchema = new Schema<IAccountUnlocks>(
 
 /**
  * Indexes for query optimization
+ * Note: userId already indexed via unique: true constraint
+ * Note: unlocks.unlockId already indexed via field-level index: true in subdocument
  */
-AccountUnlocksSchema.index({ userId: 1 });
-AccountUnlocksSchema.index({ 'unlocks.unlockId': 1 });
 AccountUnlocksSchema.index({ 'unlocks.earnedAt': -1 });
 AccountUnlocksSchema.index({ 'unlocks.claimed': 1 });
 AccountUnlocksSchema.index({ 'stats.totalUnlocks': -1 });

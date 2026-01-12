@@ -52,6 +52,7 @@ describe('GatheringService', () => {
         { skillId: 'herbalism', level: 5, experience: 0 },
         { skillId: 'woodcutting', level: 5, experience: 0 },
         { skillId: 'foraging', level: 5, experience: 0 },
+        { skillId: 'prospecting', level: 5, experience: 0 },
       ],
       stats: {
         strength: 10,
@@ -189,7 +190,7 @@ describe('GatheringService', () => {
       expect(result.cooldownEndsAt.getTime()).toBeGreaterThan(Date.now());
 
       // Check cooldowns are tracked
-      const cooldowns = GatheringService.getActiveCooldowns(characterId);
+      const cooldowns = await GatheringService.getActiveCooldowns(characterId);
       expect(cooldowns.length).toBe(1);
       expect(cooldowns[0].nodeId).toBe(nodeId);
     });

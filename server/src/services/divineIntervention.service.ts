@@ -31,6 +31,11 @@ const activeManifestations = new Map<string, {
 }>();
 
 /**
+ * Track pending manifestation cleanup timeouts to prevent timer leaks in tests
+ */
+const pendingManifestationCleanups = new Map<string, NodeJS.Timeout>();
+
+/**
  * Divine manifestation definitions
  */
 const DIVINE_MANIFESTATIONS: DivineManifest[] = [
@@ -376,11 +381,13 @@ export class DivineInterventionService {
         break;
     }
 
-    // Schedule cleanup if temporary
-    if (expiresAt) {
-      setTimeout(() => {
+    // Schedule cleanup if temporary (skip in test environment to prevent timer leaks)
+    if (expiresAt && process.env.NODE_ENV !== 'test') {
+      const timeoutId = setTimeout(() => {
         this.removeManifestation(manifestationId);
+        pendingManifestationCleanups.delete(manifestationId);
       }, manifestation.effect.duration! * 60 * 1000);
+      pendingManifestationCleanups.set(manifestationId, timeoutId);
     }
   }
 
@@ -593,3 +600,14 @@ export class DivineInterventionService {
 
 // Backwards compatibility alias
 export const RealityDistortionService = DivineInterventionService;
+
+/**
+ * Cleanup function to stop all pending manifestation timers
+ * Called during graceful shutdown to prevent timer leaks
+ */
+export function stopDivineInterventionTimers(): void {
+  for (const timeoutId of pendingManifestationCleanups.values()) {
+    clearTimeout(timeoutId);
+  }
+  pendingManifestationCleanups.clear();
+}

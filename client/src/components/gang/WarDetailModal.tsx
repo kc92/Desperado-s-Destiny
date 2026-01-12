@@ -154,7 +154,7 @@ export const WarDetailModal: React.FC<WarDetailModalProps> = ({
                 war.attackerContributions.slice(0, 5).map((c, i) => (
                   <div key={i} className="flex justify-between text-sm py-1">
                     <span className="text-desert-sand truncate">{c.characterName}</span>
-                    <span className="text-gold-light">{c.amount.toLocaleString()}g</span>
+                    <span className="text-gold-light">${c.amount.toLocaleString()}</span>
                   </div>
                 ))
               )}
@@ -168,7 +168,7 @@ export const WarDetailModal: React.FC<WarDetailModalProps> = ({
                 war.defenderContributions.slice(0, 5).map((c, i) => (
                   <div key={i} className="flex justify-between text-sm py-1">
                     <span className="text-desert-sand truncate">{c.characterName}</span>
-                    <span className="text-gold-light">{c.amount.toLocaleString()}g</span>
+                    <span className="text-gold-light">${c.amount.toLocaleString()}</span>
                   </div>
                 ))
               )}

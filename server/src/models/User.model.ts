@@ -122,17 +122,15 @@ const UserSchema = new Schema<IUserDocument, IUserModel>(
       default: false
     },
     verificationToken: {
-      type: String,
-      // Note: unique sparse index defined below
-      sparse: true // Allows multiple null values
+      type: String
+      // Note: unique sparse index defined below (allows multiple null values)
     },
     verificationTokenExpiry: {
       type: Date
     },
     resetPasswordToken: {
-      type: String,
-      // Note: unique sparse index defined below
-      sparse: true // Allows multiple null values
+      type: String
+      // Note: unique sparse index defined below (allows multiple null values)
     },
     resetPasswordExpiry: {
       type: Date

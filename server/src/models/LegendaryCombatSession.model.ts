@@ -32,7 +32,8 @@ export interface ILegendaryCombatSession extends Document {
 }
 
 const LegendaryCombatSessionSchema = new Schema<ILegendaryCombatSession>({
-  sessionId: { type: String, required: true, unique: true, index: true },
+  sessionId: { type: String, required: true, unique: true },
+  // Note: sessionId unique constraint provides the index
   characterId: { type: Schema.Types.ObjectId, ref: 'Character', required: true, index: true },
   legendaryId: { type: String, required: true },
   legendary: { type: Schema.Types.Mixed, required: true },
@@ -58,7 +59,8 @@ const LegendaryCombatSessionSchema = new Schema<ILegendaryCombatSession>({
   // Started
   startedAt: { type: Date, default: Date.now },
   location: { type: String, required: true },
-  expiresAt: { type: Date, required: true, index: true }
+  expiresAt: { type: Date, required: true }
+  // Note: expiresAt indexed via TTL index below
 });
 
 // TTL index - sessions auto-expire 30 minutes after expiresAt

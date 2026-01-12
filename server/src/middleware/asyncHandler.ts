@@ -28,7 +28,12 @@ export function asyncHandler<TRequest extends Request = Request>(
   fn: AsyncRequestHandler<TRequest>
 ) {
   return (req: TRequest, res: Response, next: NextFunction): void => {
-    Promise.resolve(fn(req, res)).catch(next);
+    try {
+      Promise.resolve(fn(req, res)).catch(next);
+    } catch (error) {
+      // Handle synchronous errors
+      next(error);
+    }
   };
 }
 

@@ -20,7 +20,8 @@ import { Types } from 'mongoose';
 export interface AuthenticatedContext {
   user: InstanceType<typeof User>;
   token: string;
-  cookies: string[];
+  cookies: string;  // Cookie string for .set('Cookie', cookies)
+  cookiesArray: string[];  // Original array of cookies
   agent: SuperAgentTest;
   character?: InstanceType<typeof Character>;
 }
@@ -74,12 +75,18 @@ export async function createAuthenticatedContext(
     .post('/api/auth/login')
     .send({ email, password });
 
-  const cookies = loginResponse.headers['set-cookie'] || [];
+  const cookiesArray = loginResponse.headers['set-cookie'] || [];
+  // Convert cookies array to string for .set('Cookie', cookies)
+  // Extract just the cookie=value part from each Set-Cookie header
+  const cookies = cookiesArray
+    .map((c: string) => c.split(';')[0])
+    .join('; ');
 
   const context: AuthenticatedContext = {
     user,
     token,
     cookies,
+    cookiesArray,
     agent,
   };
 
@@ -88,14 +95,15 @@ export async function createAuthenticatedContext(
     const charName = characterName || `TestChar${Date.now()}`;
     const charResponse = await agent
       .post('/api/characters')
-      .set('Cookie', cookies)
+      .set('Cookie', cookies)  // cookies is now a string
       .send({
         name: charName,
         faction: characterFaction,
       });
 
     if (charResponse.body.success && charResponse.body.data) {
-      context.character = charResponse.body.data;
+      // Fetch actual Mongoose document for instance methods
+      context.character = await Character.findById(charResponse.body.data._id) || charResponse.body.data;
     }
   }
 
@@ -207,8 +215,8 @@ export function authenticatedRequest(
   path: string
 ) {
   const req = context.agent[method](path);
-  if (context.cookies.length > 0) {
-    req.set('Cookie', context.cookies);
+  if (context.cookies) {
+    req.set('Cookie', context.cookies);  // cookies is now a string
   }
   return req;
 }
@@ -316,7 +324,8 @@ export function assert2FARequired(response: Response): void {
   // Should have 2fa_pending cookie
   const cookies = response.headers['set-cookie'];
   expect(cookies).toBeDefined();
-  const hasPendingCookie = cookies.some((c: string) => c.includes('2fa_pending'));
+  const cookieArray = Array.isArray(cookies) ? cookies : [cookies];
+  const hasPendingCookie = cookieArray.some((c: string) => c.includes('2fa_pending'));
   expect(hasPendingCookie).toBe(true);
 }
 

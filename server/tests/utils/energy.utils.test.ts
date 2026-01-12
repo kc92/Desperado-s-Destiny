@@ -48,9 +48,9 @@ describe('Energy Utilities', () => {
       const character = createMockCharacter(50, oneHourAgo);
       const current = calculateCurrentEnergy(character as ICharacter, true);
 
-      // Premium regen: 31.25 per hour, so 50 + 31.25 = 81.25 (floored to 81)
-      expect(current).toBeGreaterThanOrEqual(81);
-      expect(current).toBeLessThanOrEqual(82);
+      // Premium regen: 75 per hour, so 50 + 75 = 125
+      expect(current).toBeGreaterThanOrEqual(124);
+      expect(current).toBeLessThanOrEqual(125);
     });
 
     it('should cap energy at free max (150)', () => {
@@ -125,8 +125,8 @@ describe('Energy Utilities', () => {
       const character = createMockCharacter(50, new Date());
       const time = getTimeUntilEnergy(character as ICharacter, 100, true);
 
-      // Need 50 energy, premium regen is 31.25 per hour
-      const expectedHours = 50 / 31.25; // ~1.6 hours
+      // Need 50 energy, premium regen is 75 per hour
+      const expectedHours = 50 / 75; // ~0.67 hours
       const expectedMs = expectedHours * 60 * 60 * 1000;
 
       expect(time).toBeGreaterThanOrEqual(expectedMs - 1000);
@@ -170,11 +170,12 @@ describe('Energy Utilities', () => {
       const character = createMockCharacter(0, new Date());
       const time = getTimeUntilFullEnergy(character as ICharacter, true);
 
-      // Need 250 energy at 31.25 per hour = 8 hours
-      const eightHoursMs = 8 * 60 * 60 * 1000;
+      // Need 250 energy at 75 per hour = 3.33 hours
+      const expectedHours = 250 / 75;
+      const expectedMs = expectedHours * 60 * 60 * 1000;
 
-      expect(time).toBeGreaterThanOrEqual(eightHoursMs - 1000);
-      expect(time).toBeLessThanOrEqual(eightHoursMs + 1000);
+      expect(time).toBeGreaterThanOrEqual(expectedMs - 1000);
+      expect(time).toBeLessThanOrEqual(expectedMs + 1000);
     });
   });
 
@@ -262,7 +263,7 @@ describe('Energy Utilities', () => {
 
     it('should return premium regen rate', () => {
       expect(getEnergyRegenRate(true)).toBe(ENERGY.PREMIUM_REGEN_PER_HOUR);
-      expect(getEnergyRegenRate(true)).toBe(31.25);
+      expect(getEnergyRegenRate(true)).toBe(75);
     });
   });
 

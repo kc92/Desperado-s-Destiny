@@ -20,6 +20,7 @@ import { api } from '@/services/api';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { crimeService } from '@/services/crime.service';
 import { logger } from '@/services/logger.service';
+import { useToast } from '@/store/useToastStore';
 
 type TabType = 'crimes' | 'bounties' | 'history';
 
@@ -29,9 +30,10 @@ type TabType = 'crimes' | 'bounties' | 'history';
 export const Crimes: React.FC = () => {
   const { currentCharacter, refreshCharacter } = useCharacterStore();
   const { actions, fetchActions, isLoading: isActionLoading } = useActionStore();
-  const { energy } = useEnergyStore();
+  const { energy, applyOptimisticDeduct } = useEnergyStore();
   const { crime, loadCrimeStatus, payBail, layLow, isLoading: isCrimeLoading } = useCrimeStore();
   const { playSound } = useSoundEffects();
+  const { error: showError, warning: showWarning } = useToast();
 
   const isLoading = isActionLoading || isCrimeLoading;
 
@@ -109,23 +111,36 @@ export const Crimes: React.FC = () => {
     const energyCost = action.energyRequired ?? action.energyCost ?? 0;
     if (energy && Math.floor(energy.currentEnergy) < energyCost) {
       logger.warn('Not enough energy for crime', { required: energyCost, current: energy.currentEnergy });
+      showWarning(`Not enough energy! Need ${energyCost} energy.`);
       return;
     }
 
     // Check if jailed
     if (crime?.isJailed) {
       logger.warn('Cannot commit crimes while jailed');
+      showWarning('Cannot commit crimes while jailed!');
       return;
     }
 
     setIsPerforming(true);
     setSelectedAction(action);
 
+    // Apply optimistic energy deduction for immediate sidebar update
+    if (energyCost > 0) {
+      applyOptimisticDeduct(energyCost);
+    }
+
     try {
       // Start the deck game via API
       const response = await api.post('/actions/start', {
-        actionId: action.id || action._id
+        actionId: action.id || action._id,
+        characterId: currentCharacter._id
       });
+
+      // Validate response structure
+      if (!response.data?.data) {
+        throw new Error('Invalid response from server');
+      }
 
       const { data } = response.data;
 
@@ -154,6 +169,9 @@ export const Crimes: React.FC = () => {
         actionId: action._id || action.id,
         characterId: currentCharacter._id
       });
+      // Show user-friendly error message
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to start crime. Please try again.';
+      showError(errorMessage);
     } finally {
       setIsPerforming(false);
     }
@@ -252,7 +270,7 @@ export const Crimes: React.FC = () => {
         isJailed={crime?.isJailed || false}
         jailedUntil={crime?.jailedUntil ? new Date(crime.jailedUntil) : null}
         bailCost={crime?.bailCost || 0}
-        currentGold={currentCharacter.gold || 0}
+        currentDollars={currentCharacter.dollars || 0}
         offense={crime?.offense || 'Unknown'}
         onPayBail={handlePayBail}
         onJailExpired={handleJailExpired}

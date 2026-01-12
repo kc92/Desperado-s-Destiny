@@ -2,37 +2,18 @@
  * Gang Model Tests
  *
  * Tests for gang model methods and validations
+ *
+ * Note: Uses global MongoMemoryReplSet setup from tests/setup.ts
  */
 
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { Gang, IGang } from '../../src/models/Gang.model';
 import { Character, ICharacter } from '../../src/models/Character.model';
 import { User } from '../../src/models/User.model';
 import { Faction, GangRole, GangPermission, GangUpgradeType } from '@desperados/shared';
 
-let mongoServer: MongoMemoryServer;
-
-beforeAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
-});
-
-afterAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  await mongoServer.stop();
-});
-
-afterEach(async () => {
-  await Gang.deleteMany({});
-  await Character.deleteMany({});
-  await User.deleteMany({});
-});
+// Note: Global setup (tests/setup.ts) handles MongoMemoryReplSet connection
+// afterEach cleanup is handled by global setup
 
 describe('Gang Model', () => {
   let testUser: any;
@@ -292,6 +273,10 @@ describe('Gang Model', () => {
     });
 
     it('should calculate active perks with booster multiplier', () => {
+      // Set higher gang level so 10% boost is visible after floor()
+      // baseXP = 5 + level, need at least 10 to see difference: 10 * 1.0 = 10, 10 * 1.1 = 11
+      testGang.level = 10;
+
       const perks1 = testGang.getActivePerks();
       expect(perks1.xpBonus).toBeGreaterThan(0);
       expect(perks1.goldBonus).toBeGreaterThanOrEqual(0);

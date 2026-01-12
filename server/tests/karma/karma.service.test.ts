@@ -10,8 +10,6 @@
  * - Race condition prevention
  */
 
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import karmaService from '../../src/services/karma.service';
 import { CharacterKarma, ICharacterKarma, KarmaDimension } from '../../src/models/CharacterKarma.model';
 import { DivineManifestation } from '../../src/models/DivineManifestation.model';
@@ -19,31 +17,6 @@ import { DeityAttention } from '../../src/models/DeityAttention.model';
 import { Character, ICharacter } from '../../src/models/Character.model';
 import { User } from '../../src/models/User.model';
 import { Faction } from '@desperados/shared';
-
-let mongoServer: MongoMemoryServer;
-
-beforeAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
-});
-
-afterAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  await mongoServer.stop();
-});
-
-afterEach(async () => {
-  await Character.deleteMany({});
-  await User.deleteMany({});
-  await CharacterKarma.deleteMany({});
-  await DivineManifestation.deleteMany({});
-  await DeityAttention.deleteMany({});
-});
 
 describe('KarmaService', () => {
   let testUser: any;
@@ -68,7 +41,7 @@ describe('KarmaService', () => {
         hairColor: 2,
       },
       currentLocation: 'el-paso',
-      gold: 100,
+      dollars: 100,
     });
   });
 
@@ -286,7 +259,7 @@ describe('CharacterKarma Model', () => {
         hairColor: 2,
       },
       currentLocation: 'el-paso',
-      gold: 100,
+      dollars: 100,
     });
   });
 
@@ -310,8 +283,8 @@ describe('CharacterKarma Model', () => {
 
       const conflict = karma.detectMoralConflict();
       expect(conflict).toBeDefined();
-      expect(conflict).toContain('mercy');
-      expect(conflict).toContain('cruelty');
+      expect(conflict?.toLowerCase()).toContain('mercy');
+      expect(conflict?.toLowerCase()).toContain('cruelty');
     });
 
     it('should return null when no conflict exists', async () => {
@@ -336,35 +309,35 @@ describe('CharacterKarma Model', () => {
     });
   });
 
-  describe('getRelationshipStatus()', () => {
-    it('should return Blessed for high positive affinity', async () => {
+  describe('getDeityRelationship()', () => {
+    it('should return FAVORED for high positive affinity', async () => {
       const karma = await CharacterKarma.create({
         characterId: testCharacter._id,
         gamblerAffinity: 80
       });
 
-      const status = karma.getRelationshipStatus('GAMBLER');
-      expect(status).toBe('Blessed');
+      const status = karma.getDeityRelationship('GAMBLER');
+      expect(status).toBe('FAVORED');
     });
 
-    it('should return Cursed for high negative affinity', async () => {
+    it('should return FORSAKEN for high negative affinity', async () => {
       const karma = await CharacterKarma.create({
         characterId: testCharacter._id,
         outlawKingAffinity: -80
       });
 
-      const status = karma.getRelationshipStatus('OUTLAW_KING');
-      expect(status).toBe('Cursed');
+      const status = karma.getDeityRelationship('OUTLAW_KING');
+      expect(status).toBe('FORSAKEN');
     });
 
-    it('should return Neutral for near-zero affinity', async () => {
+    it('should return UNKNOWN for near-zero affinity', async () => {
       const karma = await CharacterKarma.create({
         characterId: testCharacter._id,
         gamblerAffinity: 5
       });
 
-      const status = karma.getRelationshipStatus('GAMBLER');
-      expect(status).toBe('Neutral');
+      const status = karma.getDeityRelationship('GAMBLER');
+      expect(status).toBe('UNKNOWN');
     });
   });
 });

@@ -105,6 +105,9 @@ export async function apiDelete(
  * Expects a successful API response (2xx status)
  */
 export function expectSuccess(response: Response): void {
+  if (response.status < 200 || response.status >= 300) {
+    console.error(`Expected success but got ${response.status}:`, JSON.stringify(response.body, null, 2));
+  }
   expect(response.status).toBeGreaterThanOrEqual(200);
   expect(response.status).toBeLessThan(300);
   expect(response.body.success).toBe(true);

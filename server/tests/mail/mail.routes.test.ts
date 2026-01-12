@@ -5,7 +5,7 @@
  */
 
 import request from 'supertest';
-import app from '../../src/server';
+import app from '../testApp';
 import { Character } from '../../src/models/Character.model';
 import { User } from '../../src/models/User.model';
 import { Mail } from '../../src/models/Mail.model';

@@ -11,12 +11,13 @@
  */
 
 import request from 'supertest';
-import { Express } from 'express';
 import mongoose from 'mongoose';
 import { Character } from '../../src/models/Character.model';
 import { Location } from '../../src/models/Location.model';
 import { Action } from '../../src/models/Action.model';
 import { Gang } from '../../src/models/Gang.model';
+import app from '../testApp';
+import { setupCompleteGameState } from '../helpers/testHelpers';
 
 interface TestResults {
   systemTests: SystemTestResults;
@@ -53,7 +54,6 @@ interface ActionTestResults {
 }
 
 describe('🎯 COMPREHENSIVE TEST ORCHESTRATOR', () => {
-  let app: Express;
   let authToken: string;
   let testCharacterId: string;
   let testUserId: string;
@@ -96,30 +96,13 @@ describe('🎯 COMPREHENSIVE TEST ORCHESTRATOR', () => {
     console.log('═══════════════════════════════════════════════════════════');
     console.log(`Started: ${new Date().toLocaleString()}\n`);
 
-    const { default: createApp } = await import('../testApp');
-    app = createApp();
+    // Use the proven setupCompleteGameState helper
+    const gameState = await setupCompleteGameState(app);
+    authToken = gameState.token;
+    testCharacterId = gameState.character._id.toString();
+    testUserId = gameState.user._id;
 
-    // Create test user and character
-    const registerRes = await request(app)
-      .post('/api/auth/register')
-      .send({
-        email: `orchestrator-${Date.now()}@test.com`,
-        password: 'TestPassword123!',
-      });
-
-    authToken = registerRes.body.data.token;
-    testUserId = registerRes.body.data.user._id;
-
-    const charRes = await request(app)
-      .post('/api/characters')
-      .set('Cookie', `token=${authToken}`)
-      .send({
-        name: `Orchestrator${Date.now()}`,
-        faction: 'SETTLER_ALLIANCE',
-      });
-
-    testCharacterId = charRes.body.data.character._id;
-
+    // Select the character
     await request(app)
       .patch(`/api/characters/${testCharacterId}/select`)
       .set('Cookie', `token=${authToken}`);
@@ -128,7 +111,8 @@ describe('🎯 COMPREHENSIVE TEST ORCHESTRATOR', () => {
     await Character.findByIdAndUpdate(testCharacterId, {
       $set: {
         energy: 100,
-        gold: 10000,
+        dollars: 10000,
+        gold: 10000,  // Must also set gold for DollarService migration compatibility
       },
     });
 

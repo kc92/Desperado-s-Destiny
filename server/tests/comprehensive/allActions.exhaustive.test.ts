@@ -4,50 +4,39 @@
  */
 
 import request from 'supertest';
-import { Express } from 'express';
 import mongoose from 'mongoose';
 import { Action } from '../../src/models/Action.model';
 import { Character } from '../../src/models/Character.model';
+import app from '../testApp';
+import { setupCompleteGameState } from '../helpers/testHelpers';
+import { seedAllLocations } from '../helpers/seedHelpers';
 
 describe('🎯 ALL ACTIONS EXHAUSTIVE TEST', () => {
-  let app: Express;
   let authToken: string;
   let testCharacterId: string;
   let testUserId: string;
 
   beforeAll(async () => {
-    const { default: createApp } = await import('../testApp');
-    app = createApp();
+    // Seed locations before running tests (actions are tied to locations)
+    await seedAllLocations();
 
-    const registerRes = await request(app)
-      .post('/api/auth/register')
-      .send({
-        email: `action-test-${Date.now()}@test.com`,
-        password: 'TestPassword123!',
-      });
+    // Use the proven setupCompleteGameState helper
+    const gameState = await setupCompleteGameState(app);
+    authToken = gameState.token;
+    testCharacterId = gameState.character._id.toString();
+    testUserId = gameState.user._id;
 
-    authToken = registerRes.body.data.token;
-    testUserId = registerRes.body.data.user._id;
-
-    const charRes = await request(app)
-      .post('/api/characters')
-      .set('Cookie', `token=${authToken}`)
-      .send({
-        name: `ActionTester${Date.now()}`,
-        faction: 'SETTLER_ALLIANCE',
-      });
-
-    testCharacterId = charRes.body.data.character._id;
-
+    // Select the character
     await request(app)
       .patch(`/api/characters/${testCharacterId}/select`)
       .set('Cookie', `token=${authToken}`);
 
-    // Give character full energy and gold for testing
+    // Give character full energy and dollars for testing
     await Character.findByIdAndUpdate(testCharacterId, {
       $set: {
         energy: 100,
-        gold: 10000,
+        dollars: 10000,
+        gold: 10000,  // Must also set gold for DollarService migration compatibility
       },
     });
   });

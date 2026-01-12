@@ -88,8 +88,8 @@ const CharacterDeckSchema = new Schema<ICharacterDeck>(
     characterId: {
       type: Schema.Types.ObjectId,
       ref: 'Character',
-      required: true,
-      index: true
+      required: true
+      // Note: unique index defined below
     },
     cards: [{
       cardId: { type: String, required: true },

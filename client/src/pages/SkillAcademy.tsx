@@ -1,6 +1,6 @@
 /**
  * Skill Academy Page
- * Optional tutorial system teaching all 26 skills through mentor quests
+ * Optional tutorial system teaching all 30 skills through mentor quests
  */
 
 import React, { useState, useEffect } from 'react';
@@ -360,7 +360,7 @@ export const SkillAcademy: React.FC = () => {
           🎓 Desperados Academy
         </h1>
         <p className="text-parchment-dark mt-1">
-          Learn the 26 skills of survival from legendary masters
+          Learn the 30 skills of survival from legendary masters
         </p>
 
         {/* Overall Progress */}

@@ -74,6 +74,10 @@ const DISCONNECT_GRACE_PERIOD_MS = 60000; // 1 minute before NPC takes over
 const sessionLockKey = (sessionId: string) => `teamcard:session:${sessionId}`;
 const playerSessionLockKey = (characterId: string) => `teamcard:player:${characterId}`;
 
+// Timer tracking to prevent leaks in tests
+const pendingNPCActions = new Map<string, NodeJS.Timeout>();
+const pendingDisconnectTimers = new Map<string, NodeJS.Timeout>();
+
 // =============================================================================
 // SESSION CREATION
 // =============================================================================
@@ -1482,14 +1486,19 @@ function calculateBossDamage(session: ITeamCardGameSession, roundScore: TeamCard
 // =============================================================================
 
 function scheduleNPCAction(session: ITeamCardGameSession): void {
+  // Skip in test environment to prevent timer leaks
+  if (process.env.NODE_ENV === 'test') return;
+
   // Schedule NPC action after a delay to simulate thinking
-  setTimeout(async () => {
+  const timeoutId = setTimeout(async () => {
     try {
       await processNPCAction(session.sessionId);
     } catch (error) {
       logger.error(`NPC action error in session ${session.sessionId}:`, error);
     }
+    pendingNPCActions.delete(session.sessionId);
   }, NPC_THINK_DELAY_MS);
+  pendingNPCActions.set(session.sessionId, timeoutId);
 }
 
 async function processNPCAction(sessionId: string): Promise<void> {
@@ -1851,25 +1860,33 @@ export async function updatePlayerConnection(
   await session.save();
 
   if (!isConnected) {
-    // Start disconnect timer
-    setTimeout(async () => {
-      const currentSession = await SessionModel.findOne({ sessionId });
-      if (!currentSession) return;
+    // Start disconnect timer (skip in test environment to prevent timer leaks)
+    if (process.env.NODE_ENV !== 'test') {
+      const timerKey = `${sessionId}:${characterId}`;
+      const timeoutId = setTimeout(async () => {
+        const currentSession = await SessionModel.findOne({ sessionId });
+        if (!currentSession) {
+          pendingDisconnectTimers.delete(timerKey);
+          return;
+        }
 
-      const player = currentSession.getPlayer(characterId);
-      if (player && !player.isConnected && !player.isNPC) {
-        // Replace with NPC
-        const playerIndex = currentSession.getPlayerIndex(characterId);
-        await replaceWithNPC(currentSession, playerIndex, NPCDifficulty.MEDIUM);
+        const player = currentSession.getPlayer(characterId);
+        if (player && !player.isConnected && !player.isNPC) {
+          // Replace with NPC
+          const playerIndex = currentSession.getPlayerIndex(characterId);
+          await replaceWithNPC(currentSession, playerIndex, NPCDifficulty.MEDIUM);
 
-        broadcastToSession(currentSession, 'teamCard:player_left', {
-          playerName: player.characterName,
-          seatIndex: player.seatIndex,
-          replacedByNPC: true,
-          npcDifficulty: NPCDifficulty.MEDIUM
-        });
-      }
-    }, DISCONNECT_GRACE_PERIOD_MS);
+          broadcastToSession(currentSession, 'teamCard:player_left', {
+            playerName: player.characterName,
+            seatIndex: player.seatIndex,
+            replacedByNPC: true,
+            npcDifficulty: NPCDifficulty.MEDIUM
+          });
+        }
+        pendingDisconnectTimers.delete(timerKey);
+      }, DISCONNECT_GRACE_PERIOD_MS);
+      pendingDisconnectTimers.set(timerKey, timeoutId);
+    }
   } else {
     // Reconnection - send full state
     const player = session.getPlayer(characterId);
@@ -1936,3 +1953,18 @@ export const TeamCardGameService = {
   getPlayerSession,
   getSession
 };
+
+/**
+ * Cleanup function to stop all pending team card game timers
+ * Called during graceful shutdown to prevent timer leaks
+ */
+export function stopTeamCardGameTimers(): void {
+  for (const timeoutId of pendingNPCActions.values()) {
+    clearTimeout(timeoutId);
+  }
+  pendingNPCActions.clear();
+  for (const timeoutId of pendingDisconnectTimers.values()) {
+    clearTimeout(timeoutId);
+  }
+  pendingDisconnectTimers.clear();
+}

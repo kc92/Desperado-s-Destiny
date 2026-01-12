@@ -259,8 +259,8 @@ const CraftingProfileSchema = new Schema<ICraftingProfile>(
       type: Schema.Types.ObjectId,
       ref: 'Character',
       required: true,
-      unique: true,
-      index: true
+      unique: true
+      // Note: unique: true creates an index
     },
     professions: {
       type: Map,
@@ -316,9 +316,9 @@ const CraftingProfileSchema = new Schema<ICraftingProfile>(
 
 // ============================================================================
 // INDEXES
+// Note: characterId already indexed via unique: true constraint
 // ============================================================================
 
-CraftingProfileSchema.index({ characterId: 1 });
 CraftingProfileSchema.index({ 'specializations': 1 });
 CraftingProfileSchema.index({ 'activeCraftingSession.endTime': 1 });
 

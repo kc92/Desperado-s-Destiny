@@ -79,7 +79,23 @@ export class CombatTurnService {
 
         // Check if there's already an active round in progress
         if (encounter.currentRound && encounter.currentRound.phase !== PlayerTurnPhase.COMPLETE) {
-          // Return the existing round state
+          // SECURITY FIX: Check if timeout has expired before returning round state
+          // This prevents players from stalling combat indefinitely
+          const now = new Date();
+          if (encounter.currentRound.timeoutAt && now > encounter.currentRound.timeoutAt) {
+            // Timeout expired - auto-confirm with current held cards
+            logger.info(
+              `Combat turn timeout enforced on poll: Encounter ${encounterId}, expired ${now.getTime() - encounter.currentRound.timeoutAt.getTime()}ms ago`
+            );
+
+            // Force confirm the current state - player loses their action
+            const fetchedCharacter = await Character.findById(characterId);
+            if (fetchedCharacter) {
+              return await this.processConfirmHold(encounter, fetchedCharacter);
+            }
+          }
+
+          // Return the existing round state (not expired yet)
           return {
             success: true,
             roundState: this.convertToRoundState(encounter.currentRound)
@@ -172,6 +188,28 @@ export class CombatTurnService {
         // Verify there's an active round
         if (!encounter.currentRound) {
           return { success: false, error: 'No active round. Call startPlayerTurn first.' };
+        }
+
+        // SECURITY FIX: Check if timeout has already expired
+        // This prevents players from submitting actions after their turn timer runs out
+        const now = new Date();
+        if (encounter.currentRound.timeoutAt && now > encounter.currentRound.timeoutAt) {
+          const gracePeriodMs = 100; // 100ms for network latency (reduced from 1s to prevent exploitation)
+          const expiredBy = now.getTime() - encounter.currentRound.timeoutAt.getTime();
+
+          if (expiredBy > gracePeriodMs) {
+            logger.info(
+              `Combat action rejected - timeout expired ${expiredBy}ms ago for encounter ${encounterId}`
+            );
+            return {
+              success: false,
+              error: 'Your turn has timed out. The round is being processed automatically.'
+            };
+          }
+          // Within grace period - allow the action but log it
+          logger.debug(
+            `Combat action accepted within grace period (${expiredBy}ms) for encounter ${encounterId}`
+          );
         }
 
         // Fetch character

@@ -94,7 +94,7 @@ export class BountyHunterService {
     location: string
   ): Promise<HunterSpawnCheck> {
     try {
-      const character = await Character.findById(characterId);
+      const character = await Character.findById(characterId).lean();
       if (!character) {
         return { shouldSpawn: false };
       }
@@ -134,7 +134,7 @@ export class BountyHunterService {
         targetId: characterId,
         hunterId: hunter.id,
         status: 'active',
-      });
+      }).lean();
 
       if (existingEncounter) {
         return { shouldSpawn: false };
@@ -174,7 +174,7 @@ export class BountyHunterService {
         throw new Error('Hunter not found');
       }
 
-      const target = await Character.findById(targetId);
+      const target = await Character.findById(targetId).lean();
       if (!target) {
         throw new Error('Target character not found');
       }
@@ -482,13 +482,13 @@ export class BountyHunterService {
     }>
   > {
     try {
-      const character = await Character.findById(characterId);
+      const character = await Character.findById(characterId).lean();
       if (!character) {
         return [];
       }
 
       const hireableHunters = getHireableHunters();
-      const activeHunters = await ActiveHunterModel.find();
+      const activeHunters = await ActiveHunterModel.find().lean();
 
       const result = [];
 
@@ -527,9 +527,9 @@ export class BountyHunterService {
       const encounters = await HunterEncounterModel.find({
         targetId: characterId,
         status: 'active',
-      }).sort({ createdAt: -1 });
+      }).sort({ createdAt: -1 }).lean();
 
-      return encounters.map((e) => e.toObject() as unknown as HunterEncounter);
+      return encounters as unknown as HunterEncounter[];
     } catch (error) {
       logger.error('Error getting active encounters:', error);
       return [];
@@ -583,7 +583,7 @@ export class BountyHunterService {
 
           // If hunter has reached target, create encounter
           if (activeHunter.hoursUntilEncounter <= 0) {
-            const target = await Character.findById(activeHunter.targetId);
+            const target = await Character.findById(activeHunter.targetId).lean();
             if (target) {
               const encounterType = activeHunter.hiredBy ? 'hired' : 'patrol';
 

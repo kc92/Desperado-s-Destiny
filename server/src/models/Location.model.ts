@@ -16,6 +16,8 @@ import type {
   OperatingHours,
   SecretContent,
   WorldZoneType,
+  LocationCraftingFacility,
+  LocationGatheringNode,
 } from '@desperados/shared';
 
 export interface ILocation extends Document {
@@ -50,6 +52,8 @@ export interface ILocation extends Document {
   availableCrimes: string[];
   jobs: LocationJob[];
   shops: LocationShop[];
+  craftingFacilities?: LocationCraftingFacility[];
+  gatheringNodes?: LocationGatheringNode[];
   npcs: LocationNPC[];
   connections: LocationConnection[];
   dangerLevel: number;
@@ -60,6 +64,7 @@ export interface ILocation extends Document {
   };
   isUnlocked: boolean;
   isHidden: boolean;
+  mapPosition?: { x: number; y: number };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -194,6 +199,43 @@ const LocationJobSchema = new Schema(
       minLevel: { type: Number },
       requiredSkill: { type: String },
       skillLevel: { type: Number },
+    },
+  },
+  { _id: false }
+);
+
+// Crafting facility schema
+const CraftingFacilitySchema = new Schema(
+  {
+    type: { type: String, required: true },
+    tier: { type: Number, required: true, min: 1, max: 5 },
+    name: { type: String, required: true },
+    usageFee: { type: Number },
+    requirements: {
+      faction: { type: String },
+      factionStanding: {
+        type: String,
+        enum: ['hostile', 'unfriendly', 'neutral', 'friendly', 'honored']
+      },
+      minLevel: { type: Number },
+    },
+  },
+  { _id: false }
+);
+
+// Gathering node schema
+const GatheringNodeSchema = new Schema(
+  {
+    nodeId: { type: String, required: true },
+    abundance: {
+      type: String,
+      required: true,
+      enum: ['scarce', 'common', 'abundant'],
+    },
+    isHidden: { type: Boolean, default: false },
+    requirements: {
+      minSkillLevel: { type: Number },
+      skillId: { type: String },
     },
   },
   { _id: false }
@@ -401,6 +443,12 @@ const LocationSchema = new Schema<ILocation>(
     // Shops at this location
     shops: [LocationShopSchema],
 
+    // Crafting facilities at this location
+    craftingFacilities: [CraftingFacilitySchema],
+
+    // Gathering nodes at this location
+    gatheringNodes: [GatheringNodeSchema],
+
     // NPCs
     npcs: [LocationNPCSchema],
 
@@ -430,6 +478,10 @@ const LocationSchema = new Schema<ILocation>(
     isHidden: {
       type: Boolean,
       default: false,
+    },
+    mapPosition: {
+      x: { type: Number },
+      y: { type: Number },
     },
   },
   {

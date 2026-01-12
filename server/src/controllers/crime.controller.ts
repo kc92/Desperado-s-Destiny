@@ -374,7 +374,8 @@ export async function getJailStatus(req: AuthRequest, res: Response): Promise<vo
 
     const isJailed = character.isCurrentlyJailed();
     const remainingMinutes = character.getRemainingJailTime();
-    const bailCost = character.wantedLevel * 50;
+    // Use stored lastBailCost for consistency with payBail service
+    const bailCost = character.lastBailCost || (character.wantedLevel * 50);
 
     res.status(200).json({
       success: true,

@@ -4,9 +4,16 @@
  * Helper functions for testing game loop, Destiny Deck, skills, energy, and actions
  */
 
+import mongoose from 'mongoose';
 import { Card, Suit, Rank, HandRank } from '@desperados/shared';
 import { Express } from 'express';
 import { apiPost, apiGet } from './api.helpers';
+
+/**
+ * Creates a valid MongoDB ObjectId for testing
+ * Use this instead of hardcoded strings like "test-character-id"
+ */
+export const createTestId = (): string => new mongoose.Types.ObjectId().toString();
 
 /**
  * Time simulation helpers
@@ -330,35 +337,40 @@ export function assertSkillLevelUp(
 /**
  * Complete game loop test helper
  * Registers, creates character, and returns auth token + character
+ *
+ * IMPORTANT: Returns actual Mongoose document for character (not plain JSON)
+ * so that tests can call Mongoose instance methods like .save() and .reload()
  */
-export async function setupCompleteGameState(app: Express, userEmail?: string) {
-  const email = userEmail || `test-${Date.now()}@example.com`;
-  const password = 'TestPass123!';
-
+export async function setupCompleteGameState(
+  app: any,
+  email: string = `test_${Date.now()}_${Math.floor(Math.random() * 1000)}@example.com`,
+  password: string = 'Password123!'
+) {
   // Register
   const registerRes = await apiPost(app, '/api/auth/register', { email, password });
+  if (registerRes.status !== 201) {
+    console.error('Registration failed:', JSON.stringify(registerRes.body, null, 2));
+  }
   expect(registerRes.status).toBe(201);
 
   // Verify email (required for login to succeed)
-  // In test environment, the verification token is returned in the response
-  const verificationToken = registerRes.body.data?.verificationToken;
-  if (verificationToken) {
-    const verifyRes = await apiPost(app, '/api/auth/verify-email', { token: verificationToken });
-    expect(verifyRes.status).toBe(200);
-  } else {
-    // Fallback: directly mark user as verified in database
-    const { User } = await import('../../src/models/User.model');
-    await User.findOneAndUpdate({ email: email.toLowerCase() }, { emailVerified: true });
-  }
+  // Fallback: directly mark user as verified in database
+  const { User } = await import('../../src/models/User.model');
+  await User.findOneAndUpdate({ email: email.toLowerCase() }, { emailVerified: true });
 
   // Login
   const loginRes = await apiPost(app, '/api/auth/login', { email, password });
+  if (loginRes.status !== 200) {
+    console.error('Login failed:', JSON.stringify(loginRes.body, null, 2));
+  }
   expect(loginRes.status).toBe(200);
   const token = loginRes.body.data.token || extractTokenFromCookie(loginRes);
 
   // Create character
+  const timestamp = Date.now().toString().slice(-8);
+  const random = Math.floor(Math.random() * 100);
   const characterData = {
-    name: 'Test Hero',
+    name: `Hero${timestamp}${random}`,
     faction: 'SETTLER_ALLIANCE',
     appearance: {
       bodyType: 'male',
@@ -370,12 +382,24 @@ export async function setupCompleteGameState(app: Express, userEmail?: string) {
   };
 
   const characterRes = await apiPost(app, '/api/characters', characterData, token);
+  if (characterRes.status !== 201) {
+    console.error('Character creation failed:', JSON.stringify(characterRes.body, null, 2));
+  }
   expect(characterRes.status).toBe(201);
-  const character = characterRes.body.data.character;
+
+  // CRITICAL: Fetch actual Mongoose document from database
+  // This ensures tests can call instance methods like .save(), .reload()
+  const { Character } = await import('../../src/models/Character.model');
+  const characterId = characterRes.body.data.character._id;
+  const character = await Character.findById(characterId);
+
+  if (!character) {
+    throw new Error(`Failed to fetch character from database: ${characterId}`);
+  }
 
   return {
     user: loginRes.body.data.user,
-    character,
+    character,  // Now a proper Mongoose document
     token,
     email,
     password
@@ -480,4 +504,57 @@ export function verifyValidDeck(cards: Card[]): boolean {
   }
 
   return true;
+}
+
+/**
+ * Creates a test character with all required fields
+ * Use this helper to avoid character validation errors in tests
+ *
+ * @param overrides - Optional fields to override defaults
+ * @returns Mongoose Character document
+ */
+export async function createTestCharacter(overrides: Record<string, any> = {}) {
+  const { Character } = await import('../../src/models/Character.model');
+  const { seedMinimalLocations, TEST_LOCATION_IDS } = await import('./seedHelpers');
+
+  // Seed locations to ensure valid currentLocation reference
+  await seedMinimalLocations();
+
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1000);
+
+  return Character.create({
+    userId: overrides.userId || new mongoose.Types.ObjectId(),
+    name: overrides.name || `TestChar${timestamp}${random}`,
+    faction: overrides.faction || 'SETTLER_ALLIANCE',
+    currentLocation: overrides.currentLocation || TEST_LOCATION_IDS.RED_GULCH,
+    locationId: overrides.locationId || TEST_LOCATION_IDS.RED_GULCH.toString(),
+    appearance: overrides.appearance || {
+      bodyType: 'male',
+      skinTone: 5,
+      facePreset: 1,
+      hairStyle: 3,
+      hairColor: 2
+    },
+    gold: overrides.gold ?? 1000,
+    dollars: overrides.dollars ?? 1000,
+    energy: overrides.energy ?? 100,
+    maxEnergy: overrides.maxEnergy ?? 150,
+    level: overrides.level ?? 1,
+    totalLevel: overrides.totalLevel ?? 30,
+    experience: overrides.experience ?? 0,
+    experienceToNextLevel: overrides.experienceToNextLevel ?? 100,
+    stats: overrides.stats || { cunning: 10, spirit: 10, combat: 10, craft: 10 },
+    skills: overrides.skills || [],
+    inventory: overrides.inventory || [],
+    activeEffects: overrides.activeEffects || [],
+    combatStats: overrides.combatStats || { wins: 0, losses: 0, totalDamage: 0, kills: 0 },
+    isJailed: overrides.isJailed ?? false,
+    jailedUntil: overrides.jailedUntil || null,
+    wantedLevel: overrides.wantedLevel ?? 0,
+    bountyAmount: overrides.bountyAmount ?? 0,
+    lastActive: overrides.lastActive || new Date(),
+    isActive: overrides.isActive ?? true,
+    ...overrides
+  });
 }

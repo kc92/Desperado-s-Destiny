@@ -355,13 +355,12 @@ export async function login(req: Request, res: Response): Promise<void> {
   });
 
   // Set JWT in httpOnly cookie
-  // SECURITY: Cookie maxAge matches JWT expiry (1 hour)
-  // Client should use refresh token mechanism to extend sessions
+  // SECURITY: Cookie maxAge is 7 days; JWT is refreshed automatically via refresh token
   res.cookie('token', token, {
     httpOnly: true, // Prevents JavaScript access
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: 'lax', // Always use 'lax' for development proxy to work
-    maxAge: 60 * 60 * 1000, // 1 hour (matches JWT expiry)
+    sameSite: 'strict', // Strict for CSRF protection
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/' // Explicitly set path to ensure cookie works for all routes
   });
 

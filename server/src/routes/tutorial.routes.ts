@@ -28,6 +28,7 @@ import {
 import { requireAuth } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { requireCsrfToken } from '../middleware/csrf.middleware';
+import { requireCharacterOwnership } from '../middleware/characterOwnership.middleware';
 
 const router = express.Router();
 
@@ -46,8 +47,9 @@ router.post('/claim-reward', requireAuth, requireCsrfToken, asyncHandler(claimSt
  * GET /api/tutorial/progress/:characterId
  * Get tutorial progress for a character
  * Returns: { claimedSteps: string[], availableRewards: object[] }
+ * Protected: User must own this character
  */
-router.get('/progress/:characterId', requireAuth, asyncHandler(getProgress));
+router.get('/progress/:characterId', requireAuth, requireCharacterOwnership, asyncHandler(getProgress));
 
 /**
  * POST /api/tutorial/analytics
@@ -63,8 +65,9 @@ router.post('/analytics', requireAuth, requireCsrfToken, asyncHandler(trackAnaly
 /**
  * GET /api/tutorial/status/:characterId
  * Get complete tutorial status including Hawk companion state
+ * Protected: User must own this character
  */
-router.get('/status/:characterId', requireAuth, asyncHandler(getTutorialStatus));
+router.get('/status/:characterId', requireAuth, requireCharacterOwnership, asyncHandler(getTutorialStatus));
 
 /**
  * POST /api/tutorial/initialize
@@ -109,8 +112,9 @@ router.post('/resume', requireAuth, requireCsrfToken, asyncHandler(resumeTutoria
  * GET /api/tutorial/hawk/dialogue/:characterId
  * Get contextual Hawk dialogue
  * Query: { trigger?: DialogueTrigger, context?: JSON string }
+ * Protected: User must own this character
  */
-router.get('/hawk/dialogue/:characterId', requireAuth, asyncHandler(getHawkDialogue));
+router.get('/hawk/dialogue/:characterId', requireAuth, requireCharacterOwnership, asyncHandler(getHawkDialogue));
 
 /**
  * POST /api/tutorial/hawk/interact
@@ -122,8 +126,9 @@ router.post('/hawk/interact', requireAuth, requireCsrfToken, asyncHandler(intera
 /**
  * GET /api/tutorial/hawk/tip/:characterId
  * Get contextual tip based on game state
+ * Protected: User must own this character
  */
-router.get('/hawk/tip/:characterId', requireAuth, asyncHandler(getContextualTip));
+router.get('/hawk/tip/:characterId', requireAuth, requireCharacterOwnership, asyncHandler(getContextualTip));
 
 /**
  * POST /api/tutorial/hawk/tip/:tipId/shown
@@ -139,8 +144,9 @@ router.post('/hawk/tip/:tipId/shown', requireAuth, requireCsrfToken, asyncHandle
 /**
  * GET /api/tutorial/milestones/:characterId
  * Get player's tutorial milestones
+ * Protected: User must own this character
  */
-router.get('/milestones/:characterId', requireAuth, asyncHandler(getMilestones));
+router.get('/milestones/:characterId', requireAuth, requireCharacterOwnership, asyncHandler(getMilestones));
 
 /**
  * POST /api/tutorial/graduation/complete

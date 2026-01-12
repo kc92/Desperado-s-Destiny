@@ -5,13 +5,18 @@
  */
 
 import request from 'supertest';
-import app from '../testApp';
+import { createTestApp } from '../testApp';
+
+const app = createTestApp();
 import { Character } from '../../src/models/Character.model';
 import { GoldTransaction } from '../../src/models/GoldTransaction.model';
 import { Item } from '../../src/models/Item.model';
 import { clearDatabase } from '../helpers/db.helpers';
 import { apiGet, apiPost, expectSuccess, expectError } from '../helpers/api.helpers';
 import { setupCompleteGameState } from '../helpers/testHelpers';
+
+// Extended timeout for tests using setupCompleteGameState (includes full auth flow)
+jest.setTimeout(60000);
 
 describe('Gold Transaction Safety Tests', () => {
   beforeEach(async () => {
@@ -26,7 +31,7 @@ describe('Gold Transaction Safety Tests', () => {
       itemId: 'test-sword',
       name: 'Test Sword',
       description: 'A sword for testing',
-      type: 'WEAPON',
+      type: 'weapon',
       price: 100,
       sellPrice: 50,
       levelRequired: 1,
@@ -46,8 +51,7 @@ describe('Gold Transaction Safety Tests', () => {
       const item = await createTestItem();
 
       // Give character exactly enough gold for one purchase
-      character.gold = 100;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 100 });
 
       // Attempt multiple concurrent purchases
       const purchases = Array(5).fill(null).map(() =>
@@ -74,7 +78,7 @@ describe('Gold Transaction Safety Tests', () => {
 
       // Verify final balance is correct (0 if one purchase succeeded)
       const updatedChar = await Character.findById(character._id);
-      expect(updatedChar?.gold).toBe(0);
+      expect(updatedChar?.dollars).toBe(0);
     });
 
     it('should prevent race condition with rapid purchases', async () => {
@@ -82,8 +86,7 @@ describe('Gold Transaction Safety Tests', () => {
       const item = await createTestItem();
 
       // Give character enough for 2 purchases
-      character.gold = 200;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 200 });
 
       // Attempt 10 concurrent purchases
       const purchases = Array(10).fill(null).map(() =>
@@ -107,14 +110,13 @@ describe('Gold Transaction Safety Tests', () => {
 
       // Verify final balance
       const updatedChar = await Character.findById(character._id);
-      expect(updatedChar?.gold).toBe(0);
+      expect(updatedChar?.dollars).toBe(0);
     });
 
     it('should maintain consistency with concurrent gold deductions', async () => {
       const { character, token } = await setupCompleteGameState(app);
 
-      character.gold = 1000;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 1000 });
 
       // Create multiple items
       const items = await Promise.all([
@@ -122,7 +124,7 @@ describe('Gold Transaction Safety Tests', () => {
         new Item({
           itemId: 'test-item-2',
           name: 'Test Item 2',
-          type: 'CONSUMABLE',
+          type: 'consumable',
           price: 150,
           sellPrice: 75,
           inShop: true,
@@ -165,7 +167,7 @@ describe('Gold Transaction Safety Tests', () => {
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
       // Final balance should be initial - total spent
-      expect(updatedChar?.gold).toBe(1000 - totalSpent);
+      expect(updatedChar?.dollars).toBe(1000 - totalSpent);
     });
   });
 
@@ -175,8 +177,7 @@ describe('Gold Transaction Safety Tests', () => {
       const item = await createTestItem();
 
       // Give character less than item cost
-      character.gold = 50;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 50 });
 
       const response = await apiPost(
         app,
@@ -195,7 +196,7 @@ describe('Gold Transaction Safety Tests', () => {
 
       // Verify balance unchanged
       const updatedChar = await Character.findById(character._id);
-      expect(updatedChar?.gold).toBe(50);
+      expect(updatedChar?.dollars).toBe(50);
     });
 
     it('should prevent negative balance with exact amount edge case', async () => {
@@ -203,8 +204,7 @@ describe('Gold Transaction Safety Tests', () => {
       const item = await createTestItem();
 
       // Give character exactly item cost
-      character.gold = 100;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 100 });
 
       // First purchase should succeed
       const response1 = await apiPost(
@@ -236,15 +236,14 @@ describe('Gold Transaction Safety Tests', () => {
 
       // Verify balance is 0, not negative
       const updatedChar = await Character.findById(character._id);
-      expect(updatedChar?.gold).toBe(0);
+      expect(updatedChar?.dollars).toBe(0);
     });
 
     it('should handle large quantity purchases safely', async () => {
       const { character, token } = await setupCompleteGameState(app);
       const item = await createTestItem();
 
-      character.gold = 500;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 500 });
 
       // Try to buy more than affordable (5 items at 100 each = 500, but trying 10)
       const response = await apiPost(
@@ -263,7 +262,7 @@ describe('Gold Transaction Safety Tests', () => {
 
       // Balance should be unchanged
       const updatedChar = await Character.findById(character._id);
-      expect(updatedChar?.gold).toBe(500);
+      expect(updatedChar?.dollars).toBe(500);
     });
   });
 
@@ -271,8 +270,7 @@ describe('Gold Transaction Safety Tests', () => {
     it('should rollback transaction if inventory update fails', async () => {
       const { character, token } = await setupCompleteGameState(app);
 
-      character.gold = 1000;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 1000 });
 
       // Try to buy non-existent item
       const response = await apiPost(
@@ -290,7 +288,7 @@ describe('Gold Transaction Safety Tests', () => {
 
       // Balance should be unchanged
       const updatedChar = await Character.findById(character._id);
-      expect(updatedChar?.gold).toBe(1000);
+      expect(updatedChar?.dollars).toBe(1000);
 
       // No transaction record should be created
       const transactions = await GoldTransaction.find({
@@ -304,16 +302,14 @@ describe('Gold Transaction Safety Tests', () => {
       const { character, token } = await setupCompleteGameState(app);
       const item = await createTestItem();
 
-      character.gold = 1000;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 1000 });
 
       // This is a theoretical test - in practice, you'd need to simulate
       // character deactivation mid-transaction
-      const initialGold = character.gold;
+      const initialGold = 1000;
 
       // Deactivate character
-      character.isActive = false;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { isActive: false });
 
       const response = await apiPost(
         app,
@@ -331,7 +327,7 @@ describe('Gold Transaction Safety Tests', () => {
 
       // Balance should not have changed
       const updatedChar = await Character.findById(character._id);
-      expect(updatedChar?.gold).toBe(initialGold);
+      expect(updatedChar?.dollars).toBe(initialGold);
     });
   });
 
@@ -340,8 +336,7 @@ describe('Gold Transaction Safety Tests', () => {
       const { character, token } = await setupCompleteGameState(app);
       const item = await createTestItem();
 
-      character.gold = 500;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 500 });
 
       await apiPost(
         app,
@@ -369,8 +364,7 @@ describe('Gold Transaction Safety Tests', () => {
       const { character, token } = await setupCompleteGameState(app);
       const item = await createTestItem();
 
-      character.gold = 500;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 500 });
 
       // Make 3 purchases
       await apiPost(app, '/api/shop/buy', {
@@ -412,8 +406,7 @@ describe('Gold Transaction Safety Tests', () => {
       const { character, token } = await setupCompleteGameState(app);
       const item = await createTestItem();
 
-      character.gold = 500;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 500 });
 
       await apiPost(
         app,
@@ -439,8 +432,8 @@ describe('Gold Transaction Safety Tests', () => {
       const { character, token } = await setupCompleteGameState(app);
       const item = await createTestItem();
 
-      character.gold = 50; // Not enough
-      await character.save();
+      // Not enough gold
+      await Character.updateOne({ _id: character._id }, { dollars: 50 });
 
       await apiPost(
         app,
@@ -467,20 +460,18 @@ describe('Gold Transaction Safety Tests', () => {
       const { character, token } = await setupCompleteGameState(app);
 
       // Set gold to near max safe integer
-      character.gold = Number.MAX_SAFE_INTEGER - 1000;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: Number.MAX_SAFE_INTEGER - 1000 });
 
       // Verify it's stored correctly
       const updatedChar = await Character.findById(character._id);
-      expect(updatedChar?.gold).toBe(Number.MAX_SAFE_INTEGER - 1000);
+      expect(updatedChar?.dollars).toBe(Number.MAX_SAFE_INTEGER - 1000);
     });
 
     it('should prevent integer overflow in quantity calculations', async () => {
       const { character, token } = await setupCompleteGameState(app);
       const item = await createTestItem();
 
-      character.gold = 1000000;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 1000000 });
 
       // Try to buy with very large quantity
       const response = await apiPost(
@@ -504,8 +495,7 @@ describe('Gold Transaction Safety Tests', () => {
       const { character, token } = await setupCompleteGameState(app);
       const item = await createTestItem();
 
-      character.gold = 500;
-      await character.save();
+      await Character.updateOne({ _id: character._id }, { dollars: 500 });
 
       // Simulate earning gold while spending
       const operations = [
@@ -527,7 +517,7 @@ describe('Gold Transaction Safety Tests', () => {
       });
 
       const totalChange = transactions.reduce((sum, t) => sum + t.amount, 0);
-      expect(updatedChar?.gold).toBe(500 + totalChange);
+      expect(updatedChar?.dollars).toBe(500 + totalChange);
     });
   });
 });

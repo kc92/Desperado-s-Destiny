@@ -66,6 +66,12 @@ export const QUEUE_NAMES = {
   ECONOMY_TICK: 'economy-tick', // Phase R2: Economy Foundation
   // PRODUCTION FIX: Dead Letter Queue for permanently failed jobs
   DEAD_LETTER: 'dead-letter-queue',
+  // Expedition System - Offline progression
+  EXPEDITION_COMPLETE: 'expedition-complete',
+  // Training Auto-Complete - Skill training
+  TRAINING_COMPLETE: 'training-complete',
+  // Orphan Cleanup - Data integrity maintenance
+  ORPHAN_CLEANUP: 'orphan-cleanup',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -205,6 +211,18 @@ export const JOB_TYPES = {
   // Economy Tick (Phase R2 - Economy Foundation)
   ECONOMY_TICK: 'economy-tick',
   ECONOMY_CLEANUP: 'economy-cleanup',
+
+  // Expedition System - Offline progression
+  EXPEDITION_COMPLETE: 'expedition-complete',
+  EXPEDITION_CHECK: 'expedition-check',
+
+  // Training Auto-Complete - Skill training
+  TRAINING_COMPLETE: 'training-complete',
+
+  // Orphan Cleanup - Data integrity maintenance
+  ORPHAN_CLEANUP_GANG_REFS: 'orphan-cleanup-gang-refs',
+  ORPHAN_CLEANUP_CHARACTER_REFS: 'orphan-cleanup-character-refs',
+  ORPHAN_CLEANUP_FULL: 'orphan-cleanup-full',
 } as const;
 
 /**
@@ -448,6 +466,18 @@ export const Queues = {
   get deadLetter() {
     return getDeadLetterQueue();
   },
+  // Expedition System - Offline progression
+  get expeditionComplete() {
+    return getOrCreateQueue(QUEUE_NAMES.EXPEDITION_COMPLETE);
+  },
+  // Training Auto-Complete - Skill training
+  get trainingComplete() {
+    return getOrCreateQueue(QUEUE_NAMES.TRAINING_COMPLETE);
+  },
+  // Orphan Cleanup - Data integrity maintenance
+  get orphanCleanup() {
+    return getOrCreateQueue(QUEUE_NAMES.ORPHAN_CLEANUP);
+  },
 };
 
 /**
@@ -682,9 +712,8 @@ export async function registerProcessors(): Promise<void> {
       // Build NPC gang lookup map for efficiency
       const npcGangMap = new Map(ALL_NPC_GANGS.map(g => [g.id, g]));
 
-      // Process attacks
-      let attackCount = 0;
-      const attackPromises: Promise<void>[] = [];
+      // Build list of attacks to process
+      const attacksToProcess: Array<{gangId: unknown; npcGangId: string; attackType: string; npcGangName: string}> = [];
 
       for (const relationship of hostileRelationships) {
         if (!SecureRNG.chance(0.7)) continue;
@@ -693,22 +722,38 @@ export async function registerProcessors(): Promise<void> {
         if (!npcGang) continue;
 
         const attackPattern = SecureRNG.select(npcGang.attackPatterns);
-        const gangId = relationship.playerGangId;
-
-        // Queue attack processing (limited concurrency via Promise.allSettled)
-        attackPromises.push(
-          NPCGangConflictService.processNPCAttack(gangId, npcGang.id, attackPattern.type)
-            .then(() => { attackCount++; })
-            .catch(error => {
-              logger.error(`Error processing attack from ${npcGang.name}:`, error);
-            })
-        );
+        attacksToProcess.push({
+          gangId: relationship.playerGangId,
+          npcGangId: npcGang.id,
+          attackType: attackPattern.type,
+          npcGangName: npcGang.name
+        });
       }
 
-      // Process all attacks with controlled concurrency
-      await Promise.allSettled(attackPromises);
+      // PRODUCTION FIX: Process attacks in batches with controlled concurrency
+      // This prevents server crash from 1000s of simultaneous attack operations
+      const BATCH_SIZE = 10; // Max 10 concurrent attack operations
+      let attackCount = 0;
 
-      return { attacksProcessed: attackCount };
+      for (let i = 0; i < attacksToProcess.length; i += BATCH_SIZE) {
+        const batch = attacksToProcess.slice(i, i + BATCH_SIZE);
+
+        const batchResults = await Promise.allSettled(
+          batch.map(attack =>
+            NPCGangConflictService.processNPCAttack(attack.gangId, attack.npcGangId, attack.attackType)
+              .then(() => true)
+              .catch(error => {
+                logger.error(`Error processing attack from ${attack.npcGangName}:`, error);
+                return false;
+              })
+          )
+        );
+
+        // Count successful attacks
+        attackCount += batchResults.filter(r => r.status === 'fulfilled' && r.value === true).length;
+      }
+
+      return { attacksProcessed: attackCount, totalAttempted: attacksToProcess.length };
     });
   });
 
@@ -1002,6 +1047,22 @@ export async function registerProcessors(): Promise<void> {
   Queues.economyTick.process(JOB_TYPES.ECONOMY_CLEANUP, async () => {
     const { cleanupStaleEconomyData } = await import('./economyTick.job');
     return executeJob('Economy Cleanup', () => cleanupStaleEconomyData());
+  });
+
+  // Orphan Cleanup - Weekly data integrity checks
+  Queues.orphanCleanup.process(JOB_TYPES.ORPHAN_CLEANUP_FULL, async () => {
+    const { runFullOrphanCleanup } = await import('./orphanCleanup.job');
+    return executeJob('Full Orphan Cleanup', () => runFullOrphanCleanup());
+  });
+
+  Queues.orphanCleanup.process(JOB_TYPES.ORPHAN_CLEANUP_GANG_REFS, async () => {
+    const { cleanupOrphanedGangReferences } = await import('./orphanCleanup.job');
+    return executeJob('Gang Orphan Cleanup', () => cleanupOrphanedGangReferences());
+  });
+
+  Queues.orphanCleanup.process(JOB_TYPES.ORPHAN_CLEANUP_CHARACTER_REFS, async () => {
+    const { cleanupOrphanedCharacterReferences } = await import('./orphanCleanup.job');
+    return executeJob('Character Orphan Cleanup', () => cleanupOrphanedCharacterReferences());
   });
 
   logger.info('All Bull queue processors registered');
@@ -1396,14 +1457,14 @@ export async function scheduleRecurringJobs(): Promise<void> {
     }
   );
 
-  // Combat Timeout Check - Every 30 seconds (Phase 1 Tech Debt)
-  // Using every: 30000 for sub-minute scheduling
+  // Combat Timeout Check - Every 15 seconds (increased frequency to reduce exploitation window)
+  // Using every: 15000 for sub-minute scheduling
   await Queues.combatTimeout.add(
     JOB_TYPES.COMBAT_TIMEOUT_CHECK,
     {},
     {
       ...repeatableJobOptions,
-      repeat: { every: 30000 }, // Every 30 seconds
+      repeat: { every: 15000 }, // Every 15 seconds (reduced from 30s to prevent stalling)
       jobId: 'combat-timeout-check-recurring',
     }
   );
@@ -1680,6 +1741,17 @@ export async function scheduleRecurringJobs(): Promise<void> {
       ...repeatableJobOptions,
       repeat: { cron: '30 5 * * *', tz: 'UTC' }, // Daily at 5:30 AM UTC
       jobId: 'economy-cleanup-recurring',
+    }
+  );
+
+  // Orphan Cleanup - Weekly on Sunday at 2 AM UTC (low-traffic time)
+  await Queues.orphanCleanup.add(
+    JOB_TYPES.ORPHAN_CLEANUP_FULL,
+    {},
+    {
+      ...repeatableJobOptions,
+      repeat: { cron: '0 2 * * 0', tz: 'UTC' }, // Every Sunday at 2 AM UTC
+      jobId: 'orphan-cleanup-full-recurring',
     }
   );
 

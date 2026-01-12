@@ -9,6 +9,7 @@ import { BountyService } from '../services/bounty.service';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { HttpStatus } from '../types';
 import logger from '../utils/logger';
+import { clampLimit } from '../utils/validation';
 
 /**
  * Get wanted level for current character
@@ -48,7 +49,8 @@ export const getWantedLevel = asyncHandler(async (req: Request, res: Response) =
  * GET /api/bounty/board
  */
 export const getBountyBoard = asyncHandler(async (req: Request, res: Response) => {
-  const limit = parseInt(req.query.limit as string) || 50;
+  // SECURITY FIX: Clamp limit to prevent pagination DoS
+  const limit = clampLimit(req.query.limit, { defaultLimit: 50, maxLimit: 100 });
   const location = req.query.location as string | undefined;
 
   const bounties = await BountyService.getBountyBoard(location, limit);

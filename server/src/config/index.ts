@@ -4,9 +4,15 @@ import crypto from 'crypto';
 // Note: Cannot import logger here due to circular dependency
 // logger imports config, so config cannot import logger
 
-// Load environment variables from project root
-const envPath = path.resolve(__dirname, '../../../.env');
-const dotenvResult = dotenv.config({ path: envPath });
+// Load environment variables
+// Try server root first (Docker/local), then project root (fallback)
+const serverEnvPath = path.resolve(__dirname, '../../.env');
+const projectEnvPath = path.resolve(__dirname, '../../../.env');
+
+let dotenvResult = dotenv.config({ path: serverEnvPath });
+if (dotenvResult.error) {
+  dotenvResult = dotenv.config({ path: projectEnvPath });
+}
 
 // Only log non-sensitive config status in development
 if (process.env.NODE_ENV !== 'production') {

@@ -145,6 +145,7 @@ export class CrimeService {
       s => s.skillId.toLowerCase() === skillType.toLowerCase()
     );
 
+    let isNewSkill = false;
     if (skillIndex < 0) {
       // Initialize the criminal skill at level 1
       character.skills.push({
@@ -156,6 +157,10 @@ export class CrimeService {
         trainingCompletes: undefined as any
       });
       skillIndex = character.skills.length - 1;
+      isNewSkill = true;
+      logger.info(
+        `New criminal skill created: ${character.name} initialized ${skillType} at level 1`
+      );
     }
 
     const skill = character.skills[skillIndex];
@@ -178,8 +183,9 @@ export class CrimeService {
     // Mark skills as modified for Mongoose
     character.markModified('skills');
 
-    // Update Total Level if criminal skill leveled up
-    if (levelUp) {
+    // Update Total Level if new criminal skill was created or skill leveled up
+    // New criminal skills at level 1 also contribute to TL
+    if (isNewSkill || levelUp) {
       SkillService.updateTotalLevel(character);
 
       // Check Total Level milestones (consistent pattern with other services)
@@ -795,14 +801,17 @@ export class CrimeService {
     targetCharacterId: string
   ): Promise<ArrestResult> {
     const session = await mongoose.startSession();
-    session.startTransaction();
+    const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
+    if (!disableTransactions) {
+      session.startTransaction();
+    }
 
     try {
       const arrester = await Character.findById(arresterCharacterId).session(session);
       const target = await Character.findById(targetCharacterId).session(session);
 
       if (!arrester) {
-        await session.abortTransaction();
+        if (!disableTransactions) await session.abortTransaction();
         session.endSession();
         return {
           success: false,
@@ -813,7 +822,7 @@ export class CrimeService {
       }
 
       if (!target) {
-        await session.abortTransaction();
+        if (!disableTransactions) await session.abortTransaction();
         session.endSession();
         return {
           success: false,
@@ -825,7 +834,7 @@ export class CrimeService {
 
       // Can't arrest yourself
       if (arresterCharacterId === targetCharacterId) {
-        await session.abortTransaction();
+        if (!disableTransactions) await session.abortTransaction();
         session.endSession();
         return {
           success: false,
@@ -837,7 +846,7 @@ export class CrimeService {
 
       // Check if arrester can arrest (not jailed, cooldown check)
       if (!arrester.canArrestTarget(targetCharacterId)) {
-        await session.abortTransaction();
+        if (!disableTransactions) await session.abortTransaction();
         session.endSession();
         return {
           success: false,
@@ -849,7 +858,7 @@ export class CrimeService {
 
       // Check if target can be arrested (wanted >= 3, not already jailed)
       if (!target.canBeArrested()) {
-        await session.abortTransaction();
+        if (!disableTransactions) await session.abortTransaction();
         session.endSession();
         return {
           success: false,
@@ -892,7 +901,9 @@ export class CrimeService {
       await target.save({ session });
       await arrester.save({ session });
 
-      await session.commitTransaction();
+      if (!disableTransactions) {
+        await session.commitTransaction();
+      }
       session.endSession();
 
       // DEITY SYSTEM: Record karma for bringing criminal to justice
@@ -919,7 +930,9 @@ export class CrimeService {
         message: `You brought ${target.name} to justice! Earned ${bountyAmount} dollars bounty.`
       };
     } catch (error) {
-      await session.abortTransaction();
+      if (!disableTransactions && session.inTransaction()) {
+        await session.abortTransaction();
+      }
       session.endSession();
       logger.error('Error arresting player:', error);
       throw error;

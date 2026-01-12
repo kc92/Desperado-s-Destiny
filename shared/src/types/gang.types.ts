@@ -76,6 +76,7 @@ export interface Gang {
   _id: string;
   name: string;
   tag: string;
+  description?: string;
   leaderId: string;
   members: GangMember[];
   bank: number;
@@ -86,6 +87,9 @@ export interface Gang {
   stats: GangStats;
   createdAt: Date;
   isActive: boolean;
+  isRecruiting?: boolean;
+  minimumLevel?: number;
+  reputation?: number;
   currentMembers: number;
   maxMembers?: number;
   officerCount: number;

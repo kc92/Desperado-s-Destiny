@@ -492,48 +492,90 @@ export async function getPlayerStats(
       return;
     }
 
-    // Get completed sessions
-    const completedSessions = await TeamCardGameSession.find({
-      'players.characterId': characterId,
-      phase: TeamCardGamePhase.GAME_COMPLETE
-    });
+    // Use aggregation to calculate stats - prevents OOM with large datasets
+    const statsAgg = await TeamCardGameSession.aggregate([
+      {
+        $match: {
+          'players.characterId': characterId,
+          phase: TeamCardGamePhase.GAME_COMPLETE
+        }
+      },
+      {
+        $addFields: {
+          playerData: {
+            $arrayElemAt: [
+              { $filter: { input: '$players', as: 'p', cond: { $eq: ['$$p.characterId', characterId] } } },
+              0
+            ]
+          },
+          winningTeam: { $cond: { if: { $gt: [{ $arrayElemAt: ['$teamScores', 0] }, { $arrayElemAt: ['$teamScores', 1] }] }, then: 0, else: 1 } }
+        }
+      },
+      {
+        $addFields: {
+          playerWon: { $eq: ['$playerData.teamIndex', '$winningTeam'] },
+          bossDefeated: { $and: ['$raidMode', { $lte: [{ $ifNull: ['$bossHealth', 1] }, 0] }] }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          gamesPlayed: { $sum: 1 },
+          gamesWon: { $sum: { $cond: ['$playerWon', 1, 0] } },
+          raidBossesDefeated: { $sum: { $cond: ['$bossDefeated', 1, 0] } },
+          totalTricksWon: { $sum: { $ifNull: ['$playerData.tricksWonTotal', 0] } },
+          mechanicsCountered: { $sum: { $ifNull: ['$playerData.mechanicsCountered', 0] } },
+          perfectTricks: { $sum: { $ifNull: ['$playerData.perfectTricks', 0] } }
+        }
+      }
+    ]);
 
-    // Calculate stats
-    const stats = {
-      gamesPlayed: completedSessions.length,
+    // Get stats by game type separately (cleaner aggregation)
+    const byGameTypeAgg = await TeamCardGameSession.aggregate([
+      {
+        $match: {
+          'players.characterId': characterId,
+          phase: TeamCardGamePhase.GAME_COMPLETE
+        }
+      },
+      {
+        $addFields: {
+          playerData: {
+            $arrayElemAt: [
+              { $filter: { input: '$players', as: 'p', cond: { $eq: ['$$p.characterId', characterId] } } },
+              0
+            ]
+          },
+          winningTeam: { $cond: { if: { $gt: [{ $arrayElemAt: ['$teamScores', 0] }, { $arrayElemAt: ['$teamScores', 1] }] }, then: 0, else: 1 } }
+        }
+      },
+      {
+        $group: {
+          _id: '$gameType',
+          played: { $sum: 1 },
+          won: { $sum: { $cond: { if: { $eq: ['$playerData.teamIndex', '$winningTeam'] }, then: 1, else: 0 } } }
+        }
+      }
+    ]);
+
+    const baseStats = statsAgg[0] || {
+      gamesPlayed: 0,
       gamesWon: 0,
       raidBossesDefeated: 0,
       totalTricksWon: 0,
       mechanicsCountered: 0,
-      perfectTricks: 0,
-      byGameType: {} as Record<string, { played: number; won: number }>
+      perfectTricks: 0
     };
 
-    for (const session of completedSessions) {
-      const player = session.players.find(p => p.characterId === characterId);
-      if (!player) continue;
-
-      // Determine if player's team won
-      const winningTeam = session.teamScores[0] > session.teamScores[1] ? 0 : 1;
-      const playerWon = player.teamIndex === winningTeam;
-
-      if (playerWon) stats.gamesWon++;
-      if (session.raidMode && (session.bossHealth || 0) <= 0) {
-        stats.raidBossesDefeated++;
-      }
-
-      stats.totalTricksWon += player.tricksWonTotal;
-      stats.mechanicsCountered += player.mechanicsCountered;
-      stats.perfectTricks += player.perfectTricks;
-
-      // Track by game type
-      const gameType = session.gameType;
-      if (!stats.byGameType[gameType]) {
-        stats.byGameType[gameType] = { played: 0, won: 0 };
-      }
-      stats.byGameType[gameType].played++;
-      if (playerWon) stats.byGameType[gameType].won++;
+    const byGameType: Record<string, { played: number; won: number }> = {};
+    for (const gt of byGameTypeAgg) {
+      byGameType[gt._id] = { played: gt.played, won: gt.won };
     }
+
+    const stats = {
+      ...baseStats,
+      byGameType
+    };
 
     res.json({
       success: true,

@@ -218,12 +218,16 @@ export class ShopService {
           throw new AppError(`Total Level ${item.levelRequired * 10} required to purchase this item`, 400);
         }
 
-        // Check dollars with race condition prevention
+        // PRODUCTION FIX: Atomic dollar deduction via DollarService
+        // DollarService.deductDollars uses findOneAndUpdate with $gte check
+        // This prevents race conditions where balance could go negative
+        // The pre-check below is optional for better error messages, but the
+        // atomic operation is the final authority
         if (character.dollars < totalCost) {
           throw new AppError(`Insufficient dollars. Need $${totalCost}, have $${character.dollars}`, 400);
         }
 
-        // Deduct dollars atomically via dollar service
+        // Atomic operation: Only deducts if sufficient funds (race-safe)
         await character.deductDollars(totalCost, TransactionSource.SHOP_PURCHASE, {
           itemId: item.itemId,
           quantity,

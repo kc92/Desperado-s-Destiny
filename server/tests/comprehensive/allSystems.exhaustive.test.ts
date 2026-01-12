@@ -17,41 +17,28 @@ import { Character } from '../../src/models/Character.model';
 import { Location } from '../../src/models/Location.model';
 import { Action } from '../../src/models/Action.model';
 import { Gang } from '../../src/models/Gang.model';
+import app from '../testApp';
+import { setupCompleteGameState } from '../helpers/testHelpers';
+import { seedBaseGameData } from '../helpers/seedHelpers';
 
 describe('🎮 COMPREHENSIVE SYSTEM TESTS', () => {
-  let app: Express;
   let authToken: string;
   let testCharacterId: string;
   let testUserId: string;
+  let testCharacter: any;
 
   beforeAll(async () => {
-    // Import app after env setup
-    const { default: createApp } = await import('../testApp');
-    app = createApp();
+    // Seed base game data before running tests
+    await seedBaseGameData();
 
-    // Create test user and character
-    const registerRes = await request(app)
-      .post('/api/auth/register')
-      .send({
-        email: `comprehensive-${Date.now()}@test.com`,
-        password: 'TestPassword123!',
-      });
+    // Use the proven setupCompleteGameState helper
+    const gameState = await setupCompleteGameState(app);
+    authToken = gameState.token;
+    testCharacterId = gameState.character._id.toString();
+    testUserId = gameState.user._id;
+    testCharacter = gameState.character;
 
-    authToken = registerRes.body.data.token;
-    testUserId = registerRes.body.data.user._id;
-
-    // Create test character
-    const charRes = await request(app)
-      .post('/api/characters')
-      .set('Cookie', `token=${authToken}`)
-      .send({
-        name: `SystemTester${Date.now()}`,
-        faction: 'SETTLER_ALLIANCE',
-      });
-
-    testCharacterId = charRes.body.data.character._id;
-
-    // Select character
+    // Select the character
     await request(app)
       .patch(`/api/characters/${testCharacterId}/select`)
       .set('Cookie', `token=${authToken}`);
@@ -187,7 +174,7 @@ describe('🎮 COMPREHENSIVE SYSTEM TESTS', () => {
         .post('/api/gangs')
         .set('Cookie', `token=${authToken}`)
         .send({
-          name: `TestGang${Date.now()}`,
+          name: `TG${Date.now().toString().slice(-8)}`,
           description: 'Automated test gang',
         });
 

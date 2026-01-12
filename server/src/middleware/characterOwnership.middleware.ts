@@ -29,7 +29,8 @@ export async function requireCharacterOwnership(
 ): Promise<void> {
   try {
     // Check for characterId in query params, body, or route params
-    const characterId = req.query.characterId as string || req.body.characterId || req.params['id'];
+    // SECURITY: Support multiple param names used across different routes
+    const characterId = req.query.characterId as string || req.body.characterId || req.params.characterId || req.params['id'];
     const userId = req.user?._id;
 
     // Ensure user is authenticated

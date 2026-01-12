@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTutorialStore } from '@/store/useTutorialStore';
+import { useToastStore } from '@/store/useToastStore';
 import {
   TUTORIAL_DIALOGUES,
   MENTOR,
@@ -51,6 +52,8 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
     canProceed,
     getAnalyticsSummary,
     activePath,
+    canSkipTutorial,
+    getTotalStepsCompleted,
   } = useTutorialStore();
 
   // Local state
@@ -397,6 +400,18 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
           <div className="flex items-center justify-between px-4 py-3 bg-wood-dark/50 border-t border-gold-dark/30">
             <button
               onClick={() => {
+                const canSkip = canSkipTutorial();
+                if (!canSkip) {
+                  const stepsCompleted = getTotalStepsCompleted();
+                  const stepsNeeded = 5 - stepsCompleted;
+                  useToastStore.getState().addToast({
+                    type: 'info',
+                    title: 'Complete More Steps',
+                    message: `Complete ${stepsNeeded} more step${stepsNeeded !== 1 ? 's' : ''} to unlock skip`,
+                    duration: 3000,
+                  });
+                  return;
+                }
                 skipSection();
                 // Log analytics in development
                 if (import.meta.env.DEV) {
@@ -404,7 +419,12 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
                   logger.info('[Tutorial Analytics] Section skipped. Current summary:', { context: 'MentorDialogue', summary });
                 }
               }}
-              className="text-sm text-desert-stone hover:text-desert-sand transition-colors"
+              className={`text-sm transition-colors ${
+                canSkipTutorial()
+                  ? 'text-desert-stone hover:text-desert-sand cursor-pointer'
+                  : 'text-desert-stone/40 cursor-not-allowed'
+              }`}
+              title={canSkipTutorial() ? 'Skip this section' : `Complete ${5 - getTotalStepsCompleted()} more steps to unlock`}
             >
               Skip Section
             </button>
@@ -451,6 +471,7 @@ export const MentorDialogue: React.FC<MentorDialogueProps> = ({
             : 'Press Enter or click Continue to advance'}
         </p>
       </div>
+
     </div>
   );
 };

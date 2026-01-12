@@ -39,7 +39,7 @@ const RefreshTokenSchema = new Schema<IRefreshToken>({
   expiresAt: {
     type: Date,
     required: true,
-    index: true,
+    // Note: TTL index defined below
     comment: 'Token expires after 30 days',
   },
   createdAt: {

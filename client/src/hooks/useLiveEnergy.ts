@@ -4,10 +4,14 @@
  *
  * PERFORMANCE FIX: Replaces the setInterval re-render hack in PlayerSidebar
  * with a proper React pattern that only triggers re-renders when energy changes
+ *
+ * BUGFIX: Now subscribes to useEnergyStore for optimistic updates (e.g., when
+ * crimes deduct energy before server confirmation)
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useEnergy } from './useEnergy';
+import { useEnergyStore } from '@/store/useEnergyStore';
 
 interface LiveEnergyState {
   displayEnergy: number;
@@ -43,6 +47,9 @@ export function useLiveEnergy(options: UseLiveEnergyOptions = {}): LiveEnergySta
     fetchStatus
   } = useEnergy();
 
+  // Subscribe to the Zustand store for optimistic updates
+  const storeEnergy = useEnergyStore((state) => state.energy);
+
   // Track the last server sync time
   const lastSyncRef = useRef<number>(Date.now());
 
@@ -56,8 +63,21 @@ export function useLiveEnergy(options: UseLiveEnergyOptions = {}): LiveEnergySta
   });
 
   // Compute interpolated energy based on time elapsed
+  // BUGFIX: Also considers optimistic updates from the Zustand store
   const computeInterpolatedEnergy = useCallback(() => {
     if (!energyStatus) {
+      // Fall back to store energy if available (handles edge cases)
+      if (storeEnergy) {
+        return {
+          displayEnergy: Math.floor(storeEnergy.currentEnergy),
+          maxEnergy: storeEnergy.maxEnergy,
+          energyPercent: storeEnergy.maxEnergy > 0
+            ? Math.round((storeEnergy.currentEnergy / storeEnergy.maxEnergy) * 100)
+            : 0,
+          timeToFull: 0,
+          isRegenerating: storeEnergy.currentEnergy < storeEnergy.maxEnergy
+        };
+      }
       return {
         displayEnergy: 0,
         maxEnergy: 150,
@@ -69,6 +89,26 @@ export function useLiveEnergy(options: UseLiveEnergyOptions = {}): LiveEnergySta
 
     const storedEnergy = energyStatus.current;
     const max = energyStatus.max;
+
+    // BUGFIX: Check if the Zustand store has an optimistic update pending
+    // If so, use the store's value instead of the server's interpolated value
+    if (storeEnergy?.isOptimistic) {
+      const optimisticEnergy = Math.floor(storeEnergy.currentEnergy);
+      const optimisticMax = storeEnergy.maxEnergy;
+
+      // Calculate time to full based on optimistic energy
+      const missing = optimisticMax - optimisticEnergy;
+      const regenPerSecond = (energyStatus.regenRate + energyStatus.totalBonusRegen) / 60;
+      const timeToFull = regenPerSecond > 0 ? Math.ceil(missing / regenPerSecond) : 0;
+
+      return {
+        displayEnergy: optimisticEnergy,
+        maxEnergy: optimisticMax,
+        energyPercent: optimisticMax > 0 ? Math.round((optimisticEnergy / optimisticMax) * 100) : 0,
+        timeToFull,
+        isRegenerating: optimisticEnergy < optimisticMax
+      };
+    }
 
     // If at or above max, no interpolation needed
     if (storedEnergy >= max) {
@@ -83,7 +123,8 @@ export function useLiveEnergy(options: UseLiveEnergyOptions = {}): LiveEnergySta
 
     // Calculate energy gained since last server update
     const lastUpdateTime = new Date(energyStatus.lastUpdate).getTime();
-    const elapsedMs = Date.now() - lastUpdateTime;
+    // Prevent negative elapsed time (clock skew or stale timestamp)
+    const elapsedMs = Math.max(0, Date.now() - lastUpdateTime);
     const regenPerMs = (energyStatus.regenRate + energyStatus.totalBonusRegen) / 60000;
     const regenGained = elapsedMs * regenPerMs;
 
@@ -103,13 +144,13 @@ export function useLiveEnergy(options: UseLiveEnergyOptions = {}): LiveEnergySta
       timeToFull,
       isRegenerating: displayEnergy < max
     };
-  }, [energyStatus]);
+  }, [energyStatus, storeEnergy]);
 
-  // Update live state when base energy changes from server
+  // Update live state when base energy changes from server OR when store has optimistic update
   useEffect(() => {
     lastSyncRef.current = Date.now();
     setLiveState(computeInterpolatedEnergy());
-  }, [energyStatus, computeInterpolatedEnergy]);
+  }, [energyStatus, storeEnergy, computeInterpolatedEnergy]);
 
   // Set up interval for live updates (only when regenerating)
   useEffect(() => {

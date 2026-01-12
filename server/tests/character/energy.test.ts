@@ -4,16 +4,17 @@
  * Tests for energy regeneration and spending
  */
 
-import app from '../../src/server';
+import app from '../testApp';
 import { Character } from '../../src/models/Character.model';
+import { User } from '../../src/models/User.model';
 import { EnergyService } from '../../src/services/energy.service';
-import { createTestToken } from '../helpers/auth.helpers';
+import { createTestToken, createTestUserWithPassword } from '../helpers/auth.helpers';
 import { apiPost, apiGet, apiPatch, expectSuccess } from '../helpers/api.helpers';
 import { Faction, ENERGY } from '@desperados/shared';
 
 describe('Energy System', () => {
-  const userId = '507f1f77bcf86cd799439011';
-  const token = createTestToken(userId, 'test@example.com');
+  let userId: string;
+  let token: string;
 
   const validCharacterData = {
     name: 'Jack Thornton',
@@ -26,6 +27,18 @@ describe('Energy System', () => {
       hairColor: 2
     }
   };
+
+  beforeEach(async () => {
+    // Create User
+    const email = `test.energy.${Date.now()}@example.com`;
+    const userData = await createTestUserWithPassword(email, 'TestPass123!');
+    const user = await User.create({
+      ...userData,
+      emailVerified: true
+    });
+    userId = user._id.toString();
+    token = createTestToken(userId, email);
+  });
 
   describe('Energy Regeneration', () => {
     it('should initialize character with full energy', async () => {
@@ -51,7 +64,7 @@ describe('Energy System', () => {
       // Free players: 150 energy over 5 hours = 30 energy/hour
       const expectedEnergyGain = 30; // 1 hour * 30 energy/hour
 
-      const regenAmount = EnergyService.calculateRegenAmount(character!);
+      const regenAmount = await EnergyService.calculateRegenAmount(character!);
       expect(regenAmount).toBeCloseTo(expectedEnergyGain, 0);
     });
 
@@ -66,7 +79,7 @@ describe('Energy System', () => {
       character!.lastEnergyUpdate = new Date(Date.now() - 10 * 60 * 60 * 1000); // 10 hours ago
       await character!.save();
 
-      EnergyService.regenerateEnergy(character!);
+      await EnergyService.regenerateEnergy(character!);
 
       expect(character!.energy).toBe(ENERGY.FREE_MAX);
       expect(character!.energy).not.toBeGreaterThan(ENERGY.FREE_MAX);
@@ -201,7 +214,7 @@ describe('Energy System', () => {
       character!.lastEnergyUpdate = new Date();
       await character!.save();
 
-      const timeUntilFull = EnergyService.getTimeUntilFullEnergy(character!);
+      const timeUntilFull = await EnergyService.getTimeUntilFullEnergy(character!);
 
       // Free players: 5 hours to full = 5 * 60 * 60 * 1000 ms
       const expectedTime = 5 * 60 * 60 * 1000;
@@ -217,7 +230,7 @@ describe('Energy System', () => {
       character!.energy = ENERGY.FREE_MAX;
       await character!.save();
 
-      const timeUntilFull = EnergyService.getTimeUntilFullEnergy(character!);
+      const timeUntilFull = await EnergyService.getTimeUntilFullEnergy(character!);
       expect(timeUntilFull).toBe(0);
     });
 

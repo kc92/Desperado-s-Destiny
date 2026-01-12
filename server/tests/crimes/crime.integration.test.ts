@@ -6,7 +6,9 @@
 
 import request from 'supertest';
 import mongoose from 'mongoose';
-import { app } from '../testApp';
+import { createTestApp } from '../testApp';
+
+const app = createTestApp();
 import { Character, ICharacter } from '../../src/models/Character.model';
 import { User, IUser } from '../../src/models/User.model';
 import { Action, ActionType } from '../../src/models/Action.model';
@@ -32,7 +34,7 @@ describe('Crime System Integration', () => {
 
     criminal = await Character.create({
       userId: testUser._id,
-      name: `Criminal${Date.now()}`,
+      name: `Crim${Date.now().toString().slice(-8)}`,
       faction: Faction.FRONTERA,
       appearance: {
         bodyType: 'male',
@@ -55,7 +57,7 @@ describe('Crime System Integration', () => {
 
     bountyHunter = await Character.create({
       userId: testUser._id,
-      name: `Hunter${Date.now()}`,
+      name: `Hunt${Date.now().toString().slice(-8)}`,
       faction: Faction.SETTLER_ALLIANCE,
       appearance: {
         bodyType: 'female',
@@ -398,6 +400,7 @@ describe('Crime System Integration', () => {
     it('should correctly calculate bounty based on wanted level', async () => {
       for (let level = 0; level <= 5; level++) {
         criminal.wantedLevel = level;
+        criminal.bountyAmount = level * 100; // bountyAmount must be set alongside wantedLevel
         await criminal.save();
 
         const response = await request(app)

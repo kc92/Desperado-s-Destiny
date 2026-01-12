@@ -136,7 +136,12 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
 
       {/* Close Button */}
       <button
-        onClick={handleRemove}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();  // Prevent event bubbling
+          e.preventDefault();
+          handleRemove();
+        }}
         className="flex-shrink-0 text-desert-sand/60 hover:text-desert-sand transition-colors rounded p-1 hover:bg-black/10"
         aria-label="Dismiss notification"
       >
@@ -165,7 +170,7 @@ export const ToastContainer: React.FC = () => {
 
   return (
     <div
-      className="fixed top-4 right-4 z-50 flex flex-col gap-3 pointer-events-none"
+      className="fixed top-4 right-4 z-[10100] flex flex-col gap-3 pointer-events-none"
       aria-label="Notifications"
       aria-live="polite"
     >

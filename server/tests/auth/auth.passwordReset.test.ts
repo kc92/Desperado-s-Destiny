@@ -67,16 +67,21 @@ describe('Password Reset', () => {
     });
 
     it('should return reset token in development mode', async () => {
+      const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'development';
 
-      await createVerifiedUser('test@example.com', 'OldPassword123');
+      try {
+        await createVerifiedUser('test@example.com', 'OldPassword123');
 
-      const response = await apiPost(app, '/api/auth/forgot-password', {
-        email: 'test@example.com'
-      });
+        const response = await apiPost(app, '/api/auth/forgot-password', {
+          email: 'test@example.com'
+        });
 
-      expect(response.status).toBe(200);
-      expect(response.body.data.resetToken).toBeDefined();
+        expect(response.status).toBe(200);
+        expect(response.body.data.resetToken).toBeDefined();
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
     });
 
     it('should always return success even for non-existent email', async () => {

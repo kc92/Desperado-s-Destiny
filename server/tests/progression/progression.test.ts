@@ -830,8 +830,34 @@ describe('Progression Service - Phase 6', () => {
         expect(info.canPrestige).toBe(false); // Level 25 < 50
       });
 
-      test('canPrestige is true when level >= 50', async () => {
-        testCharacter.level = 50;
+      test('canPrestige is true when meeting requirements', async () => {
+        // NEW PRESTIGE REQUIREMENTS: totalLevel >= 1000, combatLevel >= 75, 5+ skills at 50+
+        testCharacter.skills = [
+          { skillId: 'melee_combat', level: 55, experience: 0 },
+          { skillId: 'ranged_combat', level: 55, experience: 0 },
+          { skillId: 'defensive_tactics', level: 55, experience: 0 },
+          { skillId: 'mounted_combat', level: 55, experience: 0 },
+          { skillId: 'explosives', level: 55, experience: 0 },
+          { skillId: 'lockpicking', level: 50, experience: 0 },
+          { skillId: 'stealth', level: 50, experience: 0 },
+          // Add more skills to reach totalLevel >= 1000
+          { skillId: 'pickpocket', level: 50, experience: 0 },
+          { skillId: 'tracking', level: 50, experience: 0 },
+          { skillId: 'deception', level: 50, experience: 0 },
+          { skillId: 'gambling', level: 50, experience: 0 },
+          { skillId: 'duel_instinct', level: 50, experience: 0 },
+          { skillId: 'sleight_of_hand', level: 50, experience: 0 },
+          { skillId: 'medicine', level: 50, experience: 0 },
+          { skillId: 'persuasion', level: 50, experience: 0 },
+          { skillId: 'animal_handling', level: 50, experience: 0 },
+          { skillId: 'leadership', level: 50, experience: 0 },
+          { skillId: 'ritual_knowledge', level: 50, experience: 0 },
+          { skillId: 'performance', level: 50, experience: 0 },
+          { skillId: 'blacksmithing', level: 50, experience: 0 },
+        ];
+        // Total: 55*5 + 50*15 = 275 + 750 = 1025 total level
+        testCharacter.totalLevel = 1025;
+        testCharacter.combatLevel = 80;
         await testCharacter.save();
 
         const info = await ProgressionService.getPrestigeInfo(testCharacter._id.toString());
@@ -877,13 +903,49 @@ describe('Progression Service - Phase 6', () => {
 
     describe('performPrestige', () => {
       beforeEach(async () => {
-        testCharacter.level = 50;
+        // NEW PRESTIGE REQUIREMENTS: totalLevel >= 1000, combatLevel >= 75, 5+ skills at 50+
+        // IMPORTANT: Must have all 27+ skills so after prestige reset, totalLevel >= 27
         testCharacter.experience = 10000;
-        testCharacter.gold = 5000;
+        testCharacter.dollars = 5000;
         testCharacter.skills = [
-          { skillId: 'melee_combat', level: 45, experience: 5000 },
-          { skillId: 'defensive_tactics', level: 40, experience: 3000 }
+          // Combat skills (5)
+          { skillId: 'melee_combat', level: 55, experience: 5000 },
+          { skillId: 'ranged_combat', level: 55, experience: 5000 },
+          { skillId: 'defensive_tactics', level: 55, experience: 5000 },
+          { skillId: 'mounted_combat', level: 55, experience: 5000 },
+          { skillId: 'explosives', level: 55, experience: 5000 },
+          // Criminal skills (8)
+          { skillId: 'lockpicking', level: 50, experience: 3000 },
+          { skillId: 'stealth', level: 50, experience: 3000 },
+          { skillId: 'pickpocket', level: 50, experience: 3000 },
+          { skillId: 'tracking', level: 50, experience: 3000 },
+          { skillId: 'deception', level: 50, experience: 3000 },
+          { skillId: 'gambling', level: 50, experience: 3000 },
+          { skillId: 'duel_instinct', level: 50, experience: 3000 },
+          { skillId: 'sleight_of_hand', level: 50, experience: 3000 },
+          // Social skills (6)
+          { skillId: 'medicine', level: 50, experience: 3000 },
+          { skillId: 'persuasion', level: 50, experience: 3000 },
+          { skillId: 'animal_handling', level: 50, experience: 3000 },
+          { skillId: 'leadership', level: 50, experience: 3000 },
+          { skillId: 'ritual_knowledge', level: 50, experience: 3000 },
+          { skillId: 'performance', level: 50, experience: 3000 },
+          // Crafting skills (11) - needed to reach 27+ total for prestige reset
+          { skillId: 'blacksmithing', level: 35, experience: 2000 },
+          { skillId: 'leatherworking', level: 35, experience: 2000 },
+          { skillId: 'cooking', level: 35, experience: 2000 },
+          { skillId: 'alchemy', level: 35, experience: 2000 },
+          { skillId: 'engineering', level: 35, experience: 2000 },
+          { skillId: 'prospecting', level: 35, experience: 2000 },
+          { skillId: 'woodworking', level: 35, experience: 2000 },
+          { skillId: 'gunsmithing', level: 35, experience: 2000 },
+          { skillId: 'tailoring', level: 35, experience: 2000 },
+          { skillId: 'native_crafts', level: 35, experience: 2000 },
+          { skillId: 'trapping', level: 35, experience: 2000 },
         ];
+        // Total: 55*5 + 50*14 + 35*11 = 275 + 700 + 385 = 1360 total level (30 skills)
+        testCharacter.totalLevel = 1360;
+        testCharacter.combatLevel = 80;
         (testCharacter as any).talents = [
           { talentId: 'combat_precision', ranks: 3, unlockedAt: new Date() },
           { talentId: 'combat_resilience', ranks: 2, unlockedAt: new Date() }
@@ -891,8 +953,10 @@ describe('Progression Service - Phase 6', () => {
         await testCharacter.save();
       });
 
-      test('fails if level < 50', async () => {
-        testCharacter.level = 49;
+      test('fails if requirements not met', async () => {
+        // Reset to not meet requirements
+        testCharacter.totalLevel = 500;
+        testCharacter.combatLevel = 50;
         await testCharacter.save();
 
         const result = await ProgressionService.performPrestige(testCharacter._id.toString());
@@ -900,7 +964,7 @@ describe('Progression Service - Phase 6', () => {
         expect(result.error).toBeDefined();
       });
 
-      test('succeeds at level 50', async () => {
+      test('succeeds when meeting requirements', async () => {
         const result = await ProgressionService.performPrestige(testCharacter._id.toString());
         expect(result.success).toBe(true);
         expect(result.newRank).toBeDefined();
@@ -939,7 +1003,7 @@ describe('Progression Service - Phase 6', () => {
 
         const updated = await Character.findById(testCharacter._id);
         // Rank 1 gives 100 starting gold
-        expect(updated!.gold).toBe(100);
+        expect(updated!.dollars).toBe(100);
       });
 
       test('adds permanent bonuses', async () => {
@@ -955,14 +1019,14 @@ describe('Progression Service - Phase 6', () => {
       });
 
       test('records prestige history', async () => {
-        const levelBeforePrestige = testCharacter.level;
+        const totalLevelBeforePrestige = testCharacter.totalLevel;
         await ProgressionService.performPrestige(testCharacter._id.toString());
 
         const updated = await Character.findById(testCharacter._id);
         const prestige = (updated as any).prestige;
         expect(prestige.prestigeHistory).toHaveLength(1);
         expect(prestige.prestigeHistory[0].rank).toBe(1);
-        expect(prestige.prestigeHistory[0].levelAtPrestige).toBe(levelBeforePrestige);
+        expect(prestige.prestigeHistory[0].levelAtPrestige).toBe(totalLevelBeforePrestige);
       });
 
       test('increments currentRank and totalPrestiges', async () => {
@@ -978,9 +1042,47 @@ describe('Progression Service - Phase 6', () => {
         // First prestige
         await ProgressionService.performPrestige(testCharacter._id.toString());
 
-        // Level up to 50 again
+        // Level up to meet prestige requirements again (totalLevel >= 1000, combatLevel >= 75, 5+ skills at 50+)
         const updated1 = await Character.findById(testCharacter._id);
-        updated1!.level = 50;
+        // After prestige reset, all 30 skills are at level 1. Rebuild to meet requirements.
+        updated1!.skills = [
+          // Combat skills (5) - all at 55+ to meet "5+ skills at 50+"
+          { skillId: 'melee_combat', level: 55, experience: 5000 },
+          { skillId: 'ranged_combat', level: 55, experience: 5000 },
+          { skillId: 'defensive_tactics', level: 55, experience: 5000 },
+          { skillId: 'mounted_combat', level: 55, experience: 5000 },
+          { skillId: 'explosives', level: 55, experience: 5000 },
+          // Criminal skills (8)
+          { skillId: 'lockpicking', level: 50, experience: 3000 },
+          { skillId: 'stealth', level: 50, experience: 3000 },
+          { skillId: 'pickpocket', level: 50, experience: 3000 },
+          { skillId: 'tracking', level: 50, experience: 3000 },
+          { skillId: 'deception', level: 50, experience: 3000 },
+          { skillId: 'gambling', level: 50, experience: 3000 },
+          { skillId: 'duel_instinct', level: 50, experience: 3000 },
+          { skillId: 'sleight_of_hand', level: 50, experience: 3000 },
+          // Social skills (6)
+          { skillId: 'medicine', level: 50, experience: 3000 },
+          { skillId: 'persuasion', level: 50, experience: 3000 },
+          { skillId: 'animal_handling', level: 50, experience: 3000 },
+          { skillId: 'leadership', level: 50, experience: 3000 },
+          { skillId: 'ritual_knowledge', level: 50, experience: 3000 },
+          { skillId: 'performance', level: 50, experience: 3000 },
+          // Crafting skills (11)
+          { skillId: 'blacksmithing', level: 35, experience: 2000 },
+          { skillId: 'leatherworking', level: 35, experience: 2000 },
+          { skillId: 'cooking', level: 35, experience: 2000 },
+          { skillId: 'alchemy', level: 35, experience: 2000 },
+          { skillId: 'engineering', level: 35, experience: 2000 },
+          { skillId: 'prospecting', level: 35, experience: 2000 },
+          { skillId: 'woodworking', level: 35, experience: 2000 },
+          { skillId: 'gunsmithing', level: 35, experience: 2000 },
+          { skillId: 'tailoring', level: 35, experience: 2000 },
+          { skillId: 'native_crafts', level: 35, experience: 2000 },
+          { skillId: 'trapping', level: 35, experience: 2000 },
+        ] as any;
+        updated1!.totalLevel = 1360;
+        updated1!.combatLevel = 80;
         await updated1!.save();
 
         // Second prestige
@@ -999,9 +1101,8 @@ describe('Progression Service - Phase 6', () => {
 
       test('fails for non-existent character', async () => {
         const fakeId = new mongoose.Types.ObjectId().toString();
-        const result = await ProgressionService.performPrestige(fakeId);
-        expect(result.success).toBe(false);
-        expect(result.error).toBe('Character not found');
+        // performPrestige calls getPrestigeInfo which throws if character not found
+        await expect(ProgressionService.performPrestige(fakeId)).rejects.toThrow('Character not found');
       });
 
       test('cannot prestige beyond rank 5', async () => {

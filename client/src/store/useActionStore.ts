@@ -91,6 +91,11 @@ export const useActionStore = create<ActionStore>((set) => ({
             window.dispatchEvent(new CustomEvent('game-event-item-crafted', { detail: { recipeId: extResult.actionId } }));
         }
 
+        // Dispatch game-event-job-completed for successful job completions (for tutorial detection)
+        if (extResult.actionType === 'JOB' && extResult.challengeSuccess) {
+            window.dispatchEvent(new CustomEvent('game-event-job-completed', { detail: { jobId: extResult.actionId } }));
+        }
+
         set({
           currentChallenge: result,
           isChallengingAction: false,

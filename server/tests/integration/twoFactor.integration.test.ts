@@ -330,7 +330,7 @@ describe('Two-Factor Authentication Integration', () => {
   describe('Security Edge Cases', () => {
     it('should not allow 2FA setup without authentication', async () => {
       const response = await request(app)
-        .post('/api/auth/2fa/setup');
+        .get('/api/auth/2fa/setup'); // Setup is a GET route
 
       expect(response.status).toBe(401);
     });
@@ -347,7 +347,7 @@ describe('Two-Factor Authentication Integration', () => {
       await enable2FAForUser(context.user);
 
       const response = await context.agent
-        .post('/api/auth/2fa/setup')
+        .get('/api/auth/2fa/setup') // Setup is a GET route
         .set('Cookie', context.cookies);
 
       expect(response.status).toBe(400);

@@ -235,7 +235,7 @@ export const ActionCard: React.FC<ActionCardProps> = React.memo(({
               <div className="flex items-center gap-2">
                 <span>💰</span>
                 <span className="text-wood-dark">
-                  Bail: <strong>{crimeMetadata.bailCost}g</strong>
+                  Bail: <strong>${crimeMetadata.bailCost}</strong>
                 </span>
               </div>
             )}
@@ -286,11 +286,15 @@ export const ActionCard: React.FC<ActionCardProps> = React.memo(({
   );
 }, (prevProps, nextProps) => {
   // Custom comparison for performance - only re-render if relevant props change
+  // Use _id as the primary identifier (id is optional alias)
   return (
-    prevProps.action.id === nextProps.action.id &&
+    prevProps.action._id === nextProps.action._id &&
     prevProps.canAfford === nextProps.canAfford &&
     prevProps.currentEnergy === nextProps.currentEnergy &&
-    prevProps.className === nextProps.className
+    prevProps.className === nextProps.className &&
+    prevProps.onAttempt === nextProps.onAttempt &&
+    prevProps.crimeMetadata?.jailTimeMinutes === nextProps.crimeMetadata?.jailTimeMinutes &&
+    prevProps.crimeMetadata?.wantedLevelIncrease === nextProps.crimeMetadata?.wantedLevelIncrease
   );
 });
 

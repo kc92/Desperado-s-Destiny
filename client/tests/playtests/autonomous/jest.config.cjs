@@ -1,7 +1,7 @@
 // client/tests/playtests/autonomous/jest.config.js
 module.exports = {
   preset: 'jest-puppeteer',
-  testMatch: ['**/runAutonomousLevelerBot.ts'],
+  testMatch: ['**/run*.ts'],
   transform: {
     '^.+\.ts$': 'ts-jest',
   },

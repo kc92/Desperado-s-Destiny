@@ -5,45 +5,14 @@
  * Tests for Redis-based online status tracking
  */
 
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { PresenceService } from '../../src/services/presence.service';
 import { Character, ICharacter } from '../../src/models/Character.model';
 import { User } from '../../src/models/User.model';
 import { RoomType } from '../../src/models/Message.model';
 import { Faction } from '@desperados/shared';
-import { connectRedis, disconnectRedis, getRedisClient } from '../../src/config/redis';
-
-let mongoServer: MongoMemoryServer;
-
-beforeAll(async () => {
-  // Disconnect if already connected
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
-
-  // Connect to Redis
-  await connectRedis();
-});
-
-afterAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  await mongoServer.stop();
-
-  // Disconnect from Redis
-  await disconnectRedis();
-});
+import { getRedisClient } from '../../src/config/redis';
 
 afterEach(async () => {
-  // Clear MongoDB
-  await Character.deleteMany({});
-  await User.deleteMany({});
-
   // Clear Redis
   const redis = getRedisClient();
   await redis.flushDb();

@@ -37,7 +37,10 @@ export class ReputationService {
     reason: string
   ): Promise<ReputationChange> {
     const session = await mongoose.startSession();
-    session.startTransaction();
+    const disableTransactions = process.env.DISABLE_TRANSACTIONS === 'true';
+    if (!disableTransactions) {
+      session.startTransaction();
+    }
 
     try {
       const character = await Character.findById(characterId).session(session);
@@ -102,7 +105,9 @@ export class ReputationService {
         );
       }
 
-      await session.commitTransaction();
+      if (!disableTransactions) {
+        await session.commitTransaction();
+      }
 
       return {
         newRep,
@@ -112,7 +117,9 @@ export class ReputationService {
         previousStanding: standingChanged ? previousStanding : undefined
       };
     } catch (error) {
-      await session.abortTransaction();
+      if (!disableTransactions) {
+        await session.abortTransaction();
+      }
       logger.error('Error modifying reputation:', error);
       throw error;
     } finally {

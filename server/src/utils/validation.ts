@@ -401,6 +401,130 @@ export function combineValidations<T extends Record<string, unknown>>(
   return { success: true, data };
 }
 
+/**
+ * Currency amount validation constants
+ */
+export const CURRENCY_LIMITS = {
+  MIN_AMOUNT: 1,
+  MAX_AMOUNT: 1_000_000_000, // 1 billion
+} as const;
+
+/**
+ * Validate a currency/money amount
+ *
+ * Validates that the amount is:
+ * - A number type (not string, null, undefined)
+ * - Finite (not NaN, Infinity, -Infinity)
+ * - A positive integer (> 0)
+ * - Within reasonable bounds (1 to 1 billion)
+ *
+ * @param value - Value to validate
+ * @param fieldName - Field name for error messages
+ * @param options - Optional min/max overrides
+ * @returns Validated integer amount or errors
+ *
+ * @example
+ * const result = validateCurrencyAmount(req.body.amount, 'amount');
+ * if (!result.success) {
+ *   return res.status(400).json({ success: false, errors: result.errors });
+ * }
+ * const amount = result.data; // Guaranteed positive integer
+ */
+export function validateCurrencyAmount(
+  value: unknown,
+  fieldName: string = 'amount',
+  options: {
+    min?: number;
+    max?: number;
+    allowZero?: boolean;
+  } = {}
+): ValidationResult<number> {
+  const {
+    min = CURRENCY_LIMITS.MIN_AMOUNT,
+    max = CURRENCY_LIMITS.MAX_AMOUNT,
+    allowZero = false
+  } = options;
+
+  // Must be provided
+  if (value === undefined || value === null) {
+    return { success: false, errors: [`${fieldName} is required`] };
+  }
+
+  // Must be a number type (not string)
+  if (typeof value !== 'number') {
+    return { success: false, errors: [`${fieldName} must be a number`] };
+  }
+
+  // Must be finite (not NaN, Infinity, -Infinity)
+  if (!Number.isFinite(value)) {
+    return { success: false, errors: [`${fieldName} must be a valid number`] };
+  }
+
+  // Must be an integer (no fractional amounts)
+  if (!Number.isInteger(value)) {
+    return { success: false, errors: [`${fieldName} must be a whole number`] };
+  }
+
+  // Must be positive (or zero if allowed)
+  const minValue = allowZero ? 0 : min;
+  if (value < minValue) {
+    return {
+      success: false,
+      errors: [`${fieldName} must be at least ${minValue}`]
+    };
+  }
+
+  // Must be within maximum bounds
+  if (value > max) {
+    return {
+      success: false,
+      errors: [`${fieldName} cannot exceed ${max.toLocaleString()}`]
+    };
+  }
+
+  return { success: true, data: value };
+}
+
+/**
+ * Validate and clamp a limit parameter for pagination
+ *
+ * Simpler alternative to validatePagination when you only need limit validation.
+ * This function never throws - always returns a safe value.
+ *
+ * @param value - Raw limit value from query string
+ * @param options - Default and max limit values
+ * @returns Clamped integer limit value (never throws)
+ *
+ * @example
+ * const limit = clampLimit(req.query.limit, { defaultLimit: 10, maxLimit: 100 });
+ */
+export function clampLimit(
+  value: unknown,
+  options: {
+    defaultLimit?: number;
+    maxLimit?: number;
+    minLimit?: number;
+  } = {}
+): number {
+  const {
+    defaultLimit = 10,
+    maxLimit = 100,
+    minLimit = 1
+  } = options;
+
+  if (value === undefined || value === null || value === '') {
+    return defaultLimit;
+  }
+
+  const parsed = typeof value === 'string' ? parseInt(value, 10) : Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < minLimit) {
+    return defaultLimit;
+  }
+
+  return Math.min(Math.floor(parsed), maxLimit);
+}
+
 export default {
   validatePagination,
   validatePositiveInt,
@@ -414,5 +538,8 @@ export default {
   validateOptionalBoolean,
   combineValidations,
   validationOk,
-  validationFail
+  validationFail,
+  validateCurrencyAmount,
+  clampLimit,
+  CURRENCY_LIMITS
 };

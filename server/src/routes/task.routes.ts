@@ -10,6 +10,7 @@ import { TaskController } from '../controllers/task.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { requireCsrfToken } from '../middleware/csrf.middleware';
+import { requireCharacterOwnership } from '../middleware/characterOwnership.middleware';
 
 const router = Router();
 
@@ -34,14 +35,16 @@ router.post('/', requireCsrfToken, asyncHandler(TaskController.createTask));
 /**
  * GET /api/tasks/character/:characterId
  * Get all tasks for a character
+ * Protected: User must own this character
  */
-router.get('/character/:characterId', asyncHandler(TaskController.getCharacterTasks));
+router.get('/character/:characterId', requireCharacterOwnership, asyncHandler(TaskController.getCharacterTasks));
 
 /**
  * GET /api/tasks/character/:characterId/statistics
  * Get task statistics for a character
+ * Protected: User must own this character
  */
-router.get('/character/:characterId/statistics', asyncHandler(TaskController.getTaskStatistics));
+router.get('/character/:characterId/statistics', requireCharacterOwnership, asyncHandler(TaskController.getTaskStatistics));
 
 /**
  * GET /api/tasks/worker/:workerId

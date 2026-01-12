@@ -1,0 +1,69 @@
+# =============================================================================
+# PROMETHEUS CONFIGURATION - DESPERADOS DESTINY
+# =============================================================================
+# Scrapes metrics from the game server and system exporters
+# =============================================================================
+
+global:
+  scrape_interval: 15s       # Scrape targets every 15 seconds
+  evaluation_interval: 15s   # Evaluate rules every 15 seconds
+  external_labels:
+    cluster: 'desperados-destiny'
+    environment: 'production'
+
+# Alert Manager configuration (optional - configure if using alerts)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#             - alertmanager:9093
+
+# Load alert rules
+rule_files:
+  - 'rules.yml'
+
+# Scrape configurations
+scrape_configs:
+  # ---------------------------------------------------------------------------
+  # Desperados Destiny Game Server - Application Metrics
+  # ---------------------------------------------------------------------------
+  - job_name: 'desperados-server'
+    static_configs:
+      - targets:
+          # Update with your server hostname/IP in production
+          - 'host.docker.internal:5001'  # Development (host machine)
+          # - 'server:5001'                # Production (Docker network)
+    metrics_path: '/metrics'
+    scrape_interval: 10s  # Scrape game server more frequently
+
+  # ---------------------------------------------------------------------------
+  # Prometheus Self-Monitoring
+  # ---------------------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+          - 'localhost:9090'
+
+  # ---------------------------------------------------------------------------
+  # Node Exporter - System Metrics (CPU, Memory, Disk, Network)
+  # ---------------------------------------------------------------------------
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets:
+          - 'node-exporter:9100'
+
+  # ---------------------------------------------------------------------------
+  # Additional Services (uncomment as needed)
+  # ---------------------------------------------------------------------------
+
+  # MongoDB Exporter (optional - requires separate deployment)
+  # - job_name: 'mongodb'
+  #   static_configs:
+  #     - targets:
+  #         - 'mongodb-exporter:9216'
+
+  # Redis Exporter (optional - requires separate deployment)
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets:
+  #         - 'redis-exporter:9121'

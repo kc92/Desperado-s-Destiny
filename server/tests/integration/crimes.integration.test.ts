@@ -15,9 +15,7 @@
  */
 
 import request from 'supertest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import mongoose from 'mongoose';
-import { app } from '../../src/server';
+import app from '../testApp';
 import { setupCompleteGameState, TimeSimulator } from '../helpers/testHelpers';
 import { apiPost, apiGet, apiPut } from '../helpers/api.helpers';
 import {
@@ -26,30 +24,10 @@ import {
   createPair,
 } from '../helpers/testHelpers';
 
-let mongoServer: MongoMemoryServer;
-
 // Note: Some tests marked with .skip() as they depend on Agent 3 & 4 implementations
 // Remove .skip() once crime backend and UI are complete
 
 describe('Crime System Integration Tests', () => {
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.connect(mongoUri);
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
-
-  afterEach(async () => {
-    // Clean up all collections after each test
-    const collections = mongoose.connection.collections;
-    for (const key in collections) {
-      await collections[key].deleteMany({});
-    }
-  });
 
   describe('Crime Success Flow', () => {
     describe.skip('Successful Crime Attempt', () => {
@@ -647,14 +625,14 @@ describe('Crime System Integration Tests', () => {
         expect(charResponse.body.data.character.gold).toBe(initialGold - 50);
       });
 
-      it('should block bail if insufficient gold', async () => {
+      it('should block bail if insufficient dollars', async () => {
         const { token, character } = await setupCompleteGameState(app);
 
-        // Give character minimal gold
+        // Give character minimal dollars
         await apiPut(
           app,
           `/api/characters/${character._id}`,
-          { gold: 10 },
+          { dollars: 10 },
           token
         );
 
@@ -679,7 +657,7 @@ describe('Crime System Integration Tests', () => {
         );
 
         expect(bailResponse.status).toBe(400);
-        expect(bailResponse.body.error).toContain('Insufficient gold');
+        expect(bailResponse.body.error).toContain('Insufficient dollars');
       });
 
       it('should increase bail cost with wanted level', async () => {

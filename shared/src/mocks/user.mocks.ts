@@ -8,18 +8,21 @@ import { User, SafeUser, UserRegistration, UserLogin } from '../types/user.types
 
 /**
  * Generates a mock User object
+ * Includes passwordHash to satisfy Mongoose User model validation
  */
-export function mockUser(overrides?: Partial<User>): User {
-  const defaultUser: User = {
+export function mockUser(overrides?: Partial<User>): User & { passwordHash: string } {
+  const defaultUser = {
     _id: generateMockId(),
     email: generateMockEmail(),
     emailVerified: true,
+    // Default bcrypt hash for 'TestPassword123!' - required by User model
+    passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.W6TqaR7Rz7Ey9G',
     createdAt: new Date(),
     lastLogin: new Date(),
     ...overrides
   };
 
-  return defaultUser;
+  return defaultUser as User & { passwordHash: string };
 }
 
 /**

@@ -6,7 +6,7 @@
 
 import request from 'supertest';
 import mongoose from 'mongoose';
-import app from '../../src/server';
+import app from '../testApp';
 import { Character, ICharacter } from '../../src/models/Character.model';
 import { SkillService } from '../../src/services/skill.service';
 import { createTestToken } from '../helpers/auth.helpers';

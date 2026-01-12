@@ -13,14 +13,14 @@ import { NPC } from '../../src/models/NPC.model';
 import { Gang } from '../../src/models/Gang.model';
 import { Quest } from '../../src/models/Quest.model';
 import { GoldService, TransactionSource } from '../../src/services/gold.service';
-import { CombatService } from '../../src/services/combat.service';
+import { CombatService } from '../../src/services/combat/combatFacade.service';
 import { QuestService } from '../../src/services/quest.service';
 import { SkillService } from '../../src/services/skill.service';
 import { GangService } from '../../src/services/gang.service';
 import { SystemEventService } from '../../src/services/systemEvent.service';
 import { IntegrationHealthChecker } from '../../src/utils/integrationHealth';
 import { Faction, LegacyTier, SystemName, SystemEventType } from '@desperados/shared';
-import { clearDatabase } from '../helpers/testHelpers';
+import { clearDatabase } from '../helpers/db.helpers';
 
 describe('System Integration Tests', () => {
   let testUser: any;
@@ -34,14 +34,14 @@ describe('System Integration Tests', () => {
     // Create test user
     testUser = await User.create({
       email: `test${Date.now()}@example.com`,
-      password: 'hashedpassword',
-      emailVerified: true
+      passwordHash: 'hashedpassword123',
+      isEmailVerified: true
     });
 
     // Create test character
     testCharacter = await Character.create({
       userId: testUser._id,
-      name: `TestHero${Date.now()}`,
+      name: `TH${Date.now().toString().slice(-8)}`,
       faction: Faction.SETTLER_ALLIANCE,
       appearance: {
         bodyType: 'male',
@@ -93,7 +93,7 @@ describe('System Integration Tests', () => {
       // Create new character
       const newChar = await Character.create({
         userId: testUser._id,
-        name: `LegacyHero${Date.now()}`,
+        name: `LH${Date.now().toString().slice(-8)}`,
         faction: Faction.FRONTERA,
         appearance: {
           bodyType: 'female',
@@ -179,7 +179,7 @@ describe('System Integration Tests', () => {
     });
 
     it('should update XP, gold, reputation, and legacy on combat victory', async () => {
-      const goldBefore = testCharacter.gold;
+      const goldBefore = testCharacter.dollars;
       const xpBefore = testCharacter.experience;
       const levelBefore = testCharacter.level;
 
@@ -246,7 +246,7 @@ describe('System Integration Tests', () => {
       legacy.updateTier(LegacyTier.GOLD); // Gold tier = +20% gold
       await legacy.save();
 
-      const goldBefore = testCharacter.gold;
+      const goldBefore = testCharacter.dollars;
 
       // Earn gold
       const result = await GoldService.addGold(
@@ -266,7 +266,7 @@ describe('System Integration Tests', () => {
     });
 
     it('should integrate shop purchases with inventory limits', async () => {
-      const goldBefore = testCharacter.gold;
+      const goldBefore = testCharacter.dollars;
 
       // Simulate shop purchase
       await GoldService.deductGold(
@@ -278,7 +278,7 @@ describe('System Integration Tests', () => {
 
       // Verify gold was deducted
       const charAfter = await Character.findById(testCharacter._id);
-      expect(charAfter?.gold).toBe(goldBefore - 50);
+      expect(charAfter?.dollars).toBe(goldBefore - 50);
 
       // Verify transaction
       const transaction = await GoldTransaction.findOne({
@@ -290,7 +290,7 @@ describe('System Integration Tests', () => {
     });
 
     it('should flow property income to character correctly', async () => {
-      const goldBefore = testCharacter.gold;
+      const goldBefore = testCharacter.dollars;
 
       // Simulate property income
       await GoldService.addGold(
@@ -301,7 +301,7 @@ describe('System Integration Tests', () => {
       );
 
       const charAfter = await Character.findById(testCharacter._id);
-      expect(charAfter?.gold).toBe(goldBefore + 200);
+      expect(charAfter?.dollars).toBe(goldBefore + 200);
 
       // Verify transaction metadata
       const transaction = await GoldTransaction.findOne({
@@ -312,7 +312,7 @@ describe('System Integration Tests', () => {
     });
 
     it('should deduct crafting costs properly', async () => {
-      const goldBefore = testCharacter.gold;
+      const goldBefore = testCharacter.dollars;
 
       // Simulate crafting cost
       await GoldService.deductGold(
@@ -323,7 +323,7 @@ describe('System Integration Tests', () => {
       );
 
       const charAfter = await Character.findById(testCharacter._id);
-      expect(charAfter?.gold).toBe(goldBefore - 75);
+      expect(charAfter?.dollars).toBe(goldBefore - 75);
     });
   });
 
@@ -331,7 +331,7 @@ describe('System Integration Tests', () => {
     it('should trigger XP, gold, reputation, achievements, and legacy on quest completion', async () => {
       // Quest completion triggers multiple systems
       const statsBefore = {
-        gold: testCharacter.gold,
+        gold: testCharacter.dollars,
         xp: testCharacter.experience,
         level: testCharacter.level
       };
@@ -348,7 +348,7 @@ describe('System Integration Tests', () => {
       await testCharacter.save();
 
       const charAfter = await Character.findById(testCharacter._id);
-      expect(charAfter?.gold).toBeGreaterThan(statsBefore.gold);
+      expect(charAfter?.dollars).toBeGreaterThan(statsBefore.gold);
       expect(charAfter?.experience).toBeGreaterThan(statsBefore.xp);
     });
 
@@ -394,7 +394,7 @@ describe('System Integration Tests', () => {
     beforeEach(async () => {
       // Create test gang
       testGang = await Gang.create({
-        name: `TestGang${Date.now()}`,
+        name: `TG${Date.now().toString().slice(-8)}`,
         tag: 'TEST',
         leaderId: testCharacter._id,
         members: [
@@ -607,7 +607,7 @@ describe('System Integration Tests', () => {
         await session.commitTransaction();
 
         const charAfter = await Character.findById(testCharacter._id);
-        expect(charAfter?.gold).toBe(1100);
+        expect(charAfter?.dollars).toBe(1100);
         expect(charAfter?.experience).toBe(650);
       } catch (error) {
         await session.abortTransaction();
@@ -618,7 +618,7 @@ describe('System Integration Tests', () => {
     });
 
     it('should rollback on transaction failure', async () => {
-      const goldBefore = testCharacter.gold;
+      const goldBefore = testCharacter.dollars;
       const session = await mongoose.startSession();
       session.startTransaction();
 
@@ -645,7 +645,7 @@ describe('System Integration Tests', () => {
 
       // Gold should not have changed
       const charAfter = await Character.findById(testCharacter._id);
-      expect(charAfter?.gold).toBe(goldBefore);
+      expect(charAfter?.dollars).toBe(goldBefore);
     });
   });
 

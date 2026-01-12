@@ -12,19 +12,22 @@ export interface IRitualSession extends Document {
 }
 
 const RitualSessionSchema = new Schema<IRitualSession>({
-  sessionId: { type: String, required: true, unique: true, index: true },
+  sessionId: { type: String, required: true, unique: true },
+  // Note: sessionId unique constraint provides the index
   ritualId: { type: String, required: true },
-  characterId: { type: Schema.Types.ObjectId, ref: 'Character', required: true, index: true },
+  characterId: { type: Schema.Types.ObjectId, ref: 'Character', required: true },
+  // Note: characterId indexed via compound index below
   participants: [{ type: Schema.Types.ObjectId, ref: 'Character' }],
   startedAt: { type: Date, default: Date.now },
   completesAt: { type: Date, required: true },
   status: {
     type: String,
     enum: ['in_progress', 'completed', 'failed', 'cancelled'],
-    default: 'in_progress',
-    index: true
+    default: 'in_progress'
+    // Note: status indexed via compound index below
   },
-  expiresAt: { type: Date, required: true, index: true }
+  expiresAt: { type: Date, required: true }
+  // Note: expiresAt indexed via TTL index below
 });
 
 // TTL index - auto delete expired sessions

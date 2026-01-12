@@ -6,10 +6,11 @@
  * - Permission enforcement
  * - Bank operations
  * - Upgrade system
+ *
+ * Note: Uses global MongoMemoryReplSet setup from tests/setup.ts
  */
 
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { GangService } from '../../src/services/gang.service';
 import { Gang, IGang } from '../../src/models/Gang.model';
 import { GangBankTransaction } from '../../src/models/GangBankTransaction.model';
@@ -18,38 +19,19 @@ import { Character, ICharacter } from '../../src/models/Character.model';
 import { User } from '../../src/models/User.model';
 import { GoldTransaction } from '../../src/models/GoldTransaction.model';
 import { Faction, GangRole, GangUpgradeType } from '@desperados/shared';
+import { seedMinimalLocations, TEST_LOCATION_IDS } from '../helpers/seedHelpers';
 
-let mongoServer: MongoMemoryServer;
-
-beforeAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
-});
-
-afterAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  await mongoServer.stop();
-});
-
-afterEach(async () => {
-  await Gang.deleteMany({});
-  await GangBankTransaction.deleteMany({});
-  await GangInvitation.deleteMany({});
-  await Character.deleteMany({});
-  await User.deleteMany({});
-  await GoldTransaction.deleteMany({});
-});
+// Note: Global setup (tests/setup.ts) handles MongoMemoryReplSet connection
+// afterEach cleanup is handled by global setup
 
 describe('GangService', () => {
   let testUser: any;
   let testCharacter: ICharacter;
 
   beforeEach(async () => {
+    // Seed minimal locations for valid ObjectId references
+    await seedMinimalLocations();
+
     testUser = await User.create({
       email: 'gangservicetest@example.com',
       passwordHash: 'hashedpassword123',
@@ -61,6 +43,9 @@ describe('GangService', () => {
       name: 'GangCreator',
       faction: Faction.FRONTERA,
       level: 15,
+      totalLevel: 100, // Required for gang creation (MIN_TOTAL_LEVEL: 100)
+      dollars: 5000,   // Gang creation costs 2000 dollars
+      gold: 5000,      // Must match dollars (DollarService updates both for migration compat)
       appearance: {
         bodyType: 'male',
         skinTone: 5,
@@ -68,8 +53,7 @@ describe('GangService', () => {
         hairStyle: 7,
         hairColor: 2,
       },
-      currentLocation: 'el-paso',
-      gold: 5000,
+      currentLocation: TEST_LOCATION_IDS.THE_FRONTERA,
     });
   });
 
@@ -89,26 +73,26 @@ describe('GangService', () => {
       expect(gang.members[0].role).toBe(GangRole.LEADER);
 
       const updatedCharacter = await Character.findById(testCharacter._id);
-      expect(updatedCharacter!.gold).toBe(3000);
+      expect(updatedCharacter!.dollars).toBe(3000);
       expect(updatedCharacter!.gangId).not.toBeNull();
     });
 
-    it('should reject creation if character level too low', async () => {
-      testCharacter.level = 5;
+    it('should reject creation if character totalLevel too low', async () => {
+      testCharacter.totalLevel = 50; // Below MIN_TOTAL_LEVEL of 100
       await testCharacter.save();
 
       await expect(
         GangService.createGang(testUser._id.toString(), testCharacter._id.toString(), 'Gang', 'GNG')
-      ).rejects.toThrow('must be level 10');
+      ).rejects.toThrow('Requires Total Level 100+');
     });
 
-    it('should reject creation if insufficient gold', async () => {
-      testCharacter.gold = 1000;
+    it('should reject creation if insufficient dollars', async () => {
+      testCharacter.dollars = 1000;
       await testCharacter.save();
 
       await expect(
         GangService.createGang(testUser._id.toString(), testCharacter._id.toString(), 'Gang', 'GNG')
-      ).rejects.toThrow('Insufficient gold');
+      ).rejects.toThrow('Insufficient dollars');
     });
 
     it('should reject creation if character already in gang', async () => {
@@ -145,6 +129,7 @@ describe('GangService', () => {
           hairColor: 2,
         },
         currentLocation: 'el-paso',
+        dollars: 5000,
         gold: 5000,
       });
 
@@ -154,7 +139,7 @@ describe('GangService', () => {
     });
 
     it('should rollback on error (transaction safety)', async () => {
-      const originalGold = testCharacter.gold;
+      const originalDollars = testCharacter.dollars;
 
       try {
         await GangService.createGang(
@@ -165,7 +150,7 @@ describe('GangService', () => {
         );
       } catch (error) {
         const updatedCharacter = await Character.findById(testCharacter._id);
-        expect(updatedCharacter!.gold).toBe(originalGold);
+        expect(updatedCharacter!.dollars).toBe(originalDollars);
         const gangs = await Gang.find({});
         expect(gangs).toHaveLength(0);
       }
@@ -198,6 +183,7 @@ describe('GangService', () => {
           hairColor: 1,
         },
         currentLocation: 'el-paso',
+        dollars: 1000,
         gold: 1000,
       });
 
@@ -275,6 +261,7 @@ describe('GangService', () => {
           hairColor: 1,
         },
         currentLocation: 'el-paso',
+        dollars: 1000,
         gold: 1000,
         gangId: gang._id,
       });
@@ -327,6 +314,7 @@ describe('GangService', () => {
           hairColor: 1,
         },
         currentLocation: 'el-paso',
+        dollars: 1000,
         gold: 1000,
         gangId: gang._id,
       });
@@ -344,6 +332,7 @@ describe('GangService', () => {
           hairColor: 2,
         },
         currentLocation: 'el-paso',
+        dollars: 1000,
         gold: 1000,
         gangId: gang._id,
       });
@@ -402,6 +391,7 @@ describe('GangService', () => {
           hairColor: 1,
         },
         currentLocation: 'el-paso',
+        dollars: 1000,
         gold: 1000,
         gangId: gang._id,
       });
@@ -435,6 +425,9 @@ describe('GangService', () => {
     });
 
     it('should prevent non-leaders from promoting', async () => {
+      // Must change leaderId since isLeader() checks leaderId, not member role
+      const fakeLeaderId = new mongoose.Types.ObjectId();
+      gang.leaderId = fakeLeaderId;
       gang.members[0].role = GangRole.OFFICER;
       await gang.save();
 
@@ -463,8 +456,8 @@ describe('GangService', () => {
       testCharacter = await Character.findById(testCharacter._id) as ICharacter;
     });
 
-    it('should deposit gold to gang bank (transaction-safe)', async () => {
-      const initialGold = testCharacter.gold;
+    it('should deposit dollars to gang bank (transaction-safe)', async () => {
+      const initialDollars = testCharacter.dollars;
       const initialBank = gang.bank;
 
       const { gang: updatedGang, transaction } = await GangService.depositToBank(
@@ -476,20 +469,20 @@ describe('GangService', () => {
       expect(updatedGang.bank).toBe(initialBank + 500);
 
       const updatedCharacter = await Character.findById(testCharacter._id);
-      expect(updatedCharacter!.gold).toBe(initialGold - 500);
+      expect(updatedCharacter!.dollars).toBe(initialDollars - 500);
 
       expect(transaction.type).toBe('DEPOSIT');
       expect(transaction.amount).toBe(500);
       expect(transaction.balanceAfter).toBe(initialBank + 500);
     });
 
-    it('should reject deposit with insufficient gold', async () => {
-      testCharacter.gold = 100;
+    it('should reject deposit with insufficient dollars', async () => {
+      testCharacter.dollars = 100;
       await testCharacter.save();
 
       await expect(
         GangService.depositToBank(gang._id.toString(), testCharacter._id.toString(), 500)
-      ).rejects.toThrow('Insufficient gold');
+      ).rejects.toThrow('Insufficient dollars');
     });
 
     it('should update member contribution', async () => {
@@ -501,14 +494,14 @@ describe('GangService', () => {
     });
 
     it('should rollback on error', async () => {
-      const initialGold = testCharacter.gold;
+      const initialDollars = testCharacter.dollars;
       const initialBank = gang.bank;
 
       try {
         await GangService.depositToBank(gang._id.toString(), testCharacter._id.toString(), -100);
       } catch (error) {
         const updatedCharacter = await Character.findById(testCharacter._id);
-        expect(updatedCharacter!.gold).toBe(initialGold);
+        expect(updatedCharacter!.dollars).toBe(initialDollars);
 
         const updatedGang = await Gang.findById(gang._id);
         expect(updatedGang!.bank).toBe(initialBank);
@@ -533,8 +526,8 @@ describe('GangService', () => {
       testCharacter = await Character.findById(testCharacter._id) as ICharacter;
     });
 
-    it('should withdraw gold from gang bank (transaction-safe)', async () => {
-      const initialGold = testCharacter.gold;
+    it('should withdraw dollars from gang bank (transaction-safe)', async () => {
+      const initialDollars = testCharacter.dollars;
       const initialBank = gang.bank;
 
       const { gang: updatedGang, transaction } = await GangService.withdrawFromBank(
@@ -546,7 +539,7 @@ describe('GangService', () => {
       expect(updatedGang.bank).toBe(initialBank - 1000);
 
       const updatedCharacter = await Character.findById(testCharacter._id);
-      expect(updatedCharacter!.gold).toBe(initialGold + 1000);
+      expect(updatedCharacter!.dollars).toBe(initialDollars + 1000);
 
       expect(transaction.type).toBe('WITHDRAWAL');
       expect(transaction.amount).toBe(-1000);
@@ -649,6 +642,9 @@ describe('GangService', () => {
     });
 
     it('should reject purchase by non-leaders', async () => {
+      // Must change leaderId since isLeader() checks leaderId, not member role
+      const fakeLeaderId = new mongoose.Types.ObjectId();
+      gang.leaderId = fakeLeaderId;
       gang.members[0].role = GangRole.OFFICER;
       await gang.save();
 
@@ -688,7 +684,8 @@ describe('GangService', () => {
           hairColor: 1,
         },
         currentLocation: 'el-paso',
-        gold: 500,
+        dollars: 500,
+        gold: 500,  // Must match dollars for DollarService compat
         gangId: gang._id,
       });
 
@@ -705,7 +702,8 @@ describe('GangService', () => {
           hairColor: 2,
         },
         currentLocation: 'el-paso',
-        gold: 500,
+        dollars: 500,
+        gold: 500,  // Must match dollars for DollarService compat
         gangId: gang._id,
       });
 

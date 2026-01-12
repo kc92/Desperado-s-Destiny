@@ -22,6 +22,7 @@ import {
 import { requireCsrfToken, requireCsrfTokenWithRotation } from '../middleware/csrf.middleware';
 import { checkGoldDuplication } from '../middleware/antiExploit.middleware';
 import { validate, DuelSchemas } from '../validation';
+import { duelRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -35,7 +36,7 @@ router.use(requireCharacter);
  * Body: { targetId, type?, wagerAmount? }
  * CSRF rotation for wager commitment
  */
-router.post('/challenge', requireCsrfTokenWithRotation, validate(DuelSchemas.challenge), checkGoldDuplication(), asyncHandler(challengePlayer));
+router.post('/challenge', duelRateLimiter, requireCsrfTokenWithRotation, validate(DuelSchemas.challenge), checkGoldDuplication(), asyncHandler(challengePlayer));
 
 /**
  * POST /api/duels/:duelId/accept

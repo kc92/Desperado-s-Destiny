@@ -5,7 +5,7 @@
  */
 
 import { Express } from 'express';
-import app from '../../src/server';
+import app from '../testApp';
 import { Action, ActionType } from '../../src/models/Action.model';
 import { ActionResult } from '../../src/models/ActionResult.model';
 import { Character } from '../../src/models/Character.model';
@@ -49,12 +49,12 @@ describe('Action Challenge System', () => {
 
       expectSuccess(res);
       expect(res.body.data.result).toBeDefined();
-      expect(res.body.data.result.cardsDrawn).toHaveLength(5);
-      expect(res.body.data.result.handRank).toBeGreaterThanOrEqual(HandRank.HIGH_CARD);
-      expect(res.body.data.result.handRank).toBeLessThanOrEqual(HandRank.ROYAL_FLUSH);
-      expect(res.body.data.result.handDescription).toBeDefined();
-      expect(res.body.data.result.challengeSuccess).toBeDefined();
-      expect(typeof res.body.data.result.challengeSuccess).toBe('boolean');
+      expect(res.body.data.result.hand).toHaveLength(5);
+      expect(res.body.data.result.handEvaluation.rank).toBeGreaterThanOrEqual(HandRank.HIGH_CARD);
+      expect(res.body.data.result.handEvaluation.rank).toBeLessThanOrEqual(HandRank.ROYAL_FLUSH);
+      expect(res.body.data.result.handEvaluation.description).toBeDefined();
+      expect(res.body.data.result.success).toBeDefined();
+      expect(typeof res.body.data.result.success).toBe('boolean');
     });
 
     it('should draw exactly 5 unique cards', async () => {
@@ -69,7 +69,7 @@ describe('Action Challenge System', () => {
       );
 
       expectSuccess(res);
-      const cards = res.body.data.result.cardsDrawn;
+      const cards = res.body.data.result.hand;
       expect(cards).toHaveLength(5);
 
       // Verify no duplicates
@@ -91,9 +91,9 @@ describe('Action Challenge System', () => {
 
       expectSuccess(res);
       const result = res.body.data.result;
-      expect(result.handScore).toBeGreaterThan(0);
-      expect(result.totalScore).toBeGreaterThanOrEqual(result.handScore);
-      expect(result.difficultyThreshold).toBeGreaterThan(0);
+      expect(result.handEvaluation.score).toBeGreaterThan(0);
+      expect(result.totalScore).toBeGreaterThanOrEqual(result.handEvaluation.score);
+      expect(result.action.difficulty).toBeGreaterThan(0);
     });
 
     it('should apply suit bonuses based on character stats', async () => {
@@ -120,10 +120,16 @@ describe('Action Challenge System', () => {
       expectSuccess(res);
       const result = res.body.data.result;
       expect(result.suitBonuses).toBeDefined();
-      expect(result.suitBonuses.spades).toBe(10); // cunning * 2
-      expect(result.suitBonuses.hearts).toBe(6);   // spirit * 2
-      expect(result.suitBonuses.clubs).toBe(8);    // combat * 2
-      expect(result.suitBonuses.diamonds).toBe(4); // craft * 2
+      // Suit bonuses are returned as an array of {suit, bonus}
+      const spadeBonus = result.suitBonuses.find((b: any) => b.suit === 'SPADES').bonus;
+      const heartBonus = result.suitBonuses.find((b: any) => b.suit === 'HEARTS').bonus;
+      const clubBonus = result.suitBonuses.find((b: any) => b.suit === 'CLUBS').bonus;
+      const diamondBonus = result.suitBonuses.find((b: any) => b.suit === 'DIAMONDS').bonus;
+      
+      expect(spadeBonus).toBe(10); // cunning * 2
+      expect(heartBonus).toBe(6);   // spirit * 2
+      expect(clubBonus).toBe(8);    // combat * 2
+      expect(diamondBonus).toBe(4); // craft * 2
     });
 
     it('should deduct energy on successful challenge', async () => {
@@ -205,9 +211,9 @@ describe('Action Challenge System', () => {
       expectSuccess(res);
       const result = res.body.data.result;
 
-      if (result.challengeSuccess) {
-        expect(result.rewardsGained.xp).toBe(action.rewards.xp);
-        expect(result.rewardsGained.gold).toBe(action.rewards.gold);
+      if (result.success) {
+        expect(result.rewards.xp).toBe(action.rewards.xp);
+        expect(result.rewards.gold).toBe(action.rewards.gold);
         expect(result.characterXP).toBe(initialXP + action.rewards.xp);
       }
     });
@@ -223,18 +229,20 @@ describe('Action Challenge System', () => {
       character.stats.craft = 0;
       await character.save();
 
-      // Find a difficult action
-      const difficultActions = await Action.find({
-        isActive: true,
-        difficulty: { $gte: 70 }
-      });
+      // Find the most difficult action available
+      const difficultActions = await Action.find({ isActive: true })
+        .sort({ difficulty: -1 })
+        .limit(1);
 
       if (difficultActions.length === 0) {
-        // Skip if no difficult actions exist
+        // Skip if no actions exist
         return;
       }
 
       const difficultActionId = difficultActions[0]._id.toString();
+      
+      // Force extreme difficulty to guarantee failure
+      await Action.findByIdAndUpdate(difficultActionId, { difficulty: 100 });
 
       // Perform multiple challenges to get at least one failure
       let failureFound = false;
@@ -256,9 +264,8 @@ describe('Action Challenge System', () => {
           await char.save();
         }
 
-        if (!res.body.data.result.challengeSuccess) {
-          expect(res.body.data.result.rewardsGained.xp).toBe(0);
-          expect(res.body.data.result.rewardsGained.gold).toBe(0);
+        if (!res.body.data.result.success) {
+          expect(res.body.data.result.rewards).toBeUndefined();
           failureFound = true;
           break;
         }
@@ -531,7 +538,7 @@ describe('Action Challenge System', () => {
         );
 
         expectSuccess(res);
-        const cards = res.body.data.result.cardsDrawn;
+        const cards = res.body.data.result.hand;
         const handString = cards.map((c: any) => `${c.suit}-${c.rank}`).join(',');
         hands.push(handString);
       }
@@ -558,7 +565,7 @@ describe('Action Challenge System', () => {
       );
 
       expectSuccess(res);
-      expect(res.body.data.result.actionType).toBe(ActionType.CRIME);
+      expect(res.body.data.result.action.type).toBe(ActionType.CRIME);
     });
 
     it('should work for COMBAT actions', async () => {
@@ -576,7 +583,7 @@ describe('Action Challenge System', () => {
       );
 
       expectSuccess(res);
-      expect(res.body.data.result.actionType).toBe(ActionType.COMBAT);
+      expect(res.body.data.result.action.type).toBe(ActionType.COMBAT);
     });
 
     it('should work for CRAFT actions', async () => {
@@ -594,7 +601,7 @@ describe('Action Challenge System', () => {
       );
 
       expectSuccess(res);
-      expect(res.body.data.result.actionType).toBe(ActionType.CRAFT);
+      expect(res.body.data.result.action.type).toBe(ActionType.CRAFT);
     });
 
     it('should work for SOCIAL actions', async () => {
@@ -612,7 +619,7 @@ describe('Action Challenge System', () => {
       );
 
       expectSuccess(res);
-      expect(res.body.data.result.actionType).toBe(ActionType.SOCIAL);
+      expect(res.body.data.result.action.type).toBe(ActionType.SOCIAL);
     });
   });
 });

@@ -5,15 +5,17 @@
  */
 
 import request from 'supertest';
-import app from '../../src/server';
+import app from '../testApp';
 import { Character } from '../../src/models/Character.model';
-import { createTestToken } from '../helpers/auth.helpers';
+import { User } from '../../src/models/User.model';
+import { createTestToken, createTestUserWithPassword } from '../helpers/auth.helpers';
 import { apiPost, expectSuccess, expectError } from '../helpers/api.helpers';
 import { Faction, FACTIONS, CHARACTER_VALIDATION } from '@desperados/shared';
 
 describe('Character Creation', () => {
-  const userId = '507f1f77bcf86cd799439011';
-  const token = createTestToken(userId, 'test@example.com');
+  let userId: string;
+  let token: string;
+  let userEmail: string;
 
   const validCharacterData = {
     name: 'Jack Thornton',
@@ -26,6 +28,22 @@ describe('Character Creation', () => {
       hairColor: 2
     }
   };
+
+  beforeEach(async () => {
+    // Create a test user in the database
+    userEmail = `test.char.creation.${Date.now()}@example.com`;
+    const userData = await createTestUserWithPassword(userEmail, 'TestPass123!');
+    const user = await User.create({
+      ...userData,
+      emailVerified: true // Ensure verified for tests
+    });
+    
+    userId = user._id.toString();
+    token = createTestToken(userId, userEmail);
+  });
+
+  // Global cleanup handles DB clearing
+
 
   describe('POST /api/characters - Success Cases', () => {
     it('should create a character with valid data', async () => {
@@ -104,8 +122,9 @@ describe('Character Creation', () => {
       }, token);
 
       expectError(response, 400);
-      expect(response.body.errors).toContain(
-        expect.stringContaining('at least')
+      // Access errors object directly and check specific field
+      expect(response.body.errors['body.name'][0]).toContain(
+        'Character name must be'
       );
     });
 
@@ -116,8 +135,8 @@ describe('Character Creation', () => {
       }, token);
 
       expectError(response, 400);
-      expect(response.body.errors).toContain(
-        expect.stringContaining('not exceed')
+      expect(response.body.errors['body.name'][0]).toContain(
+        'Character name must be'
       );
     });
 
@@ -128,8 +147,8 @@ describe('Character Creation', () => {
       }, token);
 
       expectError(response, 400);
-      expect(response.body.errors).toContain(
-        expect.stringContaining('invalid characters')
+      expect(response.body.errors['body.name'][0]).toContain(
+        'Character name must be'
       );
     });
 
@@ -141,8 +160,9 @@ describe('Character Creation', () => {
         }, token);
 
         expectError(response, 400);
+        // Forbidden names are checked in controller, returning a flat array of errors
         expect(response.body.errors).toContain(
-          expect.stringContaining('not allowed')
+          'This character name is not allowed'
         );
       }
     });
@@ -154,8 +174,8 @@ describe('Character Creation', () => {
       }, token);
 
       expectError(response, 400);
-      expect(response.body.errors).toContain(
-        expect.stringContaining('Invalid faction')
+      expect(response.body.errors['body.faction'][0]).toContain(
+        'faction must be one of'
       );
     });
 

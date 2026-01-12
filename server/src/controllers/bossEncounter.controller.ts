@@ -15,6 +15,7 @@ import { BossAttackRequest } from '@desperados/shared';
 import { BossEncounter as BossEncounterModel, BossDiscovery } from '../models/BossEncounter.model';
 import { getBossById, getAllBosses } from '../data/bosses';
 import logger from '../utils/logger';
+import { clampLimit } from '../utils/validation';
 
 /**
  * GET /api/boss-encounters
@@ -35,8 +36,8 @@ export async function getAllBossesWithProgress(req: CharacterRequest, res: Respo
     // Get all bosses from data
     const bosses = getAllBosses();
 
-    // Get character's discovery records
-    const discoveries = await BossDiscovery.find({ characterId });
+    // Get character's discovery records - limit to prevent OOM (game shouldn't have more than 100 bosses)
+    const discoveries = await BossDiscovery.find({ characterId }).limit(200);
     const discoveryMap = new Map<string, any>();
     discoveries.forEach(d => {
       discoveryMap.set(d.bossId, d);
@@ -597,7 +598,8 @@ export async function getEncounterHistory(req: CharacterRequest, res: Response):
   try {
     const characterId = req.characterId || req.character?._id?.toString();
     const { bossId } = req.params;
-    const limit = parseInt(req.query.limit as string) || 10;
+    // SECURITY FIX: Clamp limit to prevent pagination DoS
+    const limit = clampLimit(req.query.limit, { defaultLimit: 10, maxLimit: 100 });
 
     if (!characterId) {
       res.status(400).json({

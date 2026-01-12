@@ -25,6 +25,7 @@ import {
 } from '@desperados/shared';
 import { IllegalMiningService } from './illegalMining.service';
 import { SecureRNG } from './base/SecureRNG';
+import { handleServiceError } from '../utils/errorHandling';
 
 /**
  * Inspector patrol result
@@ -134,7 +135,7 @@ export class MiningInspectorService {
 
       return result;
     } catch (error) {
-      console.error('[MiningInspectorService] runPatrol error:', error);
+      handleServiceError(error, { service: 'MiningInspectorService', method: 'runPatrol' });
       return result;
     }
   }
@@ -254,7 +255,7 @@ export class MiningInspectorService {
 
       return result;
     } catch (error) {
-      console.error('[MiningInspectorService] runInspection error:', error);
+      handleServiceError(error, { service: 'MiningInspectorService', method: 'runInspection', claimId: claim._id.toString(), inspectorType: inspector.type });
       return result;
     }
   }
@@ -313,7 +314,7 @@ export class MiningInspectorService {
         };
       }
     } catch (error) {
-      console.error('[MiningInspectorService] attemptBribe error:', error);
+      handleServiceError(error, { service: 'MiningInspectorService', method: 'attemptBribe', characterId, claimId, inspectorType, bribeAmount });
       return { success: false, result: InspectionResult.WARNED, message: 'Bribe failed' };
     }
   }

@@ -68,6 +68,7 @@ export interface IDeityAttention extends Document {
   canReceiveWhisper(): boolean;
   recordIntervention(type: 'DREAM' | 'STRANGER' | 'OMEN' | 'WHISPER'): void;
   calculateInterventionChance(baseChance: number): number;
+  updateKarmaTrajectory(delta: number): void;
 }
 
 // Static methods interface
@@ -79,6 +80,12 @@ export interface IDeityAttentionModel extends Model<IDeityAttention> {
 
   findTopWatched(
     deityName: DeityName,
+    limit?: number
+  ): Query<IDeityAttention[], IDeityAttention>;
+
+  findHighAttentionCharacters(
+    deityName: DeityName,
+    threshold: number,
     limit?: number
   ): Query<IDeityAttention[], IDeityAttention>;
 
@@ -259,6 +266,22 @@ DeityAttentionSchema.methods.calculateInterventionChance = function(baseChance: 
   return Math.min(0.5, Math.max(0, finalChance));
 };
 
+DeityAttentionSchema.methods.updateKarmaTrajectory = function(delta: number): void {
+  // Determine trajectory based on delta magnitude and direction
+  // delta > 3: IMPROVING (significant positive karma change)
+  // delta < -3: DECLINING (significant negative karma change)
+  // Otherwise: STABLE (minimal change)
+  const threshold = 3;
+
+  if (delta > threshold) {
+    this.karmaTrajectory = 'IMPROVING';
+  } else if (delta < -threshold) {
+    this.karmaTrajectory = 'DECLINING';
+  } else {
+    this.karmaTrajectory = 'STABLE';
+  }
+};
+
 // Static methods
 DeityAttentionSchema.statics.findByCharacterAndDeity = function(
   characterId: string | Types.ObjectId,
@@ -274,6 +297,19 @@ DeityAttentionSchema.statics.findTopWatched = function(
   return this.find({
     deityName,
     attention: { $gt: 10 } // Only characters with meaningful attention
+  })
+    .sort({ attention: -1 })
+    .limit(limit);
+};
+
+DeityAttentionSchema.statics.findHighAttentionCharacters = function(
+  deityName: DeityName,
+  threshold: number,
+  limit: number = 100
+) {
+  return this.find({
+    deityName,
+    attention: { $gte: threshold }
   })
     .sort({ attention: -1 })
     .limit(limit);

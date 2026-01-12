@@ -113,8 +113,8 @@ const CharacterSinSchema = new Schema<ICharacterSin>(
       type: Schema.Types.ObjectId,
       ref: 'Character',
       required: true,
-      unique: true,
-      index: true
+      unique: true
+      // Note: unique: true creates an index
     },
 
     // Sin level
@@ -255,8 +255,8 @@ const CharacterSinSchema = new Schema<ICharacterSin>(
 
 /**
  * Indexes
+ * Note: characterId already indexed via unique: true constraint
  */
-CharacterSinSchema.index({ characterId: 1 });
 CharacterSinSchema.index({ sinLevel: 1 });
 CharacterSinSchema.index({ currentSin: -1 });
 

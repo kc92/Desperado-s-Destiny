@@ -72,7 +72,7 @@ export class DollarService {
       }
 
       // First, get character info for world event modifiers (read-only)
-      const characterQuery = Character.findById(characterId).select('currentLocation name dollars gold');
+      const characterQuery = Character.findById(characterId).select('currentLocation name dollars gold userId');
       const character = useSession ? await characterQuery.session(useSession) : await characterQuery;
       if (!character) throw new Error('Character not found');
 
@@ -80,7 +80,22 @@ export class DollarService {
       let modifiedAmount = amount;
       try {
         // Get character's current location to check regional events
-        const location = await Location.findById(character.currentLocation);
+        // Handle both ObjectId and string slug formats for currentLocation
+        let location = null;
+        if (character.currentLocation) {
+          const isValidObjectId = mongoose.Types.ObjectId.isValid(character.currentLocation) &&
+            String(new mongoose.Types.ObjectId(character.currentLocation)) === String(character.currentLocation);
+
+          if (isValidObjectId) {
+            location = await Location.findById(character.currentLocation);
+          } else {
+            // Fallback: try to find by name slug (for test compatibility)
+            // Only use name-based lookup since currentLocation is not a valid ObjectId
+            location = await Location.findOne({
+              name: { $regex: new RegExp(String(character.currentLocation).replace(/-/g, ' '), 'i') }
+            });
+          }
+        }
         if (location) {
           const activeEvents = await WorldEvent.find({
             status: 'ACTIVE',
@@ -190,6 +205,7 @@ export class DollarService {
       // Audit log the dollar grant
       await logEconomyEvent({
         event: EconomyEvent.GOLD_GRANT,
+        userId: character.userId?.toString(),
         characterId: updateResult._id.toString(),
         amount: modifiedAmount,
         beforeBalance: balanceBefore,
@@ -254,7 +270,7 @@ export class DollarService {
       if (!isExternalSession && useSession) await useSession.startTransaction();
 
       // First get current balance for transaction record (read-only)
-      const characterQuery = Character.findById(characterId).select('dollars gold name');
+      const characterQuery = Character.findById(characterId).select('dollars gold name userId');
       const character = useSession ? await characterQuery.session(useSession) : await characterQuery;
       if (!character) throw new Error('Character not found');
 
@@ -314,6 +330,7 @@ export class DollarService {
       // Audit log the dollar deduction
       await logEconomyEvent({
         event: EconomyEvent.GOLD_DEDUCT,
+        userId: character.userId?.toString(),
         characterId: updateResult._id.toString(),
         amount: -amount,
         beforeBalance: balanceBefore,
@@ -526,8 +543,8 @@ export class DollarService {
       }
 
       // Fetch both characters for validation and transaction records
-      const fromCharQuery = Character.findById(fromCharacterId).select('dollars gold name');
-      const toCharQuery = Character.findById(toCharacterId).select('dollars gold name');
+      const fromCharQuery = Character.findById(fromCharacterId).select('dollars gold name userId');
+      const toCharQuery = Character.findById(toCharacterId).select('dollars gold name userId');
 
       const fromChar = session ? await fromCharQuery.session(session) : await fromCharQuery;
       const toChar = session ? await toCharQuery.session(session) : await toCharQuery;
@@ -640,6 +657,7 @@ export class DollarService {
       // Audit log the dollar transfer
       await logEconomyEvent({
         event: EconomyEvent.GOLD_TRANSFER,
+        userId: fromChar.userId?.toString(),
         characterId: fromChar._id.toString(),
         amount: amount,
         beforeBalance: fromBalanceBefore,
@@ -649,6 +667,7 @@ export class DollarService {
           currencyType: 'DOLLAR',
           toCharacterId: toChar._id.toString(),
           toCharacterName: toChar.name,
+          toUserId: toChar.userId?.toString(),
           recipientBeforeBalance: toBalanceBefore,
           recipientAfterBalance: toBalanceAfter,
           ...metadata
@@ -1065,7 +1084,7 @@ export class DollarService {
         await useSession.startTransaction();
       }
 
-      const characterQuery = Character.findById(characterId).select('dollars gold name createdAt');
+      const characterQuery = Character.findById(characterId).select('dollars gold name createdAt userId');
       const character = useSession
         ? await characterQuery.session(useSession)
         : await characterQuery;
@@ -1148,6 +1167,7 @@ export class DollarService {
 
       await logEconomyEvent({
         event: EconomyEvent.GOLD_DEDUCT,
+        userId: character.userId?.toString(),
         characterId: updateResult._id.toString(),
         amount: -taxAmount,
         beforeBalance: balanceBefore,

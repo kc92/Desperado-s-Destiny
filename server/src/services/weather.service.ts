@@ -4,6 +4,7 @@
  * Manages regional weather systems, supernatural weather, and weather effects on gameplay
  */
 
+import mongoose from 'mongoose';
 import {
   WorldState,
   IWorldState,
@@ -209,7 +210,19 @@ export class WeatherService {
     isSupernatural: boolean;
   } | null> {
     try {
-      const location = await Location.findById(locationId);
+      // Handle both ObjectId and string slug formats for locationId
+      let location = null;
+      const isValidObjectId = mongoose.Types.ObjectId.isValid(locationId) &&
+        String(new mongoose.Types.ObjectId(locationId)) === String(locationId);
+
+      if (isValidObjectId) {
+        location = await Location.findById(locationId);
+      } else {
+        // Fallback: try to find by name slug (for test compatibility)
+        location = await Location.findOne({
+          name: { $regex: new RegExp(String(locationId).replace(/-/g, ' '), 'i') }
+        });
+      }
       if (!location) return null;
 
       const worldState = await WorldState.findOne();

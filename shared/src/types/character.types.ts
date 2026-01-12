@@ -91,6 +91,8 @@ export interface Character {
   name: string;
   /** Character's chosen faction */
   faction: Faction;
+  /** Character appearance customization */
+  appearance?: CharacterAppearance;
   /** Character's current level (1-50) */
   level: number;
   /** Current experience points */

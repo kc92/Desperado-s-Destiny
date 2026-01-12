@@ -62,6 +62,10 @@ interface ChatState {
   // Typing indicators per room: Map<roomKey, username[]>
   typingUsers: Map<string, string[]>;
 
+  // Typing debounce timers - stored in state to prevent memory leaks
+  // Key format: `${roomKey}-${username}` or `self-${roomKey}`
+  _typingTimers: Map<string, NodeJS.Timeout>;
+
   // Unread counts per room
   unreadCounts: Map<string, number>;
 
@@ -119,7 +123,7 @@ const defaultSettings: ChatSettings = {
   profanityFilterEnabled: false,
   showOnlineUsers: true,
   fontSize: 'medium',
-  isMinimized: false,
+  isMinimized: true, // Default to minimized so chat doesn't cover page content
 };
 
 /**
@@ -152,11 +156,6 @@ const saveSettings = (settings: ChatSettings): void => {
  * Get room key for indexing
  */
 const getRoomKey = (type: RoomType, id: string): string => `${type}-${id}`;
-
-/**
- * Typing debounce timers
- */
-const typingTimers = new Map<string, NodeJS.Timeout>();
 
 /**
  * Track registered socket listeners for cleanup
@@ -222,6 +221,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeRoom: null,
   onlineUsers: new Map(),
   typingUsers: new Map(),
+  _typingTimers: new Map(),
   unreadCounts: new Map(),
   whispers: new Map(),
   connectionStatus: 'disconnected',
@@ -369,32 +369,44 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const roomKey = getRoomKey(data.roomType, data.roomId);
       const currentState = get(); // Use current state, not stale closure state
       const typingUsers = new Map(currentState.typingUsers);
+      const typingTimers = new Map(currentState._typingTimers);
       const roomTyping = typingUsers.get(roomKey) || [];
+      const timerKey = `${roomKey}-${data.username}`;
 
       if (data.isTyping) {
         if (!roomTyping.includes(data.username)) {
           typingUsers.set(roomKey, [...roomTyping, data.username]);
         }
 
-        const existingTimer = typingTimers.get(`${roomKey}-${data.username}`);
+        // Clear existing timer if any
+        const existingTimer = typingTimers.get(timerKey);
         if (existingTimer) {
           clearTimeout(existingTimer);
         }
 
+        // Set new timer to remove typing indicator after 3 seconds
         const timer = setTimeout(() => {
-          const updated = new Map(get().typingUsers);
-          const current = updated.get(roomKey) || [];
-          updated.set(roomKey, current.filter((u) => u !== data.username));
-          set({ typingUsers: updated });
-          typingTimers.delete(`${roomKey}-${data.username}`);
+          const latestState = get();
+          const updatedTypingUsers = new Map(latestState.typingUsers);
+          const updatedTimers = new Map(latestState._typingTimers);
+          const current = updatedTypingUsers.get(roomKey) || [];
+          updatedTypingUsers.set(roomKey, current.filter((u) => u !== data.username));
+          updatedTimers.delete(timerKey);
+          set({ typingUsers: updatedTypingUsers, _typingTimers: updatedTimers });
         }, 3000);
 
-        typingTimers.set(`${roomKey}-${data.username}`, timer);
+        typingTimers.set(timerKey, timer);
+        set({ typingUsers, _typingTimers: typingTimers });
       } else {
+        // User stopped typing - clear timer and remove from list
+        const existingTimer = typingTimers.get(timerKey);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+          typingTimers.delete(timerKey);
+        }
         typingUsers.set(roomKey, roomTyping.filter((u) => u !== data.username));
+        set({ typingUsers, _typingTimers: typingTimers });
       }
-
-      set({ typingUsers });
     });
 
     addTrackedListener('chat:user_joined', (data) => {
@@ -483,9 +495,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     logger.debug('Cleaning up chat system listeners', { initId: state._initializationId });
 
-    // Clear typing timers
-    typingTimers.forEach((timer) => clearTimeout(timer));
-    typingTimers.clear();
+    // Clear all typing timers from store state
+    state._typingTimers.forEach((timer) => clearTimeout(timer));
 
     // Remove all tracked socket listeners to prevent memory leaks
     removeAllTrackedListeners();
@@ -498,6 +509,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({
       activeRoom: null,
       typingUsers: new Map(),
+      _typingTimers: new Map(), // Clear timers map
       isLoadingHistory: false,
       isSendingMessage: false,
       error: null,
@@ -830,10 +842,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!state.activeRoom) return;
 
     const roomKey = getRoomKey(state.activeRoom.type, state.activeRoom.id);
-    const existingTimer = typingTimers.get(`self-${roomKey}`);
+    const timerKey = `self-${roomKey}`;
+    const typingTimers = new Map(state._typingTimers);
 
+    // Clear existing timer if any
+    const existingTimer = typingTimers.get(timerKey);
     if (existingTimer) {
       clearTimeout(existingTimer);
+      typingTimers.delete(timerKey);
     }
 
     socketService.emit('chat:typing', {
@@ -843,12 +859,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
 
     if (isTyping) {
+      // Set timer to automatically stop typing after 3 seconds
       const timer = setTimeout(() => {
         get().setTyping(false);
       }, 3000);
 
-      typingTimers.set(`self-${roomKey}`, timer);
+      typingTimers.set(timerKey, timer);
     }
+
+    set({ _typingTimers: typingTimers });
   },
 
   /**

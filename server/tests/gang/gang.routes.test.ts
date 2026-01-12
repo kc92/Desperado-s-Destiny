@@ -2,43 +2,24 @@
  * Gang Routes Tests
  *
  * Integration tests for gang API endpoints
+ * Uses global MongoMemoryReplSet setup for transaction support
  */
 
 import request from 'supertest';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import * as jwt from 'jsonwebtoken';
-import app from '../../src/app';
+import { createTestApp } from '../testApp';
 import { Gang } from '../../src/models/Gang.model';
+
+const app = createTestApp();
 import { Character, ICharacter } from '../../src/models/Character.model';
 import { User } from '../../src/models/User.model';
 import { GangInvitation } from '../../src/models/GangInvitation.model';
 import { config } from '../../src/config';
 import { Faction, GangRole } from '@desperados/shared';
 
-let mongoServer: MongoMemoryServer;
-
-beforeAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
-});
-
-afterAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  await mongoServer.stop();
-});
-
-afterEach(async () => {
-  await Gang.deleteMany({});
-  await Character.deleteMany({});
-  await User.deleteMany({});
-  await GangInvitation.deleteMany({});
-});
+// Note: Global setup handles MongoMemoryReplSet connection
+// afterEach cleanup is handled by global setup
 
 function generateToken(userId: string, email: string): string {
   return jwt.sign({ userId, email }, config.jwt.secret, { expiresIn: '1h' });
@@ -61,6 +42,8 @@ describe('Gang Routes', () => {
       name: 'RoutesTester',
       faction: Faction.FRONTERA,
       level: 15,
+      totalLevel: 100, // Required for gang creation (MIN_TOTAL_LEVEL: 100)
+      dollars: 5000,   // Gang creation costs 2000 dollars
       appearance: {
         bodyType: 'male',
         skinTone: 5,
@@ -158,7 +141,11 @@ describe('Gang Routes', () => {
       const response = await request(app).get('/api/gangs?sortBy=level&sortOrder=desc');
 
       expect(response.status).toBe(200);
-      expect(response.body.data.gangs[0].level).toBe(10);
+      // Verify that gangs are sorted by level in descending order
+      const gangs = response.body.data.gangs;
+      expect(gangs.length).toBeGreaterThanOrEqual(2);
+      // First gang should have higher or equal level compared to second
+      expect(gangs[0].level).toBeGreaterThanOrEqual(gangs[1].level);
     });
   });
 
@@ -330,7 +317,11 @@ describe('Gang Routes', () => {
     });
 
     it('should require leader permission', async () => {
+      // Change leadership to someone else so testCharacter is no longer the leader
+      const otherLeaderId = new mongoose.Types.ObjectId();
+      gang.leaderId = otherLeaderId;
       gang.members[0].role = GangRole.MEMBER;
+      gang.members.push({ characterId: otherLeaderId, role: GangRole.LEADER, joinedAt: new Date(), contribution: 0 });
       await gang.save();
 
       const response = await request(app)

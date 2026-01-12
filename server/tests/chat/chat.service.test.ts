@@ -6,37 +6,11 @@
  */
 
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { ChatService } from '../../src/services/chat.service';
 import { Message, RoomType } from '../../src/models/Message.model';
 import { Character, ICharacter } from '../../src/models/Character.model';
 import { User } from '../../src/models/User.model';
 import { Faction } from '@desperados/shared';
-
-let mongoServer: MongoMemoryServer;
-
-beforeAll(async () => {
-  // Disconnect if already connected
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-
-  mongoServer = await MongoMemoryServer.create();
-  await mongoose.connect(mongoServer.getUri());
-});
-
-afterAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-  await mongoServer.stop();
-});
-
-afterEach(async () => {
-  await Message.deleteMany({});
-  await Character.deleteMany({});
-  await User.deleteMany({});
-});
 
 describe('ChatService', () => {
   let testUser: any;

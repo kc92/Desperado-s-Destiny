@@ -63,8 +63,8 @@ const ActionDeckSessionSchema = new Schema<IActionDeckSession>({
   },
   expiresAt: {
     type: Date,
-    required: true,
-    index: true
+    required: true
+    // Note: Index defined below as TTL index
   }
 }, {
   timestamps: false // We manage our own timestamps

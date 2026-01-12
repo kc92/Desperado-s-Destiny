@@ -475,16 +475,27 @@ export class MarketplaceService {
         throw new Error('Seller not found');
       }
 
-      // Add item back to inventory
-      const existingItem = seller.inventory.find(inv => inv.itemId === listing.item.itemId);
-      if (existingItem) {
-        existingItem.quantity += listing.item.quantity;
-      } else {
-        seller.inventory.push({
-          itemId: listing.item.itemId,
-          quantity: listing.item.quantity,
-          acquiredAt: new Date()
-        });
+      // Add item back to inventory using atomic operations
+      const inventoryUpdate = await Character.updateOne(
+        { _id: sellerId, 'inventory.itemId': listing.item.itemId },
+        { $inc: { 'inventory.$.quantity': listing.item.quantity } },
+        { session }
+      );
+
+      if (inventoryUpdate.matchedCount === 0) {
+        await Character.updateOne(
+          { _id: sellerId },
+          {
+            $push: {
+              inventory: {
+                itemId: listing.item.itemId,
+                quantity: listing.item.quantity,
+                acquiredAt: new Date()
+              }
+            }
+          },
+          { session }
+        );
       }
 
       // Update listing status
@@ -846,16 +857,29 @@ export class MarketplaceService {
         );
       }
 
-      // Transfer item to buyer
-      const existingItem = buyer.inventory.find(inv => inv.itemId === listing.item.itemId);
-      if (existingItem) {
-        existingItem.quantity += listing.item.quantity;
-      } else {
-        buyer.inventory.push({
-          itemId: listing.item.itemId,
-          quantity: listing.item.quantity,
-          acquiredAt: new Date()
-        });
+      // Transfer item to buyer using atomic $inc to prevent race conditions
+      // RACE CONDITION FIX: Use atomic updateOne instead of find-modify-save
+      const inventoryUpdate = await Character.updateOne(
+        { _id: buyerId, 'inventory.itemId': listing.item.itemId },
+        { $inc: { 'inventory.$.quantity': listing.item.quantity } },
+        { session }
+      );
+
+      if (inventoryUpdate.matchedCount === 0) {
+        // Item not in buyer's inventory, add it atomically
+        await Character.updateOne(
+          { _id: buyerId },
+          {
+            $push: {
+              inventory: {
+                itemId: listing.item.itemId,
+                quantity: listing.item.quantity,
+                acquiredAt: new Date()
+              }
+            }
+          },
+          { session }
+        );
       }
 
       // Update listing status
@@ -866,8 +890,7 @@ export class MarketplaceService {
       listing.finalPrice = purchasePrice;
       listing.taxPaid = tax;
 
-      // Save all changes
-      await buyer.save({ session });
+      // Save listing changes
       await listing.save({ session });
 
       // Record sale in price history
@@ -1220,22 +1243,30 @@ export class MarketplaceService {
         session.startTransaction();
 
         try {
-          // Return item to seller
+          // Return item to seller using atomic operations
           const seller = await Character.findById(listing.sellerId).session(session);
           if (seller) {
-            const existingItem = seller.inventory.find(
-              inv => inv.itemId === listing.item.itemId
+            const inventoryUpdate = await Character.updateOne(
+              { _id: listing.sellerId, 'inventory.itemId': listing.item.itemId },
+              { $inc: { 'inventory.$.quantity': listing.item.quantity } },
+              { session }
             );
-            if (existingItem) {
-              existingItem.quantity += listing.item.quantity;
-            } else {
-              seller.inventory.push({
-                itemId: listing.item.itemId,
-                quantity: listing.item.quantity,
-                acquiredAt: new Date()
-              });
+
+            if (inventoryUpdate.matchedCount === 0) {
+              await Character.updateOne(
+                { _id: listing.sellerId },
+                {
+                  $push: {
+                    inventory: {
+                      itemId: listing.item.itemId,
+                      quantity: listing.item.quantity,
+                      acquiredAt: new Date()
+                    }
+                  }
+                },
+                { session }
+              );
             }
-            await seller.save({ session });
 
             // Notify seller
             await NotificationService.sendNotification(
@@ -1377,16 +1408,27 @@ export class MarketplaceService {
       );
     }
 
-    // Transfer item to winner
-    const existingItem = winner.inventory.find(inv => inv.itemId === listing.item.itemId);
-    if (existingItem) {
-      existingItem.quantity += listing.item.quantity;
-    } else {
-      winner.inventory.push({
-        itemId: listing.item.itemId,
-        quantity: listing.item.quantity,
-        acquiredAt: new Date()
-      });
+    // Transfer item to winner using atomic operations
+    const inventoryUpdate = await Character.updateOne(
+      { _id: winnerId, 'inventory.itemId': listing.item.itemId },
+      { $inc: { 'inventory.$.quantity': listing.item.quantity } },
+      { session }
+    );
+
+    if (inventoryUpdate.matchedCount === 0) {
+      await Character.updateOne(
+        { _id: winnerId },
+        {
+          $push: {
+            inventory: {
+              itemId: listing.item.itemId,
+              quantity: listing.item.quantity,
+              acquiredAt: new Date()
+            }
+          }
+        },
+        { session }
+      );
     }
 
     // Update listing
@@ -1397,7 +1439,6 @@ export class MarketplaceService {
     listing.finalPrice = winningBid;
     listing.taxPaid = tax;
 
-    await winner.save({ session });
     await listing.save({ session });
 
     // Record sale
@@ -1469,22 +1510,32 @@ export class MarketplaceService {
       throw new Error('Seller not found');
     }
 
-    // Return item
-    const existingItem = seller.inventory.find(inv => inv.itemId === listing.item.itemId);
-    if (existingItem) {
-      existingItem.quantity += listing.item.quantity;
-    } else {
-      seller.inventory.push({
-        itemId: listing.item.itemId,
-        quantity: listing.item.quantity,
-        acquiredAt: new Date()
-      });
+    // Return item using atomic operations
+    const inventoryUpdate = await Character.updateOne(
+      { _id: listing.sellerId, 'inventory.itemId': listing.item.itemId },
+      { $inc: { 'inventory.$.quantity': listing.item.quantity } },
+      { session }
+    );
+
+    if (inventoryUpdate.matchedCount === 0) {
+      await Character.updateOne(
+        { _id: listing.sellerId },
+        {
+          $push: {
+            inventory: {
+              itemId: listing.item.itemId,
+              quantity: listing.item.quantity,
+              acquiredAt: new Date()
+            }
+          }
+        },
+        { session }
+      );
     }
 
     // Update listing
     listing.status = 'expired';
 
-    await seller.save({ session });
     await listing.save({ session });
 
     // Update price history

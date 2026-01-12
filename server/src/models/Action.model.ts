@@ -1006,11 +1006,12 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
     }
   ];
 
-  // Insert actions if they don't exist (upsert by name)
+  // Upsert actions by name - use $set to update existing actions with new fields
+  // This ensures requiredCriminalSkill and other new fields get added to existing actions
   for (const actionData of starterActions) {
     await this.updateOne(
       { name: actionData.name },
-      { $setOnInsert: actionData },
+      { $set: actionData },
       { upsert: true }
     );
   }

@@ -6,7 +6,7 @@
 
 import request from 'supertest';
 import mongoose from 'mongoose';
-import { app } from '../testApp';
+import app from '../testApp';
 import { Character, ICharacter } from '../../src/models/Character.model';
 import { User, IUser } from '../../src/models/User.model';
 import { createTestToken, clearDatabase } from '../helpers';
@@ -35,7 +35,7 @@ describe('Crime Routes', () => {
     // Create test character
     testCharacter = await Character.create({
       userId: testUser._id,
-      name: `TestOutlaw${Date.now()}`,
+      name: `TO${Date.now().toString().slice(-8)}`,
       faction: Faction.FRONTERA,
       appearance: {
         bodyType: 'male',
@@ -63,7 +63,7 @@ describe('Crime Routes', () => {
     // Create second character for arrest tests
     testCharacter2 = await Character.create({
       userId: testUser._id,
-      name: `BountyHunter${Date.now()}`,
+      name: `BH${Date.now().toString().slice(-8)}`,
       faction: Faction.SETTLER_ALLIANCE,
       appearance: {
         bodyType: 'female',

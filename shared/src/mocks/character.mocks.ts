@@ -34,6 +34,13 @@ export function mockCharacter(overrides?: Partial<Character>): Character {
     lastEnergyRegen: new Date(),
     locationId: 'red-gulch',
     destinyDeck: [],
+    appearance: {
+      bodyType: 'male',
+      skinTone: 5,
+      facePreset: 0,
+      hairStyle: 0,
+      hairColor: 0
+    },
     createdAt: new Date(),
     updatedAt: new Date(),
     isDeleted: false,

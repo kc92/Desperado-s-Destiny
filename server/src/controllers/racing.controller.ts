@@ -229,9 +229,12 @@ export const getMyRaceHorses = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
     const characterId = req.character!._id;
 
+    // Limit to prevent OOM - a character shouldn't own more than 50 horses
     const horses = await Horse.find({
       ownerId: characterId,
-    }).select('name breed stats condition history bond');
+    })
+      .select('name breed stats condition history bond')
+      .limit(50);
 
     // Filter to horses in good condition for racing
     const eligibleHorses = horses.filter((horse) => {

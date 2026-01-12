@@ -5,6 +5,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import { requireEnergy, checkEnergy, EnergyRequest } from '../../src/middleware/energy.middleware';
 import { Character } from '../../src/models/Character.model';
 import { InsufficientEnergyError, NotFoundError, AuthenticationError } from '../../src/utils/errors';
@@ -12,6 +13,10 @@ import { ENERGY } from '@desperados/shared';
 
 // Mock the Character model
 jest.mock('../../src/models/Character.model');
+
+// Create stable ObjectIds for testing
+const TEST_USER_ID = new mongoose.Types.ObjectId();
+const TEST_CHAR_ID = new mongoose.Types.ObjectId();
 
 // Mock logger to prevent console output during tests
 jest.mock('../../src/utils/logger', () => ({
@@ -29,7 +34,7 @@ describe('Energy Middleware', () => {
   beforeEach(() => {
     mockRequest = {
       user: {
-        _id: 'user123',
+        _id: TEST_USER_ID,
         username: 'testuser',
         email: 'test@example.com',
         emailVerified: true,
@@ -48,17 +53,17 @@ describe('Energy Middleware', () => {
 
   describe('requireEnergy', () => {
     const mockCharacter = {
-      _id: 'char123',
-      userId: 'user123',
+      _id: TEST_CHAR_ID,
+      userId: TEST_USER_ID,
       name: 'Test Character',
       energy: 100,
       maxEnergy: ENERGY.FREE_MAX,
       lastEnergyUpdate: new Date(),
-      toString: () => 'user123',
+      toString: () => TEST_USER_ID.toString(),
     };
 
     it('should pass when character has sufficient energy', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue(mockCharacter);
 
@@ -74,7 +79,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should pass when energy exactly equals cost', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue({
         ...mockCharacter,
@@ -89,7 +94,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should throw InsufficientEnergyError when energy is insufficient', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue({
         ...mockCharacter,
@@ -140,7 +145,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should throw AuthenticationError when character is not owned by user', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue({
         ...mockCharacter,
@@ -158,7 +163,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should accept character ID from body', async () => {
-      mockRequest.body = { characterId: 'char123' };
+      mockRequest.body = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue(mockCharacter);
 
@@ -170,7 +175,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should accept character ID from query', async () => {
-      mockRequest.query = { characterId: 'char123' };
+      mockRequest.query = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue(mockCharacter);
 
@@ -182,7 +187,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should calculate energy with regeneration', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       // Character has 50 energy, but 1 hour has passed
       // Free regen: 30 per hour, so should have 80 energy now
@@ -203,7 +208,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should cap energy at maxEnergy after regeneration', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       // Character at full energy, but time has passed
       const tenHoursAgo = new Date(Date.now() - 10 * 60 * 60 * 1000);
@@ -222,7 +227,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should attach character to request', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue(mockCharacter);
 
@@ -230,11 +235,11 @@ describe('Energy Middleware', () => {
       await middleware(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockRequest.character).toBeDefined();
-      expect(mockRequest.character?._id).toBe('char123');
+      expect(mockRequest.character?._id).toEqual(TEST_CHAR_ID);
     });
 
     it('should provide time until energy is available in error', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue({
         ...mockCharacter,
@@ -251,7 +256,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should handle zero energy cost', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue(mockCharacter);
 
@@ -263,7 +268,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should handle negative energy values gracefully', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue(mockCharacter);
 
@@ -277,17 +282,17 @@ describe('Energy Middleware', () => {
 
   describe('checkEnergy', () => {
     const mockCharacter = {
-      _id: 'char123',
-      userId: 'user123',
+      _id: TEST_CHAR_ID,
+      userId: TEST_USER_ID,
       name: 'Test Character',
       energy: 100,
       maxEnergy: ENERGY.FREE_MAX,
       lastEnergyUpdate: new Date(),
-      toString: () => 'user123',
+      toString: () => TEST_USER_ID.toString(),
     };
 
     it('should attach energy info without blocking when sufficient', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue(mockCharacter);
 
@@ -300,7 +305,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should not throw error when energy is insufficient', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue({
         ...mockCharacter,
@@ -333,7 +338,7 @@ describe('Energy Middleware', () => {
     });
 
     it('should work without specifying cost', async () => {
-      mockRequest.params = { characterId: 'char123' };
+      mockRequest.params = { characterId: TEST_CHAR_ID.toString() };
 
       (Character.findById as jest.Mock).mockResolvedValue(mockCharacter);
 

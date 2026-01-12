@@ -15,8 +15,11 @@ import {
 } from '@/services/gathering.service';
 import { logger } from '@/services/logger.service';
 import { useToast } from '@/store/useToastStore';
+import { api } from '@/services/api';
+import { useEnergyStore } from '@/store/useEnergyStore';
+import type { LocationGatheringNode } from '@desperados/shared';
 
-const GATHERING_TYPES: GatheringType[] = ['mining', 'herbalism', 'woodcutting', 'foraging'];
+const GATHERING_TYPES: GatheringType[] = ['mining', 'herbalism', 'woodcutting', 'foraging', 'hunting', 'fishing'];
 
 export function Gathering() {
   // State
@@ -25,6 +28,10 @@ export function Gathering() {
   const [nodes, setNodes] = useState<GatheringNode[]>([]);
   const [availableNodeIds, setAvailableNodeIds] = useState<string[]>([]);
   const [cooldowns, setCooldowns] = useState<GatheringCooldown[]>([]);
+
+  // Location-aware nodes
+  const [locationName, setLocationName] = useState<string>('');
+  const [locationNodes, setLocationNodes] = useState<LocationGatheringNode[]>([]);
 
   // Filter state
   const [selectedType, setSelectedType] = useState<GatheringType | 'all'>('all');
@@ -41,16 +48,30 @@ export function Gathering() {
   // Toast notifications
   const toast = useToast();
 
+  // Energy store for syncing after gathering
+  const { applyOptimisticDeduct } = useEnergyStore();
+
   // ===== Data Loading =====
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const data = await gatheringService.getNodes();
-      setNodes(data.nodes);
-      setAvailableNodeIds(data.available);
-      setCooldowns(data.cooldowns);
+      const [nodesData, locationResponse] = await Promise.all([
+        gatheringService.getNodes(),
+        api.get('/locations/current').catch(() => null),
+      ]);
+
+      setNodes(nodesData.nodes);
+      setAvailableNodeIds(nodesData.available);
+      setCooldowns(nodesData.cooldowns);
+
+      // Set location nodes if available
+      if (locationResponse?.data?.data?.location) {
+        const loc = locationResponse.data.data.location;
+        setLocationName(loc.name || '');
+        setLocationNodes(loc.gatheringNodes || []);
+      }
     } catch (err) {
       logger.error('Failed to load gathering data', err instanceof Error ? err : undefined);
       setError('Failed to load gathering nodes. Please try again later.');
@@ -112,6 +133,11 @@ export function Gathering() {
     setGatherProgress(0);
     setGatherResult(null);
     setError(null);
+
+    // Apply optimistic energy deduction for immediate UI feedback
+    if (selectedNode.energyCost > 0) {
+      applyOptimisticDeduct(selectedNode.energyCost);
+    }
 
     // Simulate gathering progress (visual only)
     const totalTime = 1500; // 1.5 seconds for animation
@@ -516,6 +542,16 @@ export function Gathering() {
     );
   }
 
+  // Get abundance color
+  const getAbundanceColor = (abundance: string) => {
+    switch (abundance) {
+      case 'abundant': return 'text-green-400';
+      case 'common': return 'text-amber-400';
+      case 'scarce': return 'text-red-400';
+      default: return 'text-gray-400';
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-5xl">
       <div className="mb-6">
@@ -525,6 +561,39 @@ export function Gathering() {
           yields.
         </p>
       </div>
+
+      {/* Location Nodes Banner */}
+      {locationName && (
+        <div className="mb-4 p-3 bg-gradient-to-r from-green-900/30 to-gray-800/30 rounded-lg border border-green-700/30">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📍</span>
+              <span className="text-green-200 font-medium">{locationName}</span>
+            </div>
+            {locationNodes.length > 0 ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-gray-400">Available here:</span>
+                <div className="flex gap-1 flex-wrap">
+                  {locationNodes.map((node, idx) => (
+                    <span
+                      key={idx}
+                      className={`px-2 py-1 bg-green-800/40 rounded text-xs ${getAbundanceColor(node.abundance)}`}
+                      title={`${node.abundance} abundance${node.isHidden ? ' (Hidden)' : ''}`}
+                    >
+                      {node.nodeId.replace(/_/g, ' ')}
+                      {node.isHidden && ' 🔍'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <span className="text-xs text-gray-500">
+                No location-specific resources (see all available nodes below)
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-900/30 border border-red-500 rounded-lg p-4 mb-4">
