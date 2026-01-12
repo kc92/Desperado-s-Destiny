@@ -11,7 +11,9 @@ import {
   CraftingSkillTier,
   MaterialCategory,
   RecipeSource,
-  CraftingFacilityType
+  CraftingFacilityType,
+  CurseType,
+  BlessingType
 } from '@desperados/shared';
 
 export const blacksmithingRecipes: CraftingRecipe[] = [
@@ -606,6 +608,158 @@ export const blacksmithingRecipes: CraftingRecipe[] = [
     category: 'weapon',
     tags: ['novice', 'axe', 'utility']
   },
+  {
+    id: 'bs_iron_repair_kit',
+    name: 'Iron Repair Kit',
+    description: 'A basic set of tools for mending worn iron equipment in the field.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 4,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'iron_bar',
+        materialName: 'Iron Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 2
+      },
+      {
+        materialId: 'coal',
+        materialName: 'Coal',
+        category: MaterialCategory.MINERAL,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'iron_repair_kit',
+      itemName: 'Iron Repair Kit',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 40,
+    difficulty: 6,
+    xpGain: 10,
+    learningSource: RecipeSource.TRAINER,
+    category: 'tool',
+    tags: ['novice', 'repair', 'utility']
+  },
+  {
+    id: 'bs_railroad_spikes',
+    name: 'Railroad Spikes',
+    description: 'Heavy iron spikes used for securing railroad tracks. Also make decent improvised weapons.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 6,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'iron_bar',
+        materialName: 'Iron Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'railroad_spikes',
+      itemName: 'Railroad Spikes',
+      baseQuantity: 10,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 35,
+    difficulty: 8,
+    xpGain: 12,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['novice', 'construction', 'utility']
+  },
+  {
+    id: 'bs_prospector_pan',
+    name: 'Prospector Pan',
+    description: 'A shallow iron pan for sifting gold from river sediment. Essential for any aspiring miner.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 9,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'iron_bar',
+        materialName: 'Iron Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 3
+      }
+    ],
+    output: {
+      itemId: 'prospector_pan',
+      itemName: 'Prospector Pan',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 50,
+    difficulty: 10,
+    xpGain: 15,
+    learningSource: RecipeSource.TRAINER,
+    category: 'tool',
+    tags: ['novice', 'mining', 'prospecting']
+  },
+  {
+    id: 'bs_lantern_frame',
+    name: 'Lantern Frame',
+    description: 'The iron framework for an oil lantern. Needs glass and a wick to complete.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 11,
+      minTier: CraftingSkillTier.NOVICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'iron_bar',
+        materialName: 'Iron Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 2
+      },
+      {
+        materialId: 'copper_ore',
+        materialName: 'Copper Ore',
+        category: MaterialCategory.METAL_ORE,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'lantern_frame',
+      itemName: 'Lantern Frame',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 45,
+    difficulty: 12,
+    xpGain: 16,
+    learningSource: RecipeSource.TRAINER,
+    category: 'component',
+    tags: ['novice', 'lighting', 'camp']
+  },
 
   // ============================================================================
   // APPRENTICE TIER (16-30)
@@ -795,6 +949,205 @@ export const blacksmithingRecipes: CraftingRecipe[] = [
     category: 'utility',
     tags: ['apprentice', 'trap', 'hunting']
   },
+  {
+    id: 'bs_steel_horseshoes',
+    name: 'Steel Horseshoes',
+    description: 'Superior horseshoes forged from steel. Last longer and provide better traction.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 17,
+      minTier: CraftingSkillTier.APPRENTICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 3
+      }
+    ],
+    output: {
+      itemId: 'steel_horseshoes',
+      itemName: 'Steel Horseshoes',
+      baseQuantity: 4,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 100,
+    difficulty: 22,
+    xpGain: 35,
+    learningSource: RecipeSource.TRAINER,
+    category: 'tool',
+    tags: ['apprentice', 'mount', 'farrier']
+  },
+  {
+    id: 'bs_bowie_knife',
+    name: 'Bowie Knife',
+    description: 'A heavy fighting knife with a clip point blade. Deadly in close combat.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 19,
+      minTier: CraftingSkillTier.APPRENTICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 4
+      },
+      {
+        materialId: 'hardwood_handle',
+        materialName: 'Hardwood Handle',
+        category: MaterialCategory.WOOD,
+        quantity: 1
+      },
+      {
+        materialId: 'leather_grip',
+        materialName: 'Leather Grip',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'bowie_knife',
+      itemName: 'Bowie Knife',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 130,
+    difficulty: 26,
+    xpGain: 42,
+    learningSource: RecipeSource.TRAINER,
+    category: 'weapon',
+    tags: ['apprentice', 'blade', 'combat']
+  },
+  {
+    id: 'bs_iron_chain',
+    name: 'Iron Chain',
+    description: 'Heavy iron links forged together. Used for securing prisoners, animals, or equipment.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 21,
+      minTier: CraftingSkillTier.APPRENTICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'iron_bar',
+        materialName: 'Iron Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 5
+      }
+    ],
+    output: {
+      itemId: 'iron_chain',
+      itemName: 'Iron Chain',
+      baseQuantity: 3,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 90,
+    difficulty: 24,
+    xpGain: 38,
+    learningSource: RecipeSource.TRAINER,
+    category: 'material',
+    tags: ['apprentice', 'component', 'utility']
+  },
+  {
+    id: 'bs_throwing_knives',
+    name: 'Throwing Knives',
+    description: 'Balanced steel throwing knives. Silent and deadly at range.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 24,
+      minTier: CraftingSkillTier.APPRENTICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 3
+      }
+    ],
+    output: {
+      itemId: 'throwing_knives',
+      itemName: 'Throwing Knives',
+      baseQuantity: 6,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 110,
+    difficulty: 30,
+    xpGain: 48,
+    learningSource: RecipeSource.TRAINER,
+    category: 'weapon',
+    tags: ['apprentice', 'blade', 'ranged']
+  },
+  {
+    id: 'bs_steel_repair_kit',
+    name: 'Steel Repair Kit',
+    description: 'An advanced repair kit with steel tools and materials for fixing quality equipment.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 28,
+      minTier: CraftingSkillTier.APPRENTICE,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 1
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 4
+      },
+      {
+        materialId: 'iron_bar',
+        materialName: 'Iron Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 2
+      },
+      {
+        materialId: 'coal',
+        materialName: 'Coal',
+        category: MaterialCategory.MINERAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'steel_repair_kit',
+      itemName: 'Steel Repair Kit',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 120,
+    difficulty: 32,
+    xpGain: 55,
+    learningSource: RecipeSource.TRAINER,
+    category: 'tool',
+    tags: ['apprentice', 'repair', 'utility']
+  },
 
   // ============================================================================
   // JOURNEYMAN TIER (31-50)
@@ -957,6 +1310,277 @@ export const blacksmithingRecipes: CraftingRecipe[] = [
     learningSource: RecipeSource.TRAINER,
     category: 'utility',
     tags: ['journeyman', 'storage', 'security']
+  },
+  {
+    id: 'bs_tomahawk',
+    name: 'Steel Tomahawk',
+    description: 'A balanced throwing axe with roots in Native American design. Deadly at close or throwing range.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 34,
+      minTier: CraftingSkillTier.JOURNEYMAN,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 6
+      },
+      {
+        materialId: 'hardwood_handle',
+        materialName: 'Hardwood Handle',
+        category: MaterialCategory.WOOD,
+        quantity: 1
+      },
+      {
+        materialId: 'leather_straps',
+        materialName: 'Leather Straps',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'steel_tomahawk',
+      itemName: 'Steel Tomahawk',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 180,
+    difficulty: 44,
+    xpGain: 78,
+    learningSource: RecipeSource.TRAINER,
+    category: 'weapon',
+    tags: ['journeyman', 'axe', 'throwing']
+  },
+  {
+    id: 'bs_reinforced_chest_plate',
+    name: 'Reinforced Chest Plate',
+    description: 'A heavy steel chest plate worn under a duster. Stops most pistol rounds.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 38,
+      minTier: CraftingSkillTier.JOURNEYMAN,
+      facility: {
+        type: CraftingFacilityType.ANVIL,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 14
+      },
+      {
+        materialId: 'leather_straps',
+        materialName: 'Leather Straps',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 4
+      },
+      {
+        materialId: 'rivets',
+        materialName: 'Steel Rivets',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 30
+      }
+    ],
+    output: {
+      itemId: 'reinforced_chest_plate',
+      itemName: 'Reinforced Chest Plate',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 320,
+    difficulty: 52,
+    xpGain: 100,
+    learningSource: RecipeSource.TRAINER,
+    category: 'armor',
+    tags: ['journeyman', 'armor', 'protection']
+  },
+  {
+    id: 'bs_quality_mining_pick',
+    name: 'Quality Mining Pick',
+    description: 'A superior pickaxe forged for professional miners. Extracts ore more efficiently.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 42,
+      minTier: CraftingSkillTier.JOURNEYMAN,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 10
+      },
+      {
+        materialId: 'hardwood_handle',
+        materialName: 'Hardwood Handle',
+        category: MaterialCategory.WOOD,
+        quantity: 1
+      },
+      {
+        materialId: 'iron_bar',
+        materialName: 'Iron Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 4
+      }
+    ],
+    output: {
+      itemId: 'quality_mining_pick',
+      itemName: 'Quality Mining Pick',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 200,
+    difficulty: 48,
+    xpGain: 88,
+    learningSource: RecipeSource.TRAINER,
+    category: 'tool',
+    tags: ['journeyman', 'mining', 'tool']
+  },
+  {
+    id: 'bs_machete',
+    name: 'Frontier Machete',
+    description: 'A broad-bladed tool for clearing brush and defending against hostile wildlife.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 45,
+      minTier: CraftingSkillTier.JOURNEYMAN,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 8
+      },
+      {
+        materialId: 'hardwood_handle',
+        materialName: 'Hardwood Handle',
+        category: MaterialCategory.WOOD,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'frontier_machete',
+      itemName: 'Frontier Machete',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 160,
+    difficulty: 46,
+    xpGain: 85,
+    learningSource: RecipeSource.TRAINER,
+    category: 'weapon',
+    tags: ['journeyman', 'blade', 'utility']
+  },
+  {
+    id: 'bs_silver_horseshoes',
+    name: 'Silver-Inlaid Horseshoes',
+    description: 'Premium horseshoes with silver inlay. Said to ward off evil spirits and provide sure footing.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 47,
+      minTier: CraftingSkillTier.JOURNEYMAN,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 4
+      },
+      {
+        materialId: 'silver_bar',
+        materialName: 'Silver Bar',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'silver_horseshoes',
+      itemName: 'Silver-Inlaid Horseshoes',
+      baseQuantity: 4,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 180,
+    difficulty: 55,
+    xpGain: 92,
+    learningSource: RecipeSource.VENDOR,
+    learningCost: 200,
+    category: 'tool',
+    tags: ['journeyman', 'mount', 'supernatural']
+  },
+  {
+    id: 'bs_army_saber',
+    name: 'Army Officer Saber',
+    description: 'A regulation military saber issued to cavalry officers. Symbol of rank and deadly in skilled hands.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 49,
+      minTier: CraftingSkillTier.JOURNEYMAN,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 12
+      },
+      {
+        materialId: 'brass_fittings',
+        materialName: 'Brass Fittings',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 3
+      },
+      {
+        materialId: 'leather_grip',
+        materialName: 'Leather Grip',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'army_officer_saber',
+      itemName: 'Army Officer Saber',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 280,
+    difficulty: 58,
+    xpGain: 105,
+    learningSource: RecipeSource.REPUTATION,
+    category: 'weapon',
+    tags: ['journeyman', 'sword', 'military']
   },
 
   // ============================================================================
@@ -1127,6 +1751,303 @@ export const blacksmithingRecipes: CraftingRecipe[] = [
     learningSource: RecipeSource.TRAINER,
     category: 'armor',
     tags: ['expert', 'armor', 'protection']
+  },
+  {
+    id: 'bs_master_mining_pick',
+    name: 'Master Mining Pick',
+    description: 'The finest pickaxe money can buy. Forged for the most demanding mining operations.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 53,
+      minTier: CraftingSkillTier.EXPERT,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'damascus_steel',
+        materialName: 'Damascus Steel',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 8
+      },
+      {
+        materialId: 'exotic_wood_handle',
+        materialName: 'Exotic Wood Handle',
+        category: MaterialCategory.WOOD,
+        quantity: 1
+      },
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 6
+      }
+    ],
+    output: {
+      itemId: 'master_mining_pick',
+      itemName: 'Master Mining Pick',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 320,
+    difficulty: 62,
+    xpGain: 125,
+    learningSource: RecipeSource.TRAINER,
+    category: 'tool',
+    tags: ['expert', 'mining', 'tool']
+  },
+  {
+    id: 'bs_dueling_sword',
+    name: 'Gentleman Dueling Sword',
+    description: 'An elegant rapier designed for formal duels. Light, fast, and deadly precise.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 56,
+      minTier: CraftingSkillTier.EXPERT,
+      facility: {
+        type: CraftingFacilityType.QUENCH_TANK,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'damascus_steel',
+        materialName: 'Damascus Steel',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 7
+      },
+      {
+        materialId: 'silver_inlay',
+        materialName: 'Silver Inlay',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 2
+      },
+      {
+        materialId: 'leather_grip',
+        materialName: 'Leather Grip',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'gentleman_dueling_sword',
+      itemName: 'Gentleman Dueling Sword',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 380,
+    difficulty: 66,
+    xpGain: 135,
+    learningSource: RecipeSource.VENDOR,
+    learningCost: 400,
+    category: 'weapon',
+    tags: ['expert', 'sword', 'prestige']
+  },
+  {
+    id: 'bs_bounty_hunter_shackles',
+    name: 'Bounty Hunter Shackles',
+    description: 'Reinforced restraints designed to hold the most dangerous outlaws.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 60,
+      minTier: CraftingSkillTier.EXPERT,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 10
+      },
+      {
+        materialId: 'iron_chain',
+        materialName: 'Iron Chain',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 4
+      },
+      {
+        materialId: 'complex_lock',
+        materialName: 'Complex Lock Mechanism',
+        category: MaterialCategory.GUN_PART,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'bounty_hunter_shackles',
+      itemName: 'Bounty Hunter Shackles',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 280,
+    difficulty: 64,
+    xpGain: 128,
+    learningSource: RecipeSource.REPUTATION,
+    category: 'tool',
+    tags: ['expert', 'lawman', 'utility']
+  },
+  {
+    id: 'bs_war_axe',
+    name: 'Frontier War Axe',
+    description: 'A massive two-handed axe designed for devastating strikes in combat.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 65,
+      minTier: CraftingSkillTier.EXPERT,
+      facility: {
+        type: CraftingFacilityType.ANVIL,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'damascus_steel',
+        materialName: 'Damascus Steel',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 12
+      },
+      {
+        materialId: 'hardwood_handle',
+        materialName: 'Hardwood Handle',
+        category: MaterialCategory.WOOD,
+        quantity: 2
+      },
+      {
+        materialId: 'leather_straps',
+        materialName: 'Leather Straps',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'frontier_war_axe',
+      itemName: 'Frontier War Axe',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 400,
+    difficulty: 72,
+    xpGain: 155,
+    learningSource: RecipeSource.DISCOVERY,
+    discoveryChance: 0.08,
+    category: 'weapon',
+    tags: ['expert', 'axe', 'combat']
+  },
+  {
+    id: 'bs_cursed_iron_blade',
+    name: 'Cursed Iron Blade',
+    description: 'A blade forged with forbidden techniques. Whispers promise power at a terrible cost.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 68,
+      minTier: CraftingSkillTier.EXPERT,
+      facility: {
+        type: CraftingFacilityType.QUENCH_TANK,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'iron_bar',
+        materialName: 'Iron Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 10
+      },
+      {
+        materialId: 'cursed_ore',
+        materialName: 'Cursed Ore',
+        category: MaterialCategory.CURSED_MATERIAL,
+        quantity: 5
+      },
+      {
+        materialId: 'blood_vial',
+        materialName: 'Blood Vial',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'cursed_iron_blade',
+      itemName: 'Cursed Iron Blade',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 450,
+    difficulty: 75,
+    xpGain: 165,
+    learningSource: RecipeSource.WORLD_DROP,
+    category: 'weapon',
+    tags: ['expert', 'blade', 'supernatural', 'cursed'],
+    specialNotes: 'Deals bonus damage but slowly drains user sanity',
+    karmaCost: -15,
+    sanityCost: 5,
+    curseEffect: {
+      type: CurseType.BLOODTHIRST,
+      severity: 2,
+      description: 'The blade hungers for blood',
+      triggerChance: 0.15
+    }
+  },
+  {
+    id: 'bs_rifle_bayonet',
+    name: 'Rifle Bayonet',
+    description: 'A precision-forged blade attachment that turns any rifle into a deadly melee weapon.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 70,
+      minTier: CraftingSkillTier.EXPERT,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 2
+      },
+      otherProfession: {
+        professionId: ProfessionId.GUNSMITHING,
+        minLevel: 40
+      }
+    },
+    materials: [
+      {
+        materialId: 'damascus_steel',
+        materialName: 'Damascus Steel',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 5
+      },
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 4
+      },
+      {
+        materialId: 'brass_fittings',
+        materialName: 'Brass Fittings',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'rifle_bayonet',
+      itemName: 'Rifle Bayonet',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 350,
+    difficulty: 74,
+    xpGain: 160,
+    learningSource: RecipeSource.TRAINER,
+    category: 'weapon',
+    tags: ['expert', 'blade', 'firearm', 'military']
   },
 
   // ============================================================================
@@ -1314,6 +2235,206 @@ export const blacksmithingRecipes: CraftingRecipe[] = [
     category: 'armor',
     tags: ['master', 'armor', 'exotic']
   },
+  {
+    id: 'bs_ghost_steel_alloy',
+    name: 'Ghost Steel Alloy',
+    description: 'A rare alloy that phases between realms. Required for crafting items that can harm spirits.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 73,
+      minTier: CraftingSkillTier.MASTER,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 3
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 10
+      },
+      {
+        materialId: 'silver_bar',
+        materialName: 'Silver Bar',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 5
+      },
+      {
+        materialId: 'spirit_essence',
+        materialName: 'Spirit Essence',
+        category: MaterialCategory.SPIRIT_ESSENCE,
+        quantity: 3
+      }
+    ],
+    output: {
+      itemId: 'ghost_steel_alloy',
+      itemName: 'Ghost Steel Alloy',
+      baseQuantity: 4,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 420,
+    difficulty: 78,
+    xpGain: 180,
+    learningSource: RecipeSource.QUEST_REWARD,
+    category: 'material',
+    tags: ['master', 'supernatural', 'component'],
+    specialNotes: 'Can harm spectral entities'
+  },
+  {
+    id: 'bs_blessed_steel_ingot',
+    name: 'Blessed Steel Ingot',
+    description: 'Steel purified by holy water and blessed by a man of faith. Effective against unholy creatures.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 77,
+      minTier: CraftingSkillTier.MASTER,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 3
+      }
+    },
+    materials: [
+      {
+        materialId: 'steel_bar',
+        materialName: 'Steel Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 8
+      },
+      {
+        materialId: 'holy_water',
+        materialName: 'Holy Water',
+        category: MaterialCategory.BLESSED_MATERIAL,
+        quantity: 3
+      },
+      {
+        materialId: 'silver_bar',
+        materialName: 'Silver Bar',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'blessed_steel_ingot',
+      itemName: 'Blessed Steel Ingot',
+      baseQuantity: 3,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 380,
+    difficulty: 82,
+    xpGain: 200,
+    learningSource: RecipeSource.REPUTATION,
+    category: 'material',
+    tags: ['master', 'blessed', 'component'],
+    faithCost: 10,
+    specialNotes: 'Bonus damage against undead and demons'
+  },
+  {
+    id: 'bs_executioner_blade',
+    name: 'Executioner Blade',
+    description: 'A massive two-handed sword designed for a single, final purpose. Feared by criminals across the frontier.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 82,
+      minTier: CraftingSkillTier.MASTER,
+      facility: {
+        type: CraftingFacilityType.QUENCH_TANK,
+        tier: 3
+      }
+    },
+    materials: [
+      {
+        materialId: 'damascus_steel',
+        materialName: 'Damascus Steel',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 18
+      },
+      {
+        materialId: 'titanium_bar',
+        materialName: 'Titanium Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 6
+      },
+      {
+        materialId: 'exotic_wood_handle',
+        materialName: 'Exotic Wood Handle',
+        category: MaterialCategory.WOOD,
+        quantity: 2
+      },
+      {
+        materialId: 'leather_straps',
+        materialName: 'Leather Straps',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 3
+      }
+    ],
+    output: {
+      itemId: 'executioner_blade',
+      itemName: 'Executioner Blade',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 650,
+    difficulty: 88,
+    xpGain: 300,
+    learningSource: RecipeSource.ACHIEVEMENT,
+    category: 'weapon',
+    tags: ['master', 'sword', 'legendary'],
+    specialNotes: 'Massive critical hit bonus against humanoids'
+  },
+  {
+    id: 'bs_legendary_anvil',
+    name: 'Legendary Anvil',
+    description: 'A master-crafted anvil that improves the quality of all items forged upon it.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 88,
+      minTier: CraftingSkillTier.MASTER,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 3
+      }
+    },
+    materials: [
+      {
+        materialId: 'titanium_bar',
+        materialName: 'Titanium Bar',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 30
+      },
+      {
+        materialId: 'damascus_steel',
+        materialName: 'Damascus Steel',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 20
+      },
+      {
+        materialId: 'gold_bar',
+        materialName: 'Gold Bar',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 5
+      }
+    ],
+    output: {
+      itemId: 'legendary_anvil',
+      itemName: 'Legendary Anvil',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 900,
+    difficulty: 92,
+    xpGain: 400,
+    learningSource: RecipeSource.DISCOVERY,
+    discoveryChance: 0.02,
+    category: 'tool',
+    tags: ['master', 'facility', 'legendary'],
+    specialNotes: 'Grants +15% quality chance when used as crafting facility'
+  },
 
   // ============================================================================
   // GRANDMASTER TIER (91-100)
@@ -1467,6 +2588,247 @@ export const blacksmithingRecipes: CraftingRecipe[] = [
     category: 'armor',
     tags: ['grandmaster', 'legendary', 'armor', 'blessed'],
     specialNotes: 'Provides immunity to certain status effects'
+  },
+  {
+    id: 'bs_spirit_forged_blade',
+    name: 'Spirit-Forged Blade',
+    description: 'A weapon forged in communion with ancestral spirits. Cuts through both flesh and ectoplasm.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 92,
+      minTier: CraftingSkillTier.GRANDMASTER,
+      facility: {
+        type: CraftingFacilityType.QUENCH_TANK,
+        tier: 5
+      }
+    },
+    materials: [
+      {
+        materialId: 'ghost_steel_alloy',
+        materialName: 'Ghost Steel Alloy',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 12
+      },
+      {
+        materialId: 'spirit_essence',
+        materialName: 'Spirit Essence',
+        category: MaterialCategory.SPIRIT_ESSENCE,
+        quantity: 8
+      },
+      {
+        materialId: 'moonstone',
+        materialName: 'Moonstone',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 3
+      },
+      {
+        materialId: 'silver_bar',
+        materialName: 'Silver Bar',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 6
+      }
+    ],
+    output: {
+      itemId: 'spirit_forged_blade',
+      itemName: 'Spirit-Forged Blade',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 1000,
+    difficulty: 95,
+    xpGain: 550,
+    learningSource: RecipeSource.QUEST_REWARD,
+    category: 'weapon',
+    tags: ['grandmaster', 'legendary', 'blade', 'supernatural'],
+    specialNotes: 'Can harm incorporeal enemies. Glows faintly in the presence of spirits.'
+  },
+  {
+    id: 'bs_hellfire_brand',
+    name: 'Hellfire Brand',
+    description: 'A blade quenched in brimstone and forged with infernal techniques. Burns with unholy flame.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 94,
+      minTier: CraftingSkillTier.GRANDMASTER,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 5
+      }
+    },
+    materials: [
+      {
+        materialId: 'meteorite_steel',
+        materialName: 'Meteorite Steel',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 14
+      },
+      {
+        materialId: 'brimstone',
+        materialName: 'Brimstone',
+        category: MaterialCategory.CURSED_MATERIAL,
+        quantity: 10
+      },
+      {
+        materialId: 'demon_blood',
+        materialName: 'Demon Blood',
+        category: MaterialCategory.ELDRITCH_COMPONENT,
+        quantity: 3
+      },
+      {
+        materialId: 'obsidian_core',
+        materialName: 'Obsidian Core',
+        category: MaterialCategory.MINERAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'hellfire_brand',
+      itemName: 'Hellfire Brand',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 1100,
+    difficulty: 97,
+    xpGain: 620,
+    learningSource: RecipeSource.WORLD_DROP,
+    category: 'weapon',
+    tags: ['grandmaster', 'legendary', 'blade', 'cursed', 'supernatural'],
+    specialNotes: 'Deals fire damage. Corrupts the soul of its wielder over time.',
+    karmaCost: -25,
+    sanityCost: 10,
+    curseEffect: {
+      type: CurseType.CORRUPTION,
+      severity: 4,
+      description: 'The flames consume more than flesh',
+      triggerChance: 0.25
+    }
+  },
+  {
+    id: 'bs_archangel_blade',
+    name: 'Archangel Blade',
+    description: 'A holy weapon blessed by the highest powers. Anathema to all darkness.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 97,
+      minTier: CraftingSkillTier.GRANDMASTER,
+      facility: {
+        type: CraftingFacilityType.QUENCH_TANK,
+        tier: 5
+      }
+    },
+    materials: [
+      {
+        materialId: 'mithril_bar',
+        materialName: 'Mithril Bar',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 15
+      },
+      {
+        materialId: 'blessed_steel_ingot',
+        materialName: 'Blessed Steel Ingot',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 10
+      },
+      {
+        materialId: 'angel_feather',
+        materialName: 'Angel Feather',
+        category: MaterialCategory.BLESSED_MATERIAL,
+        quantity: 2
+      },
+      {
+        materialId: 'divine_light_essence',
+        materialName: 'Divine Light Essence',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 3
+      }
+    ],
+    output: {
+      itemId: 'archangel_blade',
+      itemName: 'Archangel Blade',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 1400,
+    difficulty: 99,
+    xpGain: 750,
+    learningSource: RecipeSource.ACHIEVEMENT,
+    category: 'weapon',
+    tags: ['grandmaster', 'legendary', 'blade', 'blessed', 'supernatural'],
+    faithCost: 50,
+    specialNotes: 'Devastating damage to undead and demons. Requires pure heart to wield.',
+    blessingEffect: {
+      type: BlessingType.HOLY_LIGHT,
+      potency: 5,
+      description: 'Radiates divine light that burns the unholy'
+    }
+  },
+  {
+    id: 'bs_world_splitter',
+    name: 'World Splitter',
+    description: 'A mythic weapon of impossible power. Legends say it was forged to slay gods themselves.',
+    professionId: ProfessionId.BLACKSMITHING,
+    requirements: {
+      professionId: ProfessionId.BLACKSMITHING,
+      minLevel: 100,
+      minTier: CraftingSkillTier.GRANDMASTER,
+      facility: {
+        type: CraftingFacilityType.FORGE,
+        tier: 5
+      },
+      otherProfession: {
+        professionId: ProfessionId.GUNSMITHING,
+        minLevel: 80
+      }
+    },
+    materials: [
+      {
+        materialId: 'meteorite_steel',
+        materialName: 'Meteorite Steel',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 30
+      },
+      {
+        materialId: 'mithril_bar',
+        materialName: 'Mithril Bar',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 20
+      },
+      {
+        materialId: 'primordial_essence',
+        materialName: 'Primordial Essence',
+        category: MaterialCategory.ELDRITCH_COMPONENT,
+        quantity: 5
+      },
+      {
+        materialId: 'stardust',
+        materialName: 'Stardust',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 10
+      },
+      {
+        materialId: 'titan_bone',
+        materialName: 'Titan Bone',
+        category: MaterialCategory.ANIMAL_PART,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'world_splitter',
+      itemName: 'World Splitter',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 2400,
+    difficulty: 100,
+    xpGain: 1000,
+    learningSource: RecipeSource.ACHIEVEMENT,
+    category: 'weapon',
+    tags: ['grandmaster', 'mythic', 'blade', 'unique', 'supernatural'],
+    specialNotes: 'The ultimate blacksmithing achievement. Only one can exist per server.',
+    eldritchTaint: true
   }
 ];
 

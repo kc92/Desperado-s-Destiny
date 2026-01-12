@@ -37,10 +37,11 @@ export function RecipeList({
 
   // Check if player can craft a recipe
   const canCraft = (recipe: Recipe): boolean => {
-    // Check skill level
-    const skillId = recipe.skillRequired.skillId.toLowerCase();
+    // Check skill level - handle undefined skillRequired
+    const skillId = recipe.skillRequired?.skillId?.toLowerCase() ?? '';
+    if (!skillId) return false; // Cannot craft without skill requirement
     const playerLevel = playerSkillLevels[skillId] || 0;
-    if (playerLevel < recipe.skillRequired.level) return false;
+    if (playerLevel < (recipe.skillRequired?.level ?? 0)) return false;
 
     // Check materials
     for (const ing of recipe.ingredients) {
@@ -66,8 +67,8 @@ export function RecipeList({
       result = result.filter(
         r =>
           r.name.toLowerCase().includes(query) ||
-          r.description.toLowerCase().includes(query) ||
-          r.skillRequired.skillId.toLowerCase().includes(query)
+          (r.description?.toLowerCase() ?? '').includes(query) ||
+          (r.skillRequired?.skillId?.toLowerCase() ?? '').includes(query)
       );
     }
 
@@ -77,7 +78,7 @@ export function RecipeList({
         result.sort((a, b) => a.name.localeCompare(b.name));
         break;
       case 'level':
-        result.sort((a, b) => a.skillRequired.level - b.skillRequired.level);
+        result.sort((a, b) => (a.skillRequired?.level ?? 0) - (b.skillRequired?.level ?? 0));
         break;
       case 'craftable':
         result.sort((a, b) => {
@@ -85,7 +86,7 @@ export function RecipeList({
           const bCan = canCraft(b);
           if (aCan && !bCan) return -1;
           if (!aCan && bCan) return 1;
-          return a.skillRequired.level - b.skillRequired.level;
+          return (a.skillRequired?.level ?? 0) - (b.skillRequired?.level ?? 0);
         });
         break;
     }
@@ -159,8 +160,9 @@ export function RecipeList({
           filteredRecipes.map(recipe => {
             const isCraftable = canCraft(recipe);
             const isSelected = selectedRecipe?.recipeId === recipe.recipeId;
-            const skillLevel = playerSkillLevels[recipe.skillRequired.skillId.toLowerCase()] || 0;
-            const meetsSkill = skillLevel >= recipe.skillRequired.level;
+            const skillId = recipe.skillRequired?.skillId?.toLowerCase() ?? '';
+            const skillLevel = skillId ? (playerSkillLevels[skillId] || 0) : 0;
+            const meetsSkill = skillId ? skillLevel >= (recipe.skillRequired?.level ?? 0) : true;
 
             return (
               <div
@@ -186,7 +188,7 @@ export function RecipeList({
                   </div>
                   <div className="flex flex-col items-end ml-2">
                     <span className={`text-xs ${meetsSkill ? 'text-blue-400' : 'text-red-400'}`}>
-                      Lv.{recipe.skillRequired.level}
+                      Lv.{recipe.skillRequired?.level ?? 0}
                     </span>
                     {isCraftable && (
                       <span className="text-xs text-green-400 mt-1">Ready</span>

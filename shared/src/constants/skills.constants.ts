@@ -291,20 +291,20 @@ export const SKILLS: Record<string, SkillDefinition> = {
     baseTrainingTime: TIME.HOUR * 2,
     icon: '⚙️'
   },
-  MINING: {
-    id: 'mining',
-    name: 'Mining',
-    description: 'Finding deposits, assessing ore quality, and extracting minerals and gems',
+  PROSPECTING: {
+    id: 'prospecting',
+    name: 'Prospecting',
+    description: 'Finding deposits, assessing ore quality, refining minerals and gems',
     suit: DestinySuit.DIAMONDS,
     category: SkillCategory.CRAFT,
     maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 1.5,
     icon: '⛏️'
   },
-  CARPENTRY: {
-    id: 'carpentry',
-    name: 'Carpentry',
-    description: 'Woodworking and furniture crafting',
+  WOODWORKING: {
+    id: 'woodworking',
+    name: 'Woodworking',
+    description: 'Crafting with wood: tool handles, gun stocks, bows, furniture',
     suit: DestinySuit.DIAMONDS,
     category: SkillCategory.CRAFT,
     maxLevel: 99,
@@ -320,6 +320,36 @@ export const SKILLS: Record<string, SkillDefinition> = {
     maxLevel: 99,
     baseTrainingTime: TIME.HOUR * 2,
     icon: '🔧'
+  },
+  TAILORING: {
+    id: 'tailoring',
+    name: 'Tailoring',
+    description: 'Creating clothing, disguises, and fabric goods',
+    suit: DestinySuit.DIAMONDS,
+    category: SkillCategory.CRAFT,
+    maxLevel: 99,
+    baseTrainingTime: TIME.HOUR * 2,
+    icon: '🧵'
+  },
+  NATIVE_CRAFTS: {
+    id: 'native_crafts',
+    name: 'Native Crafts',
+    description: 'Traditional crafting of bows, totems, beadwork, and medicine bags',
+    suit: DestinySuit.DIAMONDS,
+    category: SkillCategory.CRAFT,
+    maxLevel: 99,
+    baseTrainingTime: TIME.HOUR * 2,
+    icon: '🏹'
+  },
+  TRAPPING: {
+    id: 'trapping',
+    name: 'Trapping',
+    description: 'Setting traps, preparing bait, processing furs, and taxidermy',
+    suit: DestinySuit.DIAMONDS,
+    category: SkillCategory.CRAFT,
+    maxLevel: 99,
+    baseTrainingTime: TIME.HOUR * 1.5,
+    icon: '🪤'
   },
 
 };
@@ -578,8 +608,8 @@ export const SKILL_PROGRESSION = {
   STARTING_LEVEL: 1,
   /** Maximum level for all skills (RuneScape style) */
   MAX_LEVEL: 99,
-  /** Number of trainable skills (26 total after consolidation) */
-  SKILL_COUNT: 26,
+  /** Number of trainable skills (30 total - 5 Combat, 8 Cunning, 6 Spirit, 11 Craft) */
+  SKILL_COUNT: 30,
   /** XP formula coefficients */
   XP_BASE: 50,
   XP_QUADRATIC_COEFFICIENT: 25,
@@ -748,12 +778,12 @@ export interface TotalLevelMilestone {
 
 /**
  * Total Level milestones - replaces old character level system
- * 26 skills at level 1 = Total Level 26 (starting)
- * 26 skills at level 99 = Total Level 2,574 (max)
+ * 30 skills at level 1 = Total Level 30 (starting)
+ * 30 skills at level 99 = Total Level 2,970 (max)
  */
 export const TOTAL_LEVEL_MILESTONES: TotalLevelMilestone[] = [
   {
-    totalLevel: 26,
+    totalLevel: 30,
     tier: 'Greenhorn',
     unlocks: ['Starting point'],
     color: 'gray'
@@ -807,7 +837,7 @@ export const TOTAL_LEVEL_MILESTONES: TotalLevelMilestone[] = [
     color: 'red'
   },
   {
-    totalLevel: 2574,
+    totalLevel: 2970,
     tier: 'God of the West',
     unlocks: ['Hall of Fame', 'Ultimate title', 'Complete mastery'],
     color: 'rainbow'
@@ -821,7 +851,7 @@ export const TOTAL_LEVEL_MILESTONES: TotalLevelMilestone[] = [
  */
 export function calculateTotalLevel(skills: Array<{ level: number }>): number {
   if (!skills || skills.length === 0) {
-    return SKILL_PROGRESSION.SKILL_COUNT; // 26 skills at level 1
+    return SKILL_PROGRESSION.SKILL_COUNT; // 30 skills at level 1
   }
   return skills.reduce((sum, skill) => sum + (skill.level || 1), 0);
 }

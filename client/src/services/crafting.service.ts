@@ -257,14 +257,14 @@ export const craftingService = {
    * Sort recipes by level requirement
    */
   sortByLevel(recipes: Recipe[]): Recipe[] {
-    return [...recipes].sort((a, b) => a.skillRequired.level - b.skillRequired.level);
+    return [...recipes].sort((a, b) => (a.skillRequired?.level ?? 0) - (b.skillRequired?.level ?? 0));
   },
 
   /**
    * Filter recipes by level
    */
   filterByLevel(recipes: Recipe[], maxLevel: number): Recipe[] {
-    return recipes.filter(r => r.skillRequired.level <= maxLevel);
+    return recipes.filter(r => (r.skillRequired?.level ?? 0) <= maxLevel);
   },
 };
 

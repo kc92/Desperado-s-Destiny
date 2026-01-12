@@ -27,14 +27,18 @@ import {
   RecipeDiscovery,
   SkillCategory,
   calculateCategoryMultiplier,
-  SKILLS
+  SKILLS,
+  LocationCraftingFacility,
+  CraftingFacilityType,
 } from '@desperados/shared';
+import { Location } from '../models/Location.model';
 import { UnlockEnforcementService } from './unlockEnforcement.service';
 import { DollarService } from './dollar.service';
 import CraftingProfile, { ICraftingProfile } from '../models/CraftingProfile.model';
 import { Character } from '../models/Character.model';
 import { TransactionSource } from '../models/GoldTransaction.model';
 import { getProfession, SKILL_TIERS } from '../data/professionDefinitions';
+import { ALL_RECIPES } from '../data/recipes';
 import { SecureRNG } from './base/SecureRNG';
 import { safeAchievementUpdate } from '../utils/achievementUtils';
 
@@ -124,6 +128,86 @@ export class CraftingService {
     if (minLevel >= 25) return 'weapon'; // Covers weapon/armor tier
     if (minLevel >= 10) return 'intermediate';
     return 'basic';
+  }
+
+  /**
+   * Validate that the player's current location has the required crafting facility
+   * Returns { valid, facility?, error? }
+   */
+  static async validateLocationFacility(
+    characterLocationId: string,
+    requiredFacility?: { type: CraftingFacilityType; tier: number; optional?: boolean }
+  ): Promise<{
+    valid: boolean;
+    facility?: LocationCraftingFacility;
+    error?: string;
+    locationName?: string;
+  }> {
+    // If no facility required, always valid
+    if (!requiredFacility || requiredFacility.optional) {
+      return { valid: true };
+    }
+
+    // Get the character's current location
+    const location = await Location.findById(characterLocationId);
+    if (!location) {
+      return {
+        valid: false,
+        error: 'Could not determine your current location',
+      };
+    }
+
+    // Check if location has craftingFacilities
+    if (!location.craftingFacilities || location.craftingFacilities.length === 0) {
+      return {
+        valid: false,
+        error: `${location.name} has no crafting facilities`,
+        locationName: location.name,
+      };
+    }
+
+    // Find a matching facility of the required type
+    const matchingFacility = location.craftingFacilities.find(
+      (f) => f.type === requiredFacility.type
+    );
+
+    if (!matchingFacility) {
+      return {
+        valid: false,
+        error: `${location.name} does not have a ${requiredFacility.type}. Travel to a location with the required facility.`,
+        locationName: location.name,
+      };
+    }
+
+    // Check tier requirement
+    if (matchingFacility.tier < requiredFacility.tier) {
+      return {
+        valid: false,
+        error: `${location.name}'s ${matchingFacility.name} is tier ${matchingFacility.tier}, but this recipe requires tier ${requiredFacility.tier}`,
+        locationName: location.name,
+        facility: matchingFacility,
+      };
+    }
+
+    // Valid facility found
+    return {
+      valid: true,
+      facility: matchingFacility,
+      locationName: location.name,
+    };
+  }
+
+  /**
+   * Get crafting facilities available at a location
+   */
+  static async getLocationFacilities(
+    locationId: string
+  ): Promise<LocationCraftingFacility[]> {
+    const location = await Location.findById(locationId);
+    if (!location) {
+      return [];
+    }
+    return location.craftingFacilities || [];
   }
 
   /**
@@ -242,21 +326,41 @@ export class CraftingService {
         validation.requirements.hasMaterials = true;
       }
 
-      // Check facility requirements
+      // Check facility requirements - now validates against current location's facilities
       if (recipe.requirements.facility && !recipe.requirements.facility.optional) {
-        const facility = profile.getFacility(recipe.requirements.facility.type);
-        if (!facility) {
-          validation.errors.push(
-            `Requires ${recipe.requirements.facility.type} (tier ${recipe.requirements.facility.tier})`
-          );
-          validation.canCraft = false;
-        } else if (facility.tier < recipe.requirements.facility.tier) {
-          validation.errors.push(
-            `Requires ${recipe.requirements.facility.type} tier ${recipe.requirements.facility.tier} (you have tier ${facility.tier})`
-          );
-          validation.canCraft = false;
-        } else {
+        // First check if character's profile has the facility (personal crafting station)
+        const personalFacility = profile.getFacility(recipe.requirements.facility.type);
+
+        // Also check if the current location has the required facility
+        const locationValidation = await this.validateLocationFacility(
+          character.currentLocation,
+          recipe.requirements.facility
+        );
+
+        if (personalFacility) {
+          // Player has personal facility
+          if (personalFacility.tier >= recipe.requirements.facility.tier) {
+            validation.requirements.hasFacility = true;
+          } else {
+            validation.errors.push(
+              `Your ${recipe.requirements.facility.type} is tier ${personalFacility.tier}, but this recipe requires tier ${recipe.requirements.facility.tier}`
+            );
+            validation.canCraft = false;
+          }
+        } else if (locationValidation.valid) {
+          // Location has the facility
           validation.requirements.hasFacility = true;
+          if (locationValidation.facility?.usageFee) {
+            validation.warnings.push(
+              `Using ${locationValidation.facility.name} at ${locationValidation.locationName} - usage fee: $${locationValidation.facility.usageFee}`
+            );
+          }
+        } else {
+          // Neither personal nor location facility available
+          validation.errors.push(
+            locationValidation.error || `Requires ${recipe.requirements.facility.type} (tier ${recipe.requirements.facility.tier})`
+          );
+          validation.canCraft = false;
         }
       } else {
         validation.requirements.hasFacility = true;
@@ -1009,10 +1113,9 @@ export class CraftingService {
 
   /**
    * Get all available recipes for a character
-   * Returns recipes from the Recipe model (database)
+   * Uses static ALL_RECIPES data instead of database queries
    */
   static async getAvailableRecipes(characterId: string): Promise<any[]> {
-    const Recipe = (await import('../models/Recipe.model')).Recipe;
     const Character = (await import('../models/Character.model')).Character;
 
     const character = await Character.findById(characterId);
@@ -1020,31 +1123,73 @@ export class CraftingService {
       return [];
     }
 
-    // Get all unlocked recipes
-    const recipes = await Recipe.find({ isUnlocked: true });
+    // Use static ALL_RECIPES from data files
+    // Filter by character's skill levels and profession requirements
+    return ALL_RECIPES.filter(recipe => {
+      const minLevel = recipe.requirements?.minLevel ?? 0;
 
-    // Filter by character's skill levels
-    return recipes.filter(recipe => {
-      const requiredSkill = recipe.skillRequired;
-      if (!requiredSkill || !requiredSkill.skillId) {
-        return true; // No skill requirement
+      // Get the profession skill level for this recipe
+      const professionId = recipe.professionId;
+      if (professionId) {
+        // Map profession to skill ID (professions use same IDs as skills)
+        const characterSkillLevel = character.getSkillLevel(professionId);
+        return characterSkillLevel >= minLevel;
       }
-      const characterSkillLevel = character.getSkillLevel(requiredSkill.skillId);
-      return characterSkillLevel >= requiredSkill.level;
-    });
+
+      // No profession requirement - available to all
+      return true;
+    }).map(recipe => ({
+      // Transform to match expected API response format
+      recipeId: recipe.id,
+      name: recipe.name,
+      description: recipe.description,
+      category: recipe.category,
+      profession: recipe.professionId,
+      ingredients: recipe.materials.map(m => ({
+        itemId: m.materialId,
+        quantity: m.quantity
+      })),
+      output: {
+        itemId: recipe.output.itemId,
+        quantity: recipe.output.baseQuantity
+      },
+      skillRequired: {
+        skillId: recipe.professionId,
+        level: recipe.requirements?.minLevel ?? 1
+      },
+      craftTime: recipe.baseCraftTime,
+      xpReward: recipe.xpGain ?? 10,
+      isUnlocked: true
+    }));
   }
 
   /**
    * Get recipes by category
+   * Uses static ALL_RECIPES data
    */
   static async getRecipesByCategory(category: string): Promise<any[]> {
-    const Recipe = (await import('../models/Recipe.model')).Recipe;
-
-    const recipes = await Recipe.find({
-      category,
+    return ALL_RECIPES.filter(recipe => recipe.category === category).map(recipe => ({
+      recipeId: recipe.id,
+      name: recipe.name,
+      description: recipe.description,
+      category: recipe.category,
+      profession: recipe.professionId,
+      ingredients: recipe.materials.map(m => ({
+        itemId: m.materialId,
+        quantity: m.quantity
+      })),
+      output: {
+        itemId: recipe.output.itemId,
+        quantity: recipe.output.baseQuantity
+      },
+      skillRequired: {
+        skillId: recipe.professionId,
+        level: recipe.requirements?.minLevel ?? 1
+      },
+      craftTime: recipe.baseCraftTime,
+      xpReward: recipe.xpGain ?? 10,
       isUnlocked: true
-    });
-    return recipes;
+    }));
   }
 
   /**
@@ -1120,6 +1265,34 @@ export class CraftingService {
           craftTime: recipe.craftTime
         }
       };
+    }
+
+    // Check facility requirement - validate against current location
+    if (recipe.facilityRequired && recipe.facilityRequired.type) {
+      const facilityValidation = await this.validateLocationFacility(
+        character.currentLocation,
+        {
+          type: recipe.facilityRequired.type as CraftingFacilityType,
+          tier: recipe.facilityRequired.tier || 1,
+          optional: recipe.facilityRequired.optional,
+        }
+      );
+
+      if (!facilityValidation.valid) {
+        return {
+          canCraft: false,
+          reason: facilityValidation.error || 'Missing required crafting facility',
+          facilityRequired: recipe.facilityRequired,
+          currentLocation: facilityValidation.locationName,
+          recipe: {
+            recipeId: recipe.recipeId,
+            name: recipe.name,
+            ingredients: recipe.ingredients,
+            output: recipe.output,
+            craftTime: recipe.craftTime
+          }
+        };
+      }
     }
 
     return {

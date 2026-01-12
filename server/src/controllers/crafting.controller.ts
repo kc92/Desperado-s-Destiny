@@ -198,25 +198,25 @@ export async function getCraftingStations(req: CharacterRequest, res: Response):
       return;
     }
 
-    // Get unique workshop requirements from all recipes
-    const allRecipes = await Recipe.find({ isUnlocked: true });
-    const availableStations = new Set<string>();
+    // Get unique workshop types using aggregation - prevents OOM with large recipe sets
+    const workshopMap: Record<string, string> = {
+      'craft': 'workshop',
+      'combat': 'blacksmith',
+      'cunning': 'hideout',
+      'spirit': 'apothecary'
+    };
 
-    // For now, return all unique workshop types
-    // In the future, this should be filtered by location
-    allRecipes.forEach(recipe => {
-      if (recipe.skillRequired?.skillId) {
-        // Map skill requirements to workshop types
-        const workshopMap: Record<string, string> = {
-          'craft': 'workshop',
-          'combat': 'blacksmith',
-          'cunning': 'hideout',
-          'spirit': 'apothecary'
-        };
-        const workshop = workshopMap[recipe.skillRequired.skillId] || 'workshop';
-        availableStations.add(workshop);
-      }
-    });
+    const skillIdsAgg = await Recipe.aggregate([
+      { $match: { isUnlocked: true, 'skillRequired.skillId': { $exists: true } } },
+      { $group: { _id: '$skillRequired.skillId' } },
+      { $limit: 100 } // Safety limit
+    ]);
+
+    const availableStations = new Set<string>();
+    for (const item of skillIdsAgg) {
+      const workshop = workshopMap[item._id] || 'workshop';
+      availableStations.add(workshop);
+    }
 
     res.status(200).json({
       success: true,

@@ -2,28 +2,42 @@
  * Recipe Database Index
  * Phase 7, Wave 7.2 - Desperados Destiny
  *
- * Central export for all crafting recipes across 6 professions
+ * Central export for all crafting recipes across 11 professions
  */
 
 import { CraftingRecipe, ProfessionId } from '@desperados/shared';
+// Original 6 professions
 import blacksmithingRecipes from './blacksmithingRecipes';
 import leatherworkingRecipes from './leatherworkingRecipes';
 import alchemyRecipes from './alchemyRecipes';
 import cookingRecipes from './cookingRecipes';
 import tailoringRecipes from './tailoringRecipes';
 import gunsmithingRecipes from './gunsmithingRecipes';
+// 5 new professions
+import nativeCraftsRecipes from './nativeCraftsRecipes';
+import prospectingRecipes from './prospectingRecipes';
+import woodworkingRecipes from './woodworkingRecipes';
+import trappingRecipes from './trappingRecipes';
+import leadershipRecipes from './leadershipRecipes';
 
 // ============================================================================
 // RECIPE COLLECTIONS BY PROFESSION
 // ============================================================================
 
 export {
+  // Original 6 professions
   blacksmithingRecipes,
   leatherworkingRecipes,
   alchemyRecipes,
   cookingRecipes,
   tailoringRecipes,
-  gunsmithingRecipes
+  gunsmithingRecipes,
+  // 5 new professions
+  nativeCraftsRecipes,
+  prospectingRecipes,
+  woodworkingRecipes,
+  trappingRecipes,
+  leadershipRecipes
 };
 
 // ============================================================================
@@ -34,12 +48,19 @@ export {
  * Complete database of all crafting recipes
  */
 export const ALL_RECIPES: CraftingRecipe[] = [
+  // Original 6 professions
   ...blacksmithingRecipes,
   ...leatherworkingRecipes,
   ...alchemyRecipes,
   ...cookingRecipes,
   ...tailoringRecipes,
-  ...gunsmithingRecipes
+  ...gunsmithingRecipes,
+  // 5 new professions
+  ...nativeCraftsRecipes,
+  ...prospectingRecipes,
+  ...woodworkingRecipes,
+  ...trappingRecipes,
+  ...leadershipRecipes
 ];
 
 // ============================================================================
@@ -57,12 +78,19 @@ export const RECIPE_MAP = new Map<string, CraftingRecipe>(
  * Map of profession to recipes for that profession
  */
 export const RECIPES_BY_PROFESSION = new Map<ProfessionId, CraftingRecipe[]>([
+  // Original 6 professions
   [ProfessionId.BLACKSMITHING, blacksmithingRecipes],
   [ProfessionId.LEATHERWORKING, leatherworkingRecipes],
   [ProfessionId.ALCHEMY, alchemyRecipes],
   [ProfessionId.COOKING, cookingRecipes],
   [ProfessionId.TAILORING, tailoringRecipes],
-  [ProfessionId.GUNSMITHING, gunsmithingRecipes]
+  [ProfessionId.GUNSMITHING, gunsmithingRecipes],
+  // 5 new professions
+  [ProfessionId.NATIVE_CRAFTS, nativeCraftsRecipes],
+  [ProfessionId.PROSPECTING, prospectingRecipes],
+  [ProfessionId.WOODWORKING, woodworkingRecipes],
+  [ProfessionId.TRAPPING, trappingRecipes],
+  [ProfessionId.LEADERSHIP, leadershipRecipes]
 ]);
 
 // ============================================================================
@@ -188,12 +216,19 @@ export function getTotalRecipeCount(): number {
  */
 export function getRecipeCountByProfession(): Record<ProfessionId, number> {
   return {
+    // Original 6 professions
     [ProfessionId.BLACKSMITHING]: blacksmithingRecipes.length,
     [ProfessionId.LEATHERWORKING]: leatherworkingRecipes.length,
     [ProfessionId.ALCHEMY]: alchemyRecipes.length,
     [ProfessionId.COOKING]: cookingRecipes.length,
     [ProfessionId.TAILORING]: tailoringRecipes.length,
-    [ProfessionId.GUNSMITHING]: gunsmithingRecipes.length
+    [ProfessionId.GUNSMITHING]: gunsmithingRecipes.length,
+    // 5 new professions
+    [ProfessionId.NATIVE_CRAFTS]: nativeCraftsRecipes.length,
+    [ProfessionId.PROSPECTING]: prospectingRecipes.length,
+    [ProfessionId.WOODWORKING]: woodworkingRecipes.length,
+    [ProfessionId.TRAPPING]: trappingRecipes.length,
+    [ProfessionId.LEADERSHIP]: leadershipRecipes.length
   };
 }
 
@@ -251,13 +286,20 @@ export function logRecipeStats(): void {
   console.log('='.repeat(60));
   console.log(`Total Recipes: ${stats.total}`);
   console.log('');
-  console.log('By Profession:');
+  console.log('By Profession (Original 6):');
   console.log(`  Blacksmithing: ${stats.byProfession.blacksmithing}`);
   console.log(`  Leatherworking: ${stats.byProfession.leatherworking}`);
   console.log(`  Alchemy: ${stats.byProfession.alchemy}`);
   console.log(`  Cooking: ${stats.byProfession.cooking}`);
   console.log(`  Tailoring: ${stats.byProfession.tailoring}`);
   console.log(`  Gunsmithing: ${stats.byProfession.gunsmithing}`);
+  console.log('');
+  console.log('By Profession (New 5):');
+  console.log(`  Native Crafts: ${stats.byProfession.native_crafts}`);
+  console.log(`  Prospecting: ${stats.byProfession.prospecting}`);
+  console.log(`  Woodworking: ${stats.byProfession.woodworking}`);
+  console.log(`  Trapping: ${stats.byProfession.trapping}`);
+  console.log(`  Leadership: ${stats.byProfession.leadership}`);
   console.log('');
   console.log('By Learning Source:');
   console.log(`  Trainer: ${stats.trainerOnly}`);

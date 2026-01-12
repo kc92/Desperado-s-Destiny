@@ -12,12 +12,20 @@ import { ObjectId } from 'mongodb';
 // ============================================================================
 
 export enum ProfessionId {
+  // Original 6 professions
   BLACKSMITHING = 'blacksmithing',
   LEATHERWORKING = 'leatherworking',
   ALCHEMY = 'alchemy',
   COOKING = 'cooking',
   TAILORING = 'tailoring',
-  GUNSMITHING = 'gunsmithing'
+  GUNSMITHING = 'gunsmithing',
+
+  // New professions (Phase 7.2 expansion)
+  NATIVE_CRAFTS = 'native_crafts',   // Bows, totems, beadwork, medicine bags
+  PROSPECTING = 'prospecting',       // Refined ores, explosives, mining gear
+  WOODWORKING = 'woodworking',       // Tool handles, gun stocks, bows, furniture
+  TRAPPING = 'trapping',             // Traps, bait, furs, taxidermy mounts
+  LEADERSHIP = 'leadership'          // Banners, documents, forgeries, war drums
 }
 
 export enum CraftingSkillTier {
@@ -67,7 +75,32 @@ export enum CraftingFacilityType {
   // Gunsmithing
   GUN_LATHE = 'gun_lathe',
   POWDER_PRESS = 'powder_press',
-  TEST_RANGE = 'test_range'
+  TEST_RANGE = 'test_range',
+
+  // Native Crafts (Phase 7.2)
+  MEDICINE_LODGE = 'medicine_lodge',
+  CRAFT_CIRCLE = 'craft_circle',
+  SACRED_FIRE = 'sacred_fire',
+
+  // Prospecting (Phase 7.2)
+  ASSAY_TABLE = 'assay_table',
+  ORE_REFINERY = 'ore_refinery',
+  BLAST_FURNACE = 'blast_furnace',
+
+  // Woodworking (Phase 7.2)
+  WOODWORKING_BENCH = 'woodworking_bench',
+  WOOD_LATHE = 'wood_lathe',
+  SAWMILL = 'sawmill',
+
+  // Trapping (Phase 7.2)
+  SKINNING_RACK = 'skinning_rack',
+  TAXIDERMY_STAND = 'taxidermy_stand',
+  BAIT_STATION = 'bait_station',
+
+  // Leadership (Phase 7.2)
+  COMMAND_TENT = 'command_tent',
+  PRINTING_PRESS = 'printing_press',
+  WAR_ROOM = 'war_room'
 }
 
 export enum MaterialCategory {
@@ -92,6 +125,7 @@ export enum MaterialCategory {
   VEGETABLE = 'vegetable',
   SPICE = 'spice',
   ALCOHOL = 'alcohol',
+  FOOD_COMPONENT = 'food_component', // Generic food ingredients for bait/crafting
 
   // Tailoring materials
   FABRIC = 'fabric',
@@ -102,7 +136,54 @@ export enum MaterialCategory {
   GUNPOWDER = 'gunpowder',
   AMMUNITION_COMPONENT = 'ammunition_component',
   GUN_PART = 'gun_part',
-  WOOD = 'wood'
+  WOOD = 'wood',
+
+  // Native Crafts materials (Phase 7.2)
+  QUILL = 'quill',
+  BEAD = 'bead',
+  SACRED_HERB = 'sacred_herb',
+  SPIRIT_COMPONENT = 'spirit_component',
+  TOTEM_PART = 'totem_part',
+  FEATHER = 'feather',
+  BONE = 'bone',
+
+  // Prospecting materials (Phase 7.2)
+  CRUDE_ORE = 'crude_ore',
+  GEOLOGICAL_SAMPLE = 'geological_sample',
+  EXPLOSIVE_COMPONENT = 'explosive_component',
+  GEM = 'gem',
+
+  // Woodworking materials (Phase 7.2)
+  RAW_WOOD = 'raw_wood',
+  LUMBER = 'lumber',
+  EXOTIC_WOOD = 'exotic_wood',
+  RESIN = 'resin',
+
+  // Trapping materials (Phase 7.2)
+  FUR = 'fur',
+  TROPHY_PART = 'trophy_part',
+  BAIT_COMPONENT = 'bait_component',
+
+  // General crafting materials (Phase 7.2)
+  FIBER = 'fiber',           // Plant fibers for cordage
+  STONE = 'stone',           // Stone materials (flint, granite, obsidian)
+  HIDE = 'hide',             // Generic hide category
+  HORN = 'horn',             // Horns from animals
+  ADHESIVE = 'adhesive',     // Glues and bonding agents
+  GEMSTONE = 'gemstone',     // Precious and semi-precious gems
+  TRAP_COMPONENT = 'trap_component',
+
+  // Leadership materials (Phase 7.2)
+  PAPER = 'paper',
+  INK = 'ink',
+  SEAL_COMPONENT = 'seal_component',
+  MORALE_ITEM = 'morale_item',
+
+  // Supernatural materials (Phase 7.2)
+  CURSED_MATERIAL = 'cursed_material',
+  BLESSED_MATERIAL = 'blessed_material',
+  ELDRITCH_COMPONENT = 'eldritch_component',
+  SPIRIT_ESSENCE = 'spirit_essence'
 }
 
 export enum CraftingQuality {
@@ -317,6 +398,62 @@ export interface CraftingRecipe {
   discoveryChance?: number; // If learned by discovery
   category: string; // Weapon, Armor, Consumable, etc.
   tags: string[];
+
+  // Faction requirements (Phase 7.2)
+  factionId?: CraftingFactionId;
+  factionRepRequired?: number; // Minimum reputation to craft
+
+  // Supernatural integration (Phase 7.2)
+  faithCost?: number; // Faith points consumed on craft
+  karmaCost?: number; // Karma shift on craft (negative = darker)
+  sanityCost?: number; // Sanity damage on craft
+  curseEffect?: CraftingCurseEffect;
+  blessingEffect?: BlessingEffect;
+  eldritchTaint?: boolean; // Marks item as eldritch-touched
+}
+
+// Faction types for crafting (Phase 7.2)
+// Named CraftingFactionId to avoid conflict with newspaper.types FactionId
+export enum CraftingFactionId {
+  SETTLER_ALLIANCE = 'settler_alliance',
+  NAHI_COALITION = 'nahi_coalition',
+  FRONTERA = 'frontera'
+}
+
+// Supernatural effects for crafted items (Phase 7.2)
+// Named CraftingCurseEffect to avoid conflict with divineStruggle.types CurseEffect
+export interface CraftingCurseEffect {
+  type: CurseType;
+  severity: number; // 1-5
+  description: string;
+  triggerChance?: number; // % chance to activate
+}
+
+export enum CurseType {
+  BLOODTHIRST = 'bloodthirst',       // Must deal damage or suffer
+  SOUL_DRAIN = 'soul_drain',         // Drains faith over time
+  MADNESS = 'madness',               // Sanity damage over time
+  MISFORTUNE = 'misfortune',         // Reduced luck/quality
+  CORRUPTION = 'corruption',         // Karma decay
+  HUNGER = 'hunger',                 // Increased food consumption
+  PARANOIA = 'paranoia'              // Negative social effects
+}
+
+export interface BlessingEffect {
+  type: BlessingType;
+  potency: number; // 1-5
+  description: string;
+  duration?: number; // In seconds, if temporary
+}
+
+export enum BlessingType {
+  HOLY_LIGHT = 'holy_light',         // Bonus vs undead/eldritch
+  PROTECTION = 'protection',         // Damage reduction
+  FORTUNE = 'fortune',               // Increased luck
+  PURITY = 'purity',                 // Curse resistance
+  HEALING = 'healing',               // Regeneration
+  GUIDANCE = 'guidance',             // Skill bonuses
+  SANCTITY = 'sanctity'              // Karma protection
 }
 
 // ============================================================================

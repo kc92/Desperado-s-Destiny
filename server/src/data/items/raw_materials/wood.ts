@@ -1,0 +1,185 @@
+/**
+ * Wood Materials Database
+ * Phase 7.2 Crafting Expansion - Lumber and specialty woods
+ * 10 items: Woodworking, Gunsmithing, Native Crafts inputs
+ */
+
+import { IItem } from '../../../models/Item.model';
+
+export const woods: Partial<IItem>[] = [
+  // ========== COMMON WOODS (Level 1-30) ==========
+  {
+    itemId: 'pine-wood',
+    name: 'Pine Wood',
+    description: 'Soft, workable wood. Cheap and plentiful across the territory.',
+    type: 'material',
+    rarity: 'common',
+    price: 8,
+    sellPrice: 4,
+    inShop: true,
+    levelRequired: 1,
+    icon: '🌲',
+    isEquippable: false,
+    isConsumable: false,
+    isStackable: true,
+    maxStack: 99,
+    effects: []
+  },
+  {
+    itemId: 'cottonwood',
+    name: 'Cottonwood',
+    description: 'Light wood from riverside trees. Easy to carve, quick to dry.',
+    type: 'material',
+    rarity: 'common',
+    price: 10,
+    sellPrice: 5,
+    inShop: false,
+    levelRequired: 5,
+    icon: '🌳',
+    isEquippable: false,
+    isConsumable: false,
+    isStackable: true,
+    maxStack: 99,
+    effects: []
+  },
+  {
+    itemId: 'mesquite-wood',
+    name: 'Mesquite Wood',
+    description: 'Dense desert hardwood. Excellent for tool handles and smoking meat.',
+    type: 'material',
+    rarity: 'common',
+    price: 15,
+    sellPrice: 7,
+    inShop: false,
+    levelRequired: 12,
+    icon: '🪵',
+    isEquippable: false,
+    isConsumable: false,
+    isStackable: true,
+    maxStack: 99,
+    effects: []
+  },
+  {
+    itemId: 'cedar',
+    name: 'Red Cedar',
+    description: 'Aromatic rot-resistant wood. Sacred to many tribes.',
+    type: 'material',
+    rarity: 'common',
+    price: 20,
+    sellPrice: 10,
+    inShop: false,
+    levelRequired: 18,
+    icon: '🌲',
+    isEquippable: false,
+    isConsumable: false,
+    isStackable: true,
+    maxStack: 99,
+    effects: []
+  },
+
+  // ========== HARDWOODS (Level 31-60) ==========
+  {
+    itemId: 'oak-wood',
+    name: 'White Oak',
+    description: 'Strong, durable hardwood. Premium material for furniture and stocks.',
+    type: 'material',
+    rarity: 'uncommon',
+    price: 35,
+    sellPrice: 17,
+    inShop: false,
+    levelRequired: 32,
+    icon: '🪵',
+    isEquippable: false,
+    isConsumable: false,
+    isStackable: true,
+    maxStack: 99,
+    effects: []
+  },
+  {
+    itemId: 'walnut-wood',
+    name: 'Black Walnut',
+    description: 'Dark, beautiful wood. The gunsmith\'s choice for fine rifle stocks.',
+    type: 'material',
+    rarity: 'uncommon',
+    price: 55,
+    sellPrice: 27,
+    inShop: false,
+    levelRequired: 45,
+    icon: '🪵',
+    isEquippable: false,
+    isConsumable: false,
+    isStackable: true,
+    maxStack: 99,
+    effects: []
+  },
+  {
+    itemId: 'osage-orange',
+    name: 'Osage Orange (Bois d\'Arc)',
+    description: 'Yellow-gold wood, incredibly dense. The finest bow wood in the West.',
+    type: 'material',
+    rarity: 'rare',
+    price: 85,
+    sellPrice: 42,
+    inShop: false,
+    levelRequired: 55,
+    icon: '🟠',
+    isEquippable: false,
+    isConsumable: false,
+    isStackable: true,
+    maxStack: 99,
+    effects: []
+  },
+
+  // ========== EXOTIC & SUPERNATURAL (Level 61-100) ==========
+  {
+    itemId: 'petrified-wood',
+    name: 'Petrified Wood',
+    description: 'Ancient wood turned to stone over millennia. Strange properties.',
+    type: 'material',
+    rarity: 'rare',
+    price: 120,
+    sellPrice: 60,
+    inShop: false,
+    levelRequired: 68,
+    icon: '🪨',
+    isEquippable: false,
+    isConsumable: false,
+    isStackable: true,
+    maxStack: 50,
+    effects: []
+  },
+  {
+    itemId: 'ironwood',
+    name: 'Desert Ironwood',
+    description: 'So dense it sinks in water. Nearly indestructible when cured.',
+    type: 'material',
+    rarity: 'rare',
+    price: 150,
+    sellPrice: 75,
+    inShop: false,
+    levelRequired: 75,
+    icon: '🪵',
+    isEquippable: false,
+    isConsumable: false,
+    isStackable: true,
+    maxStack: 50,
+    effects: []
+  },
+  {
+    itemId: 'spirit-willow',
+    name: 'Spirit Willow',
+    description: 'Pale wood from trees growing near burial grounds. Glows faintly.',
+    type: 'material',
+    rarity: 'legendary',
+    price: 300,
+    sellPrice: 150,
+    inShop: false,
+    levelRequired: 88,
+    icon: '✨',
+    isEquippable: false,
+    isConsumable: false,
+    isStackable: true,
+    maxStack: 25,
+    effects: []
+  }
+];

@@ -16,6 +16,8 @@ import {
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useToast } from '@/store/useToastStore';
 import { logger } from '@/services/logger.service';
+import { api } from '@/services/api';
+import type { LocationCraftingFacility } from '@desperados/shared';
 
 export function Crafting() {
   // State
@@ -23,6 +25,10 @@ export function Crafting() {
   const [error, setError] = useState<string | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [stations, setStations] = useState<CraftingStation[]>([]);
+
+  // Location-aware facilities
+  const [locationName, setLocationName] = useState<string>('');
+  const [locationFacilities, setLocationFacilities] = useState<LocationCraftingFacility[]>([]);
 
   // Selection state
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -79,13 +85,21 @@ export function Crafting() {
     setError(null);
 
     try {
-      const [recipesData, stationsData] = await Promise.all([
+      const [recipesData, stationsData, locationResponse] = await Promise.all([
         craftingService.getRecipes(),
         craftingService.getStations(),
+        api.get('/locations/current').catch(() => null),
       ]);
 
       setRecipes(recipesData);
       setStations(stationsData);
+
+      // Set location facilities if available
+      if (locationResponse?.data?.data?.location) {
+        const loc = locationResponse.data.data.location;
+        setLocationName(loc.name || '');
+        setLocationFacilities(loc.craftingFacilities || []);
+      }
     } catch (err) {
       logger.error('Failed to load crafting data', err instanceof Error ? err : undefined);
       setError('Failed to load crafting data. Please try again later.');
@@ -229,19 +243,51 @@ export function Crafting() {
             Create weapons, armor, consumables, and more from raw materials.
           </p>
         </div>
-        {selectedStation && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-amber-900/30 rounded-lg">
-            <span className="text-amber-400 text-sm">Station:</span>
-            <span className="text-white font-medium">{selectedStation.name}</span>
-            <button
-              onClick={() => setSelectedStation(null)}
-              className="ml-2 text-gray-400 hover:text-white"
-            >
-              x
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {selectedStation && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-amber-900/30 rounded-lg">
+              <span className="text-amber-400 text-sm">Station:</span>
+              <span className="text-white font-medium">{selectedStation.name}</span>
+              <button
+                onClick={() => setSelectedStation(null)}
+                className="ml-2 text-gray-400 hover:text-white"
+              >
+                x
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Location Facilities Banner */}
+      {locationName && (
+        <div className="mb-4 p-3 bg-gradient-to-r from-amber-900/30 to-gray-800/30 rounded-lg border border-amber-700/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📍</span>
+              <span className="text-amber-200 font-medium">{locationName}</span>
+            </div>
+            {locationFacilities.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Available facilities:</span>
+                <div className="flex gap-1">
+                  {locationFacilities.map((facility, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-1 bg-amber-800/40 rounded text-xs text-amber-200"
+                      title={`${facility.name} (Tier ${facility.tier})`}
+                    >
+                      {facility.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <span className="text-xs text-gray-500">No crafting facilities here</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-900/30 border border-red-500 rounded-lg p-4 mb-4">

@@ -48,9 +48,10 @@ export function RecipeDetails({
     setQuantity(1);
   }, [recipe.recipeId]);
 
-  const skillId = recipe.skillRequired.skillId.toLowerCase();
-  const playerLevel = playerSkillLevels[skillId] || 0;
-  const meetsSkill = playerLevel >= recipe.skillRequired.level;
+  const skillId = recipe.skillRequired?.skillId?.toLowerCase() ?? '';
+  const requiredLevel = recipe.skillRequired?.level ?? 0;
+  const playerLevel = skillId ? (playerSkillLevels[skillId] || 0) : 0;
+  const meetsSkill = skillId ? playerLevel >= requiredLevel : true;
 
   // Check materials availability
   const materialStatus = recipe.ingredients.map(ing => ({
@@ -86,7 +87,7 @@ export function RecipeDetails({
           <p className="text-gray-400 mt-1">{recipe.description}</p>
           <div className="flex gap-3 mt-2 text-sm">
             <span className={meetsSkill ? 'text-blue-400' : 'text-red-400'}>
-              {craftingService.getSkillName(recipe.skillRequired.skillId)} Lv.{recipe.skillRequired.level}
+              {craftingService.getSkillName(recipe.skillRequired?.skillId ?? 'unknown')} Lv.{requiredLevel}
               {!meetsSkill && ` (You: ${playerLevel})`}
             </span>
             <span className="text-gray-500">|</span>
@@ -217,7 +218,7 @@ export function RecipeDetails({
             </h3>
             <QualityPreview
               playerLevel={playerLevel}
-              requiredLevel={recipe.skillRequired.level}
+              requiredLevel={recipe.skillRequired?.level ?? requiredLevel}
               stationBonus={selectedStation?.bonuses?.qualityBonus || 0}
             />
           </div>
@@ -362,7 +363,7 @@ export function RecipeDetails({
               disabled={!canCraft}
             >
               {!meetsSkill
-                ? `Need ${craftingService.getSkillName(skillId)} Lv.${recipe.skillRequired.level}`
+                ? `Need ${craftingService.getSkillName(skillId)} Lv.${requiredLevel}`
                 : !materialStatus.every(m => m.sufficient)
                 ? 'Missing Materials'
                 : `Craft ${quantity}x ${recipe.name}`}

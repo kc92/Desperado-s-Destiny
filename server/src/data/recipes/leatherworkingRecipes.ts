@@ -1196,6 +1196,1470 @@ export const leatherworkingRecipes: CraftingRecipe[] = [
     category: 'armor',
     tags: ['grandmaster', 'legendary', 'time', 'unique'],
     specialNotes: 'Infinite durability. Provides temporal manipulation abilities.'
+  },
+
+  // ============================================================================
+  // NEW RECIPES - NOVICE TIER (1-15) - 5 Additional Recipes
+  // ============================================================================
+  {
+    id: 'lw_coin_pouch',
+    name: 'Coin Pouch',
+    description: 'A small drawstring pouch perfect for carrying gold and silver coins.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 2,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'tanned_leather',
+        materialName: 'Tanned Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 1
+      },
+      {
+        materialId: 'drawstring',
+        materialName: 'Drawstring',
+        category: MaterialCategory.FABRIC,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'coin_pouch',
+      itemName: 'Coin Pouch',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 20,
+    difficulty: 4,
+    xpGain: 7,
+    learningSource: RecipeSource.TRAINER,
+    category: 'accessory',
+    tags: ['novice', 'storage', 'basic']
+  },
+  {
+    id: 'lw_basic_strap',
+    name: 'Basic Leather Strap',
+    description: 'A simple leather strap used for securing gear and equipment.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 4,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'tanned_leather',
+        materialName: 'Tanned Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'basic_strap',
+      itemName: 'Basic Leather Strap',
+      baseQuantity: 2,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 15,
+    difficulty: 5,
+    xpGain: 8,
+    learningSource: RecipeSource.TRAINER,
+    category: 'component',
+    tags: ['novice', 'component', 'basic']
+  },
+  {
+    id: 'lw_tobacco_pouch',
+    name: 'Tobacco Pouch',
+    description: 'A lined pouch to keep tobacco fresh on the trail.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 6,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'tanned_leather',
+        materialName: 'Tanned Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 2
+      },
+      {
+        materialId: 'oilcloth',
+        materialName: 'Oilcloth',
+        category: MaterialCategory.FABRIC,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'tobacco_pouch',
+      itemName: 'Tobacco Pouch',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 35,
+    difficulty: 8,
+    xpGain: 11,
+    learningSource: RecipeSource.TRAINER,
+    category: 'accessory',
+    tags: ['novice', 'storage', 'utility']
+  },
+  {
+    id: 'lw_wrist_guard',
+    name: 'Leather Wrist Guard',
+    description: 'A simple wrist guard to protect from rope burns and recoil.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 10,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'thick_leather',
+        materialName: 'Thick Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 2
+      },
+      {
+        materialId: 'leather_laces',
+        materialName: 'Leather Laces',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'wrist_guard',
+      itemName: 'Leather Wrist Guard',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 40,
+    difficulty: 12,
+    xpGain: 16,
+    learningSource: RecipeSource.TRAINER,
+    category: 'armor',
+    tags: ['novice', 'armor', 'protection']
+  },
+  {
+    id: 'lw_knife_sheath',
+    name: 'Knife Sheath',
+    description: 'A basic sheath to safely carry a hunting knife on your belt.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 14,
+      minTier: CraftingSkillTier.NOVICE
+    },
+    materials: [
+      {
+        materialId: 'thick_leather',
+        materialName: 'Thick Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 3
+      },
+      {
+        materialId: 'rivets',
+        materialName: 'Leather Rivets',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'knife_sheath',
+      itemName: 'Knife Sheath',
+      baseQuantity: 1,
+      qualityAffectsStats: false
+    },
+    baseCraftTime: 50,
+    difficulty: 14,
+    xpGain: 20,
+    learningSource: RecipeSource.TRAINER,
+    category: 'accessory',
+    tags: ['novice', 'utility', 'weapon']
+  },
+
+  // ============================================================================
+  // NEW RECIPES - APPRENTICE TIER (16-30) - 6 Additional Recipes
+  // ============================================================================
+  {
+    id: 'lw_hip_holster',
+    name: 'Hip Holster',
+    description: 'A low-riding holster that sits comfortably on the hip.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 17,
+      minTier: CraftingSkillTier.APPRENTICE
+    },
+    materials: [
+      {
+        materialId: 'tooled_leather',
+        materialName: 'Tooled Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 3
+      },
+      {
+        materialId: 'rivets',
+        materialName: 'Leather Rivets',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 4
+      },
+      {
+        materialId: 'brass_buckle',
+        materialName: 'Brass Buckle',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'hip_holster',
+      itemName: 'Hip Holster',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 120,
+    difficulty: 24,
+    xpGain: 38,
+    learningSource: RecipeSource.TRAINER,
+    category: 'accessory',
+    tags: ['apprentice', 'gunslinger', 'utility']
+  },
+  {
+    id: 'lw_cartridge_belt',
+    name: 'Cartridge Belt',
+    description: 'A wide belt with loops to hold rifle cartridges within easy reach.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 19,
+      minTier: CraftingSkillTier.APPRENTICE
+    },
+    materials: [
+      {
+        materialId: 'thick_leather',
+        materialName: 'Thick Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 5
+      },
+      {
+        materialId: 'brass_loops',
+        materialName: 'Brass Loops',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 15
+      },
+      {
+        materialId: 'buckles',
+        materialName: 'Buckles',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'cartridge_belt',
+      itemName: 'Cartridge Belt',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 100,
+    difficulty: 26,
+    xpGain: 42,
+    learningSource: RecipeSource.TRAINER,
+    category: 'accessory',
+    tags: ['apprentice', 'ammunition', 'rifle']
+  },
+  {
+    id: 'lw_pommel_bag',
+    name: 'Pommel Bag',
+    description: 'A small bag that attaches to the saddle horn for quick-access storage.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 22,
+      minTier: CraftingSkillTier.APPRENTICE
+    },
+    materials: [
+      {
+        materialId: 'thick_leather',
+        materialName: 'Thick Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 4
+      },
+      {
+        materialId: 'buckles',
+        materialName: 'Buckles',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 2
+      },
+      {
+        materialId: 'leather_strip',
+        materialName: 'Leather Strip',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'pommel_bag',
+      itemName: 'Pommel Bag',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 80,
+    difficulty: 24,
+    xpGain: 38,
+    learningSource: RecipeSource.TRAINER,
+    category: 'accessory',
+    tags: ['apprentice', 'storage', 'mount']
+  },
+  {
+    id: 'lw_riding_boots',
+    name: 'Riding Boots',
+    description: 'Sturdy boots with reinforced heels, perfect for stirrups.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 25,
+      minTier: CraftingSkillTier.APPRENTICE
+    },
+    materials: [
+      {
+        materialId: 'thick_leather',
+        materialName: 'Thick Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 6
+      },
+      {
+        materialId: 'leather_sole',
+        materialName: 'Leather Sole',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 2
+      },
+      {
+        materialId: 'steel_heel',
+        materialName: 'Steel Heel',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'riding_boots',
+      itemName: 'Riding Boots',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 140,
+    difficulty: 28,
+    xpGain: 48,
+    learningSource: RecipeSource.TRAINER,
+    category: 'armor',
+    tags: ['apprentice', 'boots', 'riding']
+  },
+  {
+    id: 'lw_scout_satchel',
+    name: 'Scout Satchel',
+    description: 'A messenger-style bag favored by scouts and outriders.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 27,
+      minTier: CraftingSkillTier.APPRENTICE
+    },
+    materials: [
+      {
+        materialId: 'soft_leather',
+        materialName: 'Soft Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 6
+      },
+      {
+        materialId: 'buckles',
+        materialName: 'Buckles',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 3
+      },
+      {
+        materialId: 'canvas',
+        materialName: 'Canvas',
+        category: MaterialCategory.FABRIC,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'scout_satchel',
+      itemName: 'Scout Satchel',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 110,
+    difficulty: 30,
+    xpGain: 52,
+    learningSource: RecipeSource.TRAINER,
+    category: 'accessory',
+    tags: ['apprentice', 'storage', 'utility']
+  },
+  {
+    id: 'lw_studded_belt',
+    name: 'Studded Leather Belt',
+    description: 'A decorative belt with metal studs. Popular among frontier folk.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 29,
+      minTier: CraftingSkillTier.APPRENTICE
+    },
+    materials: [
+      {
+        materialId: 'tooled_leather',
+        materialName: 'Tooled Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 3
+      },
+      {
+        materialId: 'silver_studs',
+        materialName: 'Silver Studs',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 12
+      },
+      {
+        materialId: 'brass_buckle',
+        materialName: 'Brass Buckle',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 1
+      }
+    ],
+    output: {
+      itemId: 'studded_belt',
+      itemName: 'Studded Leather Belt',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 90,
+    difficulty: 32,
+    xpGain: 55,
+    learningSource: RecipeSource.TRAINER,
+    category: 'accessory',
+    tags: ['apprentice', 'clothing', 'decorative']
+  },
+
+  // ============================================================================
+  // NEW RECIPES - JOURNEYMAN TIER (31-50) - 6 Additional Recipes
+  // ============================================================================
+  {
+    id: 'lw_reinforced_chaps',
+    name: 'Reinforced Chaps',
+    description: 'Heavy-duty chaps with extra padding for rough terrain and thorny brush.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 33,
+      minTier: CraftingSkillTier.JOURNEYMAN,
+      facility: {
+        type: CraftingFacilityType.LEATHER_WORKBENCH,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'hardened_leather',
+        materialName: 'Hardened Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 10
+      },
+      {
+        materialId: 'wool_padding',
+        materialName: 'Wool Padding',
+        category: MaterialCategory.FABRIC,
+        quantity: 4
+      },
+      {
+        materialId: 'buckles',
+        materialName: 'Buckles',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 6
+      }
+    ],
+    output: {
+      itemId: 'reinforced_chaps',
+      itemName: 'Reinforced Chaps',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 160,
+    difficulty: 44,
+    xpGain: 78,
+    learningSource: RecipeSource.TRAINER,
+    category: 'armor',
+    tags: ['journeyman', 'legs', 'protection']
+  },
+  {
+    id: 'lw_bullwhip',
+    name: 'Bullwhip',
+    description: 'A long braided leather whip. Useful for herding cattle and intimidating outlaws.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 36,
+      minTier: CraftingSkillTier.JOURNEYMAN
+    },
+    materials: [
+      {
+        materialId: 'thick_leather',
+        materialName: 'Thick Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 8
+      },
+      {
+        materialId: 'leather_strip',
+        materialName: 'Leather Strip',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 12
+      },
+      {
+        materialId: 'lead_shot',
+        materialName: 'Lead Shot',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'bullwhip',
+      itemName: 'Bullwhip',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 180,
+    difficulty: 46,
+    xpGain: 82,
+    learningSource: RecipeSource.TRAINER,
+    category: 'tool',
+    tags: ['journeyman', 'weapon', 'ranching']
+  },
+  {
+    id: 'lw_frontier_jacket',
+    name: 'Frontier Jacket',
+    description: 'A stylish leather jacket with fringe. The mark of a true frontiersman.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 40,
+      minTier: CraftingSkillTier.JOURNEYMAN
+    },
+    materials: [
+      {
+        materialId: 'soft_leather',
+        materialName: 'Soft Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 14
+      },
+      {
+        materialId: 'leather_strip',
+        materialName: 'Leather Strip',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 20
+      },
+      {
+        materialId: 'buttons',
+        materialName: 'Buttons',
+        category: MaterialCategory.ACCESSORY,
+        quantity: 8
+      }
+    ],
+    output: {
+      itemId: 'frontier_jacket',
+      itemName: 'Frontier Jacket',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 240,
+    difficulty: 48,
+    xpGain: 88,
+    learningSource: RecipeSource.TRAINER,
+    category: 'armor',
+    tags: ['journeyman', 'chest', 'iconic']
+  },
+  {
+    id: 'lw_deer_hide_gloves',
+    name: 'Deerskin Gloves',
+    description: 'Supple gloves made from deer hide. Perfect for precision work.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 44,
+      minTier: CraftingSkillTier.JOURNEYMAN
+    },
+    materials: [
+      {
+        materialId: 'deer_hide',
+        materialName: 'Deer Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 4
+      },
+      {
+        materialId: 'silk_lining',
+        materialName: 'Silk Lining',
+        category: MaterialCategory.FABRIC,
+        quantity: 2
+      },
+      {
+        materialId: 'thread',
+        materialName: 'Leather Thread',
+        category: MaterialCategory.FABRIC,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'deerskin_gloves',
+      itemName: 'Deerskin Gloves',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 120,
+    difficulty: 50,
+    xpGain: 92,
+    learningSource: RecipeSource.VENDOR,
+    learningCost: 200,
+    category: 'armor',
+    tags: ['journeyman', 'gloves', 'precision']
+  },
+  {
+    id: 'lw_saddle_holster',
+    name: 'Saddle Holster',
+    description: 'A holster that attaches to the saddle for quick access to a rifle or shotgun.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 47,
+      minTier: CraftingSkillTier.JOURNEYMAN
+    },
+    materials: [
+      {
+        materialId: 'hardened_leather',
+        materialName: 'Hardened Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 8
+      },
+      {
+        materialId: 'rivets',
+        materialName: 'Leather Rivets',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 10
+      },
+      {
+        materialId: 'buckles',
+        materialName: 'Buckles',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 3
+      }
+    ],
+    output: {
+      itemId: 'saddle_holster',
+      itemName: 'Saddle Holster',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 150,
+    difficulty: 52,
+    xpGain: 96,
+    learningSource: RecipeSource.TRAINER,
+    category: 'accessory',
+    tags: ['journeyman', 'mount', 'weapon']
+  },
+  {
+    id: 'lw_elk_hide_vest',
+    name: 'Elk Hide Vest',
+    description: 'A warm, durable vest made from elk hide. Popular in mountain territories.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 49,
+      minTier: CraftingSkillTier.JOURNEYMAN
+    },
+    materials: [
+      {
+        materialId: 'elk_hide',
+        materialName: 'Elk Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 8
+      },
+      {
+        materialId: 'fur_lining',
+        materialName: 'Fur Lining',
+        category: MaterialCategory.FABRIC,
+        quantity: 4
+      },
+      {
+        materialId: 'bone_buttons',
+        materialName: 'Bone Buttons',
+        category: MaterialCategory.ANIMAL_PART,
+        quantity: 5
+      }
+    ],
+    output: {
+      itemId: 'elk_hide_vest',
+      itemName: 'Elk Hide Vest',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 200,
+    difficulty: 54,
+    xpGain: 100,
+    learningSource: RecipeSource.VENDOR,
+    learningCost: 250,
+    category: 'armor',
+    tags: ['journeyman', 'chest', 'warmth']
+  },
+
+  // ============================================================================
+  // NEW RECIPES - EXPERT TIER (51-70) - 6 Additional Recipes
+  // ============================================================================
+  {
+    id: 'lw_buffalo_hide_duster',
+    name: 'Buffalo Hide Duster',
+    description: 'A massive duster made from buffalo hide. Offers superior protection.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 53,
+      minTier: CraftingSkillTier.EXPERT
+    },
+    materials: [
+      {
+        materialId: 'buffalo_hide',
+        materialName: 'Buffalo Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 12
+      },
+      {
+        materialId: 'hardened_leather',
+        materialName: 'Hardened Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 8
+      },
+      {
+        materialId: 'buttons',
+        materialName: 'Buttons',
+        category: MaterialCategory.ACCESSORY,
+        quantity: 10
+      }
+    ],
+    output: {
+      itemId: 'buffalo_hide_duster',
+      itemName: 'Buffalo Hide Duster',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 360,
+    difficulty: 64,
+    xpGain: 128,
+    learningSource: RecipeSource.TRAINER,
+    category: 'armor',
+    tags: ['expert', 'coat', 'protection']
+  },
+  {
+    id: 'lw_concealed_holster',
+    name: 'Concealed Holster',
+    description: 'A shoulder holster designed to be worn under a jacket. For discreet carry.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 56,
+      minTier: CraftingSkillTier.EXPERT
+    },
+    materials: [
+      {
+        materialId: 'soft_leather',
+        materialName: 'Soft Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 6
+      },
+      {
+        materialId: 'premium_leather',
+        materialName: 'Premium Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 4
+      },
+      {
+        materialId: 'rivets',
+        materialName: 'Leather Rivets',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 8
+      }
+    ],
+    output: {
+      itemId: 'concealed_holster',
+      itemName: 'Concealed Holster',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 240,
+    difficulty: 66,
+    xpGain: 132,
+    learningSource: RecipeSource.DISCOVERY,
+    discoveryChance: 0.08,
+    category: 'accessory',
+    tags: ['expert', 'gunslinger', 'stealth']
+  },
+  {
+    id: 'lw_war_saddle',
+    name: 'War Saddle',
+    description: 'A reinforced saddle designed for combat. Provides stability during mounted combat.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 60,
+      minTier: CraftingSkillTier.EXPERT,
+      facility: {
+        type: CraftingFacilityType.LEATHER_WORKBENCH,
+        tier: 2
+      }
+    },
+    materials: [
+      {
+        materialId: 'hardened_leather',
+        materialName: 'Hardened Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 20
+      },
+      {
+        materialId: 'steel_plates',
+        materialName: 'Steel Plates',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 4
+      },
+      {
+        materialId: 'saddle_tree',
+        materialName: 'Wooden Saddle Tree',
+        category: MaterialCategory.WOOD,
+        quantity: 1
+      },
+      {
+        materialId: 'stirrups',
+        materialName: 'Steel Stirrups',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'war_saddle',
+      itemName: 'War Saddle',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 400,
+    difficulty: 68,
+    xpGain: 140,
+    learningSource: RecipeSource.TRAINER,
+    category: 'mount',
+    tags: ['expert', 'saddle', 'combat'],
+    specialNotes: 'Provides combat bonuses while mounted'
+  },
+  {
+    id: 'lw_reinforced_vest',
+    name: 'Reinforced Leather Vest',
+    description: 'A vest with hidden reinforced panels. Excellent protection without bulk.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 64,
+      minTier: CraftingSkillTier.EXPERT
+    },
+    materials: [
+      {
+        materialId: 'premium_leather',
+        materialName: 'Premium Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 12
+      },
+      {
+        materialId: 'steel_mesh',
+        materialName: 'Steel Mesh',
+        category: MaterialCategory.REFINED_METAL,
+        quantity: 4
+      },
+      {
+        materialId: 'lining_fabric',
+        materialName: 'Lining Fabric',
+        category: MaterialCategory.FABRIC,
+        quantity: 6
+      }
+    ],
+    output: {
+      itemId: 'reinforced_vest',
+      itemName: 'Reinforced Leather Vest',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 320,
+    difficulty: 70,
+    xpGain: 145,
+    learningSource: RecipeSource.TRAINER,
+    category: 'armor',
+    tags: ['expert', 'chest', 'protection']
+  },
+  {
+    id: 'lw_snake_skin_holster',
+    name: 'Rattlesnake Holster',
+    description: 'An exotic holster made from rattlesnake skin. A conversation starter.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 66,
+      minTier: CraftingSkillTier.EXPERT
+    },
+    materials: [
+      {
+        materialId: 'snakeskin',
+        materialName: 'Rattlesnake Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 5
+      },
+      {
+        materialId: 'tooled_leather',
+        materialName: 'Tooled Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 4
+      },
+      {
+        materialId: 'silver_rivets',
+        materialName: 'Silver Rivets',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 8
+      }
+    ],
+    output: {
+      itemId: 'rattlesnake_holster',
+      itemName: 'Rattlesnake Holster',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 280,
+    difficulty: 68,
+    xpGain: 138,
+    learningSource: RecipeSource.VENDOR,
+    learningCost: 500,
+    category: 'accessory',
+    tags: ['expert', 'exotic', 'prestige']
+  },
+  {
+    id: 'lw_outrider_gear',
+    name: 'Outrider Gear Set',
+    description: 'A complete set of gear for long-range scouts. Includes saddlebags and pouches.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 69,
+      minTier: CraftingSkillTier.EXPERT
+    },
+    materials: [
+      {
+        materialId: 'thick_leather',
+        materialName: 'Thick Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 18
+      },
+      {
+        materialId: 'canvas',
+        materialName: 'Canvas',
+        category: MaterialCategory.FABRIC,
+        quantity: 8
+      },
+      {
+        materialId: 'buckles',
+        materialName: 'Buckles',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 10
+      },
+      {
+        materialId: 'oilcloth',
+        materialName: 'Oilcloth',
+        category: MaterialCategory.FABRIC,
+        quantity: 4
+      }
+    ],
+    output: {
+      itemId: 'outrider_gear',
+      itemName: 'Outrider Gear Set',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 380,
+    difficulty: 72,
+    xpGain: 150,
+    learningSource: RecipeSource.TRAINER,
+    category: 'accessory',
+    tags: ['expert', 'mount', 'utility', 'set']
+  },
+
+  // ============================================================================
+  // NEW RECIPES - MASTER TIER (71-90) - 5 Additional Recipes
+  // ============================================================================
+  {
+    id: 'lw_gunfighter_rig',
+    name: 'Gunfighter Rig',
+    description: 'A professional-grade dual holster system with ammunition belt. For serious gunslingers.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 73,
+      minTier: CraftingSkillTier.MASTER
+    },
+    materials: [
+      {
+        materialId: 'premium_leather',
+        materialName: 'Premium Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 14
+      },
+      {
+        materialId: 'silver_rivets',
+        materialName: 'Silver Rivets',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 20
+      },
+      {
+        materialId: 'brass_loops',
+        materialName: 'Brass Loops',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 30
+      },
+      {
+        materialId: 'quickdraw_spring',
+        materialName: 'Quickdraw Spring',
+        category: MaterialCategory.GUN_PART,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'gunfighter_rig',
+      itemName: 'Gunfighter Rig',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 480,
+    difficulty: 82,
+    xpGain: 210,
+    learningSource: RecipeSource.REPUTATION,
+    category: 'accessory',
+    tags: ['master', 'gunslinger', 'combat', 'set'],
+    specialNotes: 'Complete gunfighter loadout with draw speed bonus'
+  },
+  {
+    id: 'lw_legendary_boots',
+    name: 'Legendary Cowboy Boots',
+    description: 'The finest boots ever crafted. Comfortable, durable, and impossibly stylish.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 76,
+      minTier: CraftingSkillTier.MASTER
+    },
+    materials: [
+      {
+        materialId: 'gator_hide',
+        materialName: 'Alligator Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 6
+      },
+      {
+        materialId: 'snakeskin',
+        materialName: 'Rattlesnake Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 4
+      },
+      {
+        materialId: 'silver_buckles',
+        materialName: 'Silver Buckles',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 4
+      },
+      {
+        materialId: 'silk_lining',
+        materialName: 'Silk Lining',
+        category: MaterialCategory.FABRIC,
+        quantity: 4
+      }
+    ],
+    output: {
+      itemId: 'legendary_boots',
+      itemName: 'Legendary Cowboy Boots',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 420,
+    difficulty: 84,
+    xpGain: 230,
+    learningSource: RecipeSource.ACHIEVEMENT,
+    category: 'armor',
+    tags: ['master', 'boots', 'legendary', 'prestige']
+  },
+  {
+    id: 'lw_wolf_pelt_cloak',
+    name: 'Wolf Pelt Cloak',
+    description: 'A fearsome cloak made from wolf pelts. Intimidates enemies and protects from cold.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 80,
+      minTier: CraftingSkillTier.MASTER,
+      facility: {
+        type: CraftingFacilityType.DYE_VAT,
+        tier: 3
+      }
+    },
+    materials: [
+      {
+        materialId: 'wolf_pelt',
+        materialName: 'Wolf Pelt',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 8
+      },
+      {
+        materialId: 'soft_leather',
+        materialName: 'Soft Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 10
+      },
+      {
+        materialId: 'silver_clasp',
+        materialName: 'Silver Clasp',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'wolf_pelt_cloak',
+      itemName: 'Wolf Pelt Cloak',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 500,
+    difficulty: 86,
+    xpGain: 260,
+    learningSource: RecipeSource.REPUTATION,
+    category: 'armor',
+    tags: ['master', 'cloak', 'intimidation', 'warmth'],
+    specialNotes: 'Provides intimidation bonus and cold resistance'
+  },
+  {
+    id: 'lw_desperado_duster',
+    name: 'Desperado Duster',
+    description: 'A legendary duster worn by the most notorious outlaws. Dark as midnight.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 85,
+      minTier: CraftingSkillTier.MASTER
+    },
+    materials: [
+      {
+        materialId: 'shadow_leather',
+        materialName: 'Shadow-treated Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 20
+      },
+      {
+        materialId: 'premium_leather',
+        materialName: 'Premium Leather',
+        category: MaterialCategory.TANNED_LEATHER,
+        quantity: 10
+      },
+      {
+        materialId: 'obsidian_buttons',
+        materialName: 'Obsidian Buttons',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 10
+      },
+      {
+        materialId: 'silk_lining',
+        materialName: 'Silk Lining',
+        category: MaterialCategory.FABRIC,
+        quantity: 8
+      }
+    ],
+    output: {
+      itemId: 'desperado_duster',
+      itemName: 'Desperado Duster',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 560,
+    difficulty: 90,
+    xpGain: 300,
+    learningSource: RecipeSource.DISCOVERY,
+    discoveryChance: 0.03,
+    category: 'armor',
+    tags: ['master', 'coat', 'legendary', 'stealth'],
+    specialNotes: 'Provides stealth and intimidation bonuses'
+  },
+  {
+    id: 'lw_mountain_man_armor',
+    name: 'Mountain Man Armor',
+    description: 'Full leather armor made from various exotic hides. A testament to frontier survival.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 88,
+      minTier: CraftingSkillTier.MASTER
+    },
+    materials: [
+      {
+        materialId: 'grizzly_hide',
+        materialName: 'Grizzly Bear Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 10
+      },
+      {
+        materialId: 'elk_hide',
+        materialName: 'Elk Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 8
+      },
+      {
+        materialId: 'buffalo_hide',
+        materialName: 'Buffalo Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 6
+      },
+      {
+        materialId: 'fur_lining',
+        materialName: 'Fur Lining',
+        category: MaterialCategory.FABRIC,
+        quantity: 12
+      }
+    ],
+    output: {
+      itemId: 'mountain_man_armor',
+      itemName: 'Mountain Man Armor',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 600,
+    difficulty: 92,
+    xpGain: 350,
+    learningSource: RecipeSource.ACHIEVEMENT,
+    category: 'armor',
+    tags: ['master', 'armor', 'legendary', 'set'],
+    specialNotes: 'Full armor set with survival bonuses'
+  },
+
+  // ============================================================================
+  // NEW RECIPES - GRANDMASTER TIER (91-100) - 4 Additional Recipes
+  // ============================================================================
+  {
+    id: 'lw_spirit_touched_armor',
+    name: 'Spirit-Touched Armor',
+    description: 'Leather armor imbued with the essence of frontier spirits. Offers supernatural protection.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 92,
+      minTier: CraftingSkillTier.GRANDMASTER,
+      facility: {
+        type: CraftingFacilityType.DYE_VAT,
+        tier: 5
+      }
+    },
+    materials: [
+      {
+        materialId: 'spectral_hide',
+        materialName: 'Spectral Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 20
+      },
+      {
+        materialId: 'spirit_essence',
+        materialName: 'Spirit Essence',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 8
+      },
+      {
+        materialId: 'moonsilk',
+        materialName: 'Moonsilk',
+        category: MaterialCategory.FABRIC,
+        quantity: 10
+      },
+      {
+        materialId: 'blessed_thread',
+        materialName: 'Blessed Thread',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 6
+      }
+    ],
+    output: {
+      itemId: 'spirit_touched_armor',
+      itemName: 'Spirit-Touched Armor',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 1000,
+    difficulty: 96,
+    xpGain: 550,
+    learningSource: RecipeSource.QUEST_REWARD,
+    category: 'armor',
+    tags: ['grandmaster', 'legendary', 'supernatural', 'set'],
+    specialNotes: 'Provides resistance to supernatural damage and spirit sight'
+  },
+  {
+    id: 'lw_wendigo_hide_cloak',
+    name: 'Wendigo Hide Cloak',
+    description: 'A terrifying cloak made from wendigo hide. Strikes fear into all who behold it.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 95,
+      minTier: CraftingSkillTier.GRANDMASTER
+    },
+    materials: [
+      {
+        materialId: 'wendigo_hide',
+        materialName: 'Wendigo Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 15
+      },
+      {
+        materialId: 'nightmare_essence',
+        materialName: 'Nightmare Essence',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 5
+      },
+      {
+        materialId: 'void_silk',
+        materialName: 'Void Silk',
+        category: MaterialCategory.FABRIC,
+        quantity: 8
+      },
+      {
+        materialId: 'bone_clasp',
+        materialName: 'Cursed Bone Clasp',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 2
+      }
+    ],
+    output: {
+      itemId: 'wendigo_hide_cloak',
+      itemName: 'Wendigo Hide Cloak',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 1100,
+    difficulty: 98,
+    xpGain: 620,
+    learningSource: RecipeSource.WORLD_DROP,
+    category: 'armor',
+    tags: ['grandmaster', 'legendary', 'supernatural', 'fear'],
+    specialNotes: 'Causes fear in enemies and grants cold immunity'
+  },
+  {
+    id: 'lw_thunderbird_saddle',
+    name: 'Thunderbird Saddle',
+    description: 'A mythical saddle crafted from thunderbird feathers and hide. Commands the storm.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 98,
+      minTier: CraftingSkillTier.GRANDMASTER
+    },
+    materials: [
+      {
+        materialId: 'thunderbird_hide',
+        materialName: 'Thunderbird Hide',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 18
+      },
+      {
+        materialId: 'storm_essence',
+        materialName: 'Storm Essence',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 10
+      },
+      {
+        materialId: 'sky_metal_stirrups',
+        materialName: 'Sky Metal Stirrups',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 2
+      },
+      {
+        materialId: 'lightning_thread',
+        materialName: 'Lightning Thread',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 8
+      }
+    ],
+    output: {
+      itemId: 'thunderbird_saddle',
+      itemName: 'Thunderbird Saddle',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 1400,
+    difficulty: 100,
+    xpGain: 750,
+    learningSource: RecipeSource.ACHIEVEMENT,
+    category: 'mount',
+    tags: ['grandmaster', 'legendary', 'supernatural', 'mount'],
+    specialNotes: 'Grants mount lightning speed and storm calling abilities'
+  },
+  {
+    id: 'lw_skinwalker_garb',
+    name: 'Skinwalker Garb',
+    description: 'Ancient armor that allows the wearer to take on aspects of beasts. A forbidden art.',
+    professionId: ProfessionId.LEATHERWORKING,
+    requirements: {
+      professionId: ProfessionId.LEATHERWORKING,
+      minLevel: 100,
+      minTier: CraftingSkillTier.GRANDMASTER,
+      facility: {
+        type: CraftingFacilityType.DYE_VAT,
+        tier: 5
+      }
+    },
+    materials: [
+      {
+        materialId: 'skinwalker_pelt',
+        materialName: 'Skinwalker Pelt',
+        category: MaterialCategory.EXOTIC_HIDE,
+        quantity: 25
+      },
+      {
+        materialId: 'primal_essence',
+        materialName: 'Primal Essence',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 15
+      },
+      {
+        materialId: 'shapeshifter_blood',
+        materialName: 'Shapeshifter Blood',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 5
+      },
+      {
+        materialId: 'moonstone_clasp',
+        materialName: 'Moonstone Clasp',
+        category: MaterialCategory.PRECIOUS_METAL,
+        quantity: 3
+      },
+      {
+        materialId: 'eternity_thread',
+        materialName: 'Eternity Thread',
+        category: MaterialCategory.RARE_REAGENT,
+        quantity: 12
+      }
+    ],
+    output: {
+      itemId: 'skinwalker_garb',
+      itemName: 'Skinwalker Garb',
+      baseQuantity: 1,
+      qualityAffectsStats: true
+    },
+    baseCraftTime: 1800,
+    difficulty: 100,
+    xpGain: 900,
+    learningSource: RecipeSource.QUEST_REWARD,
+    category: 'armor',
+    tags: ['grandmaster', 'legendary', 'supernatural', 'transformation', 'unique'],
+    specialNotes: 'Legendary set. Grants ability to temporarily transform into animal forms.'
   }
 ];
 

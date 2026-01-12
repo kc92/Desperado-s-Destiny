@@ -35,6 +35,9 @@ import { heartOfTerritoryGear } from './heart_of_territory_gear';
 import { legendsGear } from './legends_gear';
 import { actionRewardItems } from './action_rewards';
 import { academyRewards } from './academy_rewards';
+import { allRawMaterials, rawMaterialCounts } from './raw_materials';
+import { allCraftingMaterials, craftingMaterialCounts } from './crafting_materials';
+import { allCraftedItems, craftedItemCounts } from './crafted';
 
 /**
  * All items in the game
@@ -72,6 +75,9 @@ export const allItems: Partial<IItem>[] = [
   ...legendsGear,     // Phase 19.5: Legends of the West items (L36-45)
   ...actionRewardItems,  // Action reward items (crime loot, combat drops, boss drops)
   ...academyRewards,     // Skill Academy tutorial reward items (26 items)
+  ...allRawMaterials,    // Phase 7.2: Raw materials for crafting expansion (75 items)
+  ...allCraftingMaterials,  // Phase 7.2: Crafting materials for 5 new professions
+  ...allCraftedItems,       // Phase 7.2: Crafted items from 5 new professions (141 items)
 ];
 
 /**
@@ -103,7 +109,16 @@ export function getItemById(itemId: string): Partial<IItem> | undefined {
 }
 
 // Export individual categories
-export { weapons, armor, consumables, materials, diasporaWeapons, diasporaArmor, diasporaConsumables, frontierGear, ALL_FRONTIER_JUSTICE_ITEMS, huntingGear, fishingGear, craftingGear, nativeGear, contestedLandsGear, defenderGear, supportGear, debufferGear, gamblingGear, horseRacingGear, gatheringMaterials, refinedMaterials, components, craftingTools, tieredGear, milestoneItems, goldSinkItems, greenhornGear, heartOfTerritoryGear, legendsGear, actionRewardItems, academyRewards };
+export { weapons, armor, consumables, materials, diasporaWeapons, diasporaArmor, diasporaConsumables, frontierGear, ALL_FRONTIER_JUSTICE_ITEMS, huntingGear, fishingGear, craftingGear, nativeGear, contestedLandsGear, defenderGear, supportGear, debufferGear, gamblingGear, horseRacingGear, gatheringMaterials, refinedMaterials, components, craftingTools, tieredGear, milestoneItems, goldSinkItems, greenhornGear, heartOfTerritoryGear, legendsGear, actionRewardItems, academyRewards, allRawMaterials };
+
+// Export raw materials subcategories
+export { ores, animalProducts, plantsHerbs, woods, textiles } from './raw_materials';
+
+// Export crafting materials subcategories
+export { nativeCraftsMaterials, prospectingMaterials, woodworkingMaterials, trappingMaterials, leadershipMaterials, miscCraftingMaterials, allCraftingMaterials } from './crafting_materials';
+
+// Export crafted items
+export { allCraftedItems, nativeCraftsCrafted, prospectingCrafted, woodworkingCrafted, trappingCrafted, leadershipCrafted } from './crafted';
 
 // Export count for validation
 export const itemCounts = {
