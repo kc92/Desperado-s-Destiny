@@ -42,6 +42,7 @@ import {
   BankErrorFallback,
   ShopErrorFallback,
   InventoryErrorFallback,
+  PageErrorFallback,
 } from '@/components/errors';
 import { AnimationPreferencesProvider } from '@/contexts';
 
@@ -55,7 +56,7 @@ const ResetPassword = lazy(() => import('@/pages/ResetPassword').then(m => ({ de
 const CharacterSelect = lazy(() => import('@/pages/CharacterSelect').then(m => ({ default: m.CharacterSelect })));
 const Game = lazy(() => import('@/pages/Game').then(m => ({ default: m.Game })));
 const Town = lazy(() => import('@/pages/Town'));
-const Location = lazy(() => import('@/pages/Location').then(m => ({ default: m.Location })));
+const Location = lazy(() => import('@/pages/location/LocationHub').then(m => ({ default: m.LocationHub })));
 // Actions page removed - Phase 7: Location-Specific Actions
 // const Actions = lazy(() => import('@/pages/Actions').then(m => ({ default: m.Actions })));
 const ActionChallenge = lazy(() => import('@/pages/ActionChallenge').then(m => ({ default: m.ActionChallenge })));
@@ -87,6 +88,17 @@ const Entertainers = lazy(() => import('@/pages/EntertainersPage').then(m => ({ 
 const HorseRacing = lazy(() => import('@/pages/HorseRacing').then(m => ({ default: m.HorseRacing })));
 const ShootingContest = lazy(() => import('@/pages/ShootingContest').then(m => ({ default: m.ShootingContest })));
 const Gambling = lazy(() => import('@/pages/Gambling').then(m => ({ default: m.Gambling })));
+
+// Gambling decomposed pages
+const GamblingHub = lazy(() => import('@/pages/gambling/GamblingHub').then(m => ({ default: m.GamblingHub })));
+const GamblingHistory = lazy(() => import('@/pages/gambling/GamblingHistory').then(m => ({ default: m.GamblingHistory })));
+const GamblingLeaderboard = lazy(() => import('@/pages/gambling/GamblingLeaderboard').then(m => ({ default: m.GamblingLeaderboard })));
+const Blackjack = lazy(() => import('@/pages/gambling/Blackjack').then(m => ({ default: m.Blackjack })));
+const Roulette = lazy(() => import('@/pages/gambling/Roulette').then(m => ({ default: m.Roulette })));
+const Craps = lazy(() => import('@/pages/gambling/Craps').then(m => ({ default: m.Craps })));
+const Faro = lazy(() => import('@/pages/gambling/Faro').then(m => ({ default: m.Faro })));
+const ThreeCardMonte = lazy(() => import('@/pages/gambling/ThreeCardMonte').then(m => ({ default: m.ThreeCardMonte })));
+const WheelOfFortune = lazy(() => import('@/pages/gambling/WheelOfFortune').then(m => ({ default: m.WheelOfFortune })));
 const PropertyListings = lazy(() => import('@/pages/PropertyListingsPage').then(m => ({ default: m.PropertyListingsPage })));
 const MyProperties = lazy(() => import('@/pages/MyPropertiesPage').then(m => ({ default: m.MyPropertiesPage })));
 const NPCGangConflict = lazy(() => import('@/pages/NPCGangConflictPage').then(m => ({ default: m.NPCGangConflictPage })));
@@ -110,6 +122,11 @@ const Stagecoach = lazy(() => import('@/pages/Stagecoach').then(m => ({ default:
 const StagecoachAmbush = lazy(() => import('@/pages/StagecoachAmbush').then(m => ({ default: m.StagecoachAmbush })));
 const WorldMap = lazy(() => import('@/pages/WorldMap').then(m => ({ default: m.WorldMap })));
 const TeamCardGame = lazy(() => import('@/pages/TeamCardGame').then(m => ({ default: m.TeamCardGame })));
+const Heists = lazy(() => import('@/pages/Heists').then(m => ({ default: m.Heists })));
+const Raids = lazy(() => import('@/pages/Raids').then(m => ({ default: m.Raids })));
+const Expeditions = lazy(() => import('@/pages/Expeditions').then(m => ({ default: m.Expeditions })));
+const BountyHunting = lazy(() => import('@/pages/BountyHunting').then(m => ({ default: m.BountyHunting })));
+const LegendaryHunts = lazy(() => import('@/pages/LegendaryHunts').then(m => ({ default: m.LegendaryHunts })));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const ArtAssetDashboard = lazy(() => import('@/pages/admin/ArtAssetDashboard').then(m => ({ default: m.ArtAssetDashboard })));
 const StatusDashboard = lazy(() => import('@/pages/StatusDashboard').then(m => ({ default: m.StatusDashboard })));
@@ -246,7 +263,11 @@ function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<Location />} />
+                <Route index element={
+                <ErrorBoundary fallback={<PageErrorFallback pageName="Location" />}>
+                  <Location />
+                </ErrorBoundary>
+              } />
                 <Route path="dashboard" element={
                   <ErrorBoundary fallback={<GameErrorFallback />}>
                     <Game />
@@ -257,16 +278,28 @@ function App() {
                     <Town />
                   </ErrorBoundary>
                 } />
-                <Route path="location" element={<Location />} />
+                <Route path="location" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Location" />}>
+                    <Location />
+                  </ErrorBoundary>
+                } />
                 {/* Actions page removed - redirects to Location (Phase 7: Location-Specific Actions) */}
                 <Route path="actions" element={<Navigate to="/game/location" replace />} />
-                <Route path="action-challenge" element={<ActionChallenge />} />
+                <Route path="action-challenge" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Action Challenge" />}>
+                    <ActionChallenge />
+                  </ErrorBoundary>
+                } />
                 <Route path="skills" element={
                   <ErrorBoundary fallback={<SkillsErrorFallback />}>
                     <Skills />
                   </ErrorBoundary>
                 } />
-                <Route path="academy" element={<SkillAcademy />} />
+                <Route path="academy" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Skill Academy" />}>
+                    <SkillAcademy />
+                  </ErrorBoundary>
+                } />
                 <Route path="stats" element={
                   <ErrorBoundary fallback={<StatsErrorFallback />}>
                     <Stats />
@@ -279,25 +312,41 @@ function App() {
                     <Crimes />
                   </ErrorBoundary>
                 } />
-                <Route path="territory" element={<Territory />} />
+                <Route path="territory" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Territory" />}>
+                    <Territory />
+                  </ErrorBoundary>
+                } />
                 <Route path="gang" element={
                   <ErrorBoundary fallback={<GangErrorFallback />}>
                     <Gang />
                   </ErrorBoundary>
                 } />
-                <Route path="leaderboard" element={<Leaderboard />} />
+                <Route path="leaderboard" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Leaderboard" />}>
+                    <Leaderboard />
+                  </ErrorBoundary>
+                } />
                 <Route path="mail" element={
                   <ErrorBoundary fallback={<MailErrorFallback />}>
                     <Mail />
                   </ErrorBoundary>
                 } />
-                <Route path="friends" element={<Friends />} />
+                <Route path="friends" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Friends" />}>
+                    <Friends />
+                  </ErrorBoundary>
+                } />
                 <Route path="inventory" element={
                   <ErrorBoundary fallback={<InventoryErrorFallback />}>
                     <Inventory />
                   </ErrorBoundary>
                 } />
-                <Route path="notifications" element={<Notifications />} />
+                <Route path="notifications" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Notifications" />}>
+                    <Notifications />
+                  </ErrorBoundary>
+                } />
                 <Route path="profile/:name" element={
                   <ErrorBoundary fallback={<ProfileErrorFallback />}>
                     <Profile />
@@ -308,35 +357,158 @@ function App() {
                     <Settings />
                   </ErrorBoundary>
                 } />
-                <Route path="settings/2fa-setup" element={<TwoFactorSetup />} />
+                <Route path="settings/2fa-setup" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="2FA Setup" />}>
+                    <TwoFactorSetup />
+                  </ErrorBoundary>
+                } />
                 <Route path="shop" element={
                   <ErrorBoundary fallback={<ShopErrorFallback />}>
                     <Shop />
                   </ErrorBoundary>
                 } />
-                <Route path="deck-guide" element={<DeckGuide />} />
-                <Route path="quests" element={<QuestLog />} />
-                <Route path="help" element={<Help />} />
-                <Route path="achievements" element={<Achievements />} />
-                <Route path="prestige" element={<Prestige />} />
-                <Route path="tutorial" element={<Tutorial />} />
-                <Route path="merchants" element={<Merchants />} />
-                <Route path="entertainers" element={<Entertainers />} />
-                <Route path="horse-racing" element={<HorseRacing />} />
-                <Route path="shooting-contest" element={<ShootingContest />} />
-                <Route path="gambling" element={<Gambling />} />
-                <Route path="property-listings" element={<PropertyListings />} />
+                <Route path="deck-guide" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Deck Guide" />}>
+                    <DeckGuide />
+                  </ErrorBoundary>
+                } />
+                <Route path="quests" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Quest Log" />}>
+                    <QuestLog />
+                  </ErrorBoundary>
+                } />
+                <Route path="help" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Help" />}>
+                    <Help />
+                  </ErrorBoundary>
+                } />
+                <Route path="achievements" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Achievements" />}>
+                    <Achievements />
+                  </ErrorBoundary>
+                } />
+                <Route path="prestige" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Prestige" />}>
+                    <Prestige />
+                  </ErrorBoundary>
+                } />
+                <Route path="tutorial" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Tutorial" />}>
+                    <Tutorial />
+                  </ErrorBoundary>
+                } />
+                <Route path="merchants" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Merchants" />}>
+                    <Merchants />
+                  </ErrorBoundary>
+                } />
+                <Route path="entertainers" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Entertainers" />}>
+                    <Entertainers />
+                  </ErrorBoundary>
+                } />
+                <Route path="horse-racing" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Horse Racing" />}>
+                    <HorseRacing />
+                  </ErrorBoundary>
+                } />
+                <Route path="shooting-contest" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Shooting Contest" />}>
+                    <ShootingContest />
+                  </ErrorBoundary>
+                } />
+                {/* Gambling routes - decomposed pages */}
+                <Route path="gambling" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Gambling" />}>
+                    <GamblingHub />
+                  </ErrorBoundary>
+                } />
+                <Route path="gambling/blackjack" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Blackjack" />}>
+                    <Blackjack />
+                  </ErrorBoundary>
+                } />
+                <Route path="gambling/roulette" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Roulette" />}>
+                    <Roulette />
+                  </ErrorBoundary>
+                } />
+                <Route path="gambling/craps" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Craps" />}>
+                    <Craps />
+                  </ErrorBoundary>
+                } />
+                <Route path="gambling/faro" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Faro" />}>
+                    <Faro />
+                  </ErrorBoundary>
+                } />
+                <Route path="gambling/three-card-monte" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Three Card Monte" />}>
+                    <ThreeCardMonte />
+                  </ErrorBoundary>
+                } />
+                <Route path="gambling/wheel-of-fortune" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Wheel of Fortune" />}>
+                    <WheelOfFortune />
+                  </ErrorBoundary>
+                } />
+                <Route path="gambling/history" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Gambling History" />}>
+                    <GamblingHistory />
+                  </ErrorBoundary>
+                } />
+                <Route path="gambling/leaderboard" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Gambling Leaderboard" />}>
+                    <GamblingLeaderboard />
+                  </ErrorBoundary>
+                } />
+                {/* Legacy route - redirect to new hub */}
+                <Route path="gambling-old" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Gambling" />}>
+                    <Gambling />
+                  </ErrorBoundary>
+                } />
+                <Route path="property-listings" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Property Listings" />}>
+                    <PropertyListings />
+                  </ErrorBoundary>
+                } />
                 <Route path="properties" element={
                   <ErrorBoundary fallback={<PropertiesErrorFallback />}>
                     <MyProperties />
                   </ErrorBoundary>
                 } />
-                <Route path="npc-gangs" element={<NPCGangConflict />} />
-                <Route path="mentors" element={<MentorTraining />} />
-                <Route path="daily-rewards" element={<LoginRewards />} />
-                <Route path="contracts" element={<DailyContracts />} />
-                <Route path="star-map" element={<StarMap />} />
-                <Route path="zodiac-calendar" element={<ZodiacCalendar />} />
+                <Route path="npc-gangs" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="NPC Gangs" />}>
+                    <NPCGangConflict />
+                  </ErrorBoundary>
+                } />
+                <Route path="mentors" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Mentors" />}>
+                    <MentorTraining />
+                  </ErrorBoundary>
+                } />
+                <Route path="daily-rewards" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Login Rewards" />}>
+                    <LoginRewards />
+                  </ErrorBoundary>
+                } />
+                <Route path="contracts" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Daily Contracts" />}>
+                    <DailyContracts />
+                  </ErrorBoundary>
+                } />
+                <Route path="star-map" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Star Map" />}>
+                    <StarMap />
+                  </ErrorBoundary>
+                } />
+                <Route path="zodiac-calendar" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Zodiac Calendar" />}>
+                    <ZodiacCalendar />
+                  </ErrorBoundary>
+                } />
                 <Route path="marketplace" element={
                   <ErrorBoundary fallback={<MarketplaceErrorFallback />}>
                     <Marketplace />
@@ -377,13 +549,66 @@ function App() {
                     <Duel />
                   </ErrorBoundary>
                 } />
-                <Route path="duel/:duelId" element={<DuelArena />} />
-                <Route path="train" element={<Train />} />
-                <Route path="train-robbery" element={<TrainRobbery />} />
-                <Route path="stagecoach" element={<Stagecoach />} />
-                <Route path="stagecoach-ambush" element={<StagecoachAmbush />} />
-                <Route path="world-map" element={<WorldMap />} />
-                <Route path="card-games" element={<TeamCardGame />} />
+                <Route path="duel/:duelId" element={
+                  <ErrorBoundary fallback={<DuelErrorFallback />}>
+                    <DuelArena />
+                  </ErrorBoundary>
+                } />
+                <Route path="train" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Train" />}>
+                    <Train />
+                  </ErrorBoundary>
+                } />
+                <Route path="train-robbery" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Train Robbery" />}>
+                    <TrainRobbery />
+                  </ErrorBoundary>
+                } />
+                <Route path="stagecoach" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Stagecoach" />}>
+                    <Stagecoach />
+                  </ErrorBoundary>
+                } />
+                <Route path="stagecoach-ambush" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Stagecoach Ambush" />}>
+                    <StagecoachAmbush />
+                  </ErrorBoundary>
+                } />
+                <Route path="world-map" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="World Map" />}>
+                    <WorldMap />
+                  </ErrorBoundary>
+                } />
+                <Route path="card-games" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Card Games" />}>
+                    <TeamCardGame />
+                  </ErrorBoundary>
+                } />
+                <Route path="heists" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Heists" />}>
+                    <Heists />
+                  </ErrorBoundary>
+                } />
+                <Route path="raids" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Raids" />}>
+                    <Raids />
+                  </ErrorBoundary>
+                } />
+                <Route path="expeditions" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Expeditions" />}>
+                    <Expeditions />
+                  </ErrorBoundary>
+                } />
+                <Route path="bounty-hunting" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Bounty Hunting" />}>
+                    <BountyHunting />
+                  </ErrorBoundary>
+                } />
+                <Route path="legendary-hunts" element={
+                  <ErrorBoundary fallback={<PageErrorFallback pageName="Legendary Hunts" />}>
+                    <LegendaryHunts />
+                  </ErrorBoundary>
+                } />
               </Route>
 
               {/* Character Selection - Standalone Protected Route */}

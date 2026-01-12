@@ -4,6 +4,7 @@
  */
 
 import type { WorldZoneType } from '../constants/zones.constants';
+import { CraftingFacilityType } from './crafting.types';
 
 /**
  * Region types in the game world
@@ -150,6 +151,34 @@ export interface LocationShop {
 }
 
 /**
+ * Crafting facility available at a location
+ */
+export interface LocationCraftingFacility {
+  type: CraftingFacilityType;
+  tier: 1 | 2 | 3 | 4 | 5;
+  name: string;
+  usageFee?: number; // Gold cost to use facility
+  requirements?: {
+    faction?: string;
+    factionStanding?: 'hostile' | 'unfriendly' | 'neutral' | 'friendly' | 'honored';
+    minLevel?: number;
+  };
+}
+
+/**
+ * Gathering node available at a location
+ */
+export interface LocationGatheringNode {
+  nodeId: string; // References a gathering node definition
+  abundance: 'scarce' | 'common' | 'abundant';
+  isHidden?: boolean; // Requires discovery
+  requirements?: {
+    minSkillLevel?: number;
+    skillId?: string;
+  };
+}
+
+/**
  * Job category determines which deck game type is used
  */
 export type JobCategory = 'labor' | 'skilled' | 'dangerous' | 'social';
@@ -240,6 +269,12 @@ export interface Location {
   // Shops at this location
   shops: LocationShop[];
 
+  // Crafting facilities at this location
+  craftingFacilities?: LocationCraftingFacility[];
+
+  // Gathering nodes at this location
+  gatheringNodes?: LocationGatheringNode[];
+
   // NPCs present
   npcs: LocationNPC[];
 
@@ -257,6 +292,9 @@ export interface Location {
   // Location state
   isUnlocked: boolean;
   isHidden: boolean;
+
+  // Map display position (x, y coordinates for travel map)
+  mapPosition?: { x: number; y: number };
 
   // Metadata
   createdAt: Date;

@@ -12,12 +12,14 @@ import { logger } from '@/services/logger.service';
 import { DeckGame, GameState, DeckGameResult, ActionResult } from '@/components/game/deckgames/DeckGame';
 import { dispatchJobCompleted } from '@/utils/tutorialEvents';
 import { actionService } from '@/services/action.service';
-import { ActionModal, CombatModal } from '@/components/location';
+import { npcService } from '@/services/npc.service';
+import { skillTrainingService, type TrainingResult, type ActivitiesResponse } from '@/services/skillTraining.service';
+import { ActionModal, CombatModal, TravelPanel, LocationActivityTabs, type ActivityTab } from '@/components/location';
 import { TavernTables } from '@/components/tavern';
 import { LocationGraveyard } from '@/components/location/LocationGraveyard';
 import { SaloonLocationView } from '@/components/saloon';
 import { DeathRiskIndicator } from '@/components/danger/DeathRiskIndicator';
-import type { Action, NPC } from '@desperados/shared';
+import type { Action, NPC, Location as SharedLocation } from '@desperados/shared';
 
 interface LocationJob {
   id: string;
@@ -198,6 +200,9 @@ export const Location: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Activity tab state
+  const [activeTab, setActiveTab] = useState<ActivityTab>('overview');
+
   // Job state
   const [performingJob, setPerformingJob] = useState<string | null>(null);
   const [jobResult, setJobResult] = useState<any>(null);
@@ -242,6 +247,7 @@ export const Location: React.FC = () => {
 
   // Zone travel state
   const [zoneTravelOptions, setZoneTravelOptions] = useState<ZoneTravelOptions | null>(null);
+  const [allLocations, setAllLocations] = useState<SharedLocation[]>([]);
 
   // Action Modal state
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
@@ -250,6 +256,12 @@ export const Location: React.FC = () => {
   const [selectedCombatNPC, setSelectedCombatNPC] = useState<NPC | null>(null);
   const [hostileNPCs, setHostileNPCs] = useState<NPC[]>([]);
   const [hostilesLoading, setHostilesLoading] = useState(false);
+
+  // Training Activities state (Academy)
+  const [trainingData, setTrainingData] = useState<ActivitiesResponse | null>(null);
+  const [trainingLoading, setTrainingLoading] = useState(false);
+  const [performingTraining, setPerformingTraining] = useState<string | null>(null);
+  const [trainingResult, setTrainingResult] = useState<TrainingResult | null>(null);
 
   // Fetch current location
   const fetchLocation = async () => {
@@ -265,8 +277,13 @@ export const Location: React.FC = () => {
         fetchCrimes(locationData._id);
         fetchBuildings(locationData._id);
         fetchZoneTravelOptions();
+        fetchAllLocations(); // Fetch all locations for travel map
         fetchLocationActions(); // Phase 7: Location-specific actions
         fetchHostileNPCs(); // Hostile NPCs for combat
+        // Fetch training activities if at the Academy
+        if (locationData.type === 'skill_academy') {
+          fetchTrainingActivities();
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load location');
@@ -340,6 +357,19 @@ export const Location: React.FC = () => {
     }
   };
 
+  // Fetch all locations for the travel map
+  const fetchAllLocations = async () => {
+    try {
+      const response = await api.get('/locations');
+      if (response.data.success && response.data.data?.locations) {
+        setAllLocations(response.data.data.locations);
+      }
+    } catch (err: any) {
+      logger.error('Failed to fetch all locations', err);
+      setAllLocations([]);
+    }
+  };
+
   // Fetch hostile NPCs for this location
   const fetchHostileNPCs = async () => {
     try {
@@ -353,6 +383,55 @@ export const Location: React.FC = () => {
       setHostileNPCs([]);
     } finally {
       setHostilesLoading(false);
+    }
+  };
+
+  // Fetch training activities (Academy)
+  const fetchTrainingActivities = async () => {
+    try {
+      setTrainingLoading(true);
+      const data = await skillTrainingService.getActivities('skill_academy');
+      setTrainingData(data);
+    } catch (err: any) {
+      logger.error('Failed to fetch training activities', err);
+      setTrainingData(null);
+    } finally {
+      setTrainingLoading(false);
+    }
+  };
+
+  // Handle performing a training activity
+  const handlePerformTraining = async (activityId: string) => {
+    try {
+      setPerformingTraining(activityId);
+      setTrainingResult(null);
+      const result = await skillTrainingService.performTraining(activityId);
+      setTrainingResult(result);
+      // Refresh character to show updated energy/XP
+      await refreshCharacter();
+      // Refresh training data to update cooldowns
+      await fetchTrainingActivities();
+    } catch (err: any) {
+      logger.error('Failed to perform training', err);
+      setTrainingResult({
+        success: false,
+        message: err.response?.data?.error || 'Training failed',
+        activityId,
+        activityName: '',
+        skillId: '',
+        skillName: '',
+        resultCategory: 'failure',
+        skillRoll: 0,
+        difficultyClass: 0,
+        isCritical: false,
+        skillXpGained: 0,
+        characterXpGained: 0,
+        goldGained: 0,
+        cooldownEndsAt: '',
+        energySpent: 0,
+      });
+    } finally {
+      setPerformingTraining(null);
     }
   };
 
@@ -385,6 +464,17 @@ export const Location: React.FC = () => {
       fetchLocation();
     }
   }, [currentCharacter]);
+
+  // Trigger NPC interaction API when an NPC is selected
+  // This updates quest progress for 'visit' type objectives
+  useEffect(() => {
+    if (selectedNPC && location?._id) {
+      npcService.interactWithNPC(selectedNPC.id).catch((err) => {
+        // Silently handle - low energy or other errors shouldn't block modal
+        logger.debug('NPC interaction failed (possibly low energy)', { error: err.message });
+      });
+    }
+  }, [selectedNPC, location?._id]);
 
   // Start a job with deck game
   const handlePerformJob = async (jobId: string) => {
@@ -627,6 +717,23 @@ export const Location: React.FC = () => {
       </Card>
       )}
 
+      {/* Activity Tabs - Unified navigation for location activities */}
+      {!isSaloonLocation(location.type) && (
+        <LocationActivityTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          availableTabs={{
+            hasJobs: !isParentTown && location.jobs.length > 0,
+            hasCrimes: !isParentTown && (crimes.length > 0 || (locationActions?.crimes.length ?? 0) > 0),
+            hasTraining: location.type === 'skill_academy',
+            hasCrafting: (locationActions?.craft.length ?? 0) > 0,
+            hasGathering: false, // Will be enabled when gathering nodes are added to locations
+            hasShops: !isParentTown && location.shops.length > 0,
+            hasTravel: !!(zoneTravelOptions || (location.connectedLocations && location.connectedLocations.length > 0)),
+          }}
+        />
+      )}
+
       {/* Buildings Section */}
       {buildings.length > 0 && (
         <Card className="p-6">
@@ -725,7 +832,8 @@ export const Location: React.FC = () => {
       )}
 
       {/* Location-Specific Actions Section (Phase 7) - Hidden for saloon locations */}
-      {locationActions && !isSaloonLocation(location.type) && (
+      {locationActions && !isSaloonLocation(location.type) &&
+       (activeTab === 'overview' || activeTab === 'crimes' || activeTab === 'craft') && (
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-amber-400">Available Actions</h2>
@@ -965,7 +1073,8 @@ export const Location: React.FC = () => {
       )}
 
       {/* Jobs Section - Only show when inside a building, not in parent town, hidden for saloons */}
-      {!isParentTown && !isSaloonLocation(location.type) && location.jobs.length > 0 && (
+      {!isParentTown && !isSaloonLocation(location.type) && location.jobs.length > 0 &&
+       (activeTab === 'overview' || activeTab === 'jobs') && (
         <Card className="p-6">
           <h2 className="text-xl font-bold text-amber-400 mb-4">💼 Available Jobs</h2>
 
@@ -1015,7 +1124,8 @@ export const Location: React.FC = () => {
       )}
 
       {/* Crimes Section - Only show when inside a building, not in parent town, hidden for saloons */}
-      {!isParentTown && !isSaloonLocation(location.type) && crimes.length > 0 && (
+      {!isParentTown && !isSaloonLocation(location.type) && crimes.length > 0 &&
+       (activeTab === 'overview' || activeTab === 'crimes') && (
         <Card className="p-6">
           <h2 className="text-xl font-bold text-red-400 mb-4">🔫 Criminal Opportunities</h2>
 
@@ -1074,7 +1184,8 @@ export const Location: React.FC = () => {
       )}
 
       {/* Shops Section - Only show when inside a building, not in parent town, hidden for saloons */}
-      {!isParentTown && !isSaloonLocation(location.type) && location.shops.length > 0 && (
+      {!isParentTown && !isSaloonLocation(location.type) && location.shops.length > 0 &&
+       (activeTab === 'overview' || activeTab === 'shop') && (
         <Card className="p-6">
           <h2 className="text-xl font-bold text-amber-400 mb-4">🏪 Shops</h2>
 
@@ -1160,6 +1271,115 @@ export const Location: React.FC = () => {
         </Card>
       )}
 
+      {/* Training Activities Section - Academy */}
+      {location.type === 'skill_academy' &&
+       (activeTab === 'overview' || activeTab === 'train') && (
+        <Card className="p-6">
+          <h2 className="text-xl font-bold text-green-400 mb-4">🎓 Training Activities</h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Practice your skills at the Academy. Each activity costs energy and awards XP.
+          </p>
+
+          {/* Training Result */}
+          {trainingResult && (
+            <div className={`mb-4 p-4 rounded-lg border ${
+              trainingResult.success
+                ? 'bg-green-900/30 border-green-700'
+                : 'bg-red-900/30 border-red-700'
+            }`}>
+              <p className={trainingResult.success ? 'text-green-300' : 'text-red-300'}>
+                {trainingResult.message}
+              </p>
+              {trainingResult.success && (
+                <div className="mt-2 flex gap-4 text-sm">
+                  <span className="text-purple-400">+{trainingResult.skillXpGained} Skill XP</span>
+                  <span className="text-blue-400">+{trainingResult.characterXpGained} Character XP</span>
+                  {trainingResult.goldGained > 0 && (
+                    <span className="text-yellow-400">+{trainingResult.goldGained} Gold</span>
+                  )}
+                </div>
+              )}
+              {trainingResult.skillLevelUp && (
+                <p className="mt-2 text-green-400 font-semibold">
+                  Level Up! {trainingResult.skillName}: {trainingResult.skillLevelUp.oldLevel} → {trainingResult.skillLevelUp.newLevel}
+                </p>
+              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                className="mt-2"
+                onClick={() => setTrainingResult(null)}
+              >
+                Dismiss
+              </Button>
+            </div>
+          )}
+
+          {trainingLoading ? (
+            <div className="text-center py-4">
+              <LoadingSpinner size="sm" />
+            </div>
+          ) : trainingData?.available && trainingData.available.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {trainingData.available.map(activity => {
+                const cooldown = trainingData.cooldowns.find(c => c.activityId === activity.id);
+                const isOnCooldown = cooldown && cooldown.remainingSeconds > 0;
+                const isPerforming = performingTraining === activity.id;
+
+                return (
+                  <div
+                    key={activity.id}
+                    className={`p-4 rounded-lg border ${
+                      isOnCooldown
+                        ? 'bg-gray-800/30 border-gray-700 opacity-60'
+                        : 'bg-gradient-to-br from-green-900/30 to-gray-800/50 border-green-700/50 hover:border-green-500'
+                    } transition-colors`}
+                  >
+                    <h3 className="font-semibold text-green-200">{activity.name}</h3>
+                    <p className="text-xs text-gray-400 mt-1 line-clamp-2">{activity.description}</p>
+
+                    <div className="mt-2 flex items-center gap-2 text-xs">
+                      <span className="text-yellow-400">⚡ {activity.energyCost}</span>
+                      <span className="text-purple-400">+{activity.baseSkillXP} XP</span>
+                      <span className={`px-1 rounded ${
+                        activity.riskLevel === 'safe' ? 'bg-green-800/50 text-green-300' :
+                        activity.riskLevel === 'low' ? 'bg-blue-800/50 text-blue-300' :
+                        activity.riskLevel === 'medium' ? 'bg-yellow-800/50 text-yellow-300' :
+                        'bg-red-800/50 text-red-300'
+                      }`}>
+                        {activity.riskLevel}
+                      </span>
+                    </div>
+
+                    <div className="mt-3">
+                      {isOnCooldown ? (
+                        <span className="text-xs text-gray-500">
+                          Cooldown: {Math.ceil(cooldown.remainingSeconds / 60)}m
+                        </span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="bg-green-900/50 hover:bg-green-800/50 border-green-700"
+                          onClick={() => handlePerformTraining(activity.id)}
+                          disabled={isPerforming}
+                        >
+                          {isPerforming ? 'Training...' : 'Practice'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">
+              No training activities available at your level.
+            </p>
+          )}
+        </Card>
+      )}
+
       {/* Hostile NPCs Section */}
       {hostileNPCs.length > 0 && (
         <Card className="p-6">
@@ -1234,148 +1454,17 @@ export const Location: React.FC = () => {
         />
       )}
 
-      {/* Zone-Aware Travel Section */}
-      {zoneTravelOptions && (zoneTravelOptions.localConnections.length > 0 || zoneTravelOptions.zoneExits.length > 0) && (
-        <Card className="p-6">
-          {/* Zone Header */}
-          {zoneTravelOptions.zoneInfo && (
-            <div className="mb-4 p-3 bg-gradient-to-r from-gray-800/50 to-gray-700/50 rounded-lg border border-gray-600">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{zoneTravelOptions.zoneInfo.icon}</span>
-                <div>
-                  <p className="text-sm text-gray-400">Current Zone</p>
-                  <h3 className="font-bold text-amber-200">{zoneTravelOptions.zoneInfo.name}</h3>
-                </div>
-              </div>
-              <p className="text-xs text-gray-400 mt-2">{zoneTravelOptions.zoneInfo.description}</p>
-            </div>
-          )}
-
-          {/* Local Connections (same zone) */}
-          {zoneTravelOptions.localConnections.length > 0 && (
-            <>
-              <h2 className="text-xl font-bold text-amber-400 mb-4">🗺️ Nearby Locations</h2>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
-                {zoneTravelOptions.localConnections.map(dest => {
-                  const connection = location.connections.find(c => c.targetLocationId === dest._id);
-                  const energyCost = connection?.energyCost || 10;
-                  return (
-                    <div
-                      key={dest._id}
-                      className="p-4 bg-gray-800/50 rounded-lg border border-gray-700"
-                      data-testid={`travel-destination-${dest._id}`}
-                      data-location-name={dest.name}
-                      data-location-type={dest.type}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{dest.icon || '📍'}</span>
-                        <div>
-                          <h3 className="font-semibold text-amber-300">{dest.name}</h3>
-                          <p className="text-xs text-gray-500">{dest.shortDescription}</p>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <span className="text-sm text-blue-400">⚡ {energyCost} energy</span>
-                        <Button
-                          size="sm"
-                          onClick={() => handleTravel(dest._id)}
-                          disabled={travelingTo === dest._id || (currentCharacter?.energy || 0) < energyCost}
-                          data-testid={`travel-button-${dest._id}`}
-                        >
-                          {travelingTo === dest._id ? 'Traveling...' : 'Go'}
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {/* Zone Exits (to other zones) */}
-          {zoneTravelOptions.zoneExits.length > 0 && (
-            <>
-              <h2 className="text-xl font-bold text-purple-400 mb-4">🌐 Travel to Other Zones</h2>
-              <p className="text-sm text-gray-400 mb-4">
-                Journey to major hubs in distant territories. Longer travel, but opens new opportunities.
-              </p>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {zoneTravelOptions.zoneExits.map(exit => (
-                  <div
-                    key={exit.hub._id}
-                    className="p-4 bg-gradient-to-br from-purple-900/30 to-indigo-900/30 rounded-lg border border-purple-700/50"
-                    data-testid={`zone-exit-${exit.hub._id}`}
-                    data-zone={exit.zone}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-2xl">{exit.hub.icon || '🏛️'}</span>
-                      <div>
-                        <h3 className="font-semibold text-purple-200">{exit.hub.name}</h3>
-                        <p className="text-xs text-purple-400 capitalize">
-                          {exit.zone.replace(/_/g, ' ')}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-400 mb-3">{exit.hub.shortDescription}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-blue-400">⚡ {exit.energyCost} energy</span>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="bg-purple-900/50 hover:bg-purple-800/50 border-purple-700"
-                        onClick={() => handleTravel(exit.hub._id)}
-                        disabled={travelingTo === exit.hub._id || (currentCharacter?.energy || 0) < exit.energyCost}
-                      >
-                        {travelingTo === exit.hub._id ? 'Traveling...' : 'Journey'}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </Card>
-      )}
-
-      {/* Fallback: Original Travel Section (if zone travel fails) */}
-      {!zoneTravelOptions && location.connectedLocations && location.connectedLocations.length > 0 && (
-        <Card className="p-6">
-          <h2 className="text-xl font-bold text-amber-400 mb-4">🗺️ Travel</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {location.connectedLocations.map(dest => {
-              const connection = location.connections.find(c => c.targetLocationId === dest._id);
-              const energyCost = connection?.energyCost || 10;
-              return (
-                <div
-                  key={dest._id}
-                  className="p-4 bg-gray-800/50 rounded-lg border border-gray-700"
-                  data-testid={`travel-destination-${dest._id}`}
-                  data-location-name={dest.name}
-                  data-location-type={dest.type}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{dest.icon || '📍'}</span>
-                    <div>
-                      <h3 className="font-semibold text-amber-300">{dest.name}</h3>
-                      <p className="text-xs text-gray-500">{dest.shortDescription}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="text-sm text-blue-400">⚡ {energyCost} energy</span>
-                    <Button
-                      size="sm"
-                      onClick={() => handleTravel(dest._id)}
-                      disabled={travelingTo === dest._id || (currentCharacter?.energy || 0) < energyCost}
-                      data-testid={`travel-button-${dest._id}`}
-                    >
-                      {travelingTo === dest._id ? 'Traveling...' : 'Go'}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
+      {/* Travel Section with Map Toggle */}
+      {(zoneTravelOptions || (location.connectedLocations && location.connectedLocations.length > 0)) &&
+       (activeTab === 'overview' || activeTab === 'travel') && (
+        <TravelPanel
+          location={location}
+          zoneTravelOptions={zoneTravelOptions}
+          allLocations={allLocations}
+          playerEnergy={currentCharacter?.energy || 0}
+          travelingTo={travelingTo}
+          onTravel={handleTravel}
+        />
       )}
 
       {/* Shop Modal */}
@@ -1408,7 +1497,7 @@ export const Location: React.FC = () => {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-yellow-400 font-semibold">{item.price}g</p>
+                    <p className="text-yellow-400 font-semibold">${item.price}</p>
                     <Button
                       size="sm"
                       onClick={() => handlePurchase(selectedShop.id, item.itemId)}
