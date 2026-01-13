@@ -190,7 +190,8 @@ export class ShopService {
       };
 
       const characterUpdate = {
-        $inc: { dollars: -totalCost, gold: -totalCost }, // Update both for legacy sync
+        // Only update dollars - gold field is deprecated and may be out of sync
+        $inc: { dollars: -totalCost },
         $push: {
           inventory: {
             itemId: item.itemId,

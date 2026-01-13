@@ -167,7 +167,8 @@ export class DollarService {
           ]
         },
         {
-          $inc: { dollars: modifiedAmount, gold: modifiedAmount }
+          // Only update dollars - gold field is deprecated and may be out of sync
+          $inc: { dollars: modifiedAmount }
         },
         {
           new: true,
@@ -292,7 +293,8 @@ export class DollarService {
           ]
         },
         {
-          $inc: { dollars: -amount, gold: -amount }
+          // Only update dollars - gold field is deprecated and may be out of sync
+          $inc: { dollars: -amount }
         },
         {
           new: true,
@@ -579,7 +581,8 @@ export class DollarService {
               ]
             },
             update: {
-              $inc: { dollars: -amount, gold: -amount }
+              // Only update dollars - gold field is deprecated
+              $inc: { dollars: -amount }
             }
           }
         },
@@ -593,7 +596,8 @@ export class DollarService {
               ]
             },
             update: {
-              $inc: { dollars: amount, gold: amount }
+              // Only update dollars - gold field is deprecated
+              $inc: { dollars: amount }
             }
           }
         }
@@ -793,7 +797,8 @@ export class DollarService {
               ]
             },
             update: {
-              $inc: { dollars: -totalAmount, gold: -totalAmount }
+              // Only update dollars - gold field is deprecated
+              $inc: { dollars: -totalAmount }
             }
           }
         }
@@ -812,7 +817,8 @@ export class DollarService {
               ]
             },
             update: {
-              $inc: { dollars: transfer.amount, gold: transfer.amount }
+              // Only update dollars - gold field is deprecated
+              $inc: { dollars: transfer.amount }
             }
           }
         });
@@ -984,7 +990,8 @@ export class DollarService {
     const bulkOps = validRefunds.map(refund => ({
       updateOne: {
         filter: { _id: new mongoose.Types.ObjectId(refund.characterId) },
-        update: { $inc: { dollars: refund.amount, gold: refund.amount } }
+        // Only update dollars - gold field is deprecated
+        update: { $inc: { dollars: refund.amount } }
       }
     }));
 
@@ -1120,7 +1127,8 @@ export class DollarService {
           ]
         },
         {
-          $inc: { dollars: -taxAmount, gold: -taxAmount }
+          // Only update dollars - gold field is deprecated
+          $inc: { dollars: -taxAmount }
         },
         {
           new: true,

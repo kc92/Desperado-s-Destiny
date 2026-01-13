@@ -155,7 +155,7 @@ export function GangCreation() {
     }
 
     try {
-      await createGang(name, tag);
+      await createGang(name, tag, currentCharacter._id);
       setShowSuccessModal(true);
       setTimeout(() => navigate('/game/gang/profile'), 2000);
     } catch (error) {

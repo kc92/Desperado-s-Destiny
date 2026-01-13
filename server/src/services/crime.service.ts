@@ -671,7 +671,8 @@ export class CrimeService {
           ]
         },
         {
-          $inc: { dollars: -bailCost, gold: -bailCost },
+          // Only update dollars - gold field is deprecated and may be out of sync
+          $inc: { dollars: -bailCost },
           $set: { isJailed: false, jailedUntil: null }
         },
         { new: true }
@@ -742,8 +743,8 @@ export class CrimeService {
           },
           [
             { $set: {
+              // Only update dollars - gold field is deprecated and may be out of sync
               dollars: { $subtract: ['$dollars', dollarsCost] },
-              gold: { $subtract: ['$gold', dollarsCost] },
               wantedLevel: { $max: [0, { $subtract: ['$wantedLevel', 1] }] }
             }},
             { $set: {

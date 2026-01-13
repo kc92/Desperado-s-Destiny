@@ -28,6 +28,13 @@ export interface RewardsGained {
 }
 
 /**
+ * Game mode for action results
+ * - poker: Traditional 5-card poker hand evaluation
+ * - press_your_luck: Variable 1-10 card draw with danger tracking
+ */
+export type ActionGameMode = 'poker' | 'press_your_luck';
+
+/**
  * ActionResult document interface
  */
 export interface IActionResult extends Document {
@@ -35,9 +42,12 @@ export interface IActionResult extends Document {
   characterId: mongoose.Types.ObjectId;
   actionId: mongoose.Types.ObjectId;
 
+  // Game mode (determines validation rules)
+  gameMode: ActionGameMode;
+
   // Cards drawn and evaluation
   cardsDrawn: Card[];
-  handRank: HandRank;
+  handRank: HandRank | string; // Number for poker, string for press_your_luck
   handScore: number;
   handDescription: string;
 
@@ -104,19 +114,28 @@ const ActionResultSchema = new Schema<IActionResult>(
       required: true
       // Note: indexed via compound indexes below
     },
+    gameMode: {
+      type: String,
+      enum: ['poker', 'press_your_luck'],
+      default: 'poker'
+    },
     cardsDrawn: {
       type: [CardSchema],
       required: true,
       validate: {
-        validator: (cards: Card[]) => cards.length === 5,
-        message: 'Must draw exactly 5 cards'
+        validator: function(this: IActionResult, cards: Card[]) {
+          // press_your_luck allows 1-10 cards, poker requires exactly 5
+          if (this.gameMode === 'press_your_luck') {
+            return cards.length >= 1 && cards.length <= 10;
+          }
+          return cards.length === 5;
+        },
+        message: 'Invalid card count for game mode'
       }
     },
     handRank: {
-      type: Number,
-      required: true,
-      enum: Object.values(HandRank).filter(v => typeof v === 'number'),
-      message: 'Invalid hand rank'
+      type: Schema.Types.Mixed, // Number for poker, string for press_your_luck
+      required: true
     },
     handScore: {
       type: Number,
@@ -174,6 +193,7 @@ ActionResultSchema.methods.toSafeObject = function(this: IActionResult) {
     _id: this._id.toString(),
     characterId: this.characterId.toString(),
     actionId: this.actionId.toString(),
+    gameMode: this.gameMode,
     cardsDrawn: this.cardsDrawn,
     handRank: this.handRank,
     handScore: this.handScore,

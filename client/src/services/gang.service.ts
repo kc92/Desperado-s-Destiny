@@ -23,10 +23,10 @@ export const gangService = {
   /**
    * Create a new gang
    */
-  createGang: async (name: string, tag: string) => {
+  createGang: async (name: string, tag: string, characterId: string) => {
     const response = await apiClient.post<ApiResponse<{ gang: Gang }>>(
       '/gangs',
-      { name, tag }
+      { characterId, name, tag }
     );
     return response.data;
   },

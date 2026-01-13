@@ -75,9 +75,14 @@ export const GangHub: React.FC = () => {
       return;
     }
 
+    if (!currentCharacter?._id) {
+      showError('Error', 'Character not loaded');
+      return;
+    }
+
     setIsCreating(true);
     try {
-      await createGang(createForm.name, createForm.tag);
+      await createGang(createForm.name, createForm.tag, currentCharacter._id);
       setShowCreateModal(false);
       setCreateForm({ name: '', tag: '', description: '' });
       success('Success', `Gang "${createForm.name}" created!`);

@@ -316,6 +316,7 @@ export async function performChallenge(req: AuthRequest, res: Response): Promise
     const actionResult = new ActionResult({
       characterId: character._id,
       actionId: action._id,
+      gameMode: 'poker', // Traditional 5-card poker challenge
       cardsDrawn,
       handRank: handEvaluation.rank,
       handScore: handEvaluation.score,

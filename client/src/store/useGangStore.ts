@@ -67,7 +67,7 @@ interface GangStore {
   error: string | null;
 
   fetchCurrentGang: () => Promise<void>;
-  createGang: (name: string, tag: string) => Promise<Gang>;
+  createGang: (name: string, tag: string, characterId: string) => Promise<Gang>;
   fetchGangs: (filters?: GangSearchFilters) => Promise<void>;
   fetchGang: (id: string) => Promise<Gang>;
   joinGang: (gangId: string) => Promise<void>;
@@ -133,11 +133,11 @@ export const useGangStore = create<GangStore>((set, _get) => ({
     }
   },
 
-  createGang: async (name: string, tag: string) => {
+  createGang: async (name: string, tag: string, characterId: string) => {
     set({ isCreating: true, error: null });
 
     try {
-      const response = await gangService.createGang(name, tag);
+      const response = await gangService.createGang(name, tag, characterId);
 
       if (response.success && response.data) {
         const gang = response.data.gang;

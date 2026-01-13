@@ -477,9 +477,13 @@ export async function resolveActionGame(
 
   // Create action result record (only for actions, not jobs)
   if (!isJob) {
+    // Determine gameMode based on gameType for proper validation
+    const gameMode = gameState.gameType === 'pressYourLuck' ? 'press_your_luck' : 'poker';
+
     const actionResultDoc = new ActionResult({
       characterId: character._id,
       actionId: action._id,
+      gameMode,
       cardsDrawn: gameState.hand,
       handRank: gameResult.handName || 'custom',
       handScore: gameResult.score,
