@@ -321,7 +321,7 @@ export class BountyService {
           { expiresAt: null },
           { expiresAt: { $gt: new Date() } },
         ],
-      }).sort({ amount: -1 }).lean();
+      }).sort({ amount: -1 }).lean() as unknown as IBounty[];
     } catch (error) {
       logger.error('Error getting active bounties:', error);
       throw error;
@@ -620,7 +620,7 @@ export class BountyService {
       })
         .sort({ totalBounty: -1 })
         .limit(limit)
-        .lean();
+        .lean() as unknown as IWantedLevel[];
     } catch (error) {
       logger.error('Error getting most wanted:', error);
       throw error;

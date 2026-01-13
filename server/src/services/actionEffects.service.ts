@@ -584,6 +584,6 @@ export class ActionEffectsService {
   static async getAllPlayerContributions(
     characterId: mongoose.Types.ObjectId
   ): Promise<IPlayerInfluenceContribution[]> {
-    return PlayerInfluenceContribution.find({ characterId }).sort({ totalInfluenceContributed: -1 }).lean();
+    return PlayerInfluenceContribution.find({ characterId }).sort({ totalInfluenceContributed: -1 }).lean() as unknown as IPlayerInfluenceContribution[];
   }
 }

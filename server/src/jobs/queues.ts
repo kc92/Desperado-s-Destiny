@@ -13,6 +13,8 @@
 
 import Bull, { Queue, Job, JobOptions } from 'bull';
 import * as Sentry from '@sentry/node';
+import mongoose from 'mongoose';
+import { NPCGangId, AttackType } from '@desperados/shared';
 import { config } from '../config';
 import logger from '../utils/logger';
 
@@ -713,7 +715,7 @@ export async function registerProcessors(): Promise<void> {
       const npcGangMap = new Map(ALL_NPC_GANGS.map(g => [g.id, g]));
 
       // Build list of attacks to process
-      const attacksToProcess: Array<{gangId: unknown; npcGangId: string; attackType: string; npcGangName: string}> = [];
+      const attacksToProcess: Array<{gangId: mongoose.Types.ObjectId; npcGangId: NPCGangId; attackType: AttackType; npcGangName: string}> = [];
 
       for (const relationship of hostileRelationships) {
         if (!SecureRNG.chance(0.7)) continue;
@@ -723,9 +725,9 @@ export async function registerProcessors(): Promise<void> {
 
         const attackPattern = SecureRNG.select(npcGang.attackPatterns);
         attacksToProcess.push({
-          gangId: relationship.playerGangId,
-          npcGangId: npcGang.id,
-          attackType: attackPattern.type,
+          gangId: relationship.playerGangId as mongoose.Types.ObjectId,
+          npcGangId: npcGang.id as NPCGangId,
+          attackType: attackPattern.type as AttackType,
           npcGangName: npcGang.name
         });
       }
