@@ -5,10 +5,12 @@
  */
 
 import React, { useEffect, useState, useMemo } from 'react';
+import { ActionType } from '@desperados/shared';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useActionStore } from '@/store/useActionStore';
 import { useEnergyStore } from '@/store/useEnergyStore';
 import { useCrimeStore } from '@/store/useCrimeStore';
+import { useLocationStore } from '@/store/useLocationStore';
 import { WantedLevelDisplay } from '@/components/game/WantedLevelDisplay';
 import { WantedPosterModal } from '@/components/game/WantedPosterModal';
 import { CrimesList } from '@/components/game/CrimesList';
@@ -27,11 +29,28 @@ type TabType = 'crimes' | 'bounties' | 'history';
 /**
  * Main crimes interface page
  */
+// Location type display names for better UX
+const LOCATION_TYPE_DISPLAY: Record<string, { name: string; hint: string }> = {
+  saloon: { name: 'Saloon', hint: 'Pickpocketing and bar brawls available here' },
+  town_square: { name: 'Town Square', hint: 'Public crimes and pickpocketing opportunities' },
+  bank: { name: 'Bank', hint: 'High-risk heists available for skilled criminals' },
+  general_store: { name: 'General Store', hint: 'Robbery and shoplifting opportunities' },
+  mine: { name: 'Mine', hint: 'Ore theft and claim jumping' },
+  stables: { name: 'Stables', hint: 'Horse theft and rustling' },
+  train_station: { name: 'Train Station', hint: 'Train robberies and pickpocketing' },
+  hideout: { name: 'Hideout', hint: 'Gang operations and planning' },
+  camp: { name: 'Camp', hint: 'Low-risk crimes, good for beginners' },
+  wilderness: { name: 'Wilderness', hint: 'Ambushes and highway robbery' },
+  ranch: { name: 'Ranch', hint: 'Cattle rustling and property crimes' },
+  settlement: { name: 'Settlement', hint: 'Various criminal opportunities' },
+};
+
 export const Crimes: React.FC = () => {
   const { currentCharacter, refreshCharacter } = useCharacterStore();
   const { actions, fetchActions, isLoading: isActionLoading } = useActionStore();
   const { energy, applyOptimisticDeduct } = useEnergyStore();
   const { crime, loadCrimeStatus, payBail, layLow, isLoading: isCrimeLoading } = useCrimeStore();
+  const { location, fetchLocation } = useLocationStore();
   const { playSound } = useSoundEffects();
   const { error: showError, warning: showWarning } = useToast();
 
@@ -87,8 +106,9 @@ export const Crimes: React.FC = () => {
       fetchActions(currentCharacter.currentLocation);
       loadCrimeStatus?.(currentCharacter._id);
       loadBounties();
+      fetchLocation(); // Fetch location data for context header
     }
-  }, [currentCharacter, fetchActions, loadCrimeStatus]);
+  }, [currentCharacter, fetchActions, loadCrimeStatus, fetchLocation]);
 
   // Load bounties
   const loadBounties = async () => {
@@ -342,15 +362,64 @@ export const Crimes: React.FC = () => {
 
         {/* Tab Content */}
         {activeTab === 'crimes' && (
-          <CrimesList
-            actions={actions}
-            currentEnergy={currentCharacter.energy}
-            wantedLevel={crime?.wantedLevel || 0}
-            crimeMetadata={{} as any}
-            onAttempt={handleAttemptCrime}
-            isLoading={isLoading}
-            criminalSkills={criminalSkills as any}
-          />
+          <>
+            {/* Location Context Header */}
+            {location && (
+              <div className="mb-6 parchment p-4 rounded-lg border-2 border-wood-medium">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-3xl">📍</div>
+                    <div>
+                      <h3 className="text-lg font-western text-wood-dark">
+                        Crimes Available in {location.name}
+                      </h3>
+                      <p className="text-sm text-wood-medium">
+                        {LOCATION_TYPE_DISPLAY[location.type]?.hint ||
+                          `${location.type.replace(/_/g, ' ')} location - various crimes available`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {/* Danger Level */}
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-wood-grain uppercase tracking-wide">Danger</span>
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span
+                            key={i}
+                            className={`text-sm ${
+                              i < Math.ceil(location.dangerLevel / 2)
+                                ? 'text-blood-red'
+                                : 'text-desert-clay'
+                            }`}
+                          >
+                            ●
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Crime Count */}
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs text-wood-grain uppercase tracking-wide">Available</span>
+                      <span className="text-lg font-bold text-gold-dark">
+                        {actions.filter(a => a.type === ActionType.CRIME).length} Crimes
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <CrimesList
+              actions={actions}
+              currentEnergy={currentCharacter.energy}
+              wantedLevel={crime?.wantedLevel || 0}
+              crimeMetadata={{} as any}
+              onAttempt={handleAttemptCrime}
+              isLoading={isLoading}
+              criminalSkills={criminalSkills as any}
+            />
+          </>
         )}
 
         {activeTab === 'bounties' && (

@@ -502,13 +502,12 @@ export const PlayerSidebar: React.FC = () => {
       {/* Quick Links Section */}
       <QuickLinksSection mailUnread={mailUnreadCount} />
 
-      {/* Footer - Location */}
-      <div className="p-3 border-t border-wood-light/30 bg-wood-dark/50">
-        <div className="text-xs text-desert-sand/70">Current Location</div>
-        <div className="text-sm text-gold-light truncate font-bold">
-          {locationName}
-        </div>
-      </div>
+      {/* Footer - Location with Enhanced Info */}
+      <LocationFooter
+        locationName={locationName}
+        locationType={useLocationStore.getState().location?.type}
+        dangerLevel={useLocationStore.getState().location?.dangerLevel}
+      />
     </aside>
   );
 };
@@ -770,6 +769,94 @@ const EffectCard: React.FC<EffectCardProps> = ({
           Remove: {removalCondition}
         </p>
       )}
+    </div>
+  );
+};
+
+// Location Footer with enhanced info
+interface LocationFooterProps {
+  locationName: string;
+  locationType?: string;
+  dangerLevel?: number;
+}
+
+// Location type display names
+const LOCATION_TYPE_LABELS: Record<string, string> = {
+  saloon: 'Saloon',
+  town_square: 'Town Square',
+  bank: 'Bank',
+  general_store: 'General Store',
+  mine: 'Mine',
+  stables: 'Stables',
+  train_station: 'Train Station',
+  hideout: 'Hideout',
+  camp: 'Camp',
+  wilderness: 'Wilderness',
+  ranch: 'Ranch',
+  settlement: 'Settlement',
+  sheriff_office: 'Sheriff Office',
+  doctors_office: "Doctor's Office",
+  blacksmith: 'Blacksmith',
+  cave: 'Cave',
+  outpost: 'Outpost',
+  ruins: 'Ruins',
+  sacred_site: 'Sacred Site',
+  trading_post: 'Trading Post',
+  fort: 'Fort',
+  canyon: 'Canyon',
+  mesa: 'Mesa',
+  springs: 'Springs',
+  hotel: 'Hotel',
+  church: 'Church',
+  skill_academy: 'Skill Academy',
+};
+
+const LocationFooter: React.FC<LocationFooterProps> = ({
+  locationName,
+  locationType,
+  dangerLevel,
+}) => {
+  const typeLabel = locationType
+    ? LOCATION_TYPE_LABELS[locationType] || locationType.replace(/_/g, ' ')
+    : null;
+
+  return (
+    <div className="p-3 border-t border-wood-light/30 bg-wood-dark/50">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="text-xs text-desert-sand/70">Current Location</div>
+          <div className="text-sm text-gold-light truncate font-bold" title={locationName}>
+            {locationName}
+          </div>
+          {typeLabel && (
+            <div className="text-xs text-desert-sand/50 capitalize">
+              {typeLabel}
+            </div>
+          )}
+        </div>
+        {/* Danger Level Indicator */}
+        {dangerLevel !== undefined && dangerLevel > 0 && (
+          <Tooltip content={`Danger Level: ${dangerLevel}/10`}>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] text-desert-sand/50 uppercase">Danger</span>
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`text-xs ${
+                      i < Math.ceil(dangerLevel / 2)
+                        ? dangerLevel >= 8 ? 'text-red-500' : dangerLevel >= 5 ? 'text-orange-400' : 'text-yellow-400'
+                        : 'text-wood-light/30'
+                    }`}
+                  >
+                    ●
+                  </span>
+                ))}
+              </div>
+            </div>
+          </Tooltip>
+        )}
+      </div>
     </div>
   );
 };

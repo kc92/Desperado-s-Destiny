@@ -309,7 +309,7 @@ export const PressYourLuck: React.FC<PressYourLuckProps> = ({
                       : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                     }
                   `}
-                  title={`Draw a safe card (no J/Q/K) for ${safeDrawCost} gold`}
+                  title={`Draw a safe card (no J/Q/K) for $${safeDrawCost}`}
                 >
                   🛡️ Safe Draw (-${safeDrawCost})
                 </button>

@@ -270,7 +270,7 @@ export const CrimesList: React.FC<CrimesListProps> = ({
               size="sm"
               onClick={() => setRewardFilter('gold')}
             >
-              Gold
+              Dollars
             </Button>
             <Button
               variant={rewardFilter === 'xp' ? 'secondary' : 'ghost'}
@@ -349,6 +349,7 @@ export const CrimesList: React.FC<CrimesListProps> = ({
               currentEnergy={currentEnergy}
               onAttempt={onAttempt}
               crimeMetadata={crimeMetadata[action._id]}
+              criminalSkills={criminalSkills}
             />
           ))}
         </div>
@@ -399,7 +400,7 @@ export const CrimesList: React.FC<CrimesListProps> = ({
                       </div>
                       <div className="mt-2 flex items-center gap-4 text-xs text-wood-grain">
                         <span>⚡ {action.energyCost}</span>
-                        <span>💰 {action.rewards.gold || 0}</span>
+                        <span>💵 ${action.rewards.gold || 0}</span>
                         <span>✨ {action.rewards.xp} XP</span>
                       </div>
                     </div>

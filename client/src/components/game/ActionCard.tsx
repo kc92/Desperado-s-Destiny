@@ -4,8 +4,17 @@
  */
 
 import React from 'react';
-import { Action, ActionType, Suit } from '@desperados/shared';
+import { Action, ActionType, Suit, CRIMINAL_SKILLS, CriminalSkillType } from '@desperados/shared';
 import { Button } from '@/components/ui/Button';
+
+/** Character's criminal skill levels */
+interface CriminalSkillLevels {
+  pickpocketing: number;
+  burglary: number;
+  robbery: number;
+  heisting: number;
+  assassination: number;
+}
 
 interface CrimeMetadata {
   jailTimeMinutes?: number;
@@ -27,6 +36,8 @@ interface ActionCardProps {
   className?: string;
   /** Crime-specific metadata */
   crimeMetadata?: CrimeMetadata;
+  /** Character's criminal skill levels (for requirement display) */
+  criminalSkills?: CriminalSkillLevels;
 }
 
 // Map action types to icons/symbols
@@ -104,6 +115,7 @@ export const ActionCard: React.FC<ActionCardProps> = React.memo(({
   onAttempt,
   className = '',
   crimeMetadata,
+  criminalSkills,
 }) => {
   const typeIcon = ACTION_TYPE_ICONS[action.type];
   const typeGradient = ACTION_TYPE_COLORS[action.type];
@@ -117,6 +129,22 @@ export const ActionCard: React.FC<ActionCardProps> = React.memo(({
   const isCrime = action.type === ActionType.CRIME;
   const riskLevel = isCrime ? getRiskLevel(crimeMetadata) : null;
   const borderColor = riskLevel ? getRiskBorderColor(riskLevel) : 'border-leather-brown';
+
+  // Calculate skill requirement status for crimes
+  const getSkillRequirementStatus = () => {
+    if (!action.requiredCriminalSkill || !action.requiredCriminalSkillLevel) {
+      return null;
+    }
+    const skillType = action.requiredCriminalSkill as keyof CriminalSkillLevels;
+    const requiredLevel = action.requiredCriminalSkillLevel;
+    const currentLevel = criminalSkills?.[skillType] || 1;
+    const meetsRequirement = currentLevel >= requiredLevel;
+    const skillDef = CRIMINAL_SKILLS[skillType as CriminalSkillType];
+    const skillName = skillDef?.name || skillType;
+    return { skillName, requiredLevel, currentLevel, meetsRequirement };
+  };
+
+  const skillRequirement = isCrime ? getSkillRequirementStatus() : null;
 
   return (
     <div
@@ -253,8 +281,8 @@ export const ActionCard: React.FC<ActionCardProps> = React.memo(({
           </div>
           {action.rewards.gold && action.rewards.gold > 0 && (
             <div className="flex items-center gap-1 text-sm">
-              <span className="text-gold-medium font-bold">+{action.rewards.gold}</span>
-              <span className="text-wood-medium">Gold</span>
+              <span className="text-gold-medium font-bold">+${action.rewards.gold}</span>
+              <span className="text-wood-medium">Dollars</span>
             </div>
           )}
           {action.rewards.items && action.rewards.items.length > 0 && (
@@ -264,6 +292,29 @@ export const ActionCard: React.FC<ActionCardProps> = React.memo(({
           )}
         </div>
       </div>
+
+      {/* Skill Requirement Indicator (for crimes with requirements) */}
+      {skillRequirement && (
+        <div className={`mb-4 p-3 rounded border-2 ${
+          skillRequirement.meetsRequirement
+            ? 'bg-green-900/20 border-green-600/50'
+            : 'bg-blood-red/10 border-blood-red/50'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{skillRequirement.meetsRequirement ? '✓' : '🔒'}</span>
+              <span className="text-sm font-medium text-wood-dark">
+                Requires: {skillRequirement.skillName} Lv{skillRequirement.requiredLevel}
+              </span>
+            </div>
+            <span className={`text-sm font-bold ${
+              skillRequirement.meetsRequirement ? 'text-green-600' : 'text-blood-red'
+            }`}>
+              (You: Lv{skillRequirement.currentLevel})
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Attempt Button */}
       <Button
@@ -294,7 +345,8 @@ export const ActionCard: React.FC<ActionCardProps> = React.memo(({
     prevProps.className === nextProps.className &&
     prevProps.onAttempt === nextProps.onAttempt &&
     prevProps.crimeMetadata?.jailTimeMinutes === nextProps.crimeMetadata?.jailTimeMinutes &&
-    prevProps.crimeMetadata?.wantedLevelIncrease === nextProps.crimeMetadata?.wantedLevelIncrease
+    prevProps.crimeMetadata?.wantedLevelIncrease === nextProps.crimeMetadata?.wantedLevelIncrease &&
+    prevProps.criminalSkills === nextProps.criminalSkills
   );
 });
 
