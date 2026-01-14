@@ -28,4 +28,4 @@ EXPOSE 5001
 
 # Start server
 WORKDIR /app/server
-CMD ["npm", "start"]
+CMD ["node", "dist/server.js"]
