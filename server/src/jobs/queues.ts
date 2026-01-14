@@ -254,11 +254,14 @@ const QUEUE_CONCURRENCY = {
 /**
  * Default Bull queue options
  */
+// Extract Redis connection details from URL
+const redisUrlObj = new URL(config.database.redisUrl);
 const defaultQueueOptions: Bull.QueueOptions = {
   redis: {
-    host: new URL(config.database.redisUrl).hostname || 'localhost',
-    port: parseInt(new URL(config.database.redisUrl).port || '6379', 10),
-    password: config.database.redisPassword || undefined,
+    host: redisUrlObj.hostname || 'localhost',
+    port: parseInt(redisUrlObj.port || '6379', 10),
+    // Use password from URL if not set in config
+    password: config.database.redisPassword || redisUrlObj.password || undefined,
   },
   defaultJobOptions: {
     removeOnComplete: 100, // Keep last 100 completed jobs
