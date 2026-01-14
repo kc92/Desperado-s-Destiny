@@ -27,10 +27,20 @@ const DEFAULT_OPTIONS: Required<TransactionOptions> = {
 };
 
 /**
+ * Check if we're using a non-replica-set MongoDB (like Railway's single instance)
+ * When MONGODB_NO_REPLICA_SET=true, we allow the server to run without transactions
+ * but log severe warnings about the security implications
+ */
+const allowNoReplicaSet = process.env.MONGODB_NO_REPLICA_SET === 'true';
+
+/**
  * PRODUCTION SAFEGUARD: Fatal error if transactions disabled in production
  * This check runs at module load time to prevent misconfiguration
+ *
+ * Exception: If MONGODB_NO_REPLICA_SET=true, we allow production to run
+ * without transactions (e.g., Railway MongoDB) but with severe warnings
  */
-if (process.env.DISABLE_TRANSACTIONS === 'true' && process.env.NODE_ENV === 'production') {
+if (process.env.DISABLE_TRANSACTIONS === 'true' && process.env.NODE_ENV === 'production' && !allowNoReplicaSet) {
   const errorMsg = `
 ================================================================================
 FATAL SECURITY ERROR: DISABLE_TRANSACTIONS=true in production environment!
@@ -47,6 +57,11 @@ To fix this:
   2. Ensure your MongoDB deployment supports transactions (replica set or sharded)
   3. If using Atlas, transactions are supported by default
 
+If you MUST use a non-replica-set MongoDB (e.g., Railway):
+  - Set MONGODB_NO_REPLICA_SET=true
+  - Understand this exposes your game to potential exploits
+  - Consider upgrading to MongoDB Atlas (free tier supports replica sets)
+
 The server will NOT start until this is resolved.
 ================================================================================
 `;
@@ -55,16 +70,48 @@ The server will NOT start until this is resolved.
   process.exit(1);
 }
 
+// Warn about no replica set in production
+if (allowNoReplicaSet && process.env.NODE_ENV === 'production') {
+  const warningMsg = `
+================================================================================
+⚠️  WARNING: Running production WITHOUT MongoDB replica set/transactions
+================================================================================
+
+MONGODB_NO_REPLICA_SET=true is set. The server will run but:
+  - No transaction support (potential race conditions)
+  - Gold operations may be vulnerable to double-spend exploits
+  - Data consistency not guaranteed during concurrent operations
+
+STRONGLY RECOMMENDED: Use MongoDB Atlas (free tier) which supports transactions.
+
+For production games with economy systems, this is a significant risk.
+================================================================================
+`;
+  console.warn(warningMsg);
+  logger.warn('Production running without MongoDB transactions - SECURITY RISK');
+}
+
 /**
- * Checks if transactions are disabled (test environment only)
- * SECURITY: This can only return true in non-production environments
+ * Checks if transactions are disabled
+ * Returns true in test environment or when using non-replica-set MongoDB
  */
 export function areTransactionsDisabled(): boolean {
-  // Double-check: never disable in production (belt + suspenders)
-  if (process.env.NODE_ENV === 'production') {
-    return false;
+  // Allow disabling in test environment
+  if (process.env.NODE_ENV === 'test') {
+    return true;
   }
-  return process.env.DISABLE_TRANSACTIONS === 'true' || process.env.NODE_ENV === 'test';
+
+  // Allow disabling with explicit DISABLE_TRANSACTIONS flag (non-production only)
+  if (process.env.DISABLE_TRANSACTIONS === 'true' && process.env.NODE_ENV !== 'production') {
+    return true;
+  }
+
+  // Allow disabling in production ONLY if explicitly using non-replica-set MongoDB
+  if (allowNoReplicaSet) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
