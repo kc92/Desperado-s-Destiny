@@ -21,7 +21,8 @@ COPY server/ ./server/
 RUN cd shared && npm run build
 
 # Build server using swc (no type checking)
-RUN cd server && npm run build:ci
+WORKDIR /app/server
+RUN npm run build:ci && ls -la dist/
 
 # Expose port
 EXPOSE 5001
