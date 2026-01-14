@@ -1,6 +1,9 @@
 # Nixpacks configuration for Railway
 # This builds the server for the monorepo
 
+# Disable auto-detection
+providers = []
+
 [phases.setup]
 nixPkgs = ["nodejs_22"]
 
