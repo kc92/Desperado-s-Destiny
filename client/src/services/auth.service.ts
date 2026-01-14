@@ -20,16 +20,22 @@ export async function login(credentials: LoginCredentials): Promise<User> {
 }
 
 /**
- * Register new user
+ * Registration response - can be either immediate login (dev) or email verification required (prod)
  */
-export async function register(credentials: RegisterCredentials): Promise<User> {
-  const response = await apiCall<{ user: User }>('post', '/auth/register', credentials);
+export interface RegisterResponse {
+  user?: User;
+  email?: string;
+  requiresVerification?: boolean;
+}
 
-  if (!response.user) {
-    throw new Error('Invalid response structure');
-  }
-
-  return response.user;
+/**
+ * Register new user
+ * In production: returns { email, requiresVerification: true }
+ * In development: returns { user } for immediate login
+ */
+export async function register(credentials: RegisterCredentials): Promise<RegisterResponse> {
+  const response = await apiCall<RegisterResponse>('post', '/auth/register', credentials);
+  return response;
 }
 
 /**

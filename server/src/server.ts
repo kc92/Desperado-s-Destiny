@@ -98,9 +98,10 @@ function configureMiddleware(): void {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
         connectSrc: ["'self'", config.server.frontendUrl],
       },
     },

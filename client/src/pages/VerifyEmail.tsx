@@ -1,12 +1,18 @@
 /**
  * Verify Email Page
  * Handles email verification with token from URL
+ * Also shows "check your email" message when coming from registration
  */
 
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button, Card, LoadingSpinner } from '@/components/ui';
+
+interface LocationState {
+  email?: string;
+  fromRegistration?: boolean;
+}
 
 /**
  * Email verification page
@@ -15,6 +21,11 @@ export const VerifyEmail: React.FC = () => {
   const location = useLocation();
   const { verifyEmail, isLoading, error } = useAuthStore();
   const [verified, setVerified] = useState(false);
+
+  // Get email from location state (passed from registration)
+  const state = location.state as LocationState | null;
+  const fromRegistration = state?.fromRegistration;
+  const email = state?.email;
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -29,7 +40,7 @@ export const VerifyEmail: React.FC = () => {
           // Error is handled by the store
         });
     }
-  }, [location, verifyEmail]);
+  }, [location.search, verifyEmail]);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-16">
@@ -89,6 +100,34 @@ export const VerifyEmail: React.FC = () => {
                   </Button>
                 </Link>
               </div>
+            </div>
+          ) : fromRegistration ? (
+            <div className="text-center space-y-4">
+              <div className="text-6xl mb-4">&#x2709;</div>
+              <h2 className="text-2xl font-western text-desert-sand mb-2">
+                Check Your Email
+              </h2>
+              <p className="text-desert-stone font-serif mb-4">
+                We've sent a verification link to:
+              </p>
+              {email && (
+                <p className="text-gold-medium font-semibold text-lg mb-4">
+                  {email}
+                </p>
+              )}
+              <p className="text-desert-stone font-serif text-sm mb-6">
+                Click the link in the email to verify your account and start your adventure in the Territory. The link will expire in 24 hours.
+              </p>
+              <div className="bg-wood-grain/10 rounded-lg p-4 mb-6">
+                <p className="text-desert-stone font-serif text-sm">
+                  Didn't receive the email? Check your spam folder or wait a few minutes.
+                </p>
+              </div>
+              <Link to="/login">
+                <Button variant="ghost" size="md" fullWidth>
+                  Back to Login
+                </Button>
+              </Link>
             </div>
           ) : (
             <div className="text-center space-y-4">

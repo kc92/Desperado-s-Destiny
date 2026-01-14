@@ -140,8 +140,16 @@ export const Register: React.FC = () => {
 
   const onSubmit = async (formValues: RegisterFormValues) => {
     try {
-      await register(formValues);
-      // After registration, redirect to character select
+      const result = await register(formValues);
+
+      // Check if email verification is required (production mode)
+      if (result?.requiresVerification) {
+        // Redirect to verify email page with email in state
+        navigate('/verify-email', { state: { email: result.email, fromRegistration: true } });
+        return;
+      }
+
+      // Auto-verified (development mode) - redirect to character select
       navigate('/characters');
     } catch (err) {
       // Error is handled by the store

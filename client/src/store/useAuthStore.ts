@@ -14,6 +14,11 @@ import { useCsrfStore } from '@/store/useCsrfStore';
 import { broadcastAuthEvent } from '@/hooks/useStorageSync';
 import { setUserContext } from '@/config/sentry';
 
+interface RegisterResult {
+  requiresVerification?: boolean;
+  email?: string;
+}
+
 interface AuthStore {
   // State
   user: User | null;
@@ -21,10 +26,11 @@ interface AuthStore {
   isLoading: boolean;
   error: string | null;
   _hasHydrated: boolean;
+  pendingVerificationEmail: string | null;
 
   // Actions
   login: (credentials: LoginCredentials) => Promise<void>;
-  register: (credentials: RegisterCredentials) => Promise<void>;
+  register: (credentials: RegisterCredentials) => Promise<RegisterResult | void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   clearError: () => void;
@@ -33,6 +39,7 @@ interface AuthStore {
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (token: string, newPassword: string) => Promise<void>;
   setHasHydrated: (state: boolean) => void;
+  clearPendingVerification: () => void;
 }
 
 /**
@@ -46,6 +53,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
   isLoading: true, // Start with true to prevent redirect before checkAuth completes
   error: null,
   _hasHydrated: true, // Always true since we're not using persistence
+  pendingVerificationEmail: null,
 
   /**
    * Login user with credentials
@@ -106,50 +114,66 @@ export const useAuthStore = create<AuthStore>()((set) => ({
 
   /**
    * Register new user
+   * Returns { requiresVerification, email } if email verification is needed
    */
   register: async (credentials: RegisterCredentials) => {
     set({ isLoading: true, error: null });
 
     try {
-      const user = await authService.register(credentials);
+      const response = await authService.register(credentials);
 
-      // Initialize socket connection (await to ensure connection before proceeding)
-      try {
-        await socketService.connect();
-      } catch (socketError) {
-        // Non-fatal: user can still use the app, socket will auto-reconnect
-        console.warn('Socket connection failed, will retry automatically:', socketError);
+      // Production mode: email verification required
+      if (response.requiresVerification) {
+        set({
+          isLoading: false,
+          error: null,
+          pendingVerificationEmail: response.email || credentials.email,
+        });
+        return { requiresVerification: true, email: response.email || credentials.email };
       }
 
-      // Fetch CSRF token with retry for secure form submissions
-      let csrfRetries = 3;
-      while (csrfRetries > 0) {
+      // Development mode: auto-verified, log in immediately
+      if (response.user) {
+        const user = response.user;
+
+        // Initialize socket connection (await to ensure connection before proceeding)
         try {
-          const csrfToken = await authService.getCsrfToken();
-          useCsrfStore.getState().setToken(csrfToken);
-          break;
-        } catch (csrfError) {
-          csrfRetries--;
-          if (csrfRetries > 0) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } else {
-            console.warn('Failed to fetch CSRF token after registration (will retry on demand)');
+          await socketService.connect();
+        } catch (socketError) {
+          // Non-fatal: user can still use the app, socket will auto-reconnect
+          console.warn('Socket connection failed, will retry automatically:', socketError);
+        }
+
+        // Fetch CSRF token with retry for secure form submissions
+        let csrfRetries = 3;
+        while (csrfRetries > 0) {
+          try {
+            const csrfToken = await authService.getCsrfToken();
+            useCsrfStore.getState().setToken(csrfToken);
+            break;
+          } catch (csrfError) {
+            csrfRetries--;
+            if (csrfRetries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              console.warn('Failed to fetch CSRF token after registration (will retry on demand)');
+            }
           }
         }
+
+        set({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+
+        // Set Sentry user context for error tracking
+        setUserContext({ id: user.id ?? '', email: user.email });
+
+        // Broadcast login to other tabs (registration also logs in)
+        broadcastAuthEvent('LOGIN', { userId: user.id ?? '' });
       }
-
-      set({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      });
-
-      // Set Sentry user context for error tracking
-      setUserContext({ id: user.id ?? '', email: user.email });
-
-      // Broadcast login to other tabs (registration also logs in)
-      broadcastAuthEvent('LOGIN', { userId: user.id ?? '' });
     } catch (error: any) {
       set({
         user: null,
@@ -289,6 +313,13 @@ export const useAuthStore = create<AuthStore>()((set) => ({
    */
   setHasHydrated: (state: boolean) => {
     set({ _hasHydrated: state });
+  },
+
+  /**
+   * Clear pending verification email (after user navigates away from verification page)
+   */
+  clearPendingVerification: () => {
+    set({ pendingVerificationEmail: null });
   },
 
   /**
