@@ -1,168 +1,186 @@
-# Production Docker Compose Configuration
-# Used by GitHub Actions deploy workflow for production environment
-# Pre-built images are pulled from GitHub Container Registry
-# Stricter resource limits and security settings
-
-version: '3.8'
+# Docker Compose Production Configuration
+#
+# This configuration is optimized for production deployment.
+# Use with: docker-compose -f docker-compose.prod.yml up -d
+#
+# Prerequisites:
+# 1. Set all environment variables in .env file
+# 2. Configure external MongoDB Atlas and Redis Cloud
+# 3. Set up reverse proxy (Nginx) for SSL termination
 
 services:
-  # MongoDB Database
-  mongodb:
-    image: mongo:7
-    container_name: desperados-mongodb-prod
-    restart: always
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?MONGO_PASSWORD is required}
-      MONGO_INITDB_DATABASE: desperados-destiny
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--auth"]
-    volumes:
-      - mongodb_data:/data/db
-      - mongodb_config:/data/configdb
-    networks:
-      - desperados-network
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/desperados-destiny --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+  # ============================================================
+  # Game Server
+  # ============================================================
+  server:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+      target: production
+    container_name: desperados-server
+    restart: unless-stopped
+
+    # Resource limits to prevent runaway processes
     deploy:
       resources:
         limits:
-          cpus: '4'
-          memory: 4G
+          cpus: '2'
+          memory: 2G
         reservations:
-          cpus: '1'
-          memory: 1G
+          cpus: '0.5'
+          memory: 512M
+
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      MONGODB_URI: ${MONGODB_URI:?MONGODB_URI is required}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+
+    ports:
+      - "3001:3001"
+
+    # Health check for container orchestration
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Logging configuration
     logging:
       driver: "json-file"
       options:
         max-size: "100m"
         max-file: "5"
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: desperados-redis-prod
-    restart: always
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD} --maxmemory 512mb --maxmemory-policy volatile-lru
-    volumes:
-      - redis_data:/data
     networks:
       - desperados-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
+
+  # ============================================================
+  # Client (Static Files / Nginx)
+  # ============================================================
+  client:
+    build:
+      context: .
+      dockerfile: ./client/Dockerfile
+      target: production
+      args:
+        VITE_API_URL: ${FRONTEND_API_URL:-https://api.yourdomain.com}
+        VITE_WS_URL: ${FRONTEND_WS_URL:-wss://api.yourdomain.com}
+    container_name: desperados-client
+    restart: unless-stopped
+
     deploy:
       resources:
         limits:
-          cpus: '1'
-          memory: 768M
-        reservations:
-          cpus: '0.25'
+          cpus: '0.5'
           memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      # SSL certificates - mount from host
+      - ./deploy/ssl:/etc/nginx/ssl:ro
+      # Nginx config - mount from host
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
     logging:
       driver: "json-file"
       options:
         max-size: "50m"
         max-file: "3"
 
-  # Backend API Server (pre-built image from GHCR)
-  backend:
-    image: ghcr.io/${GITHUB_REPOSITORY:-desperados-destiny}/server:prod
-    container_name: desperados-backend-prod
-    restart: always
-    ports:
-      - "5001:5000"
-    environment:
-      NODE_ENV: production
-      PORT: 5000
-      MONGODB_URI: ${MONGODB_URI}
-      REDIS_URL: ${REDIS_URL}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRE: 1h
-      BCRYPT_ROUNDS: 12
-      FRONTEND_URL: ${FRONTEND_URL}
-      SENTRY_DSN: ${SENTRY_DSN}
+    depends_on:
+      server:
+        condition: service_healthy
+
     networks:
       - desperados-network
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+
+  # ============================================================
+  # Prometheus (Monitoring)
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: desperados-prometheus
+    restart: unless-stopped
+
     deploy:
       resources:
         limits:
-          cpus: '4'
-          memory: 2G
-        reservations:
           cpus: '0.5'
           memory: 512M
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "100m"
-        max-file: "10"
 
-  # Frontend (pre-built Nginx image from GHCR)
-  frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY:-desperados-destiny}/client:prod
-    container_name: desperados-frontend-prod
-    restart: always
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus-alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+
     ports:
-      - "80:80"
-      - "443:443"
+      - "9090:9090"
+
     networks:
       - desperados-network
-    depends_on:
-      - backend
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+
+  # ============================================================
+  # Grafana (Dashboards)
+  # ============================================================
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: desperados-grafana
+    restart: unless-stopped
+
     deploy:
       resources:
         limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
+          cpus: '0.5'
+          memory: 256M
 
-volumes:
-  mongodb_data:
-    driver: local
-  mongodb_config:
-    driver: local
-  redis_data:
-    driver: local
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-changeme}
+      - GF_USERS_ALLOW_SIGN_UP=false
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      - prometheus
+
+    networks:
+      - desperados-network
 
 networks:
   desperados-network:
     driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:

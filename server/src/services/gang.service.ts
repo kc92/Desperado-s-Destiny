@@ -132,13 +132,14 @@ export class GangService {
       character.gangId = gang[0]._id as mongoose.Types.ObjectId;
       await character.save({ session });
 
-      // Initialize gang economy
-      const { GangEconomyService } = await import('./gangEconomy.service');
-      await GangEconomyService.initializeEconomy(gang[0]._id.toString(), gang[0].name);
-
       if (!disableTransactions) {
         await session.commitTransaction();
       }
+
+      // RACE CONDITION FIX: Initialize gang economy AFTER transaction commits
+      // This ensures the gang exists in the database before initializing its economy
+      const { GangEconomyService } = await import('./gangEconomy.service');
+      await GangEconomyService.initializeEconomy(gang[0]._id.toString(), gang[0].name);
 
       logger.info(
         `Gang created: ${name} [${tag}] by character ${character.name} (${characterId})`

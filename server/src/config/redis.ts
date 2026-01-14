@@ -7,6 +7,27 @@ import logger from '../utils/logger';
  */
 let redisClient: RedisClientType | null = null;
 
+// Named handlers for proper cleanup
+const handleRedisError = (error: Error) => {
+  logger.error('Redis client error:', error);
+};
+
+const handleRedisConnect = () => {
+  logger.info('Redis client connecting...');
+};
+
+const handleRedisReady = () => {
+  logger.info('Redis client ready');
+};
+
+const handleRedisReconnecting = () => {
+  logger.warn('Redis client reconnecting...');
+};
+
+const handleRedisEnd = () => {
+  logger.warn('Redis client connection ended');
+};
+
 /**
  * Connects to Redis with retry logic
  * @param maxRetries Maximum number of connection attempts
@@ -45,26 +66,12 @@ export async function connectRedis(
         },
       });
 
-      // Set up event listeners
-      redisClient.on('error', (error: Error) => {
-        logger.error('Redis client error:', error);
-      });
-
-      redisClient.on('connect', () => {
-        logger.info('Redis client connecting...');
-      });
-
-      redisClient.on('ready', () => {
-        logger.info('Redis client ready');
-      });
-
-      redisClient.on('reconnecting', () => {
-        logger.warn('Redis client reconnecting...');
-      });
-
-      redisClient.on('end', () => {
-        logger.warn('Redis client connection ended');
-      });
+      // EVENT LISTENER LEAK FIX: Use named handlers for proper cleanup
+      redisClient.on('error', handleRedisError);
+      redisClient.on('connect', handleRedisConnect);
+      redisClient.on('ready', handleRedisReady);
+      redisClient.on('reconnecting', handleRedisReconnecting);
+      redisClient.on('end', handleRedisEnd);
 
       // Connect to Redis
       await redisClient.connect();
@@ -94,9 +101,19 @@ export async function connectRedis(
  */
 export async function disconnectRedis(): Promise<void> {
   try {
-    if (redisClient && redisClient.isOpen) {
-      await redisClient.quit();
-      logger.info('Redis disconnected successfully');
+    if (redisClient) {
+      // EVENT LISTENER LEAK FIX: Remove listeners before disconnecting
+      // Redis client uses removeListener instead of off
+      redisClient.removeListener('error', handleRedisError);
+      redisClient.removeListener('connect', handleRedisConnect);
+      redisClient.removeListener('ready', handleRedisReady);
+      redisClient.removeListener('reconnecting', handleRedisReconnecting);
+      redisClient.removeListener('end', handleRedisEnd);
+
+      if (redisClient.isOpen) {
+        await redisClient.quit();
+        logger.info('Redis disconnected successfully');
+      }
       redisClient = null;
     }
   } catch (error) {

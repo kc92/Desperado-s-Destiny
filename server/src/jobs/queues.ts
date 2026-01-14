@@ -228,6 +228,30 @@ export const JOB_TYPES = {
 } as const;
 
 /**
+ * PRODUCTION FIX: Concurrency limits to prevent database overwhelm
+ * These values control max simultaneous jobs per queue type
+ */
+const QUEUE_CONCURRENCY = {
+  // High-frequency queues - limit to prevent DB overload
+  MARKETPLACE: 3,
+  PRODUCTION: 3,
+  CUSTOMER_TRAFFIC: 3,
+  WORKER_TASK: 3,
+
+  // Combat/game state queues - serialize for consistency
+  COMBAT: 2,
+  WAR: 2,
+  RAID: 3,
+
+  // Background maintenance - low priority, limited impact
+  MAINTENANCE: 2,
+  CLEANUP: 2,
+
+  // Default for unspecified queues
+  DEFAULT: 1,
+} as const;
+
+/**
  * Default Bull queue options
  */
 const defaultQueueOptions: Bull.QueueOptions = {
@@ -244,6 +268,12 @@ const defaultQueueOptions: Bull.QueueOptions = {
       type: 'exponential',
       delay: 2000,
     },
+  },
+  // PRODUCTION FIX: Global rate limiter to prevent Redis/DB overwhelm
+  // Max 10 jobs per second across all job types in this queue
+  limiter: {
+    max: 10,
+    duration: 1000,
   },
 };
 
@@ -556,8 +586,8 @@ export async function registerProcessors(): Promise<void> {
     return executeJob('Bounty Decay', () => BountyService.decayBounties());
   });
 
-  // Marketplace - Multiple jobs
-  Queues.marketplace.process(JOB_TYPES.ORDER_EXPIRY, async () => {
+  // Marketplace - Multiple jobs (PRODUCTION FIX: Added concurrency limits)
+  Queues.marketplace.process(JOB_TYPES.ORDER_EXPIRY, QUEUE_CONCURRENCY.MARKETPLACE, async () => {
     const { MarketplaceService } = await import('../services/marketplace.service');
     return executeJob('Order Expiry Check', async () => {
       // Process both ended auctions and expired listings
@@ -567,12 +597,12 @@ export async function registerProcessors(): Promise<void> {
     });
   });
 
-  Queues.marketplace.process(JOB_TYPES.AUCTION_CHECK, async () => {
+  Queues.marketplace.process(JOB_TYPES.AUCTION_CHECK, QUEUE_CONCURRENCY.MARKETPLACE, async () => {
     const { MarketplaceService } = await import('../services/marketplace.service');
     return executeJob('Auction Check', () => MarketplaceService.processEndedAuctions());
   });
 
-  Queues.marketplace.process(JOB_TYPES.PRICE_UPDATE, async () => {
+  Queues.marketplace.process(JOB_TYPES.PRICE_UPDATE, QUEUE_CONCURRENCY.MARKETPLACE, async () => {
     const { PriceHistory } = await import('../models/PriceHistory.model');
     return executeJob('Price History Update', async () => {
       // Get all price histories that need updating (have sales in last 24h)
@@ -593,7 +623,7 @@ export async function registerProcessors(): Promise<void> {
   });
 
   // Marketplace - Listing cleanup hourly
-  Queues.marketplace.process(JOB_TYPES.LISTING_CLEANUP, async () => {
+  Queues.marketplace.process(JOB_TYPES.LISTING_CLEANUP, QUEUE_CONCURRENCY.CLEANUP, async () => {
     const { MarketplaceService } = await import('../services/marketplace.service');
     return executeJob('Listing Cleanup', async () => {
       const deleted = await MarketplaceService.cleanupOldListings(30);
@@ -607,18 +637,18 @@ export async function registerProcessors(): Promise<void> {
     return executeJob('Influence Decay', () => runInfluenceDecay());
   });
 
-  // Production - Multiple schedules
-  Queues.production.process(JOB_TYPES.PRODUCTION_TICK, async () => {
+  // Production - Multiple schedules (PRODUCTION FIX: Added concurrency limits)
+  Queues.production.process(JOB_TYPES.PRODUCTION_TICK, QUEUE_CONCURRENCY.PRODUCTION, async () => {
     const { productionTick } = await import('./productionTick.job');
     return executeJob('Production Tick', () => productionTick());
   });
 
-  Queues.production.process(JOB_TYPES.WEEKLY_WAGES, async () => {
+  Queues.production.process(JOB_TYPES.WEEKLY_WAGES, QUEUE_CONCURRENCY.PRODUCTION, async () => {
     const { weeklyWagePayment } = await import('./productionTick.job');
     return executeJob('Weekly Wages', () => weeklyWagePayment());
   });
 
-  Queues.production.process(JOB_TYPES.DAILY_WORKER_MAINTENANCE, async () => {
+  Queues.production.process(JOB_TYPES.DAILY_WORKER_MAINTENANCE, QUEUE_CONCURRENCY.MAINTENANCE, async () => {
     const { dailyMaintenance } = await import('./productionTick.job');
     return executeJob('Worker Maintenance', () => dailyMaintenance());
   });
@@ -843,13 +873,14 @@ export async function registerProcessors(): Promise<void> {
   });
 
   // Combat Timeout Check - Every 30 seconds (Phase 1 Tech Debt)
-  Queues.combatTimeout.process(JOB_TYPES.COMBAT_TIMEOUT_CHECK, async () => {
+  // PRODUCTION FIX: Added concurrency limit to prevent race conditions
+  Queues.combatTimeout.process(JOB_TYPES.COMBAT_TIMEOUT_CHECK, QUEUE_CONCURRENCY.COMBAT, async () => {
     const { processTimedOutEncounters } = await import('./combatTimeout.job');
     return executeJob('Combat Timeout Check', () => processTimedOutEncounters());
   });
 
   // Combat Timeout Warning - Every 10 seconds (Phase 1 Tech Debt)
-  Queues.combatTimeout.process(JOB_TYPES.COMBAT_TIMEOUT_WARNING, async () => {
+  Queues.combatTimeout.process(JOB_TYPES.COMBAT_TIMEOUT_WARNING, QUEUE_CONCURRENCY.COMBAT, async () => {
     const { sendTimeoutWarnings } = await import('./combatTimeout.job');
     return executeJob('Combat Timeout Warning', () => sendTimeoutWarnings(30));
   });
@@ -885,7 +916,8 @@ export async function registerProcessors(): Promise<void> {
   });
 
   // Raid Execution - Execute scheduled raids (Phase 2.3)
-  Queues.raidExecution.process(JOB_TYPES.RAID_EXECUTE, async (job) => {
+  // PRODUCTION FIX: Added concurrency limit to prevent overwhelming raids
+  Queues.raidExecution.process(JOB_TYPES.RAID_EXECUTE, QUEUE_CONCURRENCY.RAID, async (job) => {
     const { RaidService } = await import('../services/raid.service');
     const { raidId } = job.data;
     return executeJob('Raid Execute', async () => {
@@ -899,7 +931,7 @@ export async function registerProcessors(): Promise<void> {
   });
 
   // Raid Schedule Check - Check for scheduled raids to execute (Phase 2.3)
-  Queues.raidExecution.process(JOB_TYPES.RAID_SCHEDULE_CHECK, async () => {
+  Queues.raidExecution.process(JOB_TYPES.RAID_SCHEDULE_CHECK, QUEUE_CONCURRENCY.RAID, async () => {
     const { Raid } = await import('../models/Raid.model');
     const { RaidService } = await import('../services/raid.service');
     return executeJob('Raid Schedule Check', async () => {
@@ -959,38 +991,40 @@ export async function registerProcessors(): Promise<void> {
   });
 
   // Worker Task Processing (Phase 11 - Full Worker Tasks)
-  Queues.workerTaskProcessing.process(JOB_TYPES.WORKER_TASK_PROCESS, async () => {
+  // PRODUCTION FIX: Added concurrency limits
+  Queues.workerTaskProcessing.process(JOB_TYPES.WORKER_TASK_PROCESS, QUEUE_CONCURRENCY.WORKER_TASK, async () => {
     const { processWorkerTasks } = await import('./workerTaskProcessor.job');
     return executeJob('Worker Task Processing', () => processWorkerTasks());
   });
 
-  Queues.workerTaskProcessing.process(JOB_TYPES.WORKER_STAMINA_REGEN, async () => {
+  Queues.workerTaskProcessing.process(JOB_TYPES.WORKER_STAMINA_REGEN, QUEUE_CONCURRENCY.WORKER_TASK, async () => {
     const { regenerateWorkerStamina } = await import('./workerTaskProcessor.job');
     return executeJob('Worker Stamina Regeneration', () => regenerateWorkerStamina());
   });
 
   // Customer Traffic Processing (Phase 12 - Business Ownership)
-  Queues.customerTraffic.process(JOB_TYPES.CUSTOMER_TRAFFIC_PROCESS, async () => {
+  // PRODUCTION FIX: Added concurrency limits
+  Queues.customerTraffic.process(JOB_TYPES.CUSTOMER_TRAFFIC_PROCESS, QUEUE_CONCURRENCY.CUSTOMER_TRAFFIC, async () => {
     const { processCustomerTraffic } = await import('./customerTraffic.job');
     return executeJob('Customer Traffic Processing', () => processCustomerTraffic());
   });
 
-  Queues.customerTraffic.process(JOB_TYPES.REPUTATION_DECAY, async () => {
+  Queues.customerTraffic.process(JOB_TYPES.REPUTATION_DECAY, QUEUE_CONCURRENCY.CUSTOMER_TRAFFIC, async () => {
     const { processReputationDecay } = await import('./customerTraffic.job');
     return executeJob('Business Reputation Decay', () => processReputationDecay());
   });
 
-  Queues.customerTraffic.process(JOB_TYPES.DAILY_TRAFFIC_RESET, async () => {
+  Queues.customerTraffic.process(JOB_TYPES.DAILY_TRAFFIC_RESET, QUEUE_CONCURRENCY.CUSTOMER_TRAFFIC, async () => {
     const { resetDailyTrafficStats } = await import('./customerTraffic.job');
     return executeJob('Daily Traffic Stats Reset', () => resetDailyTrafficStats());
   });
 
-  Queues.customerTraffic.process(JOB_TYPES.WEEKLY_TRAFFIC_RESET, async () => {
+  Queues.customerTraffic.process(JOB_TYPES.WEEKLY_TRAFFIC_RESET, QUEUE_CONCURRENCY.CUSTOMER_TRAFFIC, async () => {
     const { resetWeeklyTrafficStats } = await import('./customerTraffic.job');
     return executeJob('Weekly Traffic Stats Reset', () => resetWeeklyTrafficStats());
   });
 
-  Queues.customerTraffic.process(JOB_TYPES.MONTHLY_TRAFFIC_RESET, async () => {
+  Queues.customerTraffic.process(JOB_TYPES.MONTHLY_TRAFFIC_RESET, QUEUE_CONCURRENCY.CUSTOMER_TRAFFIC, async () => {
     const { resetMonthlyTrafficStats } = await import('./customerTraffic.job');
     return executeJob('Monthly Traffic Stats Reset', () => resetMonthlyTrafficStats());
   });

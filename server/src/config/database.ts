@@ -14,6 +14,22 @@ const mongooseOptions: mongoose.ConnectOptions = {
   family: 4, // Use IPv4, skip trying IPv6
 };
 
+// Track if listeners have been registered to prevent duplicates
+let listenersRegistered = false;
+
+// Named handlers for proper cleanup
+const handleError = (error: Error) => {
+  logger.error('MongoDB connection error:', error);
+};
+
+const handleDisconnected = () => {
+  logger.warn('MongoDB disconnected');
+};
+
+const handleReconnected = () => {
+  logger.info('MongoDB reconnected');
+};
+
 /**
  * Connects to MongoDB with retry logic
  * @param maxRetries Maximum number of connection attempts
@@ -35,18 +51,13 @@ export async function connectMongoDB(
 
       logger.info('MongoDB connected successfully');
 
-      // Set up event listeners
-      mongoose.connection.on('error', (error: Error) => {
-        logger.error('MongoDB connection error:', error);
-      });
-
-      mongoose.connection.on('disconnected', () => {
-        logger.warn('MongoDB disconnected');
-      });
-
-      mongoose.connection.on('reconnected', () => {
-        logger.info('MongoDB reconnected');
-      });
+      // EVENT LISTENER LEAK FIX: Register listeners only once using named handlers
+      if (!listenersRegistered) {
+        mongoose.connection.on('error', handleError);
+        mongoose.connection.on('disconnected', handleDisconnected);
+        mongoose.connection.on('reconnected', handleReconnected);
+        listenersRegistered = true;
+      }
 
       return;
     } catch (error) {
@@ -69,6 +80,14 @@ export async function connectMongoDB(
  */
 export async function disconnectMongoDB(): Promise<void> {
   try {
+    // EVENT LISTENER LEAK FIX: Remove listeners before disconnecting
+    if (listenersRegistered) {
+      mongoose.connection.off('error', handleError);
+      mongoose.connection.off('disconnected', handleDisconnected);
+      mongoose.connection.off('reconnected', handleReconnected);
+      listenersRegistered = false;
+    }
+
     await mongoose.disconnect();
     logger.info('MongoDB disconnected successfully');
   } catch (error) {

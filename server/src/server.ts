@@ -26,6 +26,7 @@ import {
 import { auditLogMiddleware } from './middleware/auditLog.middleware';
 import { requireCsrfToken } from './middleware/csrf.middleware';
 import { httpsRedirect } from './middleware/httpsRedirect.middleware';
+import { requestTimeout, quickTimeout } from './middleware/requestTimeout.middleware';
 import routes from './routes';
 import { metricsMiddleware, getMetrics } from './services/metrics.service';
 import { KeyRotationService } from './services/keyRotation.service';
@@ -191,6 +192,10 @@ function configureMiddleware(): void {
 
   // Request logging
   app.use(requestLogger);
+
+  // Request timeout - prevent hung requests from accumulating
+  // Uses route-specific timeouts (see requestTimeout.middleware.ts for configuration)
+  app.use(requestTimeout());
 
   // Audit logging for admin actions (before rate limiting)
   app.use(auditLogMiddleware);

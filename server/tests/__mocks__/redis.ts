@@ -625,7 +625,11 @@ class RedisMock {
   }
 
   on(event: string, callback: Function): void {
-    // Mock event listener
+    // Mock event listener - no-op for tests
+  }
+
+  removeListener(event: string, callback: Function): void {
+    // Mock removeListener - no-op for tests
   }
 
   // Pub/sub stubs

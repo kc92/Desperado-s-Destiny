@@ -24,11 +24,7 @@ describe('Payment Integration Tests', () => {
       testUser = await User.create({
         email: 'premium@example.com',
         passwordHash: 'hashedpassword123',
-        isEmailVerified: true,
-        subscription: {
-          tier: 'free',
-          status: 'active',
-        },
+        emailVerified: true,
       });
 
       // Create test character

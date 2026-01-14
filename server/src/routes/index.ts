@@ -112,6 +112,7 @@ import subscriptionRoutes from './subscription.routes';
 import tavernRoutes from './tavern.routes';
 import skillTrainingRoutes from './skillTraining.routes';
 import expeditionRoutes from './expedition.routes';
+import monetizationRoutes from './monetization.routes';
 import { apiRateLimiter } from '../middleware';
 
 const router = Router();
@@ -459,6 +460,9 @@ router.use('/skill-training', apiRateLimiter, skillTrainingRoutes);
 
 // Expedition routes (with API rate limiting) - Offline Progression System
 router.use('/expeditions', apiRateLimiter, expeditionRoutes);
+
+// Monetization routes (with API rate limiting) - Ad rewards and bonuses
+router.use('/monetization', apiRateLimiter, monetizationRoutes);
 
 export default router;
 

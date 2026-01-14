@@ -1,0 +1,219 @@
+# Prometheus Alert Rules for Desperados Destiny
+#
+# These alert rules monitor the game server health and performance.
+# Configure these in your Prometheus server's alert rules.
+#
+# Usage:
+# 1. Copy this file to your Prometheus server
+# 2. Add to prometheus.yml: rule_files: ["prometheus-alerts.yml"]
+# 3. Configure Alertmanager for notifications
+
+groups:
+  - name: desperados_server_health
+    rules:
+      # ============================================================
+      # Server Health Alerts
+      # ============================================================
+
+      - alert: ServerDown
+        expr: up{job="desperados-server"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Desperados server is down"
+          description: "The game server has been unreachable for more than 1 minute."
+
+      - alert: HighMemoryUsage
+        expr: desperados_nodejs_heap_size_used_bytes / desperados_nodejs_heap_size_total_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on game server"
+          description: "Heap memory usage is above 90% for 5 minutes. Current: {{ $value | humanizePercentage }}"
+
+      - alert: HighCPUUsage
+        expr: rate(desperados_process_cpu_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on game server"
+          description: "CPU usage is above 80% for 5 minutes."
+
+  - name: desperados_database
+    rules:
+      # ============================================================
+      # Database Alerts
+      # ============================================================
+
+      - alert: MongoDBConnectionFailed
+        expr: desperados_mongodb_connected == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "MongoDB connection lost"
+          description: "The game server has lost connection to MongoDB."
+
+      - alert: RedisConnectionFailed
+        expr: desperados_redis_connected == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis connection lost"
+          description: "The game server has lost connection to Redis."
+
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(desperados_database_operation_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries detected"
+          description: "P95 database query latency is above 1 second."
+
+  - name: desperados_http
+    rules:
+      # ============================================================
+      # HTTP/API Alerts
+      # ============================================================
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(desperados_http_requests_total{status_code=~"5.."}[5m]))
+          /
+          sum(rate(desperados_http_requests_total[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP error rate"
+          description: "More than 1% of HTTP requests are returning 5xx errors. Current: {{ $value | humanizePercentage }}"
+
+      - alert: CriticalErrorRate
+        expr: |
+          sum(rate(desperados_http_requests_total{status_code=~"5.."}[5m]))
+          /
+          sum(rate(desperados_http_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical HTTP error rate"
+          description: "More than 5% of HTTP requests are returning 5xx errors."
+
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(desperados_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow API response times"
+          description: "P95 response time is above 2 seconds."
+
+      - alert: HighRequestRate
+        expr: sum(rate(desperados_http_requests_total[1m])) > 1000
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High request rate detected"
+          description: "Request rate is above 1000/minute. May indicate traffic spike or attack."
+
+  - name: desperados_jobs
+    rules:
+      # ============================================================
+      # Background Job Alerts
+      # ============================================================
+
+      - alert: HighJobFailureRate
+        expr: |
+          sum(rate(desperados_job_executions_total{success="false"}[15m]))
+          /
+          sum(rate(desperados_job_executions_total[15m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High job failure rate"
+          description: "More than 10% of background jobs are failing."
+
+      - alert: JobQueueBacklog
+        expr: sum(desperados_job_queue_size{status="waiting"}) > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large job queue backlog"
+          description: "More than 1000 jobs waiting in queues."
+
+      - alert: StuckJobs
+        expr: sum(desperados_job_queue_size{status="active"}) > 50 and sum(changes(desperados_job_queue_size{status="active"}[15m])) == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Jobs appear stuck"
+          description: "Active job count hasn't changed in 15 minutes - jobs may be stuck."
+
+  - name: desperados_game
+    rules:
+      # ============================================================
+      # Game-Specific Alerts
+      # ============================================================
+
+      - alert: NoActivePlayers
+        expr: desperados_online_players == 0
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "No active players"
+          description: "No players have been online for 1 hour. Normal during off-peak, investigate otherwise."
+
+      - alert: CombatSessionsStuck
+        expr: desperados_active_game_sessions > 100 and rate(desperados_combat_sessions_total[30m]) == 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Combat sessions may be stuck"
+          description: "High number of active sessions but no combat completions in 30 minutes."
+
+      - alert: AbnormalGoldInflation
+        expr: rate(desperados_gold_transaction_amount_sum{type="earn"}[1h]) > rate(desperados_gold_transaction_amount_sum{type="spend"}[1h]) * 10
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Possible gold inflation exploit"
+          description: "Gold earning rate is 10x higher than spending rate. May indicate exploit."
+
+  - name: desperados_websocket
+    rules:
+      # ============================================================
+      # WebSocket Alerts
+      # ============================================================
+
+      - alert: WebSocketConnectionDrop
+        expr: |
+          (desperados_active_websocket_connections offset 5m - desperados_active_websocket_connections)
+          / desperados_active_websocket_connections offset 5m > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large WebSocket connection drop"
+          description: "More than 50% of WebSocket connections dropped in 5 minutes."
+
+      - alert: TooManyConnections
+        expr: desperados_active_websocket_connections > 5000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "More than 5000 active connections. Monitor server resources."

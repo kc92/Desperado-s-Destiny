@@ -51,9 +51,10 @@ export class ShopService {
     const useSession = !areTransactionsDisabled();
     const session = useSession ? await mongoose.startSession() : null;
 
-    if (session) session.startTransaction();
-
     try {
+      // SESSION LEAK FIX: startTransaction inside try block so session.endSession() always runs
+      if (session) session.startTransaction();
+
       // Get item (read-only, no lock needed)
       const item = await Item.findByItemId(itemId);
       if (!item) {
@@ -322,7 +323,8 @@ export class ShopService {
 
       return { character, item, totalCost, basePrice: item.price, priceModifier };
     } catch (error) {
-      if (session) await session.abortTransaction();
+      // Only abort if transaction was actually started (startTransaction may have thrown)
+      if (session?.inTransaction()) await session.abortTransaction();
       throw error;
     } finally {
       if (session) session.endSession();
@@ -340,9 +342,10 @@ export class ShopService {
     const useSession = !areTransactionsDisabled();
     const session = useSession ? await mongoose.startSession() : null;
 
-    if (session) session.startTransaction();
-
     try {
+      // SESSION LEAK FIX: startTransaction inside try block so session.endSession() always runs
+      if (session) session.startTransaction();
+
       // Get item definition
       const item = await Item.findByItemId(itemId);
       if (!item) {
@@ -445,7 +448,8 @@ export class ShopService {
 
       return { character, item, dollarsEarned };
     } catch (error) {
-      if (session) await session.abortTransaction();
+      // Only abort if transaction was actually started (startTransaction may have thrown)
+      if (session?.inTransaction()) await session.abortTransaction();
       throw error;
     } finally {
       if (session) session.endSession();
@@ -462,9 +466,10 @@ export class ShopService {
     const useSession = !areTransactionsDisabled();
     const session = useSession ? await mongoose.startSession() : null;
 
-    if (session) session.startTransaction();
-
     try {
+      // SESSION LEAK FIX: startTransaction inside try block so session.endSession() always runs
+      if (session) session.startTransaction();
+
       // Get item definition
       const item = await Item.findByItemId(itemId);
       if (!item) {
@@ -521,7 +526,8 @@ export class ShopService {
 
       return { character, item, effects: appliedEffects };
     } catch (error) {
-      if (session) await session.abortTransaction();
+      // Only abort if transaction was actually started (startTransaction may have thrown)
+      if (session?.inTransaction()) await session.abortTransaction();
       throw error;
     } finally {
       if (session) session.endSession();

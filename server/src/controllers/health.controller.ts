@@ -75,7 +75,16 @@ export const getHealthStatus = asyncHandler(async (_req: Request, res: Response)
     status = 'degraded'; // Queue issues shouldn't make whole service unhealthy
   }
 
-  const healthCheck: HealthCheckResponse & { queues?: typeof queueHealth } = {
+  // Get memory usage for monitoring
+  const memoryUsage = process.memoryUsage();
+  const memoryMB = {
+    heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+    heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+    rss: Math.round(memoryUsage.rss / 1024 / 1024),
+    external: Math.round(memoryUsage.external / 1024 / 1024),
+  };
+
+  const healthCheck: HealthCheckResponse & { queues?: typeof queueHealth; memory?: typeof memoryMB } = {
     status,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -90,6 +99,7 @@ export const getHealthStatus = asyncHandler(async (_req: Request, res: Response)
       },
     },
     queues: queueHealth,
+    memory: memoryMB,
     version: packageJson.version,
     environment: config.env as 'development' | 'production' | 'test',
   };

@@ -1,0 +1,46 @@
+# Prometheus Configuration for Desperados Destiny
+#
+# Scrapes metrics from the game server and provides data for Grafana dashboards.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Load alert rules
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Game server metrics
+  - job_name: 'desperados-server'
+    static_configs:
+      - targets: ['server:3001']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Node.js specific metrics (if using prom-client default metrics)
+  - job_name: 'desperados-nodejs'
+    static_configs:
+      - targets: ['server:3001']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+# Remote write to external systems (optional)
+# remote_write:
+#   - url: "https://prometheus-prod-01-us-east-0.grafana.net/api/prom/push"
+#     basic_auth:
+#       username: YOUR_GRAFANA_CLOUD_ID
+#       password: YOUR_GRAFANA_API_KEY

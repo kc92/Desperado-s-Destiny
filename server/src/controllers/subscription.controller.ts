@@ -1,12 +1,14 @@
 /**
  * Subscription Controller
  * Handles subscription and payment endpoints
- * Phase 7 - Stripe Stub Implementation
+ * Uses Stripe for subscription management
  */
 
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { SubscriptionService } from '../services/subscription.service';
 import { PaymentService } from '../services/payment.service';
+import { Subscription, SubscriptionStatus } from '../models/Subscription.model';
 import { User } from '../models/User.model';
 import { AppError } from '../utils/errors';
 import { asyncHandler } from '../middleware/asyncHandler';
@@ -47,12 +49,13 @@ export class SubscriptionController {
     }
 
     const subscription = await SubscriptionService.getSubscription(userId);
+    const subscriptionDoc = await Subscription.findByUserId(new mongoose.Types.ObjectId(userId));
 
     res.json({
       success: true,
       data: {
         ...subscription,
-        isCancelled: !!(await User.findById(userId))?.subscriptionCancelled,
+        isCancelled: subscriptionDoc?.status === SubscriptionStatus.CANCELED,
       },
     });
   });
@@ -181,21 +184,12 @@ export class SubscriptionController {
       throw new AppError('Authentication required', 401);
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new AppError('User not found', 404);
-    }
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const result = await SubscriptionService.reactivateSubscription(userObjectId);
 
-    if (!user.subscriptionCancelled) {
-      throw new AppError('Subscription is not cancelled', 400);
+    if (!result.success) {
+      throw new AppError(result.error || 'Failed to reactivate subscription', 400);
     }
-
-    if (!user.subscriptionExpiresAt || user.subscriptionExpiresAt < new Date()) {
-      throw new AppError('Subscription has already expired. Please subscribe again.', 400);
-    }
-
-    user.subscriptionCancelled = false;
-    await user.save();
 
     logger.info(`Subscription reactivated for user ${userId}`);
 

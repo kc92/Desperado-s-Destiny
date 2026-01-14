@@ -21,6 +21,8 @@ const PLAYTEST_MODE = process.env.PLAYTEST_MODE === 'true';
 
 import { User } from '../models/User.model';
 import { Character } from '../models/Character.model';
+import { Subscription, SubscriptionStatus } from '../models/Subscription.model';
+import { AdReward, AdRewardType } from '../models/AdReward.model';
 import logger from './logger';
 
 // Redis client for caching (loaded dynamically)
@@ -171,8 +173,8 @@ export class PremiumUtils {
       return { isPremium: false, plan: FREE_PLAN };
     }
 
-    // Check subscription status
-    const isPremium = this.checkSubscriptionActive(user);
+    // Check subscription status (now async)
+    const isPremium = await this.checkSubscriptionActive(user);
     const plan = isPremium ? PREMIUM_PLAN : FREE_PLAN;
 
     const result: PremiumBenefits = { isPremium, plan };
@@ -209,29 +211,20 @@ export class PremiumUtils {
 
   /**
    * Check if user's subscription is currently active
+   * Uses the Subscription model with Stripe integration
    *
    * @param user - User document
    * @returns true if subscription is active
    */
-  private static checkSubscriptionActive(user: any): boolean {
+  private static async checkSubscriptionActive(user: any): Promise<boolean> {
     // PLAYTEST MODE: Everyone gets premium for free!
     if (PLAYTEST_MODE) {
       return true;
     }
 
-    if (!user.subscriptionPlan || user.subscriptionPlan === 'free') {
-      return false;
-    }
-
-    if (user.subscriptionCancelled) {
-      return false;
-    }
-
-    if (user.subscriptionExpiresAt && user.subscriptionExpiresAt < new Date()) {
-      return false;
-    }
-
-    return true;
+    // Check Subscription model
+    const subscription = await Subscription.findByUserId(user._id);
+    return subscription?.isActive() ?? false;
   }
 
   /**
@@ -256,38 +249,122 @@ export class PremiumUtils {
   }
 
   /**
-   * Calculate gold with premium bonus
+   * Calculate gold with premium OR ad bonus
+   * Subscribers get permanent bonus, free players can get same bonus from ads
    *
    * @param baseGold - Base gold amount
    * @param userId - User ID
-   * @returns Gold with premium bonus applied
+   * @param characterId - Character ID (optional, for ad bonus check)
+   * @returns Gold with bonus applied
    */
-  static async calculateGoldWithBonus(baseGold: number, userId: string): Promise<number> {
+  static async calculateGoldWithBonus(baseGold: number, userId: string, characterId?: string): Promise<number> {
     const benefits = await this.getPremiumBenefits(userId);
-    return Math.floor(baseGold * benefits.plan.benefits.goldBonus);
+
+    // If subscriber, use premium bonus
+    if (benefits.isPremium) {
+      return Math.floor(baseGold * benefits.plan.benefits.goldBonus);
+    }
+
+    // Check for ad-based gold boost (free players)
+    if (characterId) {
+      const adMultiplier = await this.getAdBasedMultiplier(characterId, 'gold');
+      if (adMultiplier > 1.0) {
+        return Math.floor(baseGold * adMultiplier);
+      }
+    }
+
+    return baseGold;
   }
 
   /**
-   * Calculate XP with premium bonus
+   * Calculate XP with premium OR ad bonus
+   * Subscribers get permanent bonus, free players can get same bonus from ads
    *
    * @param baseXP - Base XP amount
    * @param userId - User ID
-   * @returns XP with premium bonus applied
+   * @param characterId - Character ID (optional, for ad bonus check)
+   * @returns XP with bonus applied
    */
-  static async calculateXPWithBonus(baseXP: number, userId: string): Promise<number> {
+  static async calculateXPWithBonus(baseXP: number, userId: string, characterId?: string): Promise<number> {
     const benefits = await this.getPremiumBenefits(userId);
-    return Math.floor(baseXP * benefits.plan.benefits.xpBonus);
+
+    // If subscriber, use premium bonus
+    if (benefits.isPremium) {
+      return Math.floor(baseXP * benefits.plan.benefits.xpBonus);
+    }
+
+    // Check for ad-based XP boost (free players)
+    if (characterId) {
+      const adMultiplier = await this.getAdBasedMultiplier(characterId, 'xp');
+      if (adMultiplier > 1.0) {
+        return Math.floor(baseXP * adMultiplier);
+      }
+    }
+
+    return baseXP;
   }
 
   /**
    * Get energy regeneration rate multiplier
+   * Includes both subscription benefits and ad-based timed bonuses
    *
    * @param userId - User ID
+   * @param characterId - Character ID (optional, for ad bonus check)
    * @returns Multiplier for energy regen rate (1.0 = normal, 1.5 = 50% faster)
    */
-  static async getEnergyRegenMultiplier(userId: string): Promise<number> {
+  static async getEnergyRegenMultiplier(userId: string, characterId?: string): Promise<number> {
     const benefits = await this.getPremiumBenefits(userId);
-    return benefits.plan.benefits.energyRegenBonus;
+
+    // If subscriber, use premium bonus
+    if (benefits.isPremium) {
+      return benefits.plan.benefits.energyRegenBonus;
+    }
+
+    // Check for ad-based energy boost (free players)
+    if (characterId) {
+      const adMultiplier = await this.getAdBasedMultiplier(characterId, 'energy');
+      if (adMultiplier > 1.0) {
+        return adMultiplier;
+      }
+    }
+
+    return 1.0;
+  }
+
+  /**
+   * Get ad-based timed multiplier for a specific bonus type
+   * Free players can watch ads to get the same bonuses as subscribers, but time-limited
+   *
+   * @param characterId - Character ID
+   * @param bonusType - Type of bonus ('xp' | 'gold' | 'energy')
+   * @returns Multiplier (1.0 if no active bonus, 1.5 if ad bonus active)
+   */
+  static async getAdBasedMultiplier(characterId: string, bonusType: 'xp' | 'gold' | 'energy'): Promise<number> {
+    try {
+      const adReward = await AdReward.findByCharacterId(
+        new (await import('mongoose')).Types.ObjectId(characterId)
+      );
+
+      if (!adReward) {
+        return 1.0;
+      }
+
+      // Clean expired bonuses
+      adReward.cleanExpiredBonuses();
+
+      // Map bonus type to ad reward type
+      const typeMap: Record<string, AdRewardType> = {
+        xp: AdRewardType.XP_BOOST,
+        gold: AdRewardType.GOLD_BOOST,
+        energy: AdRewardType.ENERGY_BOOST
+      };
+
+      const bonus = adReward.getActiveBonus(typeMap[bonusType]);
+      return bonus ? bonus.multiplier : 1.0;
+    } catch (error) {
+      logger.warn('Failed to get ad-based multiplier:', error);
+      return 1.0;
+    }
   }
 
   /**

@@ -56,11 +56,6 @@ export interface IUserDocument extends Document {
   role: 'user' | 'admin';
   preferences: UserPreferences;
 
-  // Subscription fields
-  subscriptionPlan?: string;
-  subscriptionExpiresAt?: Date;
-  subscriptionCancelled?: boolean;
-
   // Account Security (lockout after failed login attempts)
   failedLoginAttempts: number;
   lastFailedLogin?: Date;
@@ -163,18 +158,6 @@ const UserSchema = new Schema<IUserDocument, IUserModel>(
         allowChallenges: { type: Boolean, default: true }
       }
     },
-    subscriptionPlan: {
-      type: String,
-      default: 'free'
-    },
-    subscriptionExpiresAt: {
-      type: Date
-    },
-    subscriptionCancelled: {
-      type: Boolean,
-      default: false
-    },
-
     // Account Security (lockout after failed login attempts)
     failedLoginAttempts: {
       type: Number,
