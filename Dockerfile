@@ -1,6 +1,9 @@
 # Dockerfile for Railway deployment
 FROM node:20-slim
 
+# Cache bust to force fresh build
+ARG CACHEBUST=1
+
 WORKDIR /app
 
 # Copy package files first for caching
@@ -22,7 +25,10 @@ RUN cd shared && npm run build
 
 # Build server using swc (no type checking)
 WORKDIR /app/server
-RUN npm run build:ci && ls -la dist/
+RUN echo "=== FILES IN SRC ===" && ls -la src/ | head -20 && \
+    echo "=== RUNNING BUILD ===" && npm run build:ci && \
+    echo "=== FILES IN DIST ===" && ls -la dist/ | head -30 && \
+    echo "=== CHECKING SERVER.JS ===" && ls -la dist/server.js
 
 # Expose port
 EXPOSE 5001
