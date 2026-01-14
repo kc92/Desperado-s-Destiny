@@ -7,8 +7,8 @@ nixPkgs = ["nodejs_20"]
 [phases.install]
 cmds = [
   "npm install --ignore-scripts",
-  "cd shared && npm install && npm run build",
-  "cd server && npm install"
+  "cd shared && npm install --ignore-scripts && npm run build",
+  "cd server && npm install --ignore-scripts"
 ]
 
 [phases.build]
