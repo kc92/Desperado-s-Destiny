@@ -9,9 +9,9 @@ nixPkgs = ["nodejs-18_x"]
 
 [phases.install]
 cmds = [
-  "npm install --ignore-scripts",
-  "cd shared && npm install --ignore-scripts && npm run build",
-  "cd server && npm install --ignore-scripts",
+  "npm install --ignore-scripts --include=dev",
+  "cd shared && npm install --ignore-scripts --include=dev && npm run build",
+  "cd server && npm install --ignore-scripts --include=dev",
   "cd server && npm run build:ci"
 ]
 
