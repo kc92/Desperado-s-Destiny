@@ -195,3 +195,6 @@ UI_COMPARISON_*.md
 # Utility test scripts
 scripts/
 tmpclaude-*
+
+.vercel
+.env*.local
