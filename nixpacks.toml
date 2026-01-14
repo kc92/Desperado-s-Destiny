@@ -8,11 +8,13 @@ nixPkgs = ["nodejs_20"]
 cmds = [
   "npm install --ignore-scripts",
   "cd shared && npm install --ignore-scripts && npm run build",
-  "cd server && npm install --ignore-scripts"
+  "cd server && npm install --ignore-scripts",
+  "cd server && npm run build"
 ]
 
+# Disable default build phase
 [phases.build]
-cmds = ["cd server && npm run build"]
+cmds = ["echo 'Build completed in install phase'"]
 
 [start]
 cmd = "cd server && npm start"
