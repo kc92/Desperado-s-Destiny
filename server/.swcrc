@@ -6,18 +6,7 @@
       "decorators": true
     },
     "target": "es2022",
-    "paths": {
-      "@config/*": ["./src/config/*"],
-      "@middleware/*": ["./src/middleware/*"],
-      "@models/*": ["./src/models/*"],
-      "@routes/*": ["./src/routes/*"],
-      "@controllers/*": ["./src/controllers/*"],
-      "@services/*": ["./src/services/*"],
-      "@utils/*": ["./src/utils/*"],
-      "@types/*": ["./src/types/*"],
-      "@desperados/shared": ["../shared"]
-    },
-    "baseUrl": "./src"
+    "transform": null
   },
   "module": {
     "type": "commonjs"
