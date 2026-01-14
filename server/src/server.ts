@@ -57,6 +57,15 @@ function configureMiddleware(): void {
   // Required for correct client IP detection in rate limiting and security checks
   app.set('trust proxy', 1);
 
+  // Early health check endpoint - bypasses CORS for load balancer health checks
+  // This must be before CORS middleware to allow health checks without Origin header
+  app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+  app.get('/api/health/ping', (_req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   // HTTPS redirect - Force HTTPS in production (must be early in middleware chain)
   app.use(httpsRedirect);
 
