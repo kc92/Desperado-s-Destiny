@@ -72,7 +72,7 @@ const API_BASE_URL = (() => {
  */
 const apiClient: AxiosInstance = axios.create({
   baseURL: import.meta.env.DEV ? '/api' : `${API_BASE_URL}/api`,
-  timeout: 15000,
+  timeout: 30000, // Increased from 15s to 30s for operations involving external services (email)
   headers: {
     'Content-Type': 'application/json',
   },

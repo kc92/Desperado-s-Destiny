@@ -111,18 +111,23 @@ export async function register(req: Request, res: Response): Promise<void> {
       'Registration successful. Welcome to Desperados Destiny!'
     );
   } else {
-    // Production: Send verification email and require verification before login
-    const emailSent = await EmailService.sendVerificationEmail(
+    // Production: Send verification email in background (non-blocking)
+    // This prevents registration from timing out if email service is slow
+    EmailService.sendVerificationEmail(
       user.email,
       user.email.split('@')[0], // Use email prefix as username placeholder
       verificationToken
-    );
+    ).then(emailSent => {
+      if (!emailSent) {
+        logger.warn(`Failed to send verification email to ${user.email}`);
+      } else {
+        logger.info(`Verification email sent to ${user.email}`);
+      }
+    }).catch(error => {
+      logger.error(`Error sending verification email to ${user.email}:`, error);
+    });
 
-    if (!emailSent) {
-      logger.warn(`Failed to send verification email to ${user.email}`);
-    }
-
-    // Return success but inform user to verify email
+    // Return success immediately - don't wait for email
     sendCreated(
       res,
       {
