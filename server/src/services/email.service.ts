@@ -22,15 +22,25 @@ export class EmailService {
    */
   private static getTransporter(): nodemailer.Transporter {
     if (!this.transporter) {
+      const smtpHost = config.email?.smtp?.host || 'smtp.mailtrap.io';
+      const isOffice365 = smtpHost.includes('office365') || smtpHost.includes('outlook');
+
       this.transporter = nodemailer.createTransport({
-        host: config.email?.smtp?.host || 'smtp.mailtrap.io',
+        host: smtpHost,
         port: config.email?.smtp?.port || 587,
-        secure: false,
+        secure: false, // Use STARTTLS
+        requireTLS: isOffice365, // M365 requires TLS
         auth: {
           user: config.email?.smtp?.user || '',
           pass: config.email?.smtp?.pass || ''
-        }
+        },
+        // Timeout settings to prevent hanging
+        connectionTimeout: 10000, // 10 seconds to establish connection
+        greetingTimeout: 10000,   // 10 seconds for server greeting
+        socketTimeout: 30000,     // 30 seconds for socket inactivity
       });
+
+      logger.info(`[Email] Transporter configured for ${smtpHost}`);
     }
     return this.transporter;
   }
@@ -57,10 +67,14 @@ export class EmailService {
         text: options.text
       });
 
-      logger.info(`Email sent to ${options.to}: ${options.subject}`);
+      logger.info(`[Email] Successfully sent to ${options.to}: ${options.subject}`);
       return true;
-    } catch (error) {
-      logger.error('Failed to send email:', error);
+    } catch (error: any) {
+      logger.error(`[Email] Failed to send to ${options.to}: ${error.message || error}`, {
+        code: error.code,
+        command: error.command,
+        responseCode: error.responseCode,
+      });
       return false;
     }
   }
