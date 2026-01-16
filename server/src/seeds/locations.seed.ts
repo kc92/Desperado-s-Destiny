@@ -71,6 +71,11 @@ export const MAP_POSITIONS: Record<string, { x: number; y: number }> = {
 
   // Skill Academy
   DESPERADOS_ACADEMY: { x: 440, y: 200 },
+
+  // Tutorial Locations (faction intro destinations)
+  WESTERN_OUTPOST: { x: 350, y: 120 },      // Near Red Gulch for Settler intro
+  SACRED_SPRINGS: { x: 660, y: 220 },       // Near Kaiowa Mesa for Nahi intro
+  SMUGGLERS_DEN: { x: 140, y: 380 },        // Near The Frontera for Frontera intro
 };
 
 // Location IDs for consistent references
@@ -1835,6 +1840,10 @@ function getMapPositionKey(locationId: string): string | null {
     '6501a0000000000000000036': 'THE_BADLANDS',
     '6501a0000000000000000037': 'SACRED_HEART_MOUNTAINS',
     '6501a0000000000000000038': 'DEAD_MANS_STRETCH',
+    // Tutorial locations (faction intro destinations)
+    '6501a0000000000000000020': 'WESTERN_OUTPOST',
+    '6501a0000000000000000021': 'SACRED_SPRINGS',
+    '6501a0000000000000000022': 'SMUGGLERS_DEN',
     '6501a0000000000000000040': 'RED_GULCH_BANK',
     '6501a0000000000000000041': 'RED_GULCH_CHURCH',
     '6501a0000000000000000042': 'RED_GULCH_COURTHOUSE',

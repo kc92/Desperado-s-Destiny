@@ -5,13 +5,15 @@ import { useCharacterStore } from '@/store/useCharacterStore';
 import { useEffect, useRef } from 'react';
 
 // Location IDs for tutorial navigation checks
+// NOTE: These are the TUTORIAL-specific locations, not the main game locations
 const LOCATION_IDS = {
     RED_GULCH: '6501a0000000000000000001',
     ABANDONED_MINE: '6501a0000000000000000010',
     SNAKE_CREEK: '6501a0000000000000000012',
-    WESTERN_OUTPOST: '6501a0000000000000000020',
-    SPIRIT_SPRINGS: '6501a0000000000000000021',
-    SMUGGLERS_DEN: '6501a0000000000000000022',
+    // Tutorial faction intro destinations
+    WESTERN_OUTPOST: '6501a0000000000000000020',    // Settler Alliance intro
+    SACRED_SPRINGS: '6501a0000000000000000021',     // Nahi Coalition intro (NOT Spirit Springs!)
+    SMUGGLERS_DEN: '6501a0000000000000000022',      // Frontera intro
 };
 
 // Centralized function to complete a tutorial action
@@ -32,7 +34,7 @@ const checkLocationActions = (locationId: string | undefined, requiredAction: st
         case 'navigate-to-outpost':
             return locationId === LOCATION_IDS.WESTERN_OUTPOST;
         case 'navigate-to-springs':
-            return locationId === LOCATION_IDS.SPIRIT_SPRINGS;
+            return locationId === LOCATION_IDS.SACRED_SPRINGS;
         case 'navigate-to-smugglers-den':
             return locationId === LOCATION_IDS.SMUGGLERS_DEN;
         case 'travel-to-wild-encounter':
