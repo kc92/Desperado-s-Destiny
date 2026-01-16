@@ -80,6 +80,9 @@ export async function register(req: Request, res: Response): Promise<void> {
 
   logger.info(`New user registered: ${user.email} (ID: ${user._id})`);
 
+  // CRITICAL: Send response BEFORE any async operations to prevent timeout issues
+  // This ensures the client gets a response even if email sending is slow
+
   // Send verification email (in production) or handle auto-verify (in development with explicit opt-in)
   if (autoVerifyInDev) {
     // SECURITY FIX: Don't log verification tokens
@@ -111,23 +114,11 @@ export async function register(req: Request, res: Response): Promise<void> {
       'Registration successful. Welcome to Desperados Destiny!'
     );
   } else {
-    // Production: Send verification email in background (non-blocking)
-    // This prevents registration from timing out if email service is slow
-    EmailService.sendVerificationEmail(
-      user.email,
-      user.email.split('@')[0], // Use email prefix as username placeholder
-      verificationToken
-    ).then(emailSent => {
-      if (!emailSent) {
-        logger.warn(`Failed to send verification email to ${user.email}`);
-      } else {
-        logger.info(`Verification email sent to ${user.email}`);
-      }
-    }).catch(error => {
-      logger.error(`Error sending verification email to ${user.email}:`, error);
-    });
+    // Production: Send response FIRST, then fire off email in background
+    // This ensures the client gets a response immediately
+    logger.info(`Sending registration response for: ${user.email}`);
 
-    // Return success immediately - don't wait for email
+    // Send response immediately - do NOT await or block on email
     sendCreated(
       res,
       {
@@ -136,6 +127,26 @@ export async function register(req: Request, res: Response): Promise<void> {
       },
       'Registration successful! Please check your email to verify your account before logging in.'
     );
+
+    logger.info(`Registration response sent for: ${user.email}`);
+
+    // Fire off verification email in background (after response is sent)
+    // Using setImmediate to ensure response is fully flushed before starting email
+    setImmediate(() => {
+      EmailService.sendVerificationEmail(
+        user.email,
+        user.email.split('@')[0], // Use email prefix as username placeholder
+        verificationToken
+      ).then(emailSent => {
+        if (!emailSent) {
+          logger.warn(`Failed to send verification email to ${user.email}`);
+        } else {
+          logger.info(`Verification email sent to ${user.email}`);
+        }
+      }).catch(error => {
+        logger.error(`Error sending verification email to ${user.email}:`, error);
+      });
+    });
   }
 }
 

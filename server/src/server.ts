@@ -148,6 +148,9 @@ function configureMiddleware(): void {
 
   const allowedOrigins = getAllowedOrigins();
 
+  // Log allowed origins on startup for debugging
+  logger.info(`[CORS] Allowed origins: ${Array.from(allowedOrigins).join(', ')}`);
+
   app.use(cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps or curl requests) in development/test only
@@ -169,7 +172,10 @@ function configureMiddleware(): void {
       if (allowedOrigins.has(origin)) {
         callback(null, true);
       } else {
-        logger.warn(`CORS: Blocked request from origin: ${origin}`);
+        // Log detailed info for debugging CORS issues
+        logger.warn(`[CORS] Blocked request from origin: ${origin}`);
+        logger.warn(`[CORS] Configured FRONTEND_URL: ${config.server.frontendUrl}`);
+        logger.warn(`[CORS] Allowed origins: ${Array.from(allowedOrigins).join(', ')}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
