@@ -129,6 +129,23 @@ function configureMiddleware(): void {
     // Always include the configured frontend URL
     if (config.server.frontendUrl) {
       origins.add(config.server.frontendUrl);
+
+      // Auto-add both www and non-www variants in production
+      // This prevents CORS issues when users access via either URL
+      try {
+        const url = new URL(config.server.frontendUrl);
+        if (url.hostname.startsWith('www.')) {
+          // Add non-www variant
+          url.hostname = url.hostname.replace('www.', '');
+          origins.add(url.origin);
+        } else {
+          // Add www variant
+          url.hostname = 'www.' + url.hostname;
+          origins.add(url.origin);
+        }
+      } catch (e) {
+        // Invalid URL, skip variant generation
+      }
     }
 
     // In development, allow localhost variants

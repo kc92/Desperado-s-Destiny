@@ -48,22 +48,46 @@ export async function initializeSocketIO(httpServer: HTTPServer): Promise<Socket
 
     // Create Socket.io server with configuration
     // Only include localhost origins in development mode
-    const allowedOrigins = config.isProduction
-      ? [config.server.frontendUrl]
-      : [
-          config.server.frontendUrl,
+    const getAllowedOrigins = (): string[] => {
+      const origins: string[] = [];
+
+      if (config.server.frontendUrl) {
+        origins.push(config.server.frontendUrl);
+
+        // Auto-add both www and non-www variants
+        try {
+          const url = new URL(config.server.frontendUrl);
+          if (url.hostname.startsWith('www.')) {
+            url.hostname = url.hostname.replace('www.', '');
+            origins.push(url.origin);
+          } else {
+            url.hostname = 'www.' + url.hostname;
+            origins.push(url.origin);
+          }
+        } catch (e) {
+          // Invalid URL, skip
+        }
+      }
+
+      if (!config.isProduction) {
+        origins.push(
           'http://localhost:3000',
           'http://localhost:3001',
           'http://localhost:5173',
           'http://localhost:5174',
           'http://localhost:5175',
-          // Also allow 127.0.0.1 variants for local dev
           'http://127.0.0.1:3000',
           'http://127.0.0.1:3001',
           'http://127.0.0.1:5173',
           'http://127.0.0.1:5174',
           'http://127.0.0.1:5175'
-        ];
+        );
+      }
+
+      return origins;
+    };
+
+    const allowedOrigins = getAllowedOrigins();
 
     io = new SocketIOServer(httpServer, {
       cors: {
