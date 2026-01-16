@@ -1,6 +1,7 @@
 /**
  * Email Service
  * Handles sending emails for verification, password reset, and notifications
+ * Supports Resend (preferred) and SMTP (fallback)
  */
 
 import nodemailer from 'nodemailer';
@@ -18,7 +19,47 @@ export class EmailService {
   private static transporter: nodemailer.Transporter | null = null;
 
   /**
-   * Initialize the email transporter
+   * Send email via Resend API
+   */
+  private static async sendViaResend(options: EmailOptions): Promise<boolean> {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      return false;
+    }
+
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: config.email?.from || 'Desperados Destiny <noreply@desperadosdestiny.com>',
+          to: [options.to],
+          subject: options.subject,
+          html: options.html,
+          text: options.text,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        logger.error(`[Email/Resend] API error: ${response.status}`, errorData);
+        return false;
+      }
+
+      const data = await response.json();
+      logger.info(`[Email/Resend] Successfully sent to ${options.to}: ${options.subject} (id: ${data.id})`);
+      return true;
+    } catch (error: any) {
+      logger.error(`[Email/Resend] Failed to send to ${options.to}: ${error.message || error}`);
+      return false;
+    }
+  }
+
+  /**
+   * Initialize the SMTP transporter (fallback)
    */
   private static getTransporter(): nodemailer.Transporter {
     if (!this.transporter) {
@@ -40,15 +81,15 @@ export class EmailService {
         socketTimeout: 30000,     // 30 seconds for socket inactivity
       });
 
-      logger.info(`[Email] Transporter configured for ${smtpHost}`);
+      logger.info(`[Email] SMTP transporter configured for ${smtpHost}`);
     }
     return this.transporter;
   }
 
   /**
-   * Send an email
+   * Send an email via SMTP (fallback)
    */
-  static async sendEmail(options: EmailOptions): Promise<boolean> {
+  private static async sendViaSMTP(options: EmailOptions): Promise<boolean> {
     try {
       // In development without SMTP config, log instead
       if (!config.email?.smtp?.user) {
@@ -67,16 +108,31 @@ export class EmailService {
         text: options.text
       });
 
-      logger.info(`[Email] Successfully sent to ${options.to}: ${options.subject}`);
+      logger.info(`[Email/SMTP] Successfully sent to ${options.to}: ${options.subject}`);
       return true;
     } catch (error: any) {
-      logger.error(`[Email] Failed to send to ${options.to}: ${error.message || error}`, {
+      logger.error(`[Email/SMTP] Failed to send to ${options.to}: ${error.message || error}`, {
         code: error.code,
         command: error.command,
         responseCode: error.responseCode,
       });
       return false;
     }
+  }
+
+  /**
+   * Send an email - tries Resend first, falls back to SMTP
+   */
+  static async sendEmail(options: EmailOptions): Promise<boolean> {
+    // Try Resend first (preferred for production)
+    if (process.env.RESEND_API_KEY) {
+      const result = await this.sendViaResend(options);
+      if (result) return true;
+      logger.warn('[Email] Resend failed, falling back to SMTP');
+    }
+
+    // Fall back to SMTP
+    return this.sendViaSMTP(options);
   }
 
   /**
