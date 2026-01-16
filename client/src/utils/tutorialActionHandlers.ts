@@ -76,8 +76,10 @@ export const useGlobalTutorialActionHandlers = () => {
         let prevLocationId: string | undefined;
 
         // Subscribe to full character state changes
+        // FIX: Use state.currentLocation instead of state.currentCharacter?.locationId
+        // because travel updates only update currentLocation, not currentCharacter.locationId
         const unsubscribeCharacter = useCharacterStore.subscribe((state) => {
-            const locationId = state.currentCharacter?.locationId;
+            const locationId = state.currentLocation || state.currentCharacter?.locationId;
 
             // Only process if location actually changed
             if (locationId === prevLocationId) return;
@@ -107,7 +109,8 @@ export const useGlobalTutorialActionHandlers = () => {
         });
 
         // Check initial state
-        const initialLocationId = useCharacterStore.getState().currentCharacter?.locationId;
+        const charState = useCharacterStore.getState();
+        const initialLocationId = charState.currentLocation || charState.currentCharacter?.locationId;
         if (initialLocationId) {
             prevLocationId = initialLocationId;
             const tutorialState = useTutorialStore.getState();
@@ -153,7 +156,9 @@ export const useGlobalTutorialActionHandlers = () => {
             if (completedActionsRef.current.has(requiredAction)) return;
 
             // Get current location from character store
-            const locationId = useCharacterStore.getState().currentCharacter?.locationId;
+            // FIX: Check currentLocation first since travel updates that, not currentCharacter.locationId
+            const charState = useCharacterStore.getState();
+            const locationId = charState.currentLocation || charState.currentCharacter?.locationId;
             if (!locationId) return;
 
             // Check if current location satisfies the action requirement
