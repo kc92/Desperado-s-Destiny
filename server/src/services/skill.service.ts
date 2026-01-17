@@ -607,36 +607,27 @@ export class SkillService {
       remainingMs: number;
     };
   }> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
+    // Note: Removed transaction wrapper - standalone MongoDB doesn't support transactions
+    // This is acceptable for single-player skill auto-completion on page load
     try {
-      const character = await Character.findById(characterId).session(session);
+      const character = await Character.findById(characterId);
       if (!character) {
-        await session.abortTransaction();
-        session.endSession();
         return { completed: false, levelsGained: 0, results: [] };
       }
 
       const training = character.getCurrentTraining();
       if (!training || !training.trainingStarted || !training.trainingCompletes) {
-        await session.abortTransaction();
-        session.endSession();
         return { completed: false, levelsGained: 0, results: [] };
       }
 
       // Check if training has completed
       const now = new Date();
       if (new Date(training.trainingCompletes) > now) {
-        await session.abortTransaction();
-        session.endSession();
         return { completed: false, levelsGained: 0, results: [] };
       }
 
       const skillDef = this.getSkillDefinition(training.skillId);
       if (!skillDef) {
-        await session.abortTransaction();
-        session.endSession();
         return { completed: false, levelsGained: 0, results: [] };
       }
 
@@ -680,8 +671,6 @@ export class SkillService {
       }
 
       if (results.length === 0) {
-        await session.abortTransaction();
-        session.endSession();
         return { completed: false, levelsGained: 0, results: [] };
       }
 
@@ -719,9 +708,7 @@ export class SkillService {
         training.trainingCompletes = undefined;
       }
 
-      await character.save({ session });
-      await session.commitTransaction();
-      session.endSession();
+      await character.save();
 
       // Log and notify
       logger.info(`Batch offline complete for ${characterId}: ${results.length} levels gained`, {
@@ -756,8 +743,6 @@ export class SkillService {
         continuedTraining
       };
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       logger.error('Error in batch offline complete:', error);
       throw error;
     }
