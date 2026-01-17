@@ -96,6 +96,12 @@ export const playAction = asyncHandler(
       return;
     }
 
+    // Prevent processing if game is not waiting for action
+    if (gameState.status !== 'waiting_action') {
+      res.status(400).json({ success: false, error: 'Game is not waiting for action' });
+      return;
+    }
+
     try {
       const newState = await processGameAction(gameId, action);
 
