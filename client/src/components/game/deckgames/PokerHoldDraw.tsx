@@ -29,6 +29,8 @@ interface PokerHoldDrawProps {
   peekedCard?: Card | null;
   earlyFinishBonus?: number;
   characterSkillBonus?: number;
+  // Animation sync callback
+  onAnimationComplete?: () => void;
 }
 
 export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
@@ -50,6 +52,7 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
   peekedCard = null,
   earlyFinishBonus = 0,
   characterSkillBonus = 0,
+  onAnimationComplete,
 }) => {
   const [cardsRevealed, setCardsRevealed] = useState(false);
   // Track the last dealt hand to prevent infinite loops
@@ -80,6 +83,7 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
     },
     onFlipComplete: () => {
       setCardsRevealed(true);
+      onAnimationComplete?.();
     },
     onDiscardComplete: () => {
       setCardsRevealed(true);

@@ -146,6 +146,8 @@ export const DeckGame: React.FC<DeckGameProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ gameResult: DeckGameResult; actionResult?: ActionResult } | null>(null);
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
+  // Track animation completion to sync result display with card animations
+  const [animationComplete, setAnimationComplete] = useState(true);
 
   // AbortController for canceling in-flight requests on unmount
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -165,6 +167,13 @@ export const DeckGame: React.FC<DeckGameProps> = ({
       dispatchDeckDrawn();
     }
   }, []);
+
+  // Reset animation state when hand changes (new cards being dealt)
+  useEffect(() => {
+    if (gameState.hand?.length > 0) {
+      setAnimationComplete(false);
+    }
+  }, [gameState.hand]);
 
   // Handle player action submission
   const handleAction = async (action: { type: string; cardIndices?: number[] }) => {
@@ -303,8 +312,8 @@ export const DeckGame: React.FC<DeckGameProps> = ({
     }
   };
 
-  // Show result screen if game is complete
-  if (result) {
+  // Show result screen if game is complete AND card animation has finished
+  if (result && animationComplete) {
     return (
       <GameResult
         gameResult={result.gameResult}
@@ -343,6 +352,7 @@ export const DeckGame: React.FC<DeckGameProps> = ({
             peeksAvailable={gameState.peeksAvailable}
             peekedCard={gameState.peekedCard}
             earlyFinishBonus={gameState.earlyFinishBonus}
+            onAnimationComplete={() => setAnimationComplete(true)}
           />
         );
       case 'pressYourLuck':
