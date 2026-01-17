@@ -32,6 +32,24 @@ const handleReconnected = () => {
 };
 
 /**
+ * Ensures the MongoDB URI has retryWrites=false for standalone MongoDB compatibility.
+ * Railway's MongoDB is standalone (no replica set), which doesn't support retryable writes.
+ */
+function ensureNoRetryWrites(uri: string): string {
+  // Remove any existing retryWrites parameter
+  let modifiedUri = uri.replace(/[?&]retryWrites=[^&]*/gi, '');
+
+  // Clean up any double ampersands or trailing question marks
+  modifiedUri = modifiedUri.replace(/&&/g, '&').replace(/\?&/g, '?').replace(/[?&]$/, '');
+
+  // Add retryWrites=false
+  const separator = modifiedUri.includes('?') ? '&' : '?';
+  modifiedUri = `${modifiedUri}${separator}retryWrites=false`;
+
+  return modifiedUri;
+}
+
+/**
  * Connects to MongoDB with retry logic
  * @param maxRetries Maximum number of connection attempts
  * @param retryDelay Delay between retries in milliseconds
@@ -42,7 +60,9 @@ export async function connectMongoDB(
 ): Promise<void> {
   let retries = 0;
 
-  const uri = config.isTest ? config.database.mongoTestUri : config.database.mongoUri;
+  const rawUri = config.isTest ? config.database.mongoTestUri : config.database.mongoUri;
+  // Ensure retryWrites=false for standalone MongoDB (Railway doesn't use replica set)
+  const uri = ensureNoRetryWrites(rawUri);
 
   while (retries < maxRetries) {
     try {
