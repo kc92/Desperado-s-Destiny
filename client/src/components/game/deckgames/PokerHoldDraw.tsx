@@ -139,11 +139,13 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
   const remainingRerolls = Math.max(0, rerollsAvailable - rerollsUsed);
   const remainingPeeks = Math.max(0, peeksAvailable - peeksUsed);
 
-  const isFirstTurn = turnNumber === 1;
+  const isFinalTurn = turnNumber >= maxTurns;
   const canDraw = cardsRevealed && !isLoading && !isAnimating;
+  // Allow card selection on any turn EXCEPT the final turn (when game auto-resolves)
+  const canSelectCards = !isFinalTurn && cardsRevealed && !isAnimating;
 
   // Debug logging
-  console.log('[PokerHoldDraw] State:', { cardsRevealed, isLoading, isAnimating, canDraw, isFirstTurn, turnNumber, phase });
+  console.log('[PokerHoldDraw] State:', { cardsRevealed, isLoading, isAnimating, canDraw, canSelectCards, isFinalTurn, turnNumber, phase });
 
   // Count cards matching relevant suit
   const suitCount = relevantSuit
@@ -203,14 +205,14 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
 
       {/* Instructions */}
       <div className="text-center">
-        {isFirstTurn ? (
+        {turnNumber >= maxTurns ? (
+          <p className="text-gold-light font-bold">
+            Final Hand - Good luck, partner!
+          </p>
+        ) : (
           <p className="text-desert-sand">
             Click cards to <span className="text-green-400 font-bold">HOLD</span> them,
             then draw to replace the rest
-          </p>
-        ) : (
-          <p className="text-gold-light font-bold">
-            Final Hand - Good luck, partner!
           </p>
         )}
       </div>
@@ -250,11 +252,11 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
                 !!(relevantSuit &&
                 cardData.card.suit.toLowerCase() === relevantSuit.toLowerCase())
               }
-              showSuitBonus={cardsRevealed && !isFirstTurn}
+              showSuitBonus={cardsRevealed && isFinalTurn}
               isSelected={selectedCards.includes(index)}
-              isSelectable={isFirstTurn && cardsRevealed && !isAnimating}
+              isSelectable={canSelectCards}
               onClick={() => {
-                if (isFirstTurn && cardsRevealed && !isAnimating) {
+                if (canSelectCards) {
                   onToggleCard(index);
                 }
               }}
@@ -265,7 +267,7 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
       </div>
 
       {/* Selection summary */}
-      {isFirstTurn && cardsRevealed && (
+      {canSelectCards && (
         <div className="text-center text-sm text-desert-sand">
           {selectedCards.length === 0 ? (
             <span>No cards held - all 5 will be replaced</span>
@@ -308,7 +310,7 @@ export const PokerHoldDraw: React.FC<PokerHoldDrawProps> = ({
                   </span>
                 ) : selectedCards.length === 5 ? (
                   'Stand Pat'
-                ) : isFirstTurn ? (
+                ) : turnNumber === 1 ? (
                   `Draw ${5 - selectedCards.length} Card${5 - selectedCards.length !== 1 ? 's' : ''}`
                 ) : (
                   `Redraw ${5 - selectedCards.length} Card${5 - selectedCards.length !== 1 ? 's' : ''}`

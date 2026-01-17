@@ -141,7 +141,9 @@ export const PlayingCard: React.FC<PlayingCardProps> = React.memo(({
       ? `${cardLabel}, highlighted`
       : cardLabel;
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    // Stop propagation to prevent double-toggle when AnimatedCard also has onClick
+    e.stopPropagation();
     if (isSelectable && !disabled && onClick) {
       onClick();
     }

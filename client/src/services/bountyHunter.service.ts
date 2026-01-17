@@ -132,7 +132,7 @@ export const bountyHunterService = {
    * Get all hunters (public info)
    */
   async getAllHunters(): Promise<BountyHunter[]> {
-    const response = await api.get<{ data: { hunters: BountyHunter[] } }>('/bounty-hunter');
+    const response = await api.get<{ data: { hunters: BountyHunter[] } }>('/bounty-hunters');
     return response.data.data?.hunters || [];
   },
 
@@ -140,7 +140,7 @@ export const bountyHunterService = {
    * Get specific hunter details
    */
   async getHunterDetails(hunterId: string): Promise<BountyHunter> {
-    const response = await api.get<{ data: BountyHunter }>(`/bounty-hunter/${hunterId}`);
+    const response = await api.get<{ data: BountyHunter }>(`/bounty-hunters/${hunterId}`);
     return response.data.data;
   },
 
@@ -151,7 +151,7 @@ export const bountyHunterService = {
    */
   async checkHunterSpawn(request?: CheckHunterSpawnRequest): Promise<CheckHunterSpawnResponse> {
     const response = await api.post<{ data: CheckHunterSpawnResponse }>(
-      '/bounty-hunter/check-spawn',
+      '/bounty-hunters/check-spawn',
       request || {}
     );
     return response.data.data;
@@ -162,7 +162,7 @@ export const bountyHunterService = {
    */
   async getAvailableHunters(): Promise<HireableHunter[]> {
     const response = await api.get<{ data: { hunters: HireableHunter[] } }>(
-      '/bounty-hunter/available/list'
+      '/bounty-hunters/available/list'
     );
     return response.data.data?.hunters || [];
   },
@@ -172,7 +172,7 @@ export const bountyHunterService = {
    */
   async hireHunter(request: HireHunterRequest): Promise<HireHunterResponse> {
     const response = await api.post<{ data: HireHunterResponse }>(
-      '/bounty-hunter/hire',
+      '/bounty-hunters/hire',
       request
     );
     return response.data.data;
@@ -183,7 +183,7 @@ export const bountyHunterService = {
    */
   async getActiveEncounters(): Promise<ActiveEncounter[]> {
     const response = await api.get<{ data: { encounters: ActiveEncounter[] } }>(
-      '/bounty-hunter/encounters/active'
+      '/bounty-hunters/encounters/active'
     );
     return response.data.data?.encounters || [];
   },
@@ -193,7 +193,7 @@ export const bountyHunterService = {
    */
   async payOffHunter(request: PayOffHunterRequest): Promise<PayOffHunterResponse> {
     const response = await api.post<{ data: PayOffHunterResponse }>(
-      '/bounty-hunter/payoff',
+      '/bounty-hunters/payoff',
       request
     );
     return response.data.data;
@@ -204,7 +204,7 @@ export const bountyHunterService = {
    */
   async resolveEncounter(request: ResolveEncounterRequest): Promise<ResolveEncounterResponse> {
     const response = await api.post<{ data: ResolveEncounterResponse }>(
-      '/bounty-hunter/resolve',
+      '/bounty-hunters/resolve',
       request
     );
     return response.data.data;
