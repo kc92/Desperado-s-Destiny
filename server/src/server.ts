@@ -359,6 +359,10 @@ async function seedStarterData(): Promise<void> {
       await seedTestUser();
     }
 
+    // Auto-verify test accounts (for playtesting without email verification)
+    const { verifyTestAccounts } = await import('./seeds/verifyTestAccounts.seed');
+    await verifyTestAccounts();
+
     logger.info('Starter data seeded successfully');
   } catch (error) {
     logger.warn('Error seeding starter data (may already exist):', error);

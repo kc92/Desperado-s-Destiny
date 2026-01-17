@@ -22,6 +22,7 @@ import { seedDeities } from './deities.seed';
 import { seedSkills } from './skills.seed';
 import { seedMounts } from './mounts.seed';
 import { seedActions } from './actions.seed';
+import { verifyTestAccounts } from './verifyTestAccounts.seed';
 
 async function seedAll() {
   try {
@@ -47,6 +48,7 @@ async function seedAll() {
     await seedSkills(); // 30 trainable skills
     await seedMounts(); // Horses, mules, wagons, carts
     await seedActions(); // 50+ actions for Destiny Deck
+    await verifyTestAccounts(); // Auto-verify test accounts for playtesting
 
     console.log('\n✅ All seeds completed successfully!');
   } catch (error) {
@@ -80,5 +82,6 @@ export {
   seedDeities,
   seedSkills,
   seedMounts,
-  seedActions
+  seedActions,
+  verifyTestAccounts
 };
