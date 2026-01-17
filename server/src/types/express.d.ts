@@ -14,7 +14,7 @@ declare global {
        * Authenticated user from JWT middleware
        * Note: characterId is part of SafeUser when a character is selected
        */
-      user?: SafeUser & { _id: string };
+      user?: SafeUser & { _id: string; characterId?: string };
 
       /**
        * User ID extracted from JWT (convenience property)
@@ -23,13 +23,13 @@ declare global {
 
       /**
        * Active character from character middleware
+       * Note: Use String(character._id) for service calls that expect string
        */
-      character?: ICharacter & {
-        _id: any;
-      };
+      character?: ICharacter;
 
       /**
        * Character ID set by characterOwnership middleware
+       * Always a string for easy comparison
        */
       characterId?: string;
 

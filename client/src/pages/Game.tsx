@@ -190,7 +190,12 @@ export const Game: React.FC = () => {
   useEffect(() => {
     if (currentCharacter) {
       fetchActions();
-      fetchSkills();
+      // Small delay to ensure character context is fully established before skills fetch
+      // This helps avoid race conditions where skills API is called before auth middleware has character
+      const timer = setTimeout(() => {
+        fetchSkills();
+      }, 100);
+      return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCharacter]);

@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useTutorialStore } from '@/store/useTutorialStore';
-import { Card, Button } from '@/components/ui';
+import { Card, Button, ConfirmDialog } from '@/components/ui';
 import { api } from '@/services/api';
 import { logger } from '@/services/logger.service';
 import twoFactorService, { TwoFactorStatusResponse } from '@/services/twoFactor.service';
@@ -25,7 +25,7 @@ const FACTION_INTRO_MAP: Record<string, string> = {
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout: _logout } = useAuthStore();
-  const { currentCharacter } = useCharacterStore();
+  const { currentCharacter, deleteCharacter } = useCharacterStore();
   const {
     tutorialCompleted,
     resetTutorial,
@@ -36,6 +36,10 @@ export const Settings: React.FC = () => {
   const [activeSection, setActiveSection] = useState<SettingsSection>('account');
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // Character deletion state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingCharacter, setIsDeletingCharacter] = useState(false);
 
   // Ref to track message auto-hide timer for cleanup
   const messageTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -160,6 +164,31 @@ export const Settings: React.FC = () => {
     }
   };
 
+  // Handle character deletion
+  const handleDeleteCharacter = async () => {
+    if (!currentCharacter?._id) return;
+
+    setIsDeletingCharacter(true);
+    // Clear any existing timer
+    if (messageTimerRef.current) {
+      clearTimeout(messageTimerRef.current);
+    }
+    try {
+      await deleteCharacter(currentCharacter._id);
+      setShowDeleteConfirm(false);
+      setMessage({ text: `Character "${currentCharacter.name}" has been deleted`, type: 'success' });
+      // Navigate to character select after deletion
+      setTimeout(() => {
+        navigate('/game/character-select');
+      }, 1500);
+    } catch (error: any) {
+      setMessage({ text: error.message || 'Failed to delete character', type: 'error' });
+      messageTimerRef.current = setTimeout(() => setMessage(null), 5000);
+    } finally {
+      setIsDeletingCharacter(false);
+    }
+  };
+
   const NavItem: React.FC<{ section: SettingsSection; icon: string; label: string }> = ({
     section,
     icon,
@@ -270,6 +299,27 @@ export const Settings: React.FC = () => {
                 {/* Danger Zone */}
                 <div className="pt-6 border-t border-wood-grain/30">
                   <h3 className="text-lg font-western text-red-500 mb-4">Danger Zone</h3>
+
+                  {/* Delete Character */}
+                  {currentCharacter && (
+                    <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+                      <p className="text-sm text-desert-sand mb-2">
+                        <strong>Delete Character:</strong> {currentCharacter.name}
+                      </p>
+                      <p className="text-sm text-desert-stone mb-4">
+                        This will permanently delete your character. All progress, items, and stats will be lost.
+                        This action cannot be undone.
+                      </p>
+                      <Button
+                        variant="danger"
+                        onClick={() => setShowDeleteConfirm(true)}
+                      >
+                        Delete Character
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Delete Account */}
                   <p className="text-sm text-desert-stone mb-4">
                     Once you delete your account, there is no going back.
                     All characters and progress will be permanently lost.
@@ -281,6 +331,20 @@ export const Settings: React.FC = () => {
                     Account deletion coming soon
                   </p>
                 </div>
+
+                {/* Character Deletion Confirmation Dialog */}
+                <ConfirmDialog
+                  isOpen={showDeleteConfirm}
+                  title="Delete Character?"
+                  message={`Are you sure you want to permanently delete "${currentCharacter?.name}"? This will remove all progress, items, inventory, skills, and currency. This action CANNOT be undone.`}
+                  confirmText="Delete Forever"
+                  cancelText="Cancel"
+                  confirmVariant="danger"
+                  onConfirm={handleDeleteCharacter}
+                  onCancel={() => setShowDeleteConfirm(false)}
+                  isLoading={isDeletingCharacter}
+                  icon="💀"
+                />
               </div>
             </Card>
           )}

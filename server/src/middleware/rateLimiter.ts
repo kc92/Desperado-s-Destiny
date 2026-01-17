@@ -216,13 +216,14 @@ export const authRateLimiter = loginRateLimiter;
 /**
  * More lenient rate limiter for general API endpoints
  *
- * SECURITY: 200 requests per 15 minutes = ~13 requests/minute
+ * SECURITY: 120 requests per minute = 2 requests/second
  * Sufficient for normal gameplay while preventing abuse
+ * Uses shorter window for faster recovery from rate limit
  */
 export const apiRateLimiter = createRateLimiter({
   prefix: 'api',
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // 500 requests per window - allows normal gameplay with headroom
+  windowMs: 60 * 1000, // 1 minute window for faster recovery
+  max: 120, // 120 requests per minute - allows normal gameplay with headroom
   message: 'Too many API requests, please try again later',
   handler: (req, _res) => {
     logger.warn(`API rate limit exceeded for IP: ${req.ip}`);
@@ -784,6 +785,41 @@ export const activityRateLimiter = createRateLimiter({
 });
 
 /**
+ * Deck Game Rate Limiter
+ * Higher limits for interactive card game actions (HOLD, DRAW, etc.)
+ * Uses character ID for per-player limiting instead of IP
+ *
+ * SECURITY: More permissive limit (60/min) since:
+ * - Card games require rapid interactions (hold multiple cards, then draw)
+ * - Actions are low-impact (no resource farming)
+ * - Character-based limiting prevents abuse across accounts
+ */
+export const deckGameRateLimiter = createRateLimiter({
+  prefix: 'deck-game',
+  windowMs: 60 * 1000, // 1 minute window
+  max: 60, // 60 requests per minute (1 per second average)
+  message: 'Too many game actions. Please slow down.',
+  keyGenerator: (req) => {
+    // Use character ID for per-player limiting, fallback to user ID, then IP
+    const characterId = (req as any).character?._id?.toString() || (req as any).characterId;
+    const userId = (req as any).user?._id;
+    return characterId || userId || req.ip || 'unknown';
+  },
+  handler: (req, _res) => {
+    const characterId = (req as any).character?._id?.toString() || (req as any).characterId;
+    logger.warn(`Deck game rate limit exceeded. Character: ${characterId || 'N/A'}, IP: ${req.ip}, Path: ${req.path}`);
+
+    throw new AppError(
+      'Too many game actions. Limit: 60 per minute. Please slow down.',
+      HttpStatus.TOO_MANY_REQUESTS
+    );
+  },
+  skip: () => {
+    return process.env.NODE_ENV === 'test';
+  },
+});
+
+/**
  * Rate limiter for reputation spreading operations
  * Prevents rapid reputation manipulation
  *
@@ -838,4 +874,5 @@ export default {
   investmentRateLimiter,
   activityRateLimiter,
   reputationRateLimiter,
+  deckGameRateLimiter,
 };

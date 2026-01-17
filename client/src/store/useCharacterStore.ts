@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import type { SafeCharacter, CharacterCreation } from '@desperados/shared';
 import { characterService } from '@/services/character.service';
 import { useEnergyStore } from './useEnergyStore';
+import { useTutorialStore } from './useTutorialStore';
 import { logger } from '@/services/logger.service';
 import { broadcastAuthEvent } from '@/hooks/useStorageSync';
 
@@ -135,6 +136,16 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         );
 
         localStorage.setItem('selectedCharacterId', id);
+
+        // Sync tutorial state with server after character selection
+        // This handles the case where tutorial state was preserved on page reload
+        const tutorialStore = useTutorialStore.getState();
+        if (tutorialStore.needsServerSync || !tutorialStore.tutorialCompleted) {
+          // Non-blocking sync - don't await to avoid delaying character selection
+          tutorialStore.syncPhase16Status().catch((err) => {
+            logger.warn('Failed to sync tutorial status after character selection', { error: err });
+          });
+        }
 
         // Broadcast character change to other tabs
         broadcastAuthEvent('CHARACTER_CHANGED', { characterId: id });

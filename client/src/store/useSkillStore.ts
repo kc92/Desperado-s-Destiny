@@ -21,7 +21,7 @@ interface SkillStore {
   error: string | null;
 
   // Actions
-  fetchSkills: () => Promise<void>;
+  fetchSkills: (retryCount?: number) => Promise<void>;
   startTraining: (skillId: string) => Promise<void>;
   cancelTraining: () => Promise<void>;
   completeTraining: () => Promise<{ result: any; bonuses: SuitBonuses } | undefined>;
@@ -42,7 +42,10 @@ export const useSkillStore = create<SkillStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchSkills: async () => {
+  fetchSkills: async (retryCount = 0) => {
+    const MAX_RETRIES = 2;
+    const RETRY_DELAY = 1000; // 1 second
+
     set({ isLoading: true, error: null });
 
     try {
@@ -62,7 +65,21 @@ export const useSkillStore = create<SkillStore>((set, get) => ({
         throw new Error(response.error || 'Failed to load skills');
       }
     } catch (error: any) {
-      logger.error('Failed to fetch skills', error as Error, { context: 'useSkillStore.fetchSkills' });
+      // Retry on failure (may be race condition with character loading)
+      if (retryCount < MAX_RETRIES) {
+        logger.warn(`Skills fetch failed, retrying (${retryCount + 1}/${MAX_RETRIES})...`, {
+          context: 'useSkillStore.fetchSkills',
+          retryCount,
+          error: error.message,
+        });
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        return get().fetchSkills(retryCount + 1);
+      }
+
+      logger.error('Failed to fetch skills after retries', error as Error, {
+        context: 'useSkillStore.fetchSkills',
+        retryCount,
+      });
       set({
         isLoading: false,
         error: error.message || 'Failed to load skills',

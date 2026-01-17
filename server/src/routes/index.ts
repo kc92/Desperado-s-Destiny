@@ -113,7 +113,7 @@ import tavernRoutes from './tavern.routes';
 import skillTrainingRoutes from './skillTraining.routes';
 import expeditionRoutes from './expedition.routes';
 import monetizationRoutes from './monetization.routes';
-import { apiRateLimiter } from '../middleware';
+import { apiRateLimiter, deckGameRateLimiter } from '../middleware';
 
 const router = Router();
 
@@ -194,8 +194,8 @@ router.use('/leaderboard', apiRateLimiter, leaderboardRoutes);
 // Achievement routes (with API rate limiting)
 router.use('/achievements', apiRateLimiter, achievementRoutes);
 
-// Deck game routes (with API rate limiting)
-router.use('/deck', apiRateLimiter, deckGameRoutes);
+// Deck game routes (with deck-specific rate limiting for card interactions)
+router.use('/deck', deckGameRateLimiter, deckGameRoutes);
 
 // Duel routes (with API rate limiting)
 router.use('/duels', apiRateLimiter, duelRoutes);

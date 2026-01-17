@@ -135,6 +135,8 @@ export interface TutorialProgress {
   unlockedDeepDives: string[];
   // Track which character this tutorial state belongs to
   characterId: string | null;
+  // Flag to indicate state needs server sync after character loads
+  needsServerSync: boolean;
   // Phase 16: Hawk mentorship system state
   phase16: Phase16TutorialState;
 }
@@ -339,6 +341,7 @@ const initialProgress: TutorialProgress = {
   completedActions: [],
   unlockedDeepDives: [],
   characterId: null,
+  needsServerSync: false,
   phase16: initialPhase16State,
 };
 
@@ -1337,6 +1340,7 @@ export const useTutorialStore = create<TutorialState>()(
         completedActions: state.completedActions, // Persist completed tutorial actions
         unlockedDeepDives: state.unlockedDeepDives, // Persist new field
         characterId: state.characterId, // Persist character ID for per-character tutorial state
+        needsServerSync: state.needsServerSync, // Persist sync flag for reload handling
         // Phase 16: Persist Hawk mentorship state
         phase16: {
           phase16Phase: state.phase16.phase16Phase,
@@ -1357,13 +1361,21 @@ export const useTutorialStore = create<TutorialState>()(
 
         // Show resume prompt only if tutorial was in progress AND belongs to current character
         if (state && state.currentSection && !state.tutorialCompleted) {
-          if (state.characterId && state.characterId === currentCharacterId) {
+          if (!currentCharacterId) {
+            // Character not loaded yet - preserve localStorage state, mark for sync
+            // The character store will trigger a proper sync after loading
+            state.showResumePrompt = false;
+            state.isActive = false;
+            state.isPaused = true;
+            state.needsServerSync = true;
+          } else if (state.characterId && state.characterId === currentCharacterId) {
             // Same character - show resume prompt
             state.showResumePrompt = true;
             state.isActive = false;
             state.isPaused = true;
+            state.needsServerSync = false;
           } else {
-            // Different character or no character yet - reset tutorial state for fresh start
+            // Different character - reset tutorial state for fresh start
             state.showResumePrompt = false;
             state.currentSection = null;
             state.currentStep = 0;
@@ -1371,6 +1383,7 @@ export const useTutorialStore = create<TutorialState>()(
             state.isActive = false;
             state.isPaused = false;
             state.characterId = null;
+            state.needsServerSync = false;
           }
         }
 

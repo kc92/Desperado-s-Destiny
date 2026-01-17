@@ -1131,7 +1131,21 @@ async function handleBet(
         break;
 
       case BettingAction.ALL_IN:
-        // TODO: Handle all-in logic
+        // All-in: Bet the full wager amount and force opponent to match or fold
+        // Get the duel's wager amount for the all-in value
+        const duelForAllIn = await Duel.findById(duelId);
+        const allInAmount = duelForAllIn?.wagerAmount || Math.max(state.currentBet * 5, 100);
+
+        // Set the bet to the all-in amount
+        state.currentBet = allInAmount;
+        state.pot += allInAmount;
+
+        // Pass turn to opponent - they must call, raise, or fold
+        state.turnPlayerId = state.turnPlayerId === state.challengerId
+          ? state.challengedId
+          : state.challengerId;
+
+        logger.info(`Player ${characterId} went ALL_IN with ${allInAmount} in duel ${duelId}`);
         break;
     }
 
@@ -1293,7 +1307,55 @@ async function handleUseAbility(
       });
 
       // Cheater loses the duel immediately
-      // TODO: Handle duel loss due to cheating
+      const cheaterId = characterId;
+      const winnerId = isChallenger ? state.challengedId : state.challengerId;
+      const winnerName = isChallenger ? 'Challenged' : 'Challenger';
+
+      // Clear timers
+      await clearTurnTimer(duelId);
+      await clearAnimationTimers(duelId);
+
+      // Update duel status in database
+      await Duel.findByIdAndUpdate(duelId, {
+        status: DuelStatus.COMPLETED,
+        winnerId,
+        completedAt: new Date()
+      });
+
+      // Award pot to winner and apply cheating penalty to cheater
+      const cheaterPenalty = Math.floor(state.pot * 0.25);
+      try {
+        await Character.findByIdAndUpdate(winnerId, {
+          $inc: { gold: state.pot }
+        });
+        await Character.findByIdAndUpdate(cheaterId, {
+          $inc: {
+            gold: -cheaterPenalty,
+            'reputation.total': -100
+          }
+        });
+      } catch (updateError) {
+        logger.error(`Failed to update character gold/reputation after cheating: ${updateError}`);
+      }
+
+      // Emit duel end to both players
+      emitToRoom(roomName, 'duel:complete', {
+        duelId,
+        winnerId,
+        winnerName,
+        reason: 'caught_cheating',
+        cheater: characterName,
+        potWon: state.pot,
+        cheaterPenalty
+      });
+
+      // Clean up state
+      await DuelStateManager.deleteState(duelId);
+      await DuelStateManager.clearCharacterDuel(state.challengerId);
+      await DuelStateManager.clearCharacterDuel(state.challengedId);
+
+      logger.info(`Duel ${duelId} ended - ${characterName} caught cheating. Winner: ${winnerId}`);
+      return; // Exit early since duel is over
     }
 
     // Emit ability result to the player

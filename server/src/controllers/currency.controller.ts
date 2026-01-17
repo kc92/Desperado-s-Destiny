@@ -35,13 +35,14 @@ export class CurrencyController {
         return;
       }
 
-      const dollars = await DollarService.getBalance(character._id as any);
-      const resources = await ResourceService.getAllBalances(character._id as any);
+      const charId = String(character._id);
+      const dollars = await DollarService.getBalance(charId);
+      const resources = await ResourceService.getAllBalances(charId);
 
       res.json({
         success: true,
         data: {
-          characterId: (character._id as any).toString(),
+          characterId: charId,
           characterName: character.name,
           dollars,
           goldResource: resources.gold,
@@ -97,13 +98,14 @@ export class CurrencyController {
         return;
       }
 
+      const charId = String(character._id);
       const history = await DollarService.getTransactionHistory(
-        character._id as any,
+        charId,
         limit,
         offset,
         currencyType as CurrencyType | undefined
       );
-      const stats = await DollarService.getStatistics(character._id as any);
+      const stats = await DollarService.getStatistics(charId);
 
       res.json({
         success: true,
@@ -140,11 +142,12 @@ export class CurrencyController {
         return;
       }
 
-      const dollarStats = await DollarService.getStatistics(character._id as any);
-      const dollarBalance = await DollarService.getBalance(character._id as any);
-      const goldStats = await ResourceService.getStatistics(character._id as any, 'gold');
-      const silverStats = await ResourceService.getStatistics(character._id as any, 'silver');
-      const resources = await ResourceService.getAllBalances(character._id as any);
+      const charId = String(character._id);
+      const dollarStats = await DollarService.getStatistics(charId);
+      const dollarBalance = await DollarService.getBalance(charId);
+      const goldStats = await ResourceService.getStatistics(charId, 'gold');
+      const silverStats = await ResourceService.getStatistics(charId, 'silver');
+      const resources = await ResourceService.getAllBalances(charId);
 
       res.json({
         success: true,
@@ -253,8 +256,9 @@ export class CurrencyController {
         return;
       }
 
+      const charId = String(character._id);
       const result = await CurrencyExchangeService.sellResource(
-        character._id as any,
+        charId,
         type,
         amount
       );
@@ -301,8 +305,9 @@ export class CurrencyController {
         return;
       }
 
+      const charId = String(character._id);
       const result = await CurrencyExchangeService.buyResource(
-        character._id as any,
+        charId,
         type,
         amount
       );
@@ -343,12 +348,13 @@ export class CurrencyController {
         return;
       }
 
-      const balance = await ResourceService.getBalance(character._id as any, resourceType);
+      const charId = String(character._id);
+      const balance = await ResourceService.getBalance(charId, resourceType);
 
       res.json({
         success: true,
         data: {
-          characterId: (character._id as any).toString(),
+          characterId: charId,
           resourceType,
           balance,
         },
@@ -392,8 +398,9 @@ export class CurrencyController {
         return;
       }
 
+      const charId = String(character._id);
       const history = await ResourceService.getTransactionHistory(
-        character._id as any,
+        charId,
         resourceType,
         limit,
         offset

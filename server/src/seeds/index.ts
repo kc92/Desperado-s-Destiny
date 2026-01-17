@@ -19,6 +19,9 @@ import { seedTerritoryZones } from './territoryZones.seed';
 import { seedNewRecipes } from './recipes_new';
 import { seedNewNPCs } from './npcs_new';
 import { seedDeities } from './deities.seed';
+import { seedSkills } from './skills.seed';
+import { seedMounts } from './mounts.seed';
+import { seedActions } from './actions.seed';
 
 async function seedAll() {
   try {
@@ -41,6 +44,9 @@ async function seedAll() {
     await seedEncounters(); // Random encounters
     await seedTerritoryZones(); // Territory control zones
     await seedDeities(); // Divine entities (The Gambler & The Outlaw King)
+    await seedSkills(); // 30 trainable skills
+    await seedMounts(); // Horses, mules, wagons, carts
+    await seedActions(); // 50+ actions for Destiny Deck
 
     console.log('\n✅ All seeds completed successfully!');
   } catch (error) {
@@ -71,5 +77,8 @@ export {
   seedTerritoryZones,
   seedNewRecipes,
   seedNewNPCs,
-  seedDeities
+  seedDeities,
+  seedSkills,
+  seedMounts,
+  seedActions
 };
