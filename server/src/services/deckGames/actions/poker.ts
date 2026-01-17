@@ -37,7 +37,9 @@ export function processPokerAction(state: GameState, action: PlayerAction): Game
   // === DRAW ===
   if (action.type === 'draw') {
     // Discard non-held cards and draw new ones
-    const heldIndices = state.heldCards || [];
+    // Use cardIndices from action if provided (client sends held cards with draw),
+    // otherwise fall back to state.heldCards (set by separate hold action)
+    const heldIndices = action.cardIndices || state.heldCards || [];
     const keptCards = state.hand.filter((_, i) => heldIndices.includes(i));
     const discardedCards = state.hand.filter((_, i) => !heldIndices.includes(i));
 
