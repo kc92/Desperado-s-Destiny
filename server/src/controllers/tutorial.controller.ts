@@ -23,18 +23,20 @@ import logger from '../utils/logger';
  * This prevents abuse by only allowing specific steps to claim rewards
  */
 const VALID_REWARD_STEPS = new Set([
-  // Settler intro
-  'settler-1', 'settler-2', 'settler-3',
+  // Settler intro (includes dialogue-only steps like 1b and completion step 4)
+  'settler-1', 'settler-1b', 'settler-2', 'settler-3', 'settler-4',
   // Nahi intro
-  'nahi-1', 'nahi-2', 'nahi-3',
+  'nahi-1', 'nahi-1b', 'nahi-2', 'nahi-3', 'nahi-4',
   // Frontera intro
-  'frontera-1', 'frontera-2', 'frontera-3',
+  'frontera-1', 'frontera-1b', 'frontera-2', 'frontera-3', 'frontera-4',
   // Combat basics
   'combat-1', 'combat-2', 'combat-3', 'combat-4',
   // Economy basics
   'eco-1', 'eco-2', 'eco-3', 'eco-4', 'eco-5',
   // Energy system teaching (Sprint 6 addition)
   'energy-1', 'energy-2', 'energy-3',
+  // Destiny Deck quiz
+  'quiz-1', 'quiz-2', 'quiz-3',
   // Progression system
   'prog-1', 'prog-2', 'prog-3', 'prog-4',
   // Tutorial completion bonus
