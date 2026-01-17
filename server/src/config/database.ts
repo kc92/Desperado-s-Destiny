@@ -12,6 +12,7 @@ const mongooseOptions: mongoose.ConnectOptions = {
   socketTimeoutMS: 45000,
   serverSelectionTimeoutMS: 5000,
   family: 4, // Use IPv4, skip trying IPv6
+  retryWrites: false, // Disable retryable writes for standalone MongoDB (no replica set)
 };
 
 // Track if listeners have been registered to prevent duplicates
