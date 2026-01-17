@@ -1,6 +1,7 @@
 /**
  * Deck Game Controller
  * Handles deck mini-game sessions
+ * Uses MongoDB for persistence to survive page refreshes and server restarts
  */
 
 import { Request, Response } from 'express';
@@ -16,38 +17,85 @@ import {
   Suit,
   PlayerAction
 } from '../services/deckGames';
+import { DeckGameSession } from '../models/DeckGameSession.model';
+import logger from '../utils/logger';
 
-// In-memory game state storage (use Redis in production)
-const activeGames = new Map<string, GameState>();
+// In-memory cache for fast access (falls back to DB)
+const gameCache = new Map<string, GameState>();
 
-// Clean up expired games every 5 minutes
-let deckGameCleanupInterval: NodeJS.Timeout | null = null;
-
-function startDeckGameCleanup(): void {
-  if (!deckGameCleanupInterval) {
-    deckGameCleanupInterval = setInterval(() => {
-      const now = Date.now();
-      for (const [gameId, state] of activeGames) {
-        const elapsed = now - state.startedAt.getTime();
-        const maxTime = (state.timeLimit + 60) * 1000; // Extra minute buffer
-
-        if (elapsed > maxTime) {
-          activeGames.delete(gameId);
-        }
-      }
-    }, 5 * 60 * 1000);
+// Helper to get game from cache or DB
+async function getGameState(gameId: string): Promise<GameState | null> {
+  // Check cache first
+  const cached = gameCache.get(gameId);
+  if (cached) {
+    return cached;
   }
+
+  // Fall back to DB
+  try {
+    const session = await DeckGameSession.findOne({ sessionId: gameId });
+    if (session) {
+      const gameState = session.gameState as GameState;
+      // Restore Date objects that may have been serialized
+      if (gameState.startedAt && !(gameState.startedAt instanceof Date)) {
+        gameState.startedAt = new Date(gameState.startedAt);
+      }
+      // Update cache
+      gameCache.set(gameId, gameState);
+      return gameState;
+    }
+  } catch (err) {
+    logger.error('Failed to fetch deck game from DB', err as Error);
+  }
+
+  return null;
+}
+
+// Helper to save game to cache and DB
+async function saveGameState(gameState: GameState, characterId: string): Promise<void> {
+  // Update cache
+  gameCache.set(gameState.gameId, gameState);
+
+  // Persist to DB
+  try {
+    await DeckGameSession.findOneAndUpdate(
+      { sessionId: gameState.gameId },
+      {
+        sessionId: gameState.gameId,
+        characterId,
+        gameType: gameState.gameType,
+        context: 'action', // Default context
+        gameState,
+        startedAt: gameState.startedAt,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minute TTL
+      },
+      { upsert: true, new: true }
+    );
+  } catch (err) {
+    logger.error('Failed to save deck game to DB', err as Error);
+  }
+}
+
+// Helper to delete game from cache and DB
+async function deleteGame(gameId: string): Promise<void> {
+  gameCache.delete(gameId);
+
+  try {
+    await DeckGameSession.deleteOne({ sessionId: gameId });
+  } catch (err) {
+    logger.error('Failed to delete deck game from DB', err as Error);
+  }
+}
+
+// Cleanup functions (kept for backwards compatibility, but MongoDB TTL handles expiry)
+function startDeckGameCleanup(): void {
+  // MongoDB TTL index handles automatic cleanup
+  // This function is kept for backwards compatibility
 }
 
 function stopDeckGameCleanup(): void {
-  if (deckGameCleanupInterval) {
-    clearInterval(deckGameCleanupInterval);
-    deckGameCleanupInterval = null;
-  }
+  // No-op - MongoDB TTL handles cleanup
 }
-
-// Auto-start on module load
-startDeckGameCleanup();
 
 export { startDeckGameCleanup, stopDeckGameCleanup };
 
@@ -97,8 +145,8 @@ export const startGame = asyncHandler(
       timeLimit
     });
 
-    // Store the game state
-    activeGames.set(gameState.gameId, gameState);
+    // Store the game state in cache and DB
+    await saveGameState(gameState, characterId);
 
     // Return initial state
     res.json({
@@ -142,8 +190,8 @@ export const gameAction = asyncHandler(
       return;
     }
 
-    // Get game state
-    const gameState = activeGames.get(gameId);
+    // Get game state from cache or DB
+    const gameState = await getGameState(gameId);
     if (!gameState) {
       res.status(404).json({ success: false, error: 'Game not found or expired' });
       return;
@@ -166,7 +214,7 @@ export const gameAction = asyncHandler(
     if (elapsed > gameState.timeLimit) {
       // Auto-resolve on timeout
       const result = resolveGame(gameState);
-      activeGames.delete(gameId);
+      await deleteGame(gameId);
 
       res.json({
         success: true,
@@ -182,12 +230,12 @@ export const gameAction = asyncHandler(
     try {
       // Process the action
       const newState = processAction(gameState, action);
-      activeGames.set(gameId, newState);
+      await saveGameState(newState, characterId);
 
       // If game resolved, return result
       if (newState.status === 'resolved') {
         const result = resolveGame(newState);
-        activeGames.delete(gameId);
+        await deleteGame(gameId);
 
         res.json({
           success: true,
@@ -220,7 +268,7 @@ export const gameAction = asyncHandler(
  * Get current game state
  * GET /api/deck/:gameId
  */
-export const getGameState = asyncHandler(
+export const getGameStateEndpoint = asyncHandler(
   async (req: Request, res: Response) => {
     const characterId = req.characterId;
     const { gameId } = req.params;
@@ -230,7 +278,7 @@ export const getGameState = asyncHandler(
       return;
     }
 
-    const gameState = activeGames.get(gameId);
+    const gameState = await getGameState(gameId);
     if (!gameState) {
       res.status(404).json({ success: false, error: 'Game not found or expired' });
       return;
@@ -277,7 +325,7 @@ export const forfeitGame = asyncHandler(
       return;
     }
 
-    const gameState = activeGames.get(gameId);
+    const gameState = await getGameState(gameId);
     if (!gameState) {
       res.status(404).json({ success: false, error: 'Game not found or expired' });
       return;
@@ -288,8 +336,8 @@ export const forfeitGame = asyncHandler(
       return;
     }
 
-    // Remove the game
-    activeGames.delete(gameId);
+    // Remove the game from cache and DB
+    await deleteGame(gameId);
 
     res.json({
       success: true,
@@ -304,6 +352,6 @@ export const forfeitGame = asyncHandler(
 export default {
   startGame,
   gameAction,
-  getGameState,
+  getGameState: getGameStateEndpoint,
   forfeitGame
 };

@@ -4,7 +4,7 @@
  * Handles game state, API calls, and renders appropriate game UI
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@desperados/shared';
 import { PokerHoldDraw } from './PokerHoldDraw';
 import { PressYourLuck } from './PressYourLuck';
@@ -142,9 +142,22 @@ export const DeckGame: React.FC<DeckGameProps> = ({
 }) => {
   const [gameState, setGameState] = useState<GameState>(initialState);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ gameResult: DeckGameResult; actionResult?: ActionResult } | null>(null);
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
+
+  // AbortController for canceling in-flight requests on unmount
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup: abort any pending requests when component unmounts
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Dispatch tutorial event when deck game initializes with a hand
   useEffect(() => {
@@ -155,8 +168,20 @@ export const DeckGame: React.FC<DeckGameProps> = ({
 
   // Handle player action submission
   const handleAction = async (action: { type: string; cardIndices?: number[] }) => {
+    // Prevent duplicate submissions
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
     setIsLoading(true);
     setError(null);
+
+    // Cancel any pending request before starting a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       let endpoint = '';
@@ -183,7 +208,9 @@ export const DeckGame: React.FC<DeckGameProps> = ({
           break;
       }
 
-      const response = await api.post(endpoint, payload);
+      const response = await api.post(endpoint, payload, {
+        signal: abortControllerRef.current.signal,
+      });
       const data = response.data.data;
 
       if (data.status === 'resolved' || data.status === 'completed' || data.status === 'busted' || data.completed === true) {
@@ -240,9 +267,14 @@ export const DeckGame: React.FC<DeckGameProps> = ({
         setSelectedCards([]);
       }
     } catch (err: any) {
+      // Ignore abort errors (request was cancelled intentionally)
+      if (err.name === 'AbortError' || err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return;
+      }
       setError(err.response?.data?.error || 'Failed to process action');
     } finally {
       setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 

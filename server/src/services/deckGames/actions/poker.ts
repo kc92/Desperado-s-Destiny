@@ -22,7 +22,15 @@ export function processPokerAction(state: GameState, action: PlayerAction): Game
 
   // === HOLD ===
   if (action.type === 'hold') {
-    state.heldCards = action.cardIndices || [];
+    const indices = action.cardIndices || [];
+
+    // Validate indices: must be integers within hand bounds
+    const validIndices = indices.filter(i =>
+      Number.isInteger(i) && i >= 0 && i < state.hand.length
+    );
+
+    // Remove duplicates
+    state.heldCards = [...new Set(validIndices)];
     return state;
   }
 

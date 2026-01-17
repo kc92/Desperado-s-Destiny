@@ -11,7 +11,7 @@ import { requireCsrfToken } from '../middleware/csrf.middleware';
 import {
   startGame,
   gameAction,
-  getGameState,
+  getGameStateEndpoint,
   forfeitGame
 } from '../controllers/deckGame.controller';
 
@@ -39,7 +39,7 @@ router.post('/action', requireCsrfToken, asyncHandler(gameAction));
  * GET /api/deck/:gameId
  * Get current game state
  */
-router.get('/:gameId', asyncHandler(getGameState));
+router.get('/:gameId', asyncHandler(getGameStateEndpoint));
 
 /**
  * POST /api/deck/:gameId/forfeit

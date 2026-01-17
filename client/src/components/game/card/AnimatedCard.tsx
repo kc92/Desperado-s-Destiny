@@ -152,6 +152,13 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({
     );
   }
 
+  // Handle click on the motion wrapper to ensure event propagation
+  const handleCardClick = () => {
+    if (isSelectable && onClick) {
+      onClick();
+    }
+  };
+
   return (
     <motion.div
       initial="inDeck"
@@ -159,6 +166,7 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({
       custom={{ index, position, isFinalCard }}
       variants={cardVariants}
       onAnimationComplete={handleAnimationComplete}
+      onClick={handleCardClick}
       style={{
         position: 'absolute',
         transformStyle: 'preserve-3d',
@@ -166,6 +174,9 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({
         // GPU acceleration hints
         willChange: isAnimating ? 'transform, opacity, filter' : 'auto',
         transform: 'translateZ(0)',
+        // Ensure click events register on motion wrapper
+        pointerEvents: 'auto',
+        cursor: isSelectable ? 'pointer' : 'default',
       }}
       className={className}
     >
@@ -177,6 +188,8 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({
         style={{
           // Ensure highlight layer also gets GPU acceleration
           willChange: isHighlighted ? 'box-shadow, transform' : 'auto',
+          // Allow click events to propagate through
+          pointerEvents: 'auto',
         }}
       >
         <PlayingCard
