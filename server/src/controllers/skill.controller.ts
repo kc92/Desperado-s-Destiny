@@ -155,7 +155,7 @@ export async function startTraining(req: CharacterRequest, res: Response): Promi
     res.status(500).json({
       success: false,
       error: 'Failed to start training',
-      details: process.env.NODE_ENV !== 'production' ? errorMessage : undefined
+      details: errorMessage // Temporarily always include for debugging
     });
   }
 }
