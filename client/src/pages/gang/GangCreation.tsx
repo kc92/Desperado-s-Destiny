@@ -154,6 +154,14 @@ export function GangCreation() {
       return;
     }
 
+    if (!currentCharacter?._id) {
+      logger.error('Cannot create gang: Character ID is missing', new Error('Character ID missing'), { 
+        context: 'GangCreation.handleSubmit',
+        character: currentCharacter 
+      });
+      return;
+    }
+
     try {
       await createGang(name, tag, currentCharacter._id);
       setShowSuccessModal(true);

@@ -151,6 +151,22 @@ export const Shop: React.FC = () => {
                     {item.priceTrend === 'rising' ? '↑ Prices rising' : '↓ Prices falling'}
                   </div>
                 )}
+                
+                {/* Direct Purchase Button */}
+                <div className="mt-3 pt-3 border-t border-wood-grain/30">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePurchase(item);
+                    }}
+                    disabled={!canAfford || !meetsLevel || isPurchasing}
+                  >
+                    Buy Now
+                  </Button>
+                </div>
               </div>
             );
           })}

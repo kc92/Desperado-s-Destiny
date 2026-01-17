@@ -3,7 +3,7 @@
  * New user registration page
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useFormValidation } from '@/hooks/useFormValidation';
@@ -28,15 +28,19 @@ export const Register: React.FC = () => {
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [checkingUsername, setCheckingUsername] = useState(false);
 
-  // Clear errors when component unmounts
+  // AbortController ref for cancelling in-flight username checks
+  const usernameCheckControllerRef = useRef<AbortController | null>(null);
+
+  // Clear errors and abort pending requests when component unmounts
   useEffect(() => {
     return () => {
       clearError();
+      usernameCheckControllerRef.current?.abort();
     };
   }, [clearError]);
 
-  // Check username availability with debouncing
-  const checkUsernameAvailability = useCallback(async (username: string) => {
+  // Check username availability with debouncing and AbortController
+  const checkUsernameAvailability = useCallback(async (username: string, signal: AbortSignal) => {
     if (!username || username.length < 3) {
       setUsernameAvailable(null);
       return;
@@ -44,13 +48,20 @@ export const Register: React.FC = () => {
 
     setCheckingUsername(true);
     try {
-      const response = await api.get(`/auth/check-username?username=${encodeURIComponent(username)}`);
+      const response = await api.get(`/auth/check-username?username=${encodeURIComponent(username)}`, { signal });
       setUsernameAvailable(response.data.available);
-    } catch (err) {
+    } catch (err: any) {
+      // Don't log or update state for cancelled requests
+      if (err.name === 'CanceledError' || err.name === 'AbortError') {
+        return;
+      }
       logger.error('Failed to check username availability', err as Error, { username });
       setUsernameAvailable(null);
     } finally {
-      setCheckingUsername(false);
+      // Only update checking state if not aborted
+      if (!signal.aborted) {
+        setCheckingUsername(false);
+      }
     }
   }, []);
 
@@ -122,17 +133,26 @@ export const Register: React.FC = () => {
     }
   );
 
-  // Debounced username check - must be after useFormValidation hook
+  // Debounced username check with AbortController - must be after useFormValidation hook
   useEffect(() => {
+    // Abort any previous request
+    usernameCheckControllerRef.current?.abort();
+
     const timeoutId = setTimeout(() => {
       if (values.username && values.username.length >= 3 && !errors.username) {
-        checkUsernameAvailability(values.username.trim());
+        // Create new AbortController for this request
+        usernameCheckControllerRef.current = new AbortController();
+        checkUsernameAvailability(values.username.trim(), usernameCheckControllerRef.current.signal);
       } else {
         setUsernameAvailable(null);
       }
     }, 500);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      // Abort on cleanup (when username changes or component unmounts)
+      usernameCheckControllerRef.current?.abort();
+    };
   }, [values.username, errors.username, checkUsernameAvailability]);
 
   // Calculate password strength

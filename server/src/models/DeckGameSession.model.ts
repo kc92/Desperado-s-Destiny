@@ -28,8 +28,7 @@ const DeckGameSessionSchema = new Schema<IDeckGameSession>({
   sessionId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true // unique constraint already creates an index
   },
   characterId: {
     type: Schema.Types.ObjectId,

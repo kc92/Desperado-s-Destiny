@@ -262,7 +262,8 @@ export class SkillService {
 
   /**
    * Start training a skill
-   * Transaction-safe to prevent race conditions
+   * Note: Removed transaction wrapper - standalone MongoDB doesn't support transactions
+   * This is acceptable for single-player skill training operations
    */
   static async startTraining(
     characterId: string,
@@ -277,16 +278,10 @@ export class SkillService {
       xpReward: number;
     };
   }> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      // Find character within transaction
-      const character = await Character.findById(characterId).session(session);
+      const character = await Character.findById(characterId);
 
       if (!character) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'Character not found' };
       }
 
@@ -298,8 +293,6 @@ export class SkillService {
       // Check concurrent training limit (Premium: 2, Free: 1)
       const maxSlots = await PremiumUtils.getMaxConcurrentTrainingByCharacter(characterId);
       if (currentlyTraining >= maxSlots) {
-        await session.abortTransaction();
-        session.endSession();
         const upgradeHint = maxSlots === 1 ? ' Upgrade to Premium for 2 training slots!' : '';
         return { success: false, error: `Already training maximum skills (${maxSlots}).${upgradeHint}` };
       }
@@ -307,8 +300,6 @@ export class SkillService {
       // Validate skill exists
       const skillDef = this.getSkillDefinition(skillId);
       if (!skillDef) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'Invalid skill' };
       }
 
@@ -329,8 +320,6 @@ export class SkillService {
 
       // Check if skill is at max level
       if (characterSkill.level >= skillDef.maxLevel) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'Skill already at maximum level' };
       }
 
@@ -347,12 +336,7 @@ export class SkillService {
       characterSkill.trainingStarted = now;
       characterSkill.trainingCompletes = completesAt;
 
-      // Save within transaction
-      await character.save({ session });
-
-      // Commit transaction
-      await session.commitTransaction();
-      session.endSession();
+      await character.save();
 
       const xpReward = this.calculateXPForNextLevel(characterSkill.level);
 
@@ -370,8 +354,6 @@ export class SkillService {
         }
       };
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       logger.error('Error starting skill training:', error);
       throw error;
     }
@@ -380,27 +362,21 @@ export class SkillService {
   /**
    * Cancel current training
    * No penalty - just clears the training state
+   * Note: Removed transaction wrapper - standalone MongoDB doesn't support transactions
    */
   static async cancelTraining(characterId: string): Promise<{
     success: boolean;
     error?: string;
   }> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      const character = await Character.findById(characterId).session(session);
+      const character = await Character.findById(characterId);
 
       if (!character) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'Character not found' };
       }
 
       const training = character.getCurrentTraining();
       if (!training) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'Not currently training' };
       }
 
@@ -408,16 +384,12 @@ export class SkillService {
       training.trainingStarted = undefined;
       training.trainingCompletes = undefined;
 
-      await character.save({ session });
-      await session.commitTransaction();
-      session.endSession();
+      await character.save();
 
       logger.info(`Character ${characterId} cancelled skill training`);
 
       return { success: true };
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       logger.error('Error cancelling skill training:', error);
       throw error;
     }
@@ -425,7 +397,7 @@ export class SkillService {
 
   /**
    * Complete skill training and award XP
-   * Transaction-safe
+   * Note: Removed transaction wrapper - standalone MongoDB doesn't support transactions
    */
   static async completeTraining(characterId: string): Promise<{
     success: boolean;
@@ -440,30 +412,21 @@ export class SkillService {
       xpToNextLevel: number;
     };
   }> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      const character = await Character.findById(characterId).session(session);
+      const character = await Character.findById(characterId);
 
       if (!character) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'Character not found' };
       }
 
       const training = character.getCurrentTraining();
       if (!training) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'Not currently training' };
       }
 
       // Check if training is complete
       if (!character.isTrainingComplete()) {
         const timeRemaining = training.trainingCompletes!.getTime() - Date.now();
-        await session.abortTransaction();
-        session.endSession();
         return {
           success: false,
           error: `Training not complete. ${Math.ceil(timeRemaining / 1000)} seconds remaining.`
@@ -472,8 +435,6 @@ export class SkillService {
 
       const skillDef = this.getSkillDefinition(training.skillId);
       if (!skillDef) {
-        await session.abortTransaction();
-        session.endSession();
         return { success: false, error: 'Invalid skill' };
       }
 
@@ -500,24 +461,20 @@ export class SkillService {
         this.updateTotalLevel(character);
       }
 
-      await character.save({ session });
+      await character.save();
 
-      // Check Total Level milestones after skill level-up (within transaction)
+      // Check Total Level milestones after skill level-up
       if (leveledUp) {
         try {
           await CharacterProgressionService.checkTotalLevelMilestones(
             characterId,
-            character.totalLevel,
-            session
+            character.totalLevel
           );
         } catch (milestoneError) {
           logger.error('Failed to check Total Level milestones:', milestoneError);
           // Don't fail training completion for milestone check failures
         }
       }
-
-      await session.commitTransaction();
-      session.endSession();
 
       // Trigger quest progress for skill level up
       if (leveledUp) {
@@ -576,8 +533,6 @@ export class SkillService {
         }
       };
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
       logger.error('Error completing skill training:', error);
       throw error;
     }
@@ -822,12 +777,14 @@ export class SkillService {
    * Award XP directly to a skill (from contracts, quests, activities)
    * This bypasses training time and grants XP immediately
    * Handles level-ups automatically
+   * Note: Removed transaction wrapper - standalone MongoDB doesn't support transactions
+   * Session parameter kept for API compatibility but is not used
    */
   static async awardSkillXP(
     characterId: string,
     skillId: string,
     xpAmount: number,
-    session?: mongoose.ClientSession
+    _session?: mongoose.ClientSession // Unused - kept for API compatibility
   ): Promise<{
     success: boolean;
     error?: string;
@@ -842,30 +799,16 @@ export class SkillService {
       levelsGained: number;
     };
   }> {
-    const useExternalSession = !!session;
-    if (!session) {
-      session = await mongoose.startSession();
-      session.startTransaction();
-    }
-
     try {
-      const character = await Character.findById(characterId).session(session);
+      const character = await Character.findById(characterId);
 
       if (!character) {
-        if (!useExternalSession) {
-          await session.abortTransaction();
-          session.endSession();
-        }
         return { success: false, error: 'Character not found' };
       }
 
       // Validate skill exists
       const skillDef = this.getSkillDefinition(skillId);
       if (!skillDef) {
-        if (!useExternalSession) {
-          await session.abortTransaction();
-          session.endSession();
-        }
         return { success: false, error: `Invalid skill: ${skillId}` };
       }
 
@@ -887,10 +830,6 @@ export class SkillService {
 
       // Check if skill is already at max level
       if (characterSkill.level >= skillDef.maxLevel) {
-        if (!useExternalSession) {
-          await session.abortTransaction();
-          session.endSession();
-        }
         return {
           success: true,
           result: {
@@ -932,25 +871,19 @@ export class SkillService {
         this.updateTotalLevel(character);
       }
 
-      await character.save({ session });
+      await character.save();
 
       // Check Total Level milestones after skill level-up
       if (levelsGained > 0) {
         try {
           await CharacterProgressionService.checkTotalLevelMilestones(
             characterId,
-            character.totalLevel,
-            useExternalSession ? session : undefined
+            character.totalLevel
           );
         } catch (milestoneError) {
           logger.error('Failed to check Total Level milestones:', milestoneError);
           // Don't fail XP award for milestone check failures
         }
-      }
-
-      if (!useExternalSession) {
-        await session.commitTransaction();
-        session.endSession();
       }
 
       // Trigger quest progress and notifications for level ups
@@ -1008,10 +941,6 @@ export class SkillService {
         }
       };
     } catch (error) {
-      if (!useExternalSession) {
-        await session.abortTransaction();
-        session.endSession();
-      }
       logger.error('Error awarding skill XP:', error);
       throw error;
     }
@@ -1020,11 +949,12 @@ export class SkillService {
   /**
    * Award XP to multiple skills at once (batch operation)
    * Used by contracts, jobs, and activities that grant multiple skill XP
+   * Note: Session parameter kept for API compatibility but is not used
    */
   static async awardMultipleSkillXP(
     characterId: string,
     skillXpRewards: Array<{ skillId: string; amount: number }>,
-    session?: mongoose.ClientSession
+    _session?: mongoose.ClientSession // Unused - kept for API compatibility
   ): Promise<{
     success: boolean;
     results: Array<{
@@ -1042,7 +972,7 @@ export class SkillService {
     }> = [];
 
     for (const reward of skillXpRewards) {
-      const result = await this.awardSkillXP(characterId, reward.skillId, reward.amount, session);
+      const result = await this.awardSkillXP(characterId, reward.skillId, reward.amount);
       if (result.success && result.result) {
         results.push({
           skillId: result.result.skillId,
@@ -1329,17 +1259,18 @@ export class SkillService {
   /**
    * Award Combat XP and update Combat Level
    * Called after PvE victories, PvP wins, bounty captures, gang wars
+   * Note: Removed transaction wrapper - standalone MongoDB doesn't support transactions
    *
    * @param characterId - Character to award XP to
    * @param xpAmount - Amount of combat XP to award
    * @param source - Source of the XP for logging
-   * @param session - Optional mongoose session for transactions
+   * @param _session - Unused - kept for API compatibility
    */
   static async awardCombatXP(
     characterId: string,
     xpAmount: number,
     source: 'pve' | 'pvp' | 'bounty' | 'gang_war' | 'training',
-    session?: mongoose.ClientSession
+    _session?: mongoose.ClientSession // Unused - kept for API compatibility
   ): Promise<{
     success: boolean;
     oldCombatLevel: number;
@@ -1348,20 +1279,10 @@ export class SkillService {
     totalCombatXp: number;
     leveledUp: boolean;
   }> {
-    const useExternalSession = !!session;
-    if (!session) {
-      session = await mongoose.startSession();
-      session.startTransaction();
-    }
-
     try {
-      const character = await Character.findById(characterId).session(session);
+      const character = await Character.findById(characterId);
 
       if (!character) {
-        if (!useExternalSession) {
-          await session.abortTransaction();
-          session.endSession();
-        }
         throw new Error('Character not found');
       }
 
@@ -1377,12 +1298,7 @@ export class SkillService {
 
       const leveledUp = newCombatLevel > oldCombatLevel;
 
-      await character.save({ session });
-
-      if (!useExternalSession) {
-        await session.commitTransaction();
-        session.endSession();
-      }
+      await character.save();
 
       logger.info(
         `Character ${character.name} gained ${xpAmount} combat XP from ${source}. ` +
@@ -1413,10 +1329,6 @@ export class SkillService {
         leveledUp
       };
     } catch (error) {
-      if (!useExternalSession) {
-        await session.abortTransaction();
-        session.endSession();
-      }
       logger.error('Error awarding combat XP:', error);
       throw error;
     }

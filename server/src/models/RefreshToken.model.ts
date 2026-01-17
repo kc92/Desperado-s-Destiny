@@ -26,14 +26,13 @@ const RefreshTokenSchema = new Schema<IRefreshToken>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true,
+    // Note: Indexed via compound index below (userId, isRevoked, expiresAt)
     comment: 'User who owns this refresh token',
   },
   token: {
     type: String,
     required: true,
-    unique: true,
-    index: true,
+    unique: true, // unique constraint already creates an index
     comment: 'Cryptographically secure random token',
   },
   expiresAt: {
@@ -67,7 +66,7 @@ const RefreshTokenSchema = new Schema<IRefreshToken>({
     type: Boolean,
     default: false,
     required: true,
-    index: true,
+    // Note: Indexed via compound indexes below
     comment: 'Revoked tokens cannot be used',
   },
 });

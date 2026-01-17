@@ -105,7 +105,7 @@ export async function spawnUrgentContracts(): Promise<void> {
   try {
     await withLock(lockKey, async () => {
       const session = await mongoose.startSession();
-      session.startTransaction();
+      await session.startTransaction();
 
       try {
         logger.info('[UrgentContractSpawner] Starting urgent contract spawn cycle...');
@@ -415,7 +415,7 @@ async function updateTrackerRedis(characterId: string): Promise<void> {
  */
 export async function forceSpawnUrgentContract(characterId: string): Promise<IContract | null> {
   const session = await mongoose.startSession();
-  session.startTransaction();
+  await session.startTransaction();
 
   try {
     const character = await Character.findById(characterId).session(session);

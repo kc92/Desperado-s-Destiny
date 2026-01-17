@@ -58,8 +58,8 @@ const NotificationSchema = new Schema<INotification>(
     characterId: {
       type: Schema.Types.ObjectId,
       ref: 'Character',
-      required: true,
-      index: true
+      required: true
+      // Note: Indexed via compound index below (characterId, isRead, createdAt)
     },
 
     type: {
@@ -93,8 +93,8 @@ const NotificationSchema = new Schema<INotification>(
 
     createdAt: {
       type: Date,
-      default: Date.now,
-      index: true
+      default: Date.now
+      // Note: Indexed via compound index below (characterId, isRead, createdAt)
     }
   },
   {

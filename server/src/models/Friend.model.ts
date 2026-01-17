@@ -52,8 +52,8 @@ const FriendSchema = new Schema<IFriend>(
     requesterId: {
       type: Schema.Types.ObjectId,
       ref: 'Character',
-      required: true,
-      index: true
+      required: true
+      // Note: Indexed via compound indexes below
     },
     requesterName: {
       type: String,
@@ -62,8 +62,8 @@ const FriendSchema = new Schema<IFriend>(
     recipientId: {
       type: Schema.Types.ObjectId,
       ref: 'Character',
-      required: true,
-      index: true
+      required: true
+      // Note: Indexed via compound indexes below
     },
     recipientName: {
       type: String,

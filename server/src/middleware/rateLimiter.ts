@@ -223,7 +223,7 @@ export const authRateLimiter = loginRateLimiter;
 export const apiRateLimiter = createRateLimiter({
   prefix: 'api',
   windowMs: 60 * 1000, // 1 minute window for faster recovery
-  max: 120, // 120 requests per minute - allows normal gameplay with headroom
+  max: 300, // 300 requests per minute - allows normal gameplay with headroom
   message: 'Too many API requests, please try again later',
   handler: (req, _res) => {
     logger.warn(`API rate limit exceeded for IP: ${req.ip}`);
@@ -280,7 +280,7 @@ export const goldTransferRateLimiter = createRateLimiter({
 export const shopRateLimiter = createRateLimiter({
   prefix: 'shop',
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 30, // 30 purchases per hour per user
+  max: 300, // 300 purchases per hour per user
   message: 'Purchase limit reached, please try again later',
   keyGenerator: (req) => {
     // Rate limit by user ID if authenticated, otherwise by IP
@@ -292,7 +292,7 @@ export const shopRateLimiter = createRateLimiter({
     logger.warn(`Shop rate limit exceeded. User: ${userId || 'N/A'}, IP: ${req.ip}, Path: ${req.path}`);
 
     throw new AppError(
-      'Too many purchase attempts. Limit: 30 purchases per hour. Please try again later.',
+      'Too many purchase attempts. Limit: 300 purchases per hour. Please try again later.',
       HttpStatus.TOO_MANY_REQUESTS
     );
   },
@@ -764,7 +764,7 @@ export const investmentRateLimiter = createRateLimiter({
 export const activityRateLimiter = createRateLimiter({
   prefix: 'activity',
   windowMs: 60 * 1000, // 1 minute
-  max: 30, // 30 activity actions per minute
+  max: 120, // 120 activity actions per minute
   message: 'Too many actions, please slow down',
   keyGenerator: (req) => {
     const characterId = (req as any).character?._id?.toString() || (req as any).body?.characterId;
@@ -775,7 +775,7 @@ export const activityRateLimiter = createRateLimiter({
     logger.warn(`Activity rate limit exceeded. Character: ${characterId || 'N/A'}, IP: ${req.ip}, Path: ${req.path}`);
 
     throw new AppError(
-      'Too many actions. Limit: 30 per minute. Please slow down.',
+      'Too many actions. Limit: 120 per minute. Please slow down.',
       HttpStatus.TOO_MANY_REQUESTS
     );
   },
@@ -797,7 +797,7 @@ export const activityRateLimiter = createRateLimiter({
 export const deckGameRateLimiter = createRateLimiter({
   prefix: 'deck-game',
   windowMs: 60 * 1000, // 1 minute window
-  max: 60, // 60 requests per minute (1 per second average)
+  max: 300, // 300 requests per minute (5 per second average)
   message: 'Too many game actions. Please slow down.',
   keyGenerator: (req) => {
     // Use character ID for per-player limiting, fallback to user ID, then IP
@@ -810,7 +810,7 @@ export const deckGameRateLimiter = createRateLimiter({
     logger.warn(`Deck game rate limit exceeded. Character: ${characterId || 'N/A'}, IP: ${req.ip}, Path: ${req.path}`);
 
     throw new AppError(
-      'Too many game actions. Limit: 60 per minute. Please slow down.',
+      'Too many game actions. Limit: 300 per minute. Please slow down.',
       HttpStatus.TOO_MANY_REQUESTS
     );
   },

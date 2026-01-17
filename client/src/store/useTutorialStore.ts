@@ -1364,9 +1364,7 @@ export const useTutorialStore = create<TutorialState>()(
           if (!currentCharacterId) {
             // Character not loaded yet - preserve localStorage state, mark for sync
             // The character store will trigger a proper sync after loading
-            state.showResumePrompt = false;
-            state.isActive = false;
-            state.isPaused = true;
+            // FIX: Do NOT reset active state here, as it causes tutorial to disappear/reset on reload
             state.needsServerSync = true;
           } else if (state.characterId && state.characterId === currentCharacterId) {
             // Same character - show resume prompt

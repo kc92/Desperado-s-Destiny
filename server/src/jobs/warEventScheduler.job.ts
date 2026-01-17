@@ -50,7 +50,7 @@ export async function scheduleWarEvents(): Promise<void> {
   try {
     await withLock(lockKey, async () => {
       const session = await mongoose.startSession();
-      session.startTransaction();
+      await session.startTransaction();
 
       try {
         logger.info('[WarEventScheduler] Starting war event scheduling cycle...');
