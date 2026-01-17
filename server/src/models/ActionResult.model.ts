@@ -125,7 +125,9 @@ const ActionResultSchema = new Schema<IActionResult>(
       validate: {
         validator: function(this: IActionResult, cards: Card[]) {
           // press_your_luck allows 1-10 cards, poker requires exactly 5
-          if (this.gameMode === 'press_your_luck') {
+          // Default to poker rules if gameMode is undefined (backward compatibility)
+          const mode = this.gameMode || 'poker';
+          if (mode === 'press_your_luck') {
             return cards.length >= 1 && cards.length <= 10;
           }
           return cards.length === 5;

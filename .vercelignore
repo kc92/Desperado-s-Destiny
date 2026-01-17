@@ -1,0 +1,27 @@
+node_modules
+.git
+.vercel
+client/node_modules
+server/node_modules
+shared/node_modules
+*.log
+.env
+.env.*
+dist
+client/dist
+server/dist
+coverage
+tmp
+temp
+playtest-reports
+playtest
+scripts
+docs
+art-assets
+Art Asset Generation
+manual-test-screenshots
+mockups
+monitoring
+test-automation
+.agent-session
+.claude
