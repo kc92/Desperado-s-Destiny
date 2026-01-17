@@ -7,18 +7,21 @@ import { User } from '../models/User.model';
 import logger from '../utils/logger';
 
 // Test email patterns that should be auto-verified
-const TEST_EMAIL_PATTERNS = [
+const TEST_EMAIL_STRINGS = [
   'test.outlaw.2026@gmail.com',
   'claude.outlaw.test@gmail.com',
-  /^test\..*@.*$/i,  // Any email starting with "test."
 ];
 
 export async function verifyTestAccounts(): Promise<void> {
   try {
     // Find unverified users matching test patterns
+    // Use $or with both exact matches and regex pattern for emails starting with "test."
     const unverifiedUsers = await User.find({
       emailVerified: false,
-      $or: TEST_EMAIL_PATTERNS.filter(p => typeof p === 'string').map(email => ({ email }))
+      $or: [
+        ...TEST_EMAIL_STRINGS.map(email => ({ email })),
+        { email: { $regex: /^test\./i } }  // Any email starting with "test."
+      ]
     });
 
     if (unverifiedUsers.length === 0) {
