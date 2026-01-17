@@ -144,10 +144,18 @@ export async function startTraining(req: CharacterRequest, res: Response): Promi
       }
     });
   } catch (error) {
-    logger.error('Error starting training:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error('Error starting training:', {
+      error: errorMessage,
+      stack: errorStack,
+      characterId: req.character?._id,
+      skillId: req.body?.skillId
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to start training'
+      error: 'Failed to start training',
+      details: process.env.NODE_ENV !== 'production' ? errorMessage : undefined
     });
   }
 }

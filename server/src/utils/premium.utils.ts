@@ -203,7 +203,7 @@ export class PremiumUtils {
     characterId: string
   ): Promise<PremiumBenefits> {
     const character = await Character.findById(characterId);
-    if (!character) {
+    if (!character || !character.userId) {
       return { isPremium: false, plan: FREE_PLAN };
     }
     return this.getPremiumBenefits(character.userId.toString());
@@ -463,8 +463,8 @@ export class PremiumUtils {
    */
   static async getTrainingTimeMultiplierByCharacter(characterId: string): Promise<number> {
     const character = await Character.findById(characterId);
-    if (!character) {
-      return 1.0; // No reduction for unknown character
+    if (!character || !character.userId) {
+      return 1.0; // No reduction for unknown character or missing userId
     }
     return this.getTrainingTimeMultiplier(character.userId.toString());
   }
@@ -478,8 +478,8 @@ export class PremiumUtils {
    */
   static async getMaxConcurrentTrainingByCharacter(characterId: string): Promise<number> {
     const character = await Character.findById(characterId);
-    if (!character) {
-      return 1; // Default to 1 for unknown character
+    if (!character || !character.userId) {
+      return 1; // Default to 1 for unknown character or missing userId
     }
     return this.getMaxConcurrentTraining(character.userId.toString());
   }
