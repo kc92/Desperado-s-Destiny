@@ -20,6 +20,7 @@ import {
 } from '../data/gatheringNodes';
 import { AppError } from '../utils/errors';
 import logger from '../utils/logger';
+import { withOptionalTransaction, saveWithSession } from '../utils/mongoTransaction';
 import { SecureRNG } from './base/SecureRNG';
 import { getRedisClient } from '../config/redis';
 import { createExactMatchRegex } from '../utils/stringUtils';
@@ -267,22 +268,22 @@ export class GatheringService {
     characterId: string,
     nodeId: string
   ): Promise<GatheringResult> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    // Check requirements first (outside transaction)
+    const requirements = await this.checkRequirements(characterId, nodeId);
+    if (!requirements.canGather) {
+      throw new AppError(requirements.errors[0] || 'Cannot gather', 400);
+    }
 
-    try {
-      // Check requirements
-      const requirements = await this.checkRequirements(characterId, nodeId);
-      if (!requirements.canGather) {
-        throw new AppError(requirements.errors[0] || 'Cannot gather', 400);
-      }
+    const node = getNodeById(nodeId)!;
 
-      const character = await Character.findById(characterId).session(session);
+    return withOptionalTransaction(async (session) => {
+      const character = session
+        ? await Character.findById(characterId).session(session)
+        : await Character.findById(characterId);
+
       if (!character) {
         throw new AppError('Character not found', 404);
       }
-
-      const node = getNodeById(nodeId)!;
 
       // Spend energy directly on character (don't use EnergyService to avoid write conflict)
       // Regenerate energy first to get current amount
@@ -360,10 +361,10 @@ export class GatheringService {
         SkillService.updateTotalLevel(character);
       }
 
-      // Save character
-      await character.save({ session });
+      // Save character (with or without session)
+      await saveWithSession(character, session);
 
-      // Check Total Level milestones after skill level-up (within transaction)
+      // Check Total Level milestones after skill level-up
       if (skillLevelUp) {
         try {
           await CharacterProgressionService.checkTotalLevelMilestones(
@@ -396,8 +397,6 @@ export class GatheringService {
         // Don't fail gathering for XP award failure
       }
 
-      await session.commitTransaction();
-
       logger.info(
         `Character ${character.name} gathered from ${node.name}: ${loot.map(l => `${l.quantity}x ${l.name}`).join(', ')}`
       );
@@ -412,12 +411,7 @@ export class GatheringService {
         cooldownEndsAt,
         energySpent: node.energyCost,
       };
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    });
   }
 
   /**
