@@ -45,18 +45,39 @@ export interface FishingSpot {
 }
 
 export interface FishingSession {
-  _id: string;
+  // Backend returns 'id', not '_id'
+  id: string;
+  _id?: string;  // Keep for backwards compatibility with mock sessions
   characterId: string;
-  spotId: string;
-  spot: FishingSpot;
-  baitType: BaitType;
-  startTime: string;
-  hasBite: boolean;
-  biteTime?: string;
-  currentFish?: Fish;
-  caughtFish: CaughtFish[];
-  totalValue: number;
+  // Backend returns locationId and spotType, not spotId and spot object
+  locationId: string;
+  spotId?: string;  // Keep for backwards compatibility with mock sessions
+  spotType: string;
+  spot?: FishingSpot;  // Optional - only used by mock sessions
+  setup: FishingSetup;
+  // Session timing
+  startedAt: string;
+  startTime?: string;  // Keep for backwards compatibility
+  endedAt?: string;
+  lastBiteCheck: string;
+  // State
   isActive: boolean;
+  isWaiting: boolean;
+  hasBite: boolean;
+  biteExpiresAt?: string;
+  biteTime?: string;  // Keep for backwards compatibility
+  // Fish state
+  currentFish?: Fish;
+  timeOfDay: string;
+  weather: string;
+  // Stats
+  catchCount: number;
+  totalValue: number;
+  totalExperience: number;
+  catches: CaughtFish[];
+  // Backwards compatibility
+  baitType?: BaitType;
+  caughtFish?: CaughtFish[];  // Alias for catches
 }
 
 export interface FishingStats {

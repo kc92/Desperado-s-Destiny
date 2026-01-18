@@ -168,16 +168,31 @@ export const Fishing: React.FC = () => {
       logger.error('Failed to start fishing', err as Error, { context: 'Fishing.handleStartFishing' });
       // Create a mock session for demo
       const mockSession: FishingSession = {
+        id: 'mock-session',
         _id: 'mock-session',
         characterId: currentCharacter._id,
+        locationId: selectedSpot.locationId,
         spotId: selectedSpot.id,
+        spotType: selectedSpot.spotType,
         spot: selectedSpot,
-        baitType: selectedBait,
+        setup: {
+          ...DEFAULT_FISHING_SETUP,
+          baitId: baitOption?.baitId || 'worms',
+        },
+        startedAt: new Date().toISOString(),
         startTime: new Date().toISOString(),
-        hasBite: false,
-        caughtFish: [],
-        totalValue: 0,
+        lastBiteCheck: new Date().toISOString(),
         isActive: true,
+        isWaiting: true,
+        hasBite: false,
+        timeOfDay: 'MIDDAY',
+        weather: 'CLEAR',
+        catchCount: 0,
+        totalValue: 0,
+        totalExperience: 0,
+        catches: [],
+        caughtFish: [],
+        baitType: selectedBait,
       };
       setSession(mockSession);
       startBiteChecking();
@@ -231,7 +246,9 @@ export const Fishing: React.FC = () => {
         prev
           ? {
               ...prev,
-              caughtFish: [...prev.caughtFish, mockFish],
+              catches: [...(prev.catches || []), mockFish],
+              caughtFish: [...(prev.caughtFish || []), mockFish],
+              catchCount: (prev.catchCount || 0) + 1,
               totalValue: prev.totalValue + mockFish.value,
             }
           : prev
@@ -264,7 +281,7 @@ export const Fishing: React.FC = () => {
       });
       success(
         'Fishing Complete!',
-        `Caught ${session.caughtFish.length} fish for ${formatDollars(goldEarned)}`
+        `Caught ${session.catches?.length || session.caughtFish?.length || 0} fish for ${formatDollars(goldEarned)}`
       );
     } finally {
       setSession(null);
@@ -346,7 +363,7 @@ export const Fishing: React.FC = () => {
                 <p className="text-wood-grain">
                   {hasBite
                     ? 'Quick! Set the hook!'
-                    : 'Waiting for a bite at ' + session.spot.name}
+                    : 'Waiting for a bite at ' + (session.spot?.name || selectedSpot?.name || FISHING_SPOTS.find(s => s.locationId === session.locationId)?.name || session.locationId)}
                 </p>
                 {reactionTimer !== null && (
                   <p className="text-2xl font-bold text-blood-red mt-2">{reactionTimer}s</p>
@@ -385,11 +402,11 @@ export const Fishing: React.FC = () => {
               </div>
 
               {/* Catch Summary */}
-              {session.caughtFish.length > 0 && (
+              {(session.catches?.length > 0 || session.caughtFish?.length) && (
                 <div className="mt-6 pt-6 border-t border-wood-grain/30">
                   <h3 className="font-western text-wood-dark mb-3">Today's Catch</h3>
                   <div className="flex flex-wrap justify-center gap-2">
-                    {session.caughtFish.map((fish, i) => (
+                    {(session.catches || session.caughtFish || []).map((fish, i) => (
                       <div
                         key={i}
                         className={`px-3 py-1 rounded-full text-sm ${
