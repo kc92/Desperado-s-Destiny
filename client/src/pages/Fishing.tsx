@@ -13,48 +13,52 @@ import fishingService, {
   type FishingSession,
   type CaughtFish,
   type BaitType,
+  DEFAULT_FISHING_SETUP,
 } from '@/services/fishing.service';
 
-// Default fishing spots - these are location-based fishing areas
-// In the future, these could be fetched dynamically based on current location
+// Default fishing spots - mapped to actual backend fishing location IDs
+// In the future, these could be fetched dynamically from the backend
 const FISHING_SPOTS = [
   {
     id: 'river-1',
-    name: 'Dusty Creek',
-    description: 'A shallow creek winding through the desert',
-    type: 'river' as const,
-    locationId: 'frontier',
-    locationName: 'Frontier Territory',
+    name: 'Red Gulch Creek',
+    description: 'A winding creek popular with local anglers. Good for beginners.',
+    waterType: 'river' as const,
+    spotType: 'SHALLOW', // SpotType enum value
+    locationId: 'red_gulch_creek', // Actual backend fishing location ID
+    locationName: 'Red Gulch Creek',
     difficulty: 1,
-    availableFish: ['catfish', 'bass', 'trout'],
+    availableFish: ['catfish', 'bass', 'bluegill'],
   },
   {
     id: 'lake-1',
-    name: 'Mirror Lake',
-    description: 'A still mountain lake with crystal clear waters',
-    type: 'lake' as const,
-    locationId: 'mountains',
-    locationName: 'Mountain Range',
+    name: 'Spirit Springs Lake',
+    description: 'Crystal clear water fed by natural springs. Sacred to the Nahi.',
+    waterType: 'lake' as const,
+    spotType: 'DEEP', // SpotType enum value
+    locationId: 'spirit_springs_lake', // Actual backend fishing location ID
+    locationName: 'Spirit Springs Lake',
     difficulty: 2,
-    availableFish: ['trout', 'pike', 'perch'],
+    availableFish: ['bluegill', 'bass', 'crappie'],
   },
   {
     id: 'pond-1',
-    name: 'Old Mill Pond',
-    description: 'A quiet pond by the abandoned mill',
-    type: 'pond' as const,
-    locationId: 'frontier',
-    locationName: 'Frontier Territory',
+    name: 'Spring Pools',
+    description: 'Natural pools fed by underground springs. Peaceful and secluded.',
+    waterType: 'pond' as const,
+    spotType: 'SHALLOW', // SpotType enum value
+    locationId: 'spring_pools', // Actual backend fishing location ID
+    locationName: 'Spring Pools',
     difficulty: 1,
-    availableFish: ['bluegill', 'carp', 'catfish'],
+    availableFish: ['bluegill', 'sunfish', 'catfish'],
   },
 ];
 
-const BAIT_OPTIONS: { type: BaitType; name: string; description: string; cost: number }[] = [
-  { type: 'worm', name: 'Earthworm', description: 'Basic bait, works on most fish', cost: 5 },
-  { type: 'cricket', name: 'Cricket', description: 'Good for panfish and bass', cost: 10 },
-  { type: 'minnow', name: 'Live Minnow', description: 'Attracts larger predatory fish', cost: 20 },
-  { type: 'special', name: 'Special Lure', description: 'High chance for rare fish', cost: 50 },
+const BAIT_OPTIONS: { type: BaitType; baitId: string; name: string; description: string; cost: number }[] = [
+  { type: 'worm', baitId: 'worms', name: 'Earthworm', description: 'Basic bait, works on most fish', cost: 5 },
+  { type: 'cricket', baitId: 'insects', name: 'Cricket', description: 'Good for panfish and bass', cost: 10 },
+  { type: 'minnow', baitId: 'minnows', name: 'Live Minnow', description: 'Attracts larger predatory fish', cost: 20 },
+  { type: 'special', baitId: 'special_bait', name: 'Special Lure', description: 'High chance for rare fish', cost: 50 },
 ];
 
 export const Fishing: React.FC = () => {
@@ -136,7 +140,8 @@ export const Fishing: React.FC = () => {
   const handleStartFishing = async () => {
     if (!selectedSpot || !currentCharacter) return;
 
-    const baitCost = BAIT_OPTIONS.find((b) => b.type === selectedBait)?.cost || 0;
+    const baitOption = BAIT_OPTIONS.find((b) => b.type === selectedBait);
+    const baitCost = baitOption?.cost || 0;
     if (currentCharacter.gold < baitCost) {
       showError('Insufficient Gold', 'You cannot afford this bait.');
       return;
@@ -144,7 +149,17 @@ export const Fishing: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const result = await fishingService.startFishing(selectedSpot.id, selectedBait);
+      // Build the fishing setup with the selected bait
+      const setup = {
+        ...DEFAULT_FISHING_SETUP,
+        baitId: baitOption?.baitId || 'worms',
+      };
+
+      const result = await fishingService.startFishing(
+        selectedSpot.locationId,
+        selectedSpot.spotType,
+        setup
+      );
       setSession(result.session);
       updateCharacter({ gold: currentCharacter.gold - baitCost });
       success('Fishing Started', 'Cast your line and wait for a bite!');
@@ -426,7 +441,7 @@ export const Fishing: React.FC = () => {
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-2xl">
-                        {spot.type === 'river' ? '🏞️' : spot.type === 'lake' ? '💧' : '🌿'}
+                        {spot.waterType === 'river' ? '🏞️' : spot.waterType === 'lake' ? '💧' : '🌿'}
                       </span>
                       <h3 className="font-western text-wood-dark">{spot.name}</h3>
                     </div>

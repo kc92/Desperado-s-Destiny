@@ -71,9 +71,31 @@ export interface FishingStats {
 
 // ===== Request/Response Types =====
 
+/**
+ * Fishing setup - rod, reel, line, bait, lure
+ */
+export interface FishingSetup {
+  rodId: string;
+  reelId: string;
+  lineId: string;
+  baitId?: string;
+  lureId?: string;
+}
+
+/**
+ * Default gear for new players
+ */
+export const DEFAULT_FISHING_SETUP: FishingSetup = {
+  rodId: 'cane_pole',
+  reelId: 'simple_reel',
+  lineId: 'cotton_line',
+  baitId: 'worms',
+};
+
 export interface StartFishingRequest {
-  spotId: string;
-  baitType: BaitType;
+  locationId: string;
+  spotType: string;
+  setup: FishingSetup;
 }
 
 export interface StartFishingResponse {
@@ -129,10 +151,15 @@ export const fishingService = {
   /**
    * Start a new fishing session
    */
-  async startFishing(spotId: string, baitType: BaitType): Promise<StartFishingResponse> {
+  async startFishing(
+    locationId: string,
+    spotType: string,
+    setup?: FishingSetup
+  ): Promise<StartFishingResponse> {
     const response = await api.post<{ data: StartFishingResponse }>('/fishing/start', {
-      spotId,
-      baitType,
+      locationId,
+      spotType,
+      setup: setup || DEFAULT_FISHING_SETUP,
     });
     return response.data.data;
   },
