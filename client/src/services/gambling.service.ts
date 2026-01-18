@@ -332,11 +332,18 @@ export const gamblingService = {
    * Place a bet in the current session
    */
   async placeBet(sessionId: string, bet: BetRequest): Promise<GameState> {
-    const response = await api.post<{ data: GameState }>(
-      `/gambling/sessions/${sessionId}/bet`,
-      bet
-    );
-    return response.data.data;
+    const response = await api.post<{
+      data: {
+        result: string;
+        amountWon: number;
+        amountLost: number;
+        newBalance: number;
+        gameState: GameState;
+        message: string;
+      };
+    }>(`/gambling/sessions/${sessionId}/bet`, bet);
+    // Backend returns gameState inside data
+    return response.data.data.gameState;
   },
 
   /**

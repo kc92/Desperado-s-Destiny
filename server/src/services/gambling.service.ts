@@ -464,6 +464,49 @@ function initializeGameState(gameType: GamblingGameType, initialBet: number): an
 }
 
 /**
+ * Convert a numeric card value (1-13) to display format
+ */
+function cardToDisplay(value: number): { suit: string; value: string; numericValue: number } {
+  const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+  const suit = suits[SecureRNG.range(0, 3)];
+
+  let displayValue: string;
+  let numericValue: number;
+
+  if (value === 1) {
+    displayValue = 'A';
+    numericValue = 11; // Aces start as 11
+  } else if (value >= 11 && value <= 13) {
+    displayValue = value === 11 ? 'J' : value === 12 ? 'Q' : 'K';
+    numericValue = 10;
+  } else {
+    displayValue = String(value);
+    numericValue = value;
+  }
+
+  return { suit, value: displayValue, numericValue };
+}
+
+/**
+ * Build a blackjack hand object for the frontend
+ */
+function buildBlackjackHand(cards: number[]): {
+  cards: { suit: string; value: string; numericValue: number }[];
+  total: number;
+  isBusted: boolean;
+  isBlackjack: boolean;
+} {
+  const displayCards = cards.map(cardToDisplay);
+  const total = getBlackjackValue(cards);
+  return {
+    cards: displayCards,
+    total,
+    isBusted: total > 21,
+    isBlackjack: cards.length === 2 && total === 21
+  };
+}
+
+/**
  * Play a blackjack hand
  */
 async function playBlackjackHand(
@@ -478,39 +521,96 @@ async function playBlackjackHand(
   const dealerCard1 = drawCard();
   const dealerCard2 = drawCard();
 
-  let playerTotal = getBlackjackValue([playerCard1, playerCard2]);
-  let dealerTotal = getBlackjackValue([dealerCard1, dealerCard2]);
+  const playerCards = [playerCard1, playerCard2];
+  const dealerCards = [dealerCard1, dealerCard2];
+
+  let playerTotal = getBlackjackValue(playerCards);
+  let dealerTotal = getBlackjackValue(dealerCards);
+
+  // Build hand objects for frontend
+  const playerHand = buildBlackjackHand(playerCards);
+  const dealerHand = buildBlackjackHand(dealerCards);
 
   // Check for player blackjack
   if (playerTotal === 21) {
     // Dealer checks for blackjack
     if (dealerTotal === 21) {
-      return { result: 'PUSH', payout: betAmount, newGameState: {} };
+      return {
+        result: 'PUSH',
+        payout: betAmount,
+        newGameState: {
+          playerHand,
+          dealerHand,
+          dealerHidden: false,
+          currentBet: betAmount,
+          canHit: false,
+          canStand: false,
+          canDouble: false,
+          canSplit: false,
+          result: 'push',
+          payout: betAmount
+        }
+      };
     }
     // Player wins 3:2
-    return { result: 'WIN', payout: Math.floor(betAmount * 2.5), newGameState: {} };
+    const blackjackPayout = Math.floor(betAmount * 2.5);
+    return {
+      result: 'WIN',
+      payout: blackjackPayout,
+      newGameState: {
+        playerHand,
+        dealerHand,
+        dealerHidden: false,
+        currentBet: betAmount,
+        canHit: false,
+        canStand: false,
+        canDouble: false,
+        canSplit: false,
+        result: 'blackjack',
+        payout: blackjackPayout
+      }
+    };
   }
 
-  // Simulate house edge
+  // Simulate house edge for the outcome
   // SECURITY FIX: Use SecureRNG for cryptographically secure outcomes
   const winChance = 50 - houseEdge;
   const random = SecureRNG.d100();
 
   let result: 'WIN' | 'LOSS' | 'PUSH';
+  let resultLowercase: 'win' | 'lose' | 'push';
   let payout = 0;
 
   if (random <= winChance) {
     result = 'WIN';
+    resultLowercase = 'win';
     payout = betAmount * 2;
   } else if (random < winChance + 5) {
     result = 'PUSH';
+    resultLowercase = 'push';
     payout = betAmount;
   } else {
     result = 'LOSS';
+    resultLowercase = 'lose';
     payout = 0;
   }
 
-  return { result, payout, newGameState: {} };
+  return {
+    result,
+    payout,
+    newGameState: {
+      playerHand,
+      dealerHand,
+      dealerHidden: false, // Reveal dealer's hand on result
+      currentBet: betAmount,
+      canHit: false,
+      canStand: false,
+      canDouble: false,
+      canSplit: false,
+      result: resultLowercase,
+      payout
+    }
+  };
 }
 
 /**
