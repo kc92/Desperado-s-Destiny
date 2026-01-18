@@ -68,10 +68,9 @@ export async function connectRedis(
             return delay;
           },
         },
-        // PRODUCTION FIX: Add command timeout to fail fast on unresponsive Redis
-        // Without this, Redis commands can hang indefinitely blocking all requests
+        // PRODUCTION FIX: Limit command queue to prevent memory issues
         commandsQueueMaxLength: 100, // Limit pending commands queue
-        disableOfflineQueue: true, // Don't queue commands when disconnected, fail immediately
+        // NOTE: disableOfflineQueue is intentionally NOT set to allow graceful reconnection
       });
 
       // EVENT LISTENER LEAK FIX: Use named handlers for proper cleanup
