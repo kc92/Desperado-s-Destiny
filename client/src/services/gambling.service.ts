@@ -166,8 +166,9 @@ export interface GamblingItem {
 // ===== Start Session Request/Response =====
 
 export interface StartSessionRequest {
-  locationId: string;
-  gameType: GameType;
+  gameId: GameType;
+  location: string;
+  initialBet: number;
 }
 
 export interface StartSessionResponse {

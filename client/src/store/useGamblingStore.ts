@@ -119,8 +119,9 @@ export const useGamblingStore = create<GamblingStore>((set, get) => ({
     set({ isSubmitting: true, error: null });
     try {
       const result = await gamblingService.startSession({
-        locationId: location._id,
-        gameType: game,
+        gameId: game,
+        location: location._id,
+        initialBet: location.minBet || 10,
       });
 
       const session = result.session || {
