@@ -129,8 +129,9 @@ class SocketService {
 
       this.socket = io(socketUrl, {
         withCredentials: true,
-        // Start with polling (more reliable through proxies), then upgrade to websocket
-        transports: ['polling', 'websocket'],
+        // Force websocket-only in production to match backend config (avoids Railway timeout issues)
+        // In development, allow polling fallback for easier debugging
+        transports: import.meta.env.PROD ? ['websocket'] : ['polling', 'websocket'],
         reconnection: true,
         reconnectionDelay: this.reconnectDelay,
         reconnectionDelayMax: 5000,
