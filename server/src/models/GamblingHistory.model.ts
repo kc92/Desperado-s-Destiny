@@ -102,7 +102,7 @@ export interface IGamblingHistory extends Document {
   recordCheat(successful: boolean, locationId: string): void;
   banFromLocation(locationId: string): void;
   isBannedFrom(locationId: string): boolean;
-  recordSession(sessionData: any): void;
+  recordSession(gameType: GamblingGameType, netProfit: number, goldWagered: number): void;
   recordEventParticipation(eventData: any): void;
 }
 

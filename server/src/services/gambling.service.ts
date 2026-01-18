@@ -411,11 +411,12 @@ export async function endGamblingSession(
   // Update gambling history
   const history = await GamblingHistory.findByCharacter(characterId);
   if (history) {
-    history.recordSession({
-      gameType: session.gameType,
-      netProfit: session.netProfit,
-      totalWagered: session.totalWagered
-    });
+    // recordSession expects separate arguments: (gameType, netProfit, goldWagered)
+    history.recordSession(
+      session.gameType,
+      session.netProfit,
+      session.totalWagered
+    );
     await history.save();
   }
 
