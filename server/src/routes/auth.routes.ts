@@ -240,7 +240,7 @@ router.put('/preferences', requireAuth, requireCsrfToken, asyncHandler(updatePre
  * - 200: { csrfToken: string }
  * - 401: Not authenticated
  */
-router.get('/csrf-token', requireAuth, getCsrfToken);
+router.get('/csrf-token', requireAuth, asyncHandler(getCsrfToken));
 
 // =============================================================================
 // Two-Factor Authentication Routes

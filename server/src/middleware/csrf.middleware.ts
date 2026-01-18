@@ -66,6 +66,46 @@ class CSRFManager {
   }
 
   /**
+   * Get existing valid token for a user (if one exists)
+   * Returns null if no valid token exists
+   */
+  async getExistingTokenAsync(userId: string): Promise<string | null> {
+    if (this.useRedis()) {
+      try {
+        const redis = getRedisClient();
+        const existingToken = await redis.get(this.getUserTokenKey(userId));
+        if (existingToken) {
+          // Verify the token data still exists and is valid
+          const stored = await redis.get(this.getTokenKey(existingToken));
+          if (stored) {
+            const tokenData: CSRFToken = JSON.parse(stored);
+            // Check if not expired
+            if (Date.now() - tokenData.createdAt < CSRF_EXPIRY_MS) {
+              logger.debug(`Returning existing CSRF token for user ${userId}`);
+              return existingToken;
+            }
+          }
+        }
+      } catch (error) {
+        logger.error('Redis error checking existing CSRF token:', error);
+        // Fall through to memory check
+      }
+    }
+
+    // Check memory fallback
+    const existingToken = this.memoryUserTokens.get(userId);
+    if (existingToken) {
+      const tokenData = this.memoryTokens.get(existingToken);
+      if (tokenData && Date.now() - tokenData.createdAt < CSRF_EXPIRY_MS) {
+        logger.debug(`Returning existing CSRF token for user ${userId} (memory)`);
+        return existingToken;
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Generate a new CSRF token for a user
    * @param userId - User ID to bind token to
    * @returns Generated token string
@@ -641,10 +681,11 @@ export function optionalCsrfToken(
 }
 
 /**
- * Endpoint to get a fresh CSRF token
- * Should be called after login or when token expires
+ * Endpoint to get a CSRF token
+ * Returns existing valid token if available, otherwise generates a new one.
+ * This prevents token invalidation when multiple requests fetch CSRF tokens.
  */
-export function getCsrfToken(req: Request, res: Response): void {
+export async function getCsrfToken(req: Request, res: Response): Promise<void> {
   const userId = (req as any).user?._id?.toString();
 
   if (!userId) {
@@ -654,7 +695,13 @@ export function getCsrfToken(req: Request, res: Response): void {
     );
   }
 
-  const token = csrfManager.generate(userId);
+  // First try to get an existing valid token
+  let token = await csrfManager.getExistingTokenAsync(userId);
+
+  // Only generate a new token if no valid one exists
+  if (!token) {
+    token = await csrfManager.generateAsync(userId);
+  }
 
   res.json({
     success: true,
