@@ -433,10 +433,11 @@ export class CraftingService {
   ): Promise<CraftItemResponse | any> {
     // Handle the simplified version (characterId, recipeId)
     if (typeof requestOrRecipeId === 'string') {
-      const Recipe = (await import('../models/Recipe.model')).Recipe;
       const Character = (await import('../models/Character.model')).Character;
 
-      const recipeDoc = await Recipe.findOne({ recipeId: requestOrRecipeId });
+      // FIX: Look up recipe from static ALL_RECIPES data instead of MongoDB
+      // The static recipes use 'id' field, not 'recipeId'
+      const recipeDoc = ALL_RECIPES.find(r => r.id === requestOrRecipeId);
       if (!recipeDoc) {
         return {
           success: false,
@@ -462,12 +463,12 @@ export class CraftingService {
       }
 
       // Check materials in inventory
-      for (const ingredient of recipeDoc.ingredients) {
-        const inventoryItem = character.inventory.find(i => i.itemId === ingredient.itemId);
-        if (!inventoryItem || inventoryItem.quantity < ingredient.quantity) {
+      for (const mat of recipeDoc.materials) {
+        const inventoryItem = character.inventory.find(i => i.itemId === mat.materialId);
+        if (!inventoryItem || inventoryItem.quantity < mat.quantity) {
           return {
             success: false,
-            error: `Insufficient materials: ${ingredient.itemId} (need ${ingredient.quantity}, have ${inventoryItem?.quantity || 0})`
+            error: `Insufficient materials: ${mat.materialId} (need ${mat.quantity}, have ${inventoryItem?.quantity || 0})`
           };
         }
       }
@@ -478,24 +479,25 @@ export class CraftingService {
 
       try {
         // Deduct materials from inventory
-        for (const ingredient of recipeDoc.ingredients) {
-          const inventoryItem = character.inventory.find(i => i.itemId === ingredient.itemId);
+        for (const mat of recipeDoc.materials) {
+          const inventoryItem = character.inventory.find(i => i.itemId === mat.materialId);
           if (inventoryItem) {
-            inventoryItem.quantity -= ingredient.quantity;
+            inventoryItem.quantity -= mat.quantity;
             if (inventoryItem.quantity <= 0) {
-              character.inventory = character.inventory.filter(i => i.itemId !== ingredient.itemId);
+              character.inventory = character.inventory.filter(i => i.itemId !== mat.materialId);
             }
           }
         }
 
         // Add crafted item to inventory
+        const outputQuantity = recipeDoc.output.baseQuantity || 1;
         const existingItem = character.inventory.find(i => i.itemId === recipeDoc.output.itemId);
         if (existingItem) {
-          existingItem.quantity += recipeDoc.output.quantity;
+          existingItem.quantity += outputQuantity;
         } else {
           character.inventory.push({
             itemId: recipeDoc.output.itemId,
-            quantity: recipeDoc.output.quantity,
+            quantity: outputQuantity,
             acquiredAt: new Date()
           });
         }
@@ -508,11 +510,11 @@ export class CraftingService {
           success: true,
           itemsCrafted: [{
             itemId: recipeDoc.output.itemId,
-            quantity: recipeDoc.output.quantity,
+            quantity: outputQuantity,
             quality: 'common'
           }],
-          xpGained: recipeDoc.xpReward,
-          timeTaken: recipeDoc.craftTime
+          xpGained: recipeDoc.xpGain || 10,
+          timeTaken: recipeDoc.baseCraftTime || 5
         };
       } catch (txError) {
         await session.abortTransaction();
@@ -1194,13 +1196,13 @@ export class CraftingService {
 
   /**
    * Check if a character can craft a specific recipe
-   * This is a simplified version that checks recipe from database
+   * This is a simplified version that checks recipe from static data
    */
   static async canCraft(characterId: string, recipeId: string): Promise<any> {
-    const Recipe = (await import('../models/Recipe.model')).Recipe;
     const Character = (await import('../models/Character.model')).Character;
 
-    const recipe = await Recipe.findOne({ recipeId });
+    // FIX: Look up recipe from static ALL_RECIPES data instead of MongoDB
+    const recipe = ALL_RECIPES.find(r => r.id === recipeId);
     if (!recipe) {
       return {
         canCraft: false,
@@ -1216,19 +1218,20 @@ export class CraftingService {
       };
     }
 
-    // Check skill requirement - look up skill from character's skills array
-    const skillRequired = recipe.skillRequired;
+    // Check skill requirement - use profession level from static recipe schema
+    const requiredLevel = recipe.requirements?.minLevel || 1;
+    const professionId = recipe.professionId;
     const characterSkillEntry = character.skills?.find(
-      (s: any) => s.skillId === skillRequired.skillId
+      (s: any) => s.skillId === professionId
     );
     const characterSkill = characterSkillEntry?.level || 0;
 
-    if (characterSkill < skillRequired.level) {
+    if (characterSkill < requiredLevel) {
       return {
         canCraft: false,
-        reason: `Requires ${skillRequired.skillId} level ${skillRequired.level}`,
+        reason: `Requires ${professionId} level ${requiredLevel}`,
         currentLevel: characterSkill,
-        requiredLevel: skillRequired.level
+        requiredLevel: requiredLevel
       };
     }
 
@@ -1258,23 +1261,24 @@ export class CraftingService {
         reason: 'Missing materials',
         missingMaterials,
         recipe: {
-          recipeId: recipe.recipeId,
+          recipeId: recipe.id,
           name: recipe.name,
-          ingredients: recipe.ingredients,
+          ingredients: recipe.materials,
           output: recipe.output,
-          craftTime: recipe.craftTime
+          craftTime: recipe.baseCraftTime
         }
       };
     }
 
     // Check facility requirement - validate against current location
-    if (recipe.facilityRequired && recipe.facilityRequired.type) {
+    const facilityReq = recipe.requirements?.facility;
+    if (facilityReq && facilityReq.type) {
       const facilityValidation = await this.validateLocationFacility(
         character.currentLocation,
         {
-          type: recipe.facilityRequired.type as CraftingFacilityType,
-          tier: recipe.facilityRequired.tier || 1,
-          optional: recipe.facilityRequired.optional,
+          type: facilityReq.type as CraftingFacilityType,
+          tier: facilityReq.tier || 1,
+          optional: facilityReq.optional,
         }
       );
 
@@ -1282,14 +1286,14 @@ export class CraftingService {
         return {
           canCraft: false,
           reason: facilityValidation.error || 'Missing required crafting facility',
-          facilityRequired: recipe.facilityRequired,
+          facilityRequired: facilityReq,
           currentLocation: facilityValidation.locationName,
           recipe: {
-            recipeId: recipe.recipeId,
+            recipeId: recipe.id,
             name: recipe.name,
-            ingredients: recipe.ingredients,
+            ingredients: recipe.materials,
             output: recipe.output,
-            craftTime: recipe.craftTime
+            craftTime: recipe.baseCraftTime
           }
         };
       }
@@ -1298,11 +1302,11 @@ export class CraftingService {
     return {
       canCraft: true,
       recipe: {
-        recipeId: recipe.recipeId,
+        recipeId: recipe.id,
         name: recipe.name,
-        ingredients: recipe.ingredients,
+        ingredients: recipe.materials,
         output: recipe.output,
-        craftTime: recipe.craftTime
+        craftTime: recipe.baseCraftTime
       }
     };
   }

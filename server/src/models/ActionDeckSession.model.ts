@@ -73,12 +73,11 @@ const ActionDeckSessionSchema = new Schema<IActionDeckSession>({
 // TTL index - MongoDB will automatically delete documents when expiresAt is reached
 ActionDeckSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// Pre-save hook to set expiry if not already set
+// Pre-save hook to set/refresh expiry
 ActionDeckSessionSchema.pre('save', function(next) {
-  if (!this.expiresAt) {
-    // Set expiry to 5 minutes from now
-    this.expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-  }
+  // Always refresh expiry on save to keep session alive during active gameplay
+  // 15 minutes allows for longer crime games with multiple rounds
+  this.expiresAt = new Date(Date.now() + 15 * 60 * 1000);
   next();
 });
 

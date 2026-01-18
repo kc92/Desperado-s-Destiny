@@ -387,13 +387,21 @@ export const useBountyStore = create<BountyStore>((set, get) => ({
   // Utility Actions
 
   loadBountyStatus: async () => {
-    await Promise.all([
-      get().fetchBounties(),
-      get().fetchMyBounty(),
-      get().fetchMostWanted(10),
-      get().checkBountyHunter(),
-      get().fetchActiveEncounters(),
+    // Use allSettled to handle partial failures gracefully
+    // This prevents one failing endpoint from crashing the entire page
+    const results = await Promise.allSettled([
+      get().fetchBounties().catch(() => null),
+      get().fetchMyBounty().catch(() => null),
+      get().fetchMostWanted(10).catch(() => null),
+      get().checkBountyHunter().catch(() => null),
+      get().fetchActiveEncounters().catch(() => null),
     ]);
+
+    // Check if all failed - only then set a global error
+    const allFailed = results.every(r => r.status === 'rejected');
+    if (allFailed) {
+      set({ error: 'Failed to load bounty data. Please try again.' });
+    }
   },
 
   clearBountyState: () => {
