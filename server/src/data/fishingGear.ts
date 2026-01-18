@@ -387,23 +387,28 @@ export function getAllLures(): Lure[] {
  * Get gear by ID
  */
 export function getRod(rodId: string): FishingRod | undefined {
-  return FISHING_RODS[rodId];
+  if (FISHING_RODS[rodId]) return FISHING_RODS[rodId];
+  return Object.values(FISHING_RODS).find(r => r.id === rodId || r.id.toLowerCase() === rodId.toLowerCase());
 }
 
 export function getReel(reelId: string): FishingReel | undefined {
-  return FISHING_REELS[reelId];
+  if (FISHING_REELS[reelId]) return FISHING_REELS[reelId];
+  return Object.values(FISHING_REELS).find(r => r.id === reelId || r.id.toLowerCase() === reelId.toLowerCase());
 }
 
 export function getLine(lineId: string): FishingLine | undefined {
-  return FISHING_LINES[lineId];
+  if (FISHING_LINES[lineId]) return FISHING_LINES[lineId];
+  return Object.values(FISHING_LINES).find(l => l.id === lineId || l.id.toLowerCase() === lineId.toLowerCase());
 }
 
 export function getBait(baitId: string): Bait | undefined {
-  return BAITS[baitId];
+  if (BAITS[baitId]) return BAITS[baitId];
+  return Object.values(BAITS).find(b => b.id === baitId || b.id.toLowerCase() === baitId.toLowerCase());
 }
 
 export function getLure(lureId: string): Lure | undefined {
-  return LURES[lureId];
+  if (LURES[lureId]) return LURES[lureId];
+  return Object.values(LURES).find(l => l.id === lureId || l.id.toLowerCase() === lureId.toLowerCase());
 }
 
 /**
