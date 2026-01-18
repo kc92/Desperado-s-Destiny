@@ -544,7 +544,7 @@ class DeityDecisionService {
     // Aggregate karma actions from the last 24 hours
     const recentKarma = await CharacterKarma.find({
       'recentActions.timestamp': { $gte: oneDayAgo }
-    }).select('recentActions');
+    }).select('characterId recentActions');
 
     let stats = {
       honorableActionsToday: 0,
@@ -562,7 +562,10 @@ class DeityDecisionService {
     const activePlayers = new Set<string>();
 
     for (const karma of recentKarma) {
-      const recentActions = karma.recentActions.filter(a => a.timestamp >= oneDayAgo);
+      // Skip if characterId is missing (corrupted data)
+      if (!karma.characterId) continue;
+
+      const recentActions = karma.recentActions?.filter(a => a.timestamp >= oneDayAgo) || [];
 
       for (const action of recentActions) {
         activePlayers.add(karma.characterId.toString());
@@ -571,8 +574,10 @@ class DeityDecisionService {
         if (action.dimension === 'JUSTICE' && action.delta > 0) stats.justiceServedToday++;
         if (action.actionType === 'COMBAT_FAIR_DUEL') stats.fairDuelsToday++;
         if (action.actionType === 'GAMBLING_CHEATED' && action.delta < 0) stats.cheatersExposedToday++;
-        if (action.actionType.startsWith('CRIME_')) stats.lawsBrokenToday++;
-        if (action.context.toLowerCase().includes('escape') && action.context.toLowerCase().includes('prison')) {
+        if (action.actionType?.startsWith('CRIME_')) stats.lawsBrokenToday++;
+        // Check for prison escapes with null safety
+        const context = action.context?.toLowerCase() || '';
+        if (context.includes('escape') && context.includes('prison')) {
           stats.prisonEscapesToday++;
         }
         if (action.dimension === 'CHAOS' && action.delta > 0) stats.chaosEventsToday++;
