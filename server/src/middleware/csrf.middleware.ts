@@ -535,7 +535,7 @@ export async function requireCsrfToken(
 
   try {
     // Use async validation with timeout to prevent hanging
-    const validationTimeout = 5000; // 5 second timeout
+    const validationTimeout = 15000; // 15 second timeout (increased for Railway latency)
     const timeoutPromise = new Promise<boolean>((_, reject) => {
       setTimeout(() => reject(new Error('CSRF validation timeout')), validationTimeout);
     });
@@ -597,7 +597,7 @@ export async function requireCsrfTokenWithRotation(
 
   try {
     // Use async rotation with timeout to prevent hanging
-    const rotationTimeout = 5000; // 5 second timeout
+    const rotationTimeout = 15000; // 15 second timeout (increased for Railway latency)
     const timeoutPromise = new Promise<string>((_, reject) => {
       setTimeout(() => reject(new Error('CSRF rotation timeout')), rotationTimeout);
     });

@@ -92,7 +92,11 @@ export async function initializeSocketIO(httpServer: HTTPServer): Promise<Socket
     io = new SocketIOServer(httpServer, {
       cors: {
         origin: (origin, callback) => {
-          // Allow requests with no origin (like mobile apps)
+          // Reject missing origins in production (prevents CORS issues)
+          if (!origin && config.isProduction) {
+            return callback(new Error('Origin required'), false);
+          }
+          // Allow requests with no origin in development (like mobile apps)
           if (!origin) return callback(null, true);
 
           if (allowedOrigins.includes(origin)) {
@@ -104,9 +108,10 @@ export async function initializeSocketIO(httpServer: HTTPServer): Promise<Socket
         credentials: true,
         methods: ['GET', 'POST']
       },
-      transports: ['websocket', 'polling'],
-      pingTimeout: 60000,
-      pingInterval: 25000,
+      // Force websocket-only in production to avoid Railway timeout issues with polling
+      transports: config.isProduction ? ['websocket'] : ['websocket', 'polling'],
+      pingTimeout: 30000,   // Reduced from 60000 to stay under Railway's timeout
+      pingInterval: 15000,  // Reduced from 25000 for faster connection health checks
       upgradeTimeout: 30000,
       maxHttpBufferSize: 1e6, // 1MB
       allowEIO3: true

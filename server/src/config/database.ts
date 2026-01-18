@@ -10,7 +10,7 @@ const mongooseOptions: mongoose.ConnectOptions = {
   maxPoolSize: config.isProduction ? 50 : 10,
   minPoolSize: config.isProduction ? 10 : 2,
   socketTimeoutMS: 45000,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 15000, // Increased from 5000 for Railway's shared infrastructure latency
   family: 4, // Use IPv4, skip trying IPv6
   retryWrites: false, // Disable retryable writes for standalone MongoDB (no replica set)
 };

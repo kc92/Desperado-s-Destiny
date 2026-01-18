@@ -19,6 +19,7 @@ const ROUTE_TIMEOUTS: Record<string, number> = {
   '/api/team-card-game': 60000,   // Team card games
   '/api/deck-game': 60000,        // Deck games
   '/api/expedition': 60000,       // Expeditions
+  '/api/gambling': 60000,         // Gambling sessions (increased for Railway latency)
 
   // Admin operations
   '/api/admin': 120000,           // Admin operations may be complex

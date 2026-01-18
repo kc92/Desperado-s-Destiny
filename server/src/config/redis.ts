@@ -53,7 +53,7 @@ export async function connectRedis(
         url: config.database.redisUrl,
         password: config.database.redisPassword,
         socket: {
-          connectTimeout: 5000,
+          connectTimeout: 15000, // Increased from 5000 for Railway's shared infrastructure latency
           reconnectStrategy: (retries: number) => {
             if (retries > 10) {
               logger.error('Max Redis reconnection attempts reached');
