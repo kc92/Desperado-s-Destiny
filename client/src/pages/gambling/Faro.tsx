@@ -3,7 +3,7 @@
  * Classic Western card game - bet on cards to win or lose
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
 import { BetControls } from '@/components/gambling';
 import { useGamblingStore } from '@/store/useGamblingStore';
@@ -21,16 +21,29 @@ export const Faro: React.FC = () => {
     activeGame,
     betAmount,
     isPlaying,
+    isLoading: storeLoading,
     selectedLocation,
     setBetAmount,
     setActiveGame,
     setIsPlaying,
     updateLocalSession,
+    loadCurrentSession,
   } = useGamblingStore();
   const { success } = useToast();
 
   const faroState: FaroState | null =
     activeGame.type === 'faro' ? activeGame.state : null;
+
+  // Load session from backend on mount
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      await loadCurrentSession();
+      setSessionChecked(true);
+    };
+    checkSession();
+  }, [loadCurrentSession]);
 
   const playFaro = useCallback(async () => {
     if (!activeSession || !currentCharacter || isPlaying || !faroState || !faroState.selectedCard) return;
@@ -93,6 +106,11 @@ export const Faro: React.FC = () => {
       });
     }
   };
+
+  // Show loading state while checking for session
+  if (!sessionChecked || storeLoading) {
+    return <div className="text-center py-8 text-wood-grain">Loading session...</div>;
+  }
 
   if (!activeSession || !currentCharacter) {
     return <div className="text-center py-8 text-wood-grain">No active session.</div>;

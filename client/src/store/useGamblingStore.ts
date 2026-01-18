@@ -56,6 +56,7 @@ interface GamblingStore {
 
   startSession: (location: GamblingLocation, game: GameType) => Promise<void>;
   endSession: () => Promise<void>;
+  loadCurrentSession: () => Promise<boolean>;
 
   setBetAmount: (amount: number) => void;
   setActiveGame: (game: ActiveGameState) => void;
@@ -169,6 +170,26 @@ export const useGamblingStore = create<GamblingStore>((set, get) => ({
         selectedLocation: null,
         isSubmitting: false,
       });
+    }
+  },
+
+  loadCurrentSession: async () => {
+    const { activeSession } = get();
+    if (activeSession) return true; // Already have a session
+
+    set({ isLoading: true, error: null });
+    try {
+      const session = await gamblingService.getCurrentSession();
+      if (session) {
+        set({ activeSession: session, isLoading: false });
+        return true;
+      }
+      set({ isLoading: false });
+      return false;
+    } catch (err) {
+      logger.error('Failed to load current session', err as Error, { context: 'useGamblingStore' });
+      set({ isLoading: false });
+      return false;
     }
   },
 

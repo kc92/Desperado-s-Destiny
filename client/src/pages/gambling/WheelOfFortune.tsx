@@ -3,7 +3,7 @@
  * Spin the wheel and win big!
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
 import { BetControls } from '@/components/gambling';
 import { useGamblingStore } from '@/store/useGamblingStore';
@@ -19,16 +19,29 @@ export const WheelOfFortune: React.FC = () => {
     activeGame,
     betAmount,
     isPlaying,
+    isLoading: storeLoading,
     selectedLocation,
     setBetAmount,
     setActiveGame,
     setIsPlaying,
     updateLocalSession,
+    loadCurrentSession,
   } = useGamblingStore();
   const { success } = useToast();
 
   const wheelState: WheelOfFortuneState | null =
     activeGame.type === 'wheel_of_fortune' ? activeGame.state : null;
+
+  // Load session from backend on mount
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      await loadCurrentSession();
+      setSessionChecked(true);
+    };
+    checkSession();
+  }, [loadCurrentSession]);
 
   const playWheel = useCallback(async () => {
     if (!activeSession || !currentCharacter || isPlaying || !wheelState) return;
@@ -60,6 +73,11 @@ export const WheelOfFortune: React.FC = () => {
 
     setIsPlaying(false);
   }, [activeSession, currentCharacter, isPlaying, wheelState, betAmount, setIsPlaying, setActiveGame, updateCharacter, updateLocalSession, success]);
+
+  // Show loading state while checking for session
+  if (!sessionChecked || storeLoading) {
+    return <div className="text-center py-8 text-wood-grain">Loading session...</div>;
+  }
 
   if (!activeSession || !currentCharacter) {
     return <div className="text-center py-8 text-wood-grain">No active session.</div>;

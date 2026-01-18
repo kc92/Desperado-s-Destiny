@@ -3,7 +3,7 @@
  * Beat the dealer by getting closer to 21
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
 import { BetControls, PlayingCard } from '@/components/gambling';
 import { useGamblingStore } from '@/store/useGamblingStore';
@@ -20,17 +20,30 @@ export const Blackjack: React.FC = () => {
     activeGame,
     betAmount,
     isPlaying,
+    isLoading: storeLoading,
     selectedLocation,
     setBetAmount,
     setActiveGame,
     setIsPlaying,
     updateLocalSession,
+    loadCurrentSession,
   } = useGamblingStore();
   const { success, error: showError } = useToast();
 
   // Type-safe blackjack state accessor
   const blackjackState: BlackjackState | null =
     activeGame.type === 'blackjack' ? activeGame.state : null;
+
+  // Load session from backend on mount
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      await loadCurrentSession();
+      setSessionChecked(true);
+    };
+    checkSession();
+  }, [loadCurrentSession]);
 
   const playBlackjack = useCallback(async (action: 'deal' | 'hit' | 'stand' | 'double') => {
     if (!activeSession || !currentCharacter || isPlaying) return;
@@ -85,6 +98,15 @@ export const Blackjack: React.FC = () => {
     activeSession, currentCharacter, isPlaying, betAmount, blackjackState,
     setIsPlaying, updateCharacter, updateLocalSession, setActiveGame, success, showError
   ]);
+
+  // Show loading state while checking for session
+  if (!sessionChecked || storeLoading) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-wood-grain">Loading session...</p>
+      </div>
+    );
+  }
 
   if (!activeSession || !currentCharacter) {
     return (

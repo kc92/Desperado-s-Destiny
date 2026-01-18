@@ -3,7 +3,7 @@
  * Roll the dice and beat the house
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
 import { BetControls } from '@/components/gambling';
 import { useGamblingStore } from '@/store/useGamblingStore';
@@ -19,16 +19,29 @@ export const Craps: React.FC = () => {
     activeGame,
     betAmount,
     isPlaying,
+    isLoading: storeLoading,
     selectedLocation,
     setBetAmount,
     setActiveGame,
     setIsPlaying,
     updateLocalSession,
+    loadCurrentSession,
   } = useGamblingStore();
   const { success, info } = useToast();
 
   const crapsState: CrapsState | null =
     activeGame.type === 'craps' ? activeGame.state : null;
+
+  // Load session from backend on mount
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      await loadCurrentSession();
+      setSessionChecked(true);
+    };
+    checkSession();
+  }, [loadCurrentSession]);
 
   const playCraps = useCallback(async () => {
     if (!activeSession || !currentCharacter || isPlaying || !crapsState) return;
@@ -100,6 +113,11 @@ export const Craps: React.FC = () => {
       state: { currentBet: betAmount, betType: type, dice: [0, 0], point: null, result: undefined }
     });
   };
+
+  // Show loading state while checking for session
+  if (!sessionChecked || storeLoading) {
+    return <div className="text-center py-8 text-wood-grain">Loading session...</div>;
+  }
 
   if (!activeSession || !currentCharacter) {
     return <div className="text-center py-8 text-wood-grain">No active session.</div>;

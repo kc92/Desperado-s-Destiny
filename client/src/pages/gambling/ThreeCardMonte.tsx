@@ -3,7 +3,7 @@
  * Find the Queen among three cards
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
 import { BetControls } from '@/components/gambling';
 import { useGamblingStore } from '@/store/useGamblingStore';
@@ -19,16 +19,29 @@ export const ThreeCardMonte: React.FC = () => {
     activeGame,
     betAmount,
     isPlaying,
+    isLoading: storeLoading,
     selectedLocation,
     setBetAmount,
     setActiveGame,
     setIsPlaying,
     updateLocalSession,
+    loadCurrentSession,
   } = useGamblingStore();
   const { success } = useToast();
 
   const monteState: ThreeCardMonteState | null =
     activeGame.type === 'three_card_monte' ? activeGame.state : null;
+
+  // Load session from backend on mount
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      await loadCurrentSession();
+      setSessionChecked(true);
+    };
+    checkSession();
+  }, [loadCurrentSession]);
 
   const playMonte = useCallback(async () => {
     if (!activeSession || !currentCharacter || isPlaying || !monteState || monteState.selectedPosition === null) return;
@@ -73,6 +86,11 @@ export const ThreeCardMonte: React.FC = () => {
       });
     }
   };
+
+  // Show loading state while checking for session
+  if (!sessionChecked || storeLoading) {
+    return <div className="text-center py-8 text-wood-grain">Loading session...</div>;
+  }
 
   if (!activeSession || !currentCharacter) {
     return <div className="text-center py-8 text-wood-grain">No active session.</div>;
