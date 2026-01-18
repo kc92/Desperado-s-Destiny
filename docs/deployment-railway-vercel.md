@@ -99,8 +99,8 @@ In Vercel, go to Settings → Environment Variables. Add:
 # Backend API URL (your Railway backend URL)
 VITE_API_URL=https://your-backend.railway.app
 
-# Socket.io URL (same as API URL)
-VITE_SOCKET_URL=https://your-backend.railway.app
+# WebSocket URL (same as API URL)
+VITE_WS_URL=https://your-backend.railway.app
 
 # Sentry DSN (optional but recommended)
 VITE_SENTRY_DSN=<your-sentry-dsn>
@@ -166,7 +166,7 @@ FRONTEND_URL=https://your-app.vercel.app
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `VITE_API_URL` | Yes | Railway backend URL |
-| `VITE_SOCKET_URL` | Yes | Railway backend URL (same) |
+| `VITE_WS_URL` | Yes | Railway backend URL (same) |
 | `VITE_SENTRY_DSN` | Recommended | Sentry error tracking |
 
 ---
@@ -198,7 +198,7 @@ To disable after playtest, set `PLAYTEST_MODE=false` or remove the variable.
 - Check vercel.json CSP headers include your backend URL
 
 ### WebSocket connection fails
-- Ensure `VITE_SOCKET_URL` is set correctly in Vercel
+- Ensure `VITE_WS_URL` is set correctly in Vercel
 - Check CSP headers allow `wss://` connections to backend
 
 ### 503 errors on Railway

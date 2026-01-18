@@ -53,7 +53,7 @@ class SocketService {
     if (import.meta.env.DEV) {
       return ''; // Use proxy in development
     }
-    return import.meta.env.VITE_SOCKET_URL || window.location.origin;
+    return import.meta.env.VITE_WS_URL || window.location.origin;
   }
 
   /**
