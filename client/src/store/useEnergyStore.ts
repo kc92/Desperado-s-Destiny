@@ -16,7 +16,6 @@ interface EnergyState {
   maxEnergy: number;
   regenRate: number;
   lastUpdate: Date; // Server's last update time, not client time
-  isPremium: boolean;
   isOptimistic: boolean; // True if showing optimistic update, awaiting server confirmation
 }
 
@@ -25,7 +24,7 @@ interface EnergyStore {
   energy: EnergyState | null;
 
   // Actions
-  initializeEnergy: (current: number, max: number, regenRate: number, lastUpdate?: Date, isPremium?: boolean) => void;
+  initializeEnergy: (current: number, max: number, regenRate: number, lastUpdate?: Date) => void;
   updateEnergy: (current: number, serverTimestamp?: Date) => void;
   applyOptimisticDeduct: (cost: number) => void;
   confirmServerState: (current: number, max: number, serverTimestamp: Date) => void;
@@ -41,8 +40,7 @@ export const useEnergyStore = create<EnergyStore>((set, _get) => ({
     current: number,
     max: number,
     regenRate: number,
-    lastUpdate?: Date,
-    isPremium: boolean = false
+    lastUpdate?: Date
   ) => {
     set({
       energy: {
@@ -50,7 +48,6 @@ export const useEnergyStore = create<EnergyStore>((set, _get) => ({
         maxEnergy: max,
         regenRate,
         lastUpdate: lastUpdate || new Date(),
-        isPremium,
         isOptimistic: false,
       },
     });
@@ -124,10 +121,8 @@ export const useEnergyStore = create<EnergyStore>((set, _get) => ({
           energy: {
             currentEnergy: character.energy,
             maxEnergy: character.maxEnergy,
-            regenRate: 1, // Default regen rate
-            // Use current time as fallback
+            regenRate: 0.75, // Premium regen rate for all (45/hr)
             lastUpdate: new Date(),
-            isPremium: false, // Default non-premium
             isOptimistic: false,
           },
         });

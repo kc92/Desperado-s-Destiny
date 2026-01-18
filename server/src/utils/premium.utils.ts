@@ -1,23 +1,23 @@
 /**
  * Premium Utility
- * Handles premium status checks and benefit calculations
- * Caches results for 5 minutes to reduce database load
+ * Handles benefit calculations for all players
  *
- * PHASE 19 BALANCE: Premium = TIME ADVANTAGE ONLY
- * - NO power bonuses (HP, damage, etc.)
+ * ALL PLAYERS NOW HAVE PREMIUM BENEFITS
+ * Revenue model changed from subscriptions to ad-supported:
+ * - Banner ads for passive revenue
+ * - Opt-in reward ads for bonus multipliers
+ *
+ * Benefits (for all players):
  * - Faster progression (energy regen, XP bonuses)
  * - Convenience features (extra slots, discounts)
- *
- * This ensures premium never feels "pay to win" - it just saves time.
- *
- * PLAYTEST MODE: Set PLAYTEST_MODE=true to give everyone premium for free
+ * - NO power bonuses (HP, damage, etc.) - keeps game fair
  */
 
 /**
- * PLAYTEST MODE: When enabled, all players get premium benefits for free
- * Set PLAYTEST_MODE=true in environment to enable
+ * ALL PLAYERS PREMIUM: Revenue model changed to ad-supported
+ * All players now receive premium benefits by default
+ * Revenue comes from banner ads and opt-in reward ads
  */
-const PLAYTEST_MODE = process.env.PLAYTEST_MODE === 'true';
 
 import { User } from '../models/User.model';
 import { Character } from '../models/Character.model';
@@ -211,20 +211,15 @@ export class PremiumUtils {
 
   /**
    * Check if user's subscription is currently active
-   * Uses the Subscription model with Stripe integration
+   *
+   * ALL PLAYERS NOW HAVE PREMIUM - Revenue model changed to ad-supported
    *
    * @param user - User document
-   * @returns true if subscription is active
+   * @returns Always true - all players have premium benefits
    */
-  private static async checkSubscriptionActive(user: any): Promise<boolean> {
-    // PLAYTEST MODE: Everyone gets premium for free!
-    if (PLAYTEST_MODE) {
-      return true;
-    }
-
-    // Check Subscription model
-    const subscription = await Subscription.findByUserId(user._id);
-    return subscription?.isActive() ?? false;
+  private static async checkSubscriptionActive(_user: any): Promise<boolean> {
+    // All players have premium benefits - revenue comes from ads
+    return true;
   }
 
   /**

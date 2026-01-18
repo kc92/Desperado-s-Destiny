@@ -300,11 +300,11 @@ export const Help: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-lg text-wood-dark mb-2">Premium Gold</h3>
+                  <h3 className="font-bold text-lg text-wood-dark mb-2">Bonus Rewards</h3>
                   <p>
-                    Premium gold can be purchased to speed up progress. It's used for cosmetics,
-                    faster healing, and convenience items. All gameplay content is achievable
-                    without premium currency.
+                    Watch short ads to earn bonus rewards like extra gold, XP boosts, and instant
+                    energy refills. These bonuses stack with your normal earnings, helping you
+                    progress faster. All gameplay content is achievable without watching any ads.
                   </p>
                 </div>
               </div>

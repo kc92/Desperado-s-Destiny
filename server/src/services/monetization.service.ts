@@ -291,14 +291,14 @@ export const MonetizationService = {
   },
 
   /**
-   * Check if player should see ads (not a subscriber)
+   * Check if player should see ads
+   *
+   * ALL PLAYERS NOW SEE ADS - Revenue model changed to ad-supported
+   * Ads provide bonus rewards on top of baseline premium benefits
    */
-  async shouldShowAds(characterId: mongoose.Types.ObjectId): Promise<boolean> {
-    const character = await Character.findById(characterId).select('userId');
-    if (!character) return true;
-
-    const subscription = await Subscription.getOrCreateForUser(character.userId);
-    return !subscription.isActive();
+  async shouldShowAds(_characterId: mongoose.Types.ObjectId): Promise<boolean> {
+    // All players can watch reward ads - it's the revenue model
+    return true;
   },
 
   /**

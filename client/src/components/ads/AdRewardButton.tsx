@@ -85,7 +85,6 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
     isInitialized,
     isLoading,
     isPlaying,
-    shouldShowAds,
     canWatchAd,
     getRemainingViews,
     getActiveBonus,
@@ -122,11 +121,6 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
       return { disabled: true, text: 'Loading...', variant: 'disabled' as const };
     }
 
-    if (!shouldShowAds) {
-      // User is a subscriber - don't show ad buttons
-      return { disabled: true, text: 'Subscriber Benefit', variant: 'subscriber' as const };
-    }
-
     if (activeBonus) {
       return {
         disabled: true,
@@ -150,7 +144,6 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
     };
   }, [
     isInitialized,
-    shouldShowAds,
     activeBonus,
     isLoading,
     isPlaying,
@@ -160,11 +153,6 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
     buttonText,
     rewardDisplay.label,
   ]);
-
-  // Don't render if user is a subscriber
-  if (isInitialized && !shouldShowAds) {
-    return null;
-  }
 
   // Size styles
   const sizeStyles = {
@@ -180,7 +168,6 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
     active: 'bg-green-800 text-green-100 border-green-600',
     limit: 'bg-wood-dark text-desert-muted border-wood-medium opacity-60',
     disabled: 'bg-wood-dark text-desert-muted border-wood-medium opacity-50',
-    subscriber: 'bg-blue-900 text-blue-100 border-blue-600',
   };
 
   return (
@@ -212,7 +199,7 @@ export const AdRewardButton: React.FC<AdRewardButtonProps> = ({
       </button>
 
       {/* Remaining views indicator */}
-      {showRemainingViews && isInitialized && shouldShowAds && (
+      {showRemainingViews && isInitialized && (
         <div className="mt-1 text-xs text-desert-muted">
           {activeBonus ? (
             <span className="text-green-400">

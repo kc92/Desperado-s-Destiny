@@ -2,12 +2,14 @@
  * EnergyInsufficientModal Component
  *
  * Modal displayed when a player attempts an action without sufficient energy
- * Shows deficit, wait time, and premium upgrade option
+ * Shows deficit and wait time until energy regenerates
  */
 
 import React from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { AdRewardButton } from '../ads';
+import { AdRewardType } from '@/services/ad.service';
 
 interface EnergyInsufficientModalProps {
   isOpen: boolean;
@@ -15,7 +17,6 @@ interface EnergyInsufficientModalProps {
   energyNeeded: number;
   energyCurrent: number;
   timeUntilAvailable: string;
-  isPremium?: boolean;
 }
 
 /**
@@ -27,7 +28,6 @@ export const EnergyInsufficientModal: React.FC<EnergyInsufficientModalProps> = (
   energyNeeded,
   energyCurrent,
   timeUntilAvailable,
-  isPremium = false,
 }) => {
   const deficit = energyNeeded - energyCurrent;
 
@@ -73,34 +73,19 @@ export const EnergyInsufficientModal: React.FC<EnergyInsufficientModalProps> = (
           </div>
         </div>
 
-        {/* Premium upgrade CTA (only for free players) */}
-        {!isPremium && (
-          <div className="bg-gradient-to-r from-purple-900/30 to-purple-700/30 rounded-lg p-4 border-2 border-purple-500">
-            <div className="flex items-start gap-3">
-              <div className="text-3xl">👑</div>
-              <div className="flex-1">
-                <h4 className="text-lg font-bold text-purple-300 mb-2">
-                  Upgrade to Premium
-                </h4>
-                <ul className="text-sm text-desert-sand space-y-1">
-                  <li>• 250 max energy (instead of 150)</li>
-                  <li>• Faster regeneration rate</li>
-                  <li>• More actions per day</li>
-                  <li>• Exclusive premium perks</li>
-                </ul>
-                <Button
-                  variant="primary"
-                  className="mt-3 w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600"
-                  onClick={() => {
-                    // TODO: Navigate to premium upgrade page when implemented
-                  }}
-                >
-                  Learn More About Premium
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Quick energy refill via ad */}
+        <div className="text-center p-4 bg-green-900/20 rounded-lg border-2 border-green-700">
+          <div className="text-sm text-desert-sand mb-3">Need energy now?</div>
+          <AdRewardButton
+            rewardType={AdRewardType.ENERGY_REFILL}
+            onRewardClaimed={() => {
+              // Close modal after claiming energy - user can retry action
+              onClose();
+            }}
+            size="lg"
+            className="mx-auto"
+          />
+        </div>
 
         {/* Close button */}
         <div className="text-center">

@@ -12,7 +12,6 @@ interface EnergyDisplayProps {
   current: number;
   max: number;
   regenRate: number;
-  isPremium?: boolean;
   lastUpdate?: Date;
   className?: string;
 }
@@ -70,7 +69,6 @@ export const EnergyDisplay: React.FC<EnergyDisplayProps> = React.memo(({
   current: initialCurrent,
   max,
   regenRate,
-  isPremium = false,
   lastUpdate: _lastUpdate,
   className = '',
 }) => {
@@ -138,22 +136,12 @@ export const EnergyDisplay: React.FC<EnergyDisplayProps> = React.memo(({
 
   return (
     <div className={`w-full ${className}`} role="status" aria-label="Energy status">
-      {/* Header with current/max and premium indicator */}
+      {/* Header with current/max */}
       <div className="flex justify-between items-center mb-2">
         <span className="font-bold text-desert-sand text-lg">Energy</span>
-        <div className="flex items-center gap-2">
-          <span className={`font-bold text-xl ${textColor}`}>
-            {displayCurrent} / {max}
-          </span>
-          {isPremium && (
-            <span
-              className="px-2 py-0.5 bg-gradient-to-r from-purple-600 to-purple-400 text-white text-xs font-bold rounded-full"
-              title="Premium player"
-            >
-              PREMIUM
-            </span>
-          )}
-        </div>
+        <span className={`font-bold text-xl ${textColor}`}>
+          {displayCurrent} / {max}
+        </span>
       </div>
 
       {/* Energy bar */}
@@ -189,7 +177,6 @@ export const EnergyDisplay: React.FC<EnergyDisplayProps> = React.memo(({
       <div className="sr-only">
         Energy: {displayCurrent} out of {max}.
         {current < max && ` Regenerating at ${Math.round(regenRate)} per hour. Full in ${formatTime(timeUntilFull)}.`}
-        {isPremium && ' Premium player.'}
       </div>
     </div>
   );
@@ -198,8 +185,7 @@ export const EnergyDisplay: React.FC<EnergyDisplayProps> = React.memo(({
   return (
     prevProps.current === nextProps.current &&
     prevProps.max === nextProps.max &&
-    prevProps.regenRate === nextProps.regenRate &&
-    prevProps.isPremium === nextProps.isPremium
+    prevProps.regenRate === nextProps.regenRate
   );
 });
 

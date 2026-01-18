@@ -14,6 +14,7 @@ import { WorldEventBanner } from '@/components/game/WorldEventBanner';
 import { DivineMessagePopup, KarmaNotificationToast } from '@/components/karma';
 import { useKarma } from '@/hooks/useKarma';
 import { logger } from '@/services/logger.service';
+import { BannerAd } from '@/components/ads';
 
 /**
  * Layout wrapper for game pages with header and footer
@@ -66,6 +67,11 @@ export const GameLayout: React.FC = () => {
 
       {/* World Event Banner - Shows active global events */}
       <WorldEventBanner />
+
+      {/* Banner Ad - Leaderboard below header */}
+      <div className="flex justify-center py-2 bg-wood-dark/20">
+        <BannerAd size="leaderboard" />
+      </div>
 
       <div className="flex-1 flex overflow-hidden">
         {/* Player Sidebar */}

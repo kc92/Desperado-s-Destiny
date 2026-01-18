@@ -120,19 +120,17 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         });
 
         // Initialize energy store with character's energy data
-        // FIX: Correct parameter order - (current, max, regenRate, lastUpdate, isPremium)
-        const isPremium = (character as any).isPremium || false;
-        const regenRate = isPremium ? 0.75 : 0.5; // energy per minute (30/hr = 0.5/min, premium 45/hr = 0.75/min)
+        // All players have premium benefits (ad-supported revenue model)
+        const regenRate = 0.75; // energy per minute (45/hr = 0.75/min - premium rate for all)
         const lastUpdate = (character as any).lastEnergyUpdate
           ? new Date((character as any).lastEnergyUpdate)
           : new Date();
 
         useEnergyStore.getState().initializeEnergy(
           character.energy,
-          character.maxEnergy || 150,
+          character.maxEnergy || 200, // Premium max energy for all
           regenRate,
-          lastUpdate,
-          isPremium
+          lastUpdate
         );
 
         localStorage.setItem('selectedCharacterId', id);
@@ -214,19 +212,17 @@ export const useCharacterStore = create<CharacterStore>((set, get) => ({
         });
 
         // Initialize energy store with character's energy data
-        // FIX: Correct parameter order - (current, max, regenRate, lastUpdate, isPremium)
-        const isPremium = (character as any).isPremium || false;
-        const regenRate = isPremium ? 0.75 : 0.5; // energy per minute (30/hr = 0.5/min, premium 45/hr = 0.75/min)
+        // All players have premium benefits (ad-supported revenue model)
+        const regenRate = 0.75; // energy per minute (45/hr = 0.75/min - premium rate for all)
         const lastUpdate = (character as any).lastEnergyUpdate
           ? new Date((character as any).lastEnergyUpdate)
           : new Date();
 
         useEnergyStore.getState().initializeEnergy(
           character.energy,
-          character.maxEnergy || 150,
+          character.maxEnergy || 200, // Premium max energy for all
           regenRate,
-          lastUpdate,
-          isPremium
+          lastUpdate
         );
       } else {
         localStorage.removeItem('selectedCharacterId');

@@ -108,7 +108,7 @@ import incidentRoutes from './incident.routes';
 import gangBusinessRoutes from './gangBusiness.routes';
 import geographyRoutes from './geography.routes';
 import teamCardGameRoutes from './teamCardGame.routes';
-import subscriptionRoutes from './subscription.routes';
+// Subscription routes removed - all players now have premium benefits (ad-supported model)
 import tavernRoutes from './tavern.routes';
 import skillTrainingRoutes from './skillTraining.routes';
 import expeditionRoutes from './expedition.routes';
@@ -449,8 +449,7 @@ router.use('/geography', apiRateLimiter, geographyRoutes);
 // Team Card Game routes (with API rate limiting) - Team-based trick-taking card games (Hard Raids)
 router.use('/team-card', apiRateLimiter, teamCardGameRoutes);
 
-// Subscription routes (with API rate limiting) - Phase 7: Stripe Subscription System
-router.use('/subscription', apiRateLimiter, subscriptionRoutes);
+// Subscription routes removed - all players now have premium benefits (ad-supported model)
 
 // Tavern routes (with API rate limiting) - Tavern Rest & Social System
 router.use('/tavern', apiRateLimiter, tavernRoutes);
