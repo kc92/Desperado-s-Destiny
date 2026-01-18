@@ -342,14 +342,20 @@ export function canPlayerPurchase(
 }
 
 /**
- * Export summary for logging
+ * Log urban property statistics (call explicitly when needed for debugging)
  */
-console.log('Urban Properties Loaded:');
-console.log(`- Total Properties: ${URBAN_PROPERTY_STATS.totalProperties}`);
-console.log(`- Shops: ${URBAN_PROPERTY_STATS.shops}`);
-console.log(`- Saloons: ${URBAN_PROPERTY_STATS.saloons}`);
-console.log(`- Workshops: ${URBAN_PROPERTY_STATS.workshops}`);
-console.log('Properties by Location:');
-Object.entries(URBAN_PROPERTY_STATS.byLocation).forEach(([location, count]) => {
-  console.log(`  - ${location}: ${count}`);
-});
+export function logUrbanPropertyStats(): void {
+  const locationSummary = Object.entries(URBAN_PROPERTY_STATS.byLocation)
+    .map(([location, count]) => `${location}: ${count}`)
+    .join(', ');
+
+  // Use process.env check for development-only logging
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.log(
+      `Urban Properties: ${URBAN_PROPERTY_STATS.totalProperties} total ` +
+      `(${URBAN_PROPERTY_STATS.shops} shops, ${URBAN_PROPERTY_STATS.saloons} saloons, ` +
+      `${URBAN_PROPERTY_STATS.workshops} workshops) - ${locationSummary}`
+    );
+  }
+}

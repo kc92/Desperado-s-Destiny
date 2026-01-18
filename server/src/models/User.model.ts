@@ -43,6 +43,9 @@ export interface UserPreferences {
  * User document interface extending Mongoose Document
  */
 export interface IUserDocument extends Document {
+  // Document ID (explicitly typed for Mongoose 8.x compatibility)
+  _id: mongoose.Types.ObjectId;
+
   email: string;
   passwordHash: string;
   emailVerified: boolean;

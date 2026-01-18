@@ -49,8 +49,8 @@ export class EmailService {
         return false;
       }
 
-      const data = await response.json();
-      logger.info(`[Email/Resend] Successfully sent to ${options.to}: ${options.subject} (id: ${data.id})`);
+      const data = await response.json() as { id?: string };
+      logger.info(`[Email/Resend] Successfully sent to ${options.to}: ${options.subject} (id: ${data.id || 'unknown'})`);
       return true;
     } catch (error: any) {
       logger.error(`[Email/Resend] Failed to send to ${options.to}: ${error.message || error}`);

@@ -6,6 +6,7 @@
  */
 
 import { CraftingRecipe, ProfessionId } from '@desperados/shared';
+import logger from '../../utils/logger';
 // Original 6 professions
 import blacksmithingRecipes from './blacksmithingRecipes';
 import leatherworkingRecipes from './leatherworkingRecipes';
@@ -281,40 +282,25 @@ export function validateRecipeIds(): { valid: boolean; duplicates: string[] } {
  */
 export function logRecipeStats(): void {
   const stats = getRecipeStats();
-  console.log('='.repeat(60));
-  console.log('RECIPE DATABASE STATISTICS');
-  console.log('='.repeat(60));
-  console.log(`Total Recipes: ${stats.total}`);
-  console.log('');
-  console.log('By Profession (Original 6):');
-  console.log(`  Blacksmithing: ${stats.byProfession.blacksmithing}`);
-  console.log(`  Leatherworking: ${stats.byProfession.leatherworking}`);
-  console.log(`  Alchemy: ${stats.byProfession.alchemy}`);
-  console.log(`  Cooking: ${stats.byProfession.cooking}`);
-  console.log(`  Tailoring: ${stats.byProfession.tailoring}`);
-  console.log(`  Gunsmithing: ${stats.byProfession.gunsmithing}`);
-  console.log('');
-  console.log('By Profession (New 5):');
-  console.log(`  Native Crafts: ${stats.byProfession.native_crafts}`);
-  console.log(`  Prospecting: ${stats.byProfession.prospecting}`);
-  console.log(`  Woodworking: ${stats.byProfession.woodworking}`);
-  console.log(`  Trapping: ${stats.byProfession.trapping}`);
-  console.log(`  Leadership: ${stats.byProfession.leadership}`);
-  console.log('');
-  console.log('By Learning Source:');
-  console.log(`  Trainer: ${stats.trainerOnly}`);
-  console.log(`  Vendor: ${stats.vendor}`);
-  console.log(`  Discoverable: ${stats.discoverable}`);
-  console.log(`  Quest Rewards: ${stats.questRewards}`);
-  console.log(`  Legendary (Grandmaster): ${stats.legendary}`);
-  console.log('='.repeat(60));
+
+  logger.info('Recipe Database Statistics', {
+    total: stats.total,
+    byProfession: stats.byProfession,
+    sources: {
+      trainer: stats.trainerOnly,
+      vendor: stats.vendor,
+      discoverable: stats.discoverable,
+      questRewards: stats.questRewards,
+      legendary: stats.legendary,
+    },
+  });
 
   // Validate unique IDs
   const validation = validateRecipeIds();
   if (!validation.valid) {
-    console.warn('WARNING: Duplicate recipe IDs found:', validation.duplicates);
+    logger.warn('Duplicate recipe IDs found', { duplicates: validation.duplicates });
   } else {
-    console.log('✓ All recipe IDs are unique');
+    logger.debug('All recipe IDs are unique');
   }
 }
 

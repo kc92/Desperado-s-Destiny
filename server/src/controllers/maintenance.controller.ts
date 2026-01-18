@@ -71,7 +71,7 @@ export const repairProperty = asyncHandler(
       });
     }
 
-    const result = await DecayService.repairProperty(characterId, propertyId, target);
+    const result = await DecayService.repairProperty(characterId.toString(), propertyId, target);
 
     res.status(200).json({
       success: true,
@@ -118,7 +118,7 @@ export const maintainProperty = asyncHandler(
     }
 
     const result = await DecayService.performPropertyMaintenance(
-      characterId,
+      characterId.toString(),
       propertyId,
       action
     );
@@ -190,7 +190,7 @@ export const rehabilitateClaim = asyncHandler(
       });
     }
 
-    const result = await DecayService.rehabilitateClaim(characterId, claimId, target);
+    const result = await DecayService.rehabilitateClaim(characterId.toString(), claimId, target);
 
     res.status(200).json({
       success: true,

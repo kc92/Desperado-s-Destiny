@@ -312,7 +312,7 @@ export class JailService {
       if (accepted) {
         // Bribe accepted - deduct dollars and release
         await DollarService.deductDollars(
-          character._id as string,
+          character._id.toString(),
           amount,
           TransactionSource.BRIBE,
           { description: `Bribed guard for early jail release (${remainingMinutes} minutes remaining)`, currencyType: CurrencyType.DOLLAR },
@@ -336,7 +336,7 @@ export class JailService {
         // Bribe rejected - lose half the dollars
         const lostDollars = Math.floor(amount * 0.5);
         await DollarService.deductDollars(
-          character._id as string,
+          character._id.toString(),
           lostDollars,
           TransactionSource.BRIBE,
           { description: `Failed bribe attempt, guard took $${lostDollars}`, currencyType: CurrencyType.DOLLAR },
@@ -404,7 +404,7 @@ export class JailService {
 
       // Deduct dollars from payer
       await DollarService.deductDollars(
-        payer._id as string,
+        payer._id.toString(),
         bailCost,
         TransactionSource.BAIL_PAYMENT,
         {
@@ -544,7 +544,7 @@ export class JailService {
 
       // Award bounty to hunter
       await DollarService.addDollars(
-        hunter._id as string,
+        hunter._id.toString(),
         bountyReward,
         TransactionSource.BOUNTY_REWARD,
         {
@@ -772,7 +772,7 @@ export class JailService {
 
     // Award dollars
     await DollarService.addDollars(
-      character._id as string,
+      character._id.toString(),
       dollarsEarned,
       TransactionSource.JOB_INCOME,
       { description: 'Prison labor work', jailActivity: true, currencyType: CurrencyType.DOLLAR },

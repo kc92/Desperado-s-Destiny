@@ -13,6 +13,7 @@ import {
   LegacyMilestonesResponse,
 } from '@desperados/shared';
 import { LEGACY_MILESTONES } from '../data/legacy/milestones';
+import { Character } from '../models/Character.model';
 
 /**
  * Get legacy profile for authenticated user
@@ -163,7 +164,24 @@ export const claimReward = async (
       return;
     }
 
-    // TODO: Verify characterId belongs to user
+    // Verify characterId belongs to the authenticated user
+    const character = await Character.findById(characterId);
+    if (!character) {
+      res.status(404).json({
+        error: 'Character not found',
+        message: 'The specified character does not exist',
+      });
+      return;
+    }
+
+    if (character.userId.toString() !== userId.toString()) {
+      logger.warn(`[LegacyController] IDOR attempt: User ${userId} tried to claim reward for character ${characterId} owned by ${character.userId}`);
+      res.status(403).json({
+        error: 'Unauthorized',
+        message: 'You do not own this character',
+      });
+      return;
+    }
 
     const result = await legacyService.claimReward({
       rewardId,

@@ -218,7 +218,7 @@ export class CombatRewardService {
     // Award dollars using DollarService (transaction-safe)
     if (goldAmount > 0) {
       await DollarService.addDollars(
-        character._id as string,
+        character._id.toString(),
         goldAmount,
         TransactionSource.COMBAT_VICTORY,
         {

@@ -173,6 +173,9 @@ export interface FenceTrustRecord {
  * Character document interface
  */
 export interface ICharacter extends Document {
+  // Document ID (explicitly typed for Mongoose 8.x compatibility)
+  _id: mongoose.Types.ObjectId;
+
   // Ownership
   userId: mongoose.Types.ObjectId;
 

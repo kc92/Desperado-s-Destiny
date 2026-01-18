@@ -182,7 +182,7 @@ export class DeathService {
     // Deduct dollars
     if (penalty.goldLost > 0) {
       await DollarService.deductDollars(
-        character._id as string,
+        character._id.toString(),
         penalty.goldLost,
         TransactionSource.COMBAT_DEATH,
         {
