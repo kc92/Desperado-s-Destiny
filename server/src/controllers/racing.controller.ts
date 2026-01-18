@@ -16,6 +16,8 @@ import {
 } from '../data/raceTemplates';
 import { Horse } from '../models/Horse.model';
 import { HorseRace } from '../models/HorseRace.model';
+import { calculateBondMultiplier } from '../services/horseBond.service';
+import { HorseSkill } from '@desperados/shared';
 
 /**
  * Get all upcoming races
@@ -361,7 +363,7 @@ export const getRaceOdds = asyncHandler(
         const horse = await Horse.findById(participant.horseId);
         if (!horse) return null;
 
-        // Simple odds calculation based on stats
+        // Calculate odds based on all factors that affect race score
         const speedScore = horse.stats.speed;
         const staminaScore = horse.stats.stamina;
         const winRate =
@@ -369,9 +371,32 @@ export const getRaceOdds = asyncHandler(
             ? horse.history.racesWon / horse.history.racesEntered
             : 0.5;
 
+        // Factor in bond level (1.0 to 1.5x multiplier)
+        const bondMultiplier = calculateBondMultiplier(horse.bond.level);
+
+        // Factor in racing skills
+        let skillBonus = 0;
+        if (horse.training.trainedSkills.includes(HorseSkill.RACING_FORM)) {
+          skillBonus += 0.15;
+        }
+        if (horse.training.trainedSkills.includes(HorseSkill.SPEED_BURST)) {
+          skillBonus += 0.10;
+        }
+
+        // Calculate total advantage (capped at 1.5x, matching race scoring)
+        const totalMultiplier = Math.min(1.5, bondMultiplier * (1 + skillBonus));
+
+        // Calculate odds - lower stats/bonuses = higher (worse) odds
+        // statsContribution: 0-200 points from speed+stamina
+        // multiplierContribution: 1.0-1.5
+        // winRateContribution: 0-0.5 from history
+        const statsContribution = (speedScore + staminaScore) / 40; // 0-5
+        const multiplierContribution = (totalMultiplier - 1) * 4;   // 0-2
+        const winRateContribution = winRate * 2;                     // 0-1
+
         const baseOdds = Math.max(
           1.1,
-          5 - (speedScore + staminaScore) / 40 - winRate * 2
+          6 - statsContribution - multiplierContribution - winRateContribution
         );
 
         return {
@@ -385,6 +410,11 @@ export const getRaceOdds = asyncHandler(
           record: {
             wins: horse.history.racesWon,
             races: horse.history.racesEntered,
+          },
+          bonuses: {
+            bondLevel: horse.bond.level,
+            hasRacingForm: horse.training.trainedSkills.includes(HorseSkill.RACING_FORM),
+            hasSpeedBurst: horse.training.trainedSkills.includes(HorseSkill.SPEED_BURST),
           },
         };
       })

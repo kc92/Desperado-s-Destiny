@@ -43,6 +43,7 @@ export interface GameState {
   hasInsurance?: boolean;
   cardCountHint?: string;
   dealerShowsAce?: boolean;
+  adjustedTarget?: number;  // Skill-adjusted target (server calculates, client displays)
   // Press Your Luck-specific
   safeDrawCost?: number;
   streakCount?: number;
@@ -375,6 +376,7 @@ export const DeckGame: React.FC<DeckGameProps> = ({
             hasInsurance={gameState.hasInsurance}
             cardCountHint={gameState.cardCountHint}
             dealerShowsAce={gameState.dealerShowsAce}
+            adjustedTarget={gameState.adjustedTarget}
           />
         );
       case 'deckbuilder':

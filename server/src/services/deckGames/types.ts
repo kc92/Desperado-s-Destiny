@@ -135,6 +135,7 @@ export interface GameState {
   hasInsurance?: boolean;
   dealerUpCard?: Card;         // Visible dealer card for insurance decision
   cardCountInfo?: string;      // Hint about remaining deck for skilled players
+  adjustedTarget?: number;     // Skill-adjusted target (calculated from base target - skill reduction)
 
   // === PRESS YOUR LUCK: Risk/Reward ===
   dangerCount?: number;

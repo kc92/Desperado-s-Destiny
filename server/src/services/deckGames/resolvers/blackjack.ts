@@ -50,6 +50,11 @@ export function resolveBlackjackGame(
   const adjustedTarget = Math.max(12, baseTarget - Math.floor(modifiers.thresholdReduction * 0.3));
   const success = value >= adjustedTarget;
 
+  // Check if dealer has blackjack (for insurance payout)
+  // Dealer blackjack = Ace showing + 10-value hole card (simulated with ~30% chance when Ace shows)
+  const dealerShowsAce = state.dealerUpCard?.rank === Rank.ACE;
+  const dealerHasBlackjack = dealerShowsAce && Math.random() < 0.31; // ~31% chance (4 tens in 13 cards)
+
   // Build feedback
   const feedbackParts: string[] = [];
 
@@ -57,16 +62,14 @@ export function resolveBlackjackGame(
     feedbackParts.push('2x Bet');
   }
 
+  // Handle insurance payout
+  let insurancePaid = false;
   if (state.hasInsurance) {
-    // Check if dealer has blackjack (simulate)
-    const dealerValue = state.dealerUpCard ?
-      (state.dealerUpCard.rank === Rank.ACE ? 11 :
-       [Rank.TEN, Rank.JACK, Rank.QUEEN, Rank.KING].includes(state.dealerUpCard.rank) ? 10 :
-       state.dealerUpCard.rank as number) : 0;
-
-    // Dealer blackjack = insurance pays 2:1
-    if (dealerValue >= 10) {
-      feedbackParts.push('Insurance Paid');
+    if (dealerHasBlackjack) {
+      feedbackParts.push('Insurance Paid 2:1!');
+      insurancePaid = true;
+    } else {
+      feedbackParts.push('Insurance Lost');
     }
   }
 
@@ -78,7 +81,13 @@ export function resolveBlackjackGame(
 
   // Calculate final score with bet multiplier
   const baseScore = value * 10;
-  const finalScore = Math.round(baseScore * betMultiplier);
+  let finalScore = Math.round(baseScore * betMultiplier);
+
+  // Insurance payout: if dealer has blackjack, player with insurance breaks even
+  // In game terms: restore half the score (insurance covers the loss)
+  if (insurancePaid && !success) {
+    finalScore = Math.round(baseScore * 0.5); // Break even on insurance
+  }
 
   // Hand name
   let handName = `${value}`;
@@ -95,7 +104,9 @@ export function resolveBlackjackGame(
 
   // Special effect
   let specialEffect = suitBonus.specialEffect;
-  if (state.isDoubledDown && success) {
+  if (insurancePaid) {
+    specialEffect = 'Insurance Paid! Dealer had Blackjack.';
+  } else if (state.isDoubledDown && success) {
     specialEffect = 'Double Down Success! 2x Rewards!';
   } else if (value === 21 && state.hand.length === 2) {
     specialEffect = 'Natural Blackjack!';

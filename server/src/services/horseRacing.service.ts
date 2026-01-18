@@ -146,22 +146,28 @@ function calculateRaceScore(horse: HorseDocument): number {
   const staminaPercent = horse.condition.currentStamina / horse.stats.stamina;
   score += (healthPercent + staminaPercent) / 2 * 200;
 
-  // Bond level provides boost (10%)
-  const bondMultiplier = calculateBondMultiplier(horse.bond.level);
-  score *= bondMultiplier;
-
-  // Racing Form skill provides significant boost
-  if (horse.training.trainedSkills.includes(HorseSkill.RACING_FORM)) {
-    score *= 1.2;
-  }
-
-  // Speed Burst skill
-  if (horse.training.trainedSkills.includes(HorseSkill.SPEED_BURST)) {
-    score *= 1.1;
-  }
-
-  // Equipment bonuses
+  // Equipment bonuses (applied before multipliers so they benefit from bonuses)
   score += horse.derivedStats.travelSpeedBonus * 5;
+
+  // Calculate combined multiplier from all sources, capped at 1.5x total
+  // This prevents multiplicative compounding from making trained horses 2x+ better
+  const bondMultiplier = calculateBondMultiplier(horse.bond.level);
+  let skillMultiplier = 1.0;
+
+  // Racing Form skill: +15% (reduced from 20% to fit within cap)
+  if (horse.training.trainedSkills.includes(HorseSkill.RACING_FORM)) {
+    skillMultiplier += 0.15;
+  }
+
+  // Speed Burst skill: +10%
+  if (horse.training.trainedSkills.includes(HorseSkill.SPEED_BURST)) {
+    skillMultiplier += 0.10;
+  }
+
+  // Combine bond and skill multipliers, cap total bonus at 50% (1.5x max)
+  const combinedMultiplier = bondMultiplier * skillMultiplier;
+  const cappedMultiplier = Math.min(1.5, combinedMultiplier);
+  score *= cappedMultiplier;
 
   // Add some randomness (±10%)
   const randomFactor = SecureRNG.float(0.9, 1.1, 2);

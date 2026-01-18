@@ -25,6 +25,7 @@ interface BlackjackGameProps {
   cardCountHint?: string;
   characterSkillBonus?: number;
   dealerShowsAce?: boolean;
+  adjustedTarget?: number;  // Server-calculated target with skill modifiers applied
 }
 
 // Calculate blackjack value
@@ -81,11 +82,15 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
   cardCountHint = '',
   characterSkillBonus = 0,
   dealerShowsAce = false,
+  adjustedTarget,
 }) => {
   const [lastCardFlipped, setLastCardFlipped] = useState(false);
 
   const currentValue = calculateValue(hand);
-  const target = getTarget(difficulty);
+  // Use server-provided adjusted target if available, otherwise fall back to base target
+  const baseTarget = getTarget(difficulty);
+  const target = adjustedTarget ?? baseTarget;
+  const hasSkillBonus = adjustedTarget !== undefined && adjustedTarget < baseTarget;
   const isBusted = currentValue > 21;
   const hasBlackjack = currentValue === 21;
 
@@ -156,6 +161,11 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({
           </span>
           <span className="text-sm text-desert-sand">
             Target: {target}
+            {hasSkillBonus && (
+              <span className="text-green-400 text-xs ml-1">
+                (was {baseTarget})
+              </span>
+            )}
           </span>
         </div>
       </div>

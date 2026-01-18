@@ -5,9 +5,9 @@
 
 import crypto from 'crypto';
 import { GameState, GameType, InitGameOptions } from '../types';
-import { MAX_TURNS } from '../constants';
+import { MAX_TURNS, BLACKJACK_TARGETS } from '../constants';
 import { createDeck, drawCards, shuffleDeck } from '../deck';
-import { calculateSpecialAbilities } from '../skills';
+import { calculateSpecialAbilities, calculateSkillModifiers } from '../skills';
 import { getWagerConfig } from '../wagering';
 import { calculateStreakBonus, calculateUnderdogBonus } from '../momentum';
 import { simulateOpponentCombat } from '../combat';
@@ -108,6 +108,11 @@ export function initGame(options: InitGameOptions): GameState {
 
       // Generate card counting hint if skilled enough
       state.cardCountInfo = generateCardCountHint(state);
+
+      // Calculate skill-adjusted target for client display
+      const baseTarget = BLACKJACK_TARGETS[state.difficulty] || 18;
+      const modifiers = calculateSkillModifiers(skillLevel, state.difficulty);
+      state.adjustedTarget = Math.max(12, baseTarget - Math.floor(modifiers.thresholdReduction * 0.3));
       break;
     }
 
