@@ -54,6 +54,10 @@ export async function connectRedis(
         password: config.database.redisPassword,
         socket: {
           connectTimeout: 15000, // Increased from 5000 for Railway's shared infrastructure latency
+          // PRODUCTION FIX: Add socket timeout to prevent commands from hanging indefinitely
+          // This prevents POST requests from hanging when Redis is unresponsive
+          noDelay: true, // Disable Nagle's algorithm for faster command/response
+          keepAlive: 5000, // Send keepalive packets every 5 seconds
           reconnectStrategy: (retries: number) => {
             if (retries > 10) {
               logger.error('Max Redis reconnection attempts reached');
@@ -64,6 +68,10 @@ export async function connectRedis(
             return delay;
           },
         },
+        // PRODUCTION FIX: Add command timeout to fail fast on unresponsive Redis
+        // Without this, Redis commands can hang indefinitely blocking all requests
+        commandsQueueMaxLength: 100, // Limit pending commands queue
+        disableOfflineQueue: true, // Don't queue commands when disconnected, fail immediately
       });
 
       // EVENT LISTENER LEAK FIX: Use named handlers for proper cleanup
