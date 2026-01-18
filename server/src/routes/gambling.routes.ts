@@ -21,41 +21,44 @@ import {
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireCharacter } from '../middleware/characterOwnership.middleware';
 import { gamblingRateLimiter } from '../middleware/gamblingRateLimiter';
-import { asyncHandler } from '../middleware/asyncHandler';
 import { requireCsrfToken, requireCsrfTokenWithRotation } from '../middleware/csrf.middleware';
 import { checkGoldDuplication, rateLimitGoldTransactions } from '../middleware/antiExploit.middleware';
 import { validate, GamblingSchemas } from '../validation';
 
 const router = Router();
 
+// NOTE: Controllers are already wrapped with asyncHandler, so don't double-wrap here.
+// Double-wrapping causes `next` to be undefined in the inner asyncHandler,
+// leading to unhandled promise rejections when errors are thrown.
+
 // Public routes
-router.get('/games', asyncHandler(getGames));
-router.get('/games/:gameId', asyncHandler(getGameDetails));
-router.get('/locations', asyncHandler(getLocations));
-router.get('/locations/:locationId', asyncHandler(getLocationDetails));
-router.get('/items', asyncHandler(getItems));
-router.get('/leaderboard', asyncHandler(getLeaderboard));
+router.get('/games', getGames);
+router.get('/games/:gameId', getGameDetails);
+router.get('/locations', getLocations);
+router.get('/locations/:locationId', getLocationDetails);
+router.get('/items', getItems);
+router.get('/leaderboard', getLeaderboard);
 
 // Protected routes - require auth and character
 router.use(requireAuth);
 router.use(requireCharacter);
 
 // Get character's gambling stats
-router.get('/my-stats', asyncHandler(getMyStats));
+router.get('/my-stats', getMyStats);
 
 // Get gambling history
-router.get('/history', asyncHandler(getHistory));
+router.get('/history', getHistory);
 
 // Get current session
-router.get('/sessions/current', asyncHandler(getCurrentSession));
+router.get('/sessions/current', getCurrentSession);
 
 // Start a new session
-router.post('/sessions', requireCsrfToken, asyncHandler(startSession));
+router.post('/sessions', requireCsrfToken, startSession);
 
 // Place a bet in session - CSRF rotation for wager placement
-router.post('/sessions/:sessionId/bet', requireCsrfTokenWithRotation, validate(GamblingSchemas.placeBet), gamblingRateLimiter, rateLimitGoldTransactions(50), checkGoldDuplication(), asyncHandler(placeBet));
+router.post('/sessions/:sessionId/bet', requireCsrfTokenWithRotation, validate(GamblingSchemas.placeBet), gamblingRateLimiter, rateLimitGoldTransactions(50), checkGoldDuplication(), placeBet);
 
 // End a session
-router.post('/sessions/:sessionId/end', requireCsrfToken, asyncHandler(endSession));
+router.post('/sessions/:sessionId/end', requireCsrfToken, endSession);
 
 export default router;

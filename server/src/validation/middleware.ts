@@ -27,7 +27,7 @@ export interface FieldValidator {
   /** Is field required? */
   required?: boolean;
   /** Field type */
-  type?: 'string' | 'number' | 'boolean' | 'objectId' | 'array';
+  type?: 'string' | 'number' | 'boolean' | 'objectId' | 'array' | 'object';
   /** Custom validator function */
   validate?: (value: unknown, field: string) => ValidationResult;
   /** Transform before validation */
@@ -292,6 +292,11 @@ function validateType(
     case 'array':
       if (!Array.isArray(value)) {
         return { field, message: customMessage || `${field} must be an array` };
+      }
+      break;
+    case 'object':
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        return { field, message: customMessage || `${field} must be an object` };
       }
       break;
   }
