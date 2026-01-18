@@ -202,8 +202,10 @@ export const startSession = asyncHandler(
 
     res.status(201).json({
       success: true,
-      data: session,
-      message: 'Gambling session started! Good luck!',
+      data: {
+        session,
+        message: 'Gambling session started! Good luck!',
+      },
     });
   }
 );
@@ -250,21 +252,24 @@ export const placeBet = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
     const characterId = req.character!._id.toString();
     const { sessionId } = req.params;
-    const { betAmount, betType, betDetails } = req.body;
+    const { betAmount, betType, betDetails, action } = req.body;
 
-    if (betAmount === undefined) {
+    // For blackjack 'deal' action, betAmount is required
+    // For other actions (hit, stand), betAmount may not be needed
+    if (action === 'deal' && betAmount === undefined) {
       return res.status(400).json({
         success: false,
-        error: 'Bet amount is required',
+        error: 'Bet amount is required for deal action',
       });
     }
 
     const result = await GamblingService.makeBet(
       sessionId,
       characterId,
-      betAmount,
+      betAmount || 0,
       betType,
-      betDetails
+      betDetails,
+      action
     );
 
     res.status(200).json({

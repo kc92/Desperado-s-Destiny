@@ -219,7 +219,8 @@ export async function makeBet(
   characterId: string,
   betAmount: number,
   betType?: string,
-  betDetails?: any
+  betDetails?: any,
+  action?: string
 ): Promise<{
   result: 'WIN' | 'LOSS' | 'PUSH' | 'IN_PROGRESS';
   amountWon: number;
@@ -275,7 +276,7 @@ export async function makeBet(
         session.gameState,
         betAmount,
         game.houseEdge,
-        betType as BlackjackAction
+        (action || betType) as BlackjackAction
       ));
       break;
 

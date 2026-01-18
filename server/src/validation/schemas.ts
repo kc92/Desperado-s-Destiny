@@ -339,16 +339,28 @@ export const DuelSchemas = {
 export const GamblingSchemas = {
   placeBet: {
     body: {
-      amount: {
-        required: true,
+      // Support both 'amount' and 'betAmount' for flexibility
+      betAmount: {
+        required: false,
         type: 'number',
         min: GAMBLING_CONSTANTS.MIN_BET,
         max: GAMBLING_CONSTANTS.MAX_BET
       },
-      gameType: {
-        required: true,
+      // Action for blackjack-style games (deal, hit, stand, etc.)
+      action: {
+        required: false,
         type: 'string',
-        enum: ['blackjack', 'poker', 'slots', 'roulette', 'dice'] as const
+        enum: ['deal', 'hit', 'stand', 'double', 'split', 'bet', 'roll', 'spin'] as const
+      },
+      // Bet type for craps, roulette, etc.
+      betType: {
+        required: false,
+        type: 'string'
+      },
+      // Bet details for complex bets (roulette, etc.)
+      betDetails: {
+        required: false,
+        type: 'object'
       }
     }
   } as ValidationSchema,
