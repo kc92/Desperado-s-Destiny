@@ -229,7 +229,14 @@ export function getAllFishingLocations(): FishingLocation[] {
  * Get fishing location by ID
  */
 export function getFishingLocation(locationId: string): FishingLocation | undefined {
-  return FISHING_LOCATIONS[locationId];
+  // First try direct key lookup (object key like 'RED_GULCH_CREEK')
+  if (FISHING_LOCATIONS[locationId]) {
+    return FISHING_LOCATIONS[locationId];
+  }
+  // Then try to find by .id property (lowercase like 'red_gulch_creek')
+  return Object.values(FISHING_LOCATIONS).find(
+    loc => loc.id === locationId || loc.id.toLowerCase() === locationId.toLowerCase()
+  );
 }
 
 /**
