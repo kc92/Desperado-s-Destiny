@@ -1042,8 +1042,14 @@ export const GAMBLING_LOCATIONS: Record<string, GamblingLocation> = {
 };
 
 // Helper function to get game by ID
+// Supports lookup by both object key (e.g., 'BLACKJACK_RED_GULCH') and game.id property (e.g., 'blackjack_red_gulch')
 export function getGamblingGameById(gameId: string): GamblingGame | undefined {
-  return GAMBLING_GAMES[gameId];
+  // First try direct key lookup (object key)
+  if (GAMBLING_GAMES[gameId]) {
+    return GAMBLING_GAMES[gameId];
+  }
+  // Then try to find by .id property (case-insensitive)
+  return Object.values(GAMBLING_GAMES).find(game => game.id === gameId || game.id.toLowerCase() === gameId.toLowerCase());
 }
 
 // Helper function to get games by type
