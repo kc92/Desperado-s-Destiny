@@ -473,58 +473,70 @@ export class CraftingService {
         }
       }
 
-      // Use transaction for atomic inventory operations
-      const session = await mongoose.startSession();
-      session.startTransaction();
-
-      try {
-        // Deduct materials from inventory
-        for (const mat of recipeDoc.materials) {
-          const inventoryItem = character.inventory.find(i => i.itemId === mat.materialId);
-          if (inventoryItem) {
-            inventoryItem.quantity -= mat.quantity;
-            if (inventoryItem.quantity <= 0) {
-              character.inventory = character.inventory.filter(i => i.itemId !== mat.materialId);
-            }
+      // Deduct materials from inventory
+      for (const mat of recipeDoc.materials) {
+        const inventoryItem = character.inventory.find(i => i.itemId === mat.materialId);
+        if (inventoryItem) {
+          inventoryItem.quantity -= mat.quantity;
+          if (inventoryItem.quantity <= 0) {
+            character.inventory = character.inventory.filter(i => i.itemId !== mat.materialId);
           }
         }
-
-        // Add crafted item to inventory
-        const outputQuantity = recipeDoc.output.baseQuantity || 1;
-        const existingItem = character.inventory.find(i => i.itemId === recipeDoc.output.itemId);
-        if (existingItem) {
-          existingItem.quantity += outputQuantity;
-        } else {
-          character.inventory.push({
-            itemId: recipeDoc.output.itemId,
-            quantity: outputQuantity,
-            acquiredAt: new Date()
-          });
-        }
-
-        // Save character with updated inventory within transaction
-        await character.save({ session });
-        await session.commitTransaction();
-
-        return {
-          success: true,
-          itemsCrafted: [{
-            itemId: recipeDoc.output.itemId,
-            quantity: outputQuantity,
-            quality: 'common'
-          }],
-          xpGained: recipeDoc.xpGain || 10,
-          timeTaken: recipeDoc.baseCraftTime || 5
-        };
-      } catch (txError) {
-        await session.abortTransaction();
-        return {
-          success: false,
-          error: `Crafting failed: ${txError}`
-        };
-      } finally {
-        session.endSession();
       }
+
+      // Add crafted item to inventory
+      const outputQuantity = recipeDoc.output.baseQuantity || 1;
+      const existingItem = character.inventory.find(i => i.itemId === recipeDoc.output.itemId);
+      if (existingItem) {
+        existingItem.quantity += outputQuantity;
+      } else {
+        character.inventory.push({
+          itemId: recipeDoc.output.itemId,
+          quantity: outputQuantity,
+          acquiredAt: new Date()
+        });
+      }
+
+      // Save character - try with transaction first, fall back to direct save for non-replica MongoDB
+      try {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+          await character.save({ session });
+          await session.commitTransaction();
+        } catch (txError: any) {
+          await session.abortTransaction();
+          // If transaction fails due to non-replica set, save without transaction
+          if (txError.message?.includes('Transaction numbers are only allowed')) {
+            await character.save();
+          } else {
+            throw txError;
+          }
+        } finally {
+          session.endSession();
+        }
+      } catch (sessionError: any) {
+        // If session creation fails, save without transaction
+        if (sessionError.message?.includes('Transaction') || sessionError.message?.includes('replica')) {
+          await character.save();
+        } else {
+          return {
+            success: false,
+            error: `Crafting failed: ${sessionError}`
+          };
+        }
+      }
+
+      return {
+        success: true,
+        itemsCrafted: [{
+          itemId: recipeDoc.output.itemId,
+          quantity: outputQuantity,
+          quality: 'common'
+        }],
+        xpGained: recipeDoc.xpGain || 10,
+        timeTaken: recipeDoc.baseCraftTime || 5
+      };
     }
 
     // Handle the full version (characterId, request, recipe)
