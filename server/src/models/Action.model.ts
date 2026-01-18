@@ -276,7 +276,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Pickpocket Drunk',
       description: 'Target an inebriated patron stumbling from the saloon. Quick hands make for easy coin.',
       energyCost: 10,
-      difficulty: 25,
+      difficulty: 5,  // Target: 500 (achievable with ~5 safe cards + 2x tier)
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 1,
@@ -297,7 +297,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Steal from Market',
       description: 'Swipe goods from the bustling market stalls. Keep your head down and blend in.',
       energyCost: 15,
-      difficulty: 30,
+      difficulty: 6,  // Target: 600 (achievable with ~6 safe cards)
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 1,
@@ -318,7 +318,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Forge Documents',
       description: 'Create convincing forged documents. A skilled criminal always has the right papers.',
       energyCost: 20,
-      difficulty: 35,
+      difficulty: 7,  // Target: 700 (requires good play)
       requiredSuit: Suit.SPADES,
       requiredCriminalSkill: 'pickpocketing',
       requiredCriminalSkillLevel: 10,
@@ -336,7 +336,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Pick Lock',
       description: 'Use your cunning to pick a simple lock. Practice makes perfect in the art of breaking and entering.',
       energyCost: 12,
-      difficulty: 28,
+      difficulty: 6,  // Target: 600 (achievable with ~6 safe cards)
       requiredSuit: Suit.SPADES,
       requiredCriminalSkill: 'pickpocketing',
       requiredCriminalSkillLevel: 5,
@@ -356,7 +356,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Burglarize Store',
       description: 'Break into a general store after hours. The sheriff patrols nearby, so timing is everything.',
       energyCost: 25,
-      difficulty: 50,
+      difficulty: 10,  // Target: 1000 (requires risky play with 7+ cards)
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 10,
@@ -377,7 +377,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Cattle Rustling',
       description: 'Steal cattle from a nearby ranch under cover of darkness. Ranchers protect their herds fiercely.',
       energyCost: 30,
-      difficulty: 55,
+      difficulty: 8,  // Target: 800 (medium risk)
       requiredSuit: Suit.SPADES,
       requiredCriminalSkill: 'robbery',
       requiredCriminalSkillLevel: 5,
@@ -395,7 +395,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Stage Coach Robbery',
       description: 'Ambush a stagecoach on the frontier road. Rich passengers mean rich rewards, but armed guards mean danger.',
       energyCost: 35,
-      difficulty: 60,
+      difficulty: 9,  // Target: 900 (high risk)
       requiredSuit: Suit.SPADES,
       requiredCriminalSkill: 'robbery',
       requiredCriminalSkillLevel: 10,
@@ -413,7 +413,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Rob Saloon',
       description: 'Plan and execute a daring saloon robbery. High risk, high reward, and plenty of witnesses.',
       energyCost: 28,
-      difficulty: 58,
+      difficulty: 9,  // Target: 900 (high risk)
       requiredSuit: Suit.SPADES,
       requiredCriminalSkill: 'burglary',
       requiredCriminalSkillLevel: 15,
@@ -433,7 +433,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: "The Preacher's Ledger",
       description: "The church treasurer has been skimming from the orphan fund. Steal his ledger and the evidence. You're stealing from a thief, but the church won't see it that way.",
       energyCost: 28,
-      difficulty: 55,
+      difficulty: 10,  // Target: 1000 (serious crime)
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 20,
@@ -454,7 +454,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Territorial Extortion',
       description: "Small ranchers are being pressured by the railroad. You can 'protect' them for a fee, or shake down the railroad instead. Someone's paying - you decide who.",
       energyCost: 32,
-      difficulty: 58,
+      difficulty: 11,  // Target: 1100 (serious crime)
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 23,
@@ -475,7 +475,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'The Counterfeit Ring',
       description: "Intercept a US Mint shipment of blank coin plates and flood Sangre Territory with fake currency. When you print money, everyone pays the price.",
       energyCost: 35,
-      difficulty: 62,
+      difficulty: 12,  // Target: 1200 (serious crime)
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 26,
@@ -496,7 +496,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Ghost Town Heist',
       description: "Perdition Gulch was abandoned after a mine collapse. The gold's still in the vault. So are the men who died for it. Previous crews never returned.",
       energyCost: 38,
-      difficulty: 65,
+      difficulty: 13,  // Target: 1300 (serious crime)
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 30,
@@ -517,7 +517,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: "The Judge's Pocket",
       description: "Territorial Judge Whitmore keeps blackmail files on every powerful figure in Sangre. Break into his office and take them. Information is the most valuable currency.",
       energyCost: 40,
-      difficulty: 68,
+      difficulty: 14,  // Target: 1400 (serious crime)
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 34,
@@ -538,7 +538,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'The Iron Horse',
       description: "The railroad payroll train. The biggest score in the territory. After this, they'll either sing songs about you or hang you from the nearest tree.",
       energyCost: 45,
-      difficulty: 72,
+      difficulty: 14,  // Target: 1400 (major crime)
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 38,
@@ -561,7 +561,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Bank Heist',
       description: 'The ultimate score - rob the town bank. Careful planning required, and lawmen will respond fast.',
       energyCost: 40,
-      difficulty: 75,
+      difficulty: 15,  // Target: 1500 (major crime - requires risky play + suit bonus)
       requiredSuit: Suit.SPADES,
       requiredSkillCategory: SkillCategory.CUNNING,
       requiredSkillLevel: 40,
@@ -582,7 +582,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Train Robbery',
       description: 'Stop and rob a passenger train. The payoff is legendary, but so is the danger.',
       energyCost: 45,
-      difficulty: 80,
+      difficulty: 15,  // Target: 1500 (major crime)
       requiredSuit: Suit.SPADES,
       requiredCriminalSkill: 'robbery',
       requiredCriminalSkillLevel: 25,
@@ -600,7 +600,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Murder for Hire',
       description: 'Accept a contract to eliminate a target. The darkest deed, with the harshest consequences.',
       energyCost: 50,
-      difficulty: 85,
+      difficulty: 16,  // Target: 1600 (extreme crime - near max achievable)
       requiredSuit: Suit.SPADES,
       requiredCriminalSkill: 'assassination',
       requiredCriminalSkillLevel: 30,
@@ -618,7 +618,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Steal Horse',
       description: 'Steal a prized horse from a stable. Horse theft is a hanging offense in these parts.',
       energyCost: 38,
-      difficulty: 70,
+      difficulty: 12,  // Target: 1200 (serious crime)
       requiredSuit: Suit.SPADES,
       requiredCriminalSkill: 'robbery',
       requiredCriminalSkillLevel: 15,
@@ -638,7 +638,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Smuggling Run',
       description: 'Transport illegal goods across the border. Avoid customs agents and nosy lawmen.',
       energyCost: 30,
-      difficulty: 52,
+      difficulty: 8,  // Target: 800 (medium crime)
       requiredSuit: Suit.SPADES,
       requiredCriminalSkill: 'robbery',
       requiredCriminalSkillLevel: 8,
@@ -656,7 +656,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Bootlegging',
       description: 'Brew and sell illegal moonshine. The temperance movement has made this quite profitable.',
       energyCost: 25,
-      difficulty: 45,
+      difficulty: 7,  // Target: 700 (medium crime)
       requiredSuit: Suit.SPADES,
       requiredCriminalSkill: 'burglary',
       requiredCriminalSkillLevel: 8,
@@ -674,7 +674,7 @@ ActionSchema.statics.seedStarterActions = async function(): Promise<void> {
       name: 'Arson',
       description: 'Set fire to a rival establishment. Flames attract attention quickly, and evidence is hard to hide.',
       energyCost: 40,
-      difficulty: 72,
+      difficulty: 14,  // Target: 1400 (major crime)
       requiredSuit: Suit.SPADES,
       requiredCriminalSkill: 'assassination',
       requiredCriminalSkillLevel: 25,

@@ -61,17 +61,38 @@ export const PressYourLuck: React.FC<PressYourLuckProps> = ({
   const dangerCount = hand.filter(isDangerCard).length;
   const isBusted = dangerCount >= 3;
 
-  // Calculate current score (sum of card values, excluding danger cards)
-  const currentScore = hand.reduce((sum, card) => {
-    if (isDangerCard(card)) return sum;
-    const value = card.rank === Rank.ACE ? 11 : parseInt(String(card.rank));
-    return sum + (isNaN(value) ? 10 : value);
-  }, 0);
+  // Count safe cards (non-danger cards) - server uses safeCards * 50
+  const safeCards = hand.filter(card => !isDangerCard(card)).length;
 
   // Count suit matches
   const suitCount = relevantSuit
     ? hand.filter(card => card.suit.toLowerCase() === relevantSuit.toLowerCase()).length
     : 0;
+
+  // Calculate tier multiplier (matching server logic from pressYourLuck.ts)
+  const skillBonus = Math.round((characterSkillBonus || 0) * 0.02 * 100) / 100;
+  const effectiveCards = Math.round((hand.length + (suitCount * 0.5) + skillBonus) * 100) / 100;
+
+  let tierMultiplier = 0.5;
+  let tierName = 'Cautious';
+  if (effectiveCards >= 7) {
+    tierMultiplier = 2.0;
+    tierName = 'Daring Heist';
+  } else if (effectiveCards >= 5) {
+    tierMultiplier = 1.5;
+    tierName = 'Bold Move';
+  } else if (effectiveCards >= 3) {
+    tierMultiplier = 1.0;
+    tierName = 'Balanced';
+  }
+
+  // Calculate base score matching server: safeCards * 50
+  const baseScore = safeCards * 50;
+
+  // Apply multipliers (tier, streak, double down) for display
+  const ddMultiplier = hasDoubledDown ? 2.0 : 1.0;
+  const currentScore = Math.round(baseScore * tierMultiplier * streakMultiplier * ddMultiplier);
+
 
   // Animate last card flip
   useEffect(() => {
@@ -123,13 +144,18 @@ export const PressYourLuck: React.FC<PressYourLuckProps> = ({
         <div className="flex items-center gap-4">
           <span className="text-gold-light font-bold">
             Score: {currentScore}
-            {streakMultiplier > 1 && (
-              <span className="text-green-400 ml-1">(×{streakMultiplier.toFixed(1)})</span>
-            )}
+          </span>
+          <span className={`text-xs px-2 py-0.5 rounded ${
+            tierMultiplier >= 2.0 ? 'bg-purple-900/50 text-purple-300' :
+            tierMultiplier >= 1.5 ? 'bg-blue-900/50 text-blue-300' :
+            tierMultiplier >= 1.0 ? 'bg-green-900/50 text-green-300' :
+            'bg-gray-700 text-gray-400'
+          }`}>
+            {tierName} ({tierMultiplier}x)
           </span>
           {relevantSuit && (
             <span className="text-sm text-desert-sand">
-              Suit Matches: {suitCount}
+              Suit: {suitCount}
             </span>
           )}
         </div>
@@ -265,7 +291,7 @@ export const PressYourLuck: React.FC<PressYourLuckProps> = ({
                 }
               `}
             >
-              Stop ({Math.round(currentScore * streakMultiplier)} pts)
+              Stop ({currentScore} pts)
             </button>
 
             <button
@@ -338,12 +364,12 @@ export const PressYourLuck: React.FC<PressYourLuckProps> = ({
 
       {/* Risk/Reward hint */}
       <div className="mt-4 p-3 bg-wood-darker rounded border border-wood-light/30">
-        <h4 className="text-gold-light text-sm font-bold mb-2">Risk vs Reward:</h4>
+        <h4 className="text-gold-light text-sm font-bold mb-2">Scoring:</h4>
         <div className="text-xs text-desert-sand space-y-1">
-          <p>• Number cards (2-10, A) add to your score</p>
-          <p>• Face cards (J, Q, K) are dangerous - 3 = bust!</p>
-          <p>• Higher scores = better rewards</p>
-          <p>• More cards = higher risk multiplier bonus</p>
+          <p>• Safe cards (2-10, A) = <span className="text-gold-light">50 pts each</span></p>
+          <p>• Face cards (J, Q, K) = <span className="text-red-400">DANGER</span> - 3 = bust!</p>
+          <p>• <span className="text-gray-400">1-2 cards = 0.5x</span> | <span className="text-green-300">3-4 = 1x</span> | <span className="text-blue-300">5-6 = 1.5x</span> | <span className="text-purple-300">7+ = 2x</span></p>
+          <p>• Suit matches count as +0.5 cards for tier bonus</p>
         </div>
       </div>
     </div>
