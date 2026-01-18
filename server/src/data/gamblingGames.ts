@@ -1067,3 +1067,34 @@ export function getGamblingItemById(itemId: string): GamblingItem | undefined {
 export function getGamblingLocationById(locationId: string): GamblingLocation | undefined {
   return GAMBLING_LOCATIONS[locationId];
 }
+
+// Helper function to get default game for a game type
+// Maps generic types like 'blackjack' to specific game instances like 'blackjack_red_gulch'
+export function getDefaultGameForType(gameType: string): GamblingGame | undefined {
+  // Map of game types to their default game IDs
+  const defaultGameMap: Record<string, string> = {
+    'blackjack': 'BLACKJACK_RED_GULCH',
+    'roulette': 'ROULETTE_STANDARD',
+    'craps': 'CRAPS_STANDARD',
+    'faro': 'FARO_STANDARD',
+    'three_card_monte': 'THREE_CARD_MONTE',
+    'wheel_of_fortune': 'WHEEL_OF_FORTUNE',
+    'poker': 'POKER_STANDARD',
+    'high_card': 'HIGH_CARD',
+  };
+
+  const defaultGameKey = defaultGameMap[gameType.toLowerCase()];
+  if (defaultGameKey && GAMBLING_GAMES[defaultGameKey]) {
+    return GAMBLING_GAMES[defaultGameKey];
+  }
+
+  // If not found in map, try to find first game of this type
+  const games = getGamesByType(gameType as GamblingGameType);
+  return games.length > 0 ? games[0] : undefined;
+}
+
+// Helper function to get default location for a game
+export function getDefaultLocationForGame(game: GamblingGame): string {
+  // Return first available location, or 'red_gulch_saloon' as fallback
+  return game.availableLocations[0] || 'red_gulch_saloon';
+}

@@ -23,7 +23,7 @@ import {
   RouletteBetType,
   GAMBLING_CONSTANTS
 } from '@desperados/shared';
-import { GAMBLING_GAMES, getGamblingGameById } from '../data/gamblingGames';
+import { GAMBLING_GAMES, getGamblingGameById, getDefaultGameForType, getDefaultLocationForGame } from '../data/gamblingGames';
 import logger from '../utils/logger';
 import { withLock } from '../utils/distributedLock';
 import { SecureRNG } from './base/SecureRNG';
@@ -137,15 +137,28 @@ export async function startGamblingSession(
     throw new Error('You already have an active gambling session');
   }
 
-  // Get game definition
-  const game = getGamblingGameById(gameId);
+  // Get game definition - first try exact ID, then try as game type
+  let game = getGamblingGameById(gameId);
+  let resolvedGameId = gameId;
+  let resolvedLocation = location;
+
+  // If game not found by exact ID, try to find default game for the game type
+  if (!game) {
+    game = getDefaultGameForType(gameId);
+    if (game) {
+      resolvedGameId = game.id;
+      logger.info(`Mapped game type '${gameId}' to game '${resolvedGameId}'`);
+    }
+  }
+
   if (!game) {
     throw new Error('Invalid game ID');
   }
 
-  // Validate location
-  if (!game.availableLocations.includes(location)) {
-    throw new Error('This game is not available at this location');
+  // Handle 'default' location - use first available location for this game
+  if (location === 'default' || !game.availableLocations.includes(location)) {
+    resolvedLocation = getDefaultLocationForGame(game);
+    logger.info(`Mapped location '${location}' to '${resolvedLocation}' for game '${resolvedGameId}'`);
   }
 
   // Check gambling history for bans
@@ -154,8 +167,8 @@ export async function startGamblingSession(
     history = await GamblingHistory.createNewHistory(characterId);
   }
 
-  if (history.isBannedFrom(location)) {
-    throw new Error(`You are banned from gambling at ${location}`);
+  if (history.isBannedFrom(resolvedLocation)) {
+    throw new Error(`You are banned from gambling at ${resolvedLocation}`);
   }
 
   // Validate bet amount
@@ -180,10 +193,10 @@ export async function startGamblingSession(
   // Create session
   const session = new GamblingSession({
     characterId: character._id,
-    gameId,
+    gameId: resolvedGameId,
     gameType: game.gameType,
     eventId,
-    location,
+    location: resolvedLocation,
     startingGold: character.dollars,
     currentGold: character.dollars,
     dealerNPC: game.dealerNPC,
@@ -193,7 +206,7 @@ export async function startGamblingSession(
 
   await session.save();
 
-  logger.info(`Gambling session started: ${character.name} - ${game.name} at ${location}`);
+  logger.info(`Gambling session started: ${character.name} - ${game.name} at ${resolvedLocation}`);
 
   return session;
 }
