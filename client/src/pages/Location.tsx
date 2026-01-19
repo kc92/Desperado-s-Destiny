@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { useErrorStore } from '@/store/useErrorStore';
 import { Card, Button, LoadingSpinner, Modal } from '@/components/ui';
@@ -106,6 +107,21 @@ interface ZoneTravelOptions {
   zoneInfo: ZoneInfo | null;
 }
 
+interface LocationFishingSpot {
+  spotId: string;
+  name: string;
+  description: string;
+  waterType: string;
+  difficulty: number;
+  discoveredByDefault?: boolean;
+  requiredLevel?: number;
+  commonFish: string[];
+  rareFish?: string[];
+  legendaryFish?: string;
+  scenicValue?: number;
+  danger?: number;
+}
+
 interface LocationData {
   _id: string;
   name: string;
@@ -119,6 +135,7 @@ interface LocationData {
   features?: string[];
   jobs: LocationJob[];
   shops: LocationShop[];
+  fishingSpots?: LocationFishingSpot[];
   npcs: LocationNPC[];
   connections: LocationConnection[];
   dangerLevel: number;
@@ -194,6 +211,7 @@ const isSaloonLocation = (locationType: string): boolean => {
 };
 
 export const Location: React.FC = () => {
+  const navigate = useNavigate();
   const { currentCharacter, refreshCharacter } = useCharacterStore();
 
   const [location, setLocation] = useState<LocationData | null>(null);
@@ -728,6 +746,7 @@ export const Location: React.FC = () => {
             hasTraining: location.type === 'skill_academy',
             hasCrafting: (locationActions?.craft.length ?? 0) > 0,
             hasGathering: false, // Will be enabled when gathering nodes are added to locations
+            hasFishing: (location.fishingSpots?.length ?? 0) > 0,
             hasShops: !isParentTown && location.shops.length > 0,
             hasTravel: !!(zoneTravelOptions || (location.connectedLocations && location.connectedLocations.length > 0)),
           }}
@@ -1208,6 +1227,62 @@ export const Location: React.FC = () => {
                 >
                   Browse ({shop.items.length} items)
                 </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Fishing Section - Available fishing spots at this location */}
+      {(location.fishingSpots?.length ?? 0) > 0 &&
+       (activeTab === 'overview' || activeTab === 'fish') && (
+        <Card className="p-6">
+          <h2 className="text-xl font-bold text-blue-400 mb-4">🎣 Fishing Spots</h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Cast your line and try to catch some fish at these spots.
+          </p>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {location.fishingSpots?.map(spot => (
+              <div key={spot.spotId} className="p-4 bg-gradient-to-br from-blue-900/30 to-gray-800/50 rounded-lg border border-blue-700/50 hover:border-blue-500 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-semibold text-blue-200">{spot.name}</h3>
+                    <p className="text-xs text-gray-400 capitalize">{spot.waterType}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-yellow-400">
+                      {'⭐'.repeat(Math.ceil(spot.difficulty / 25))}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-400 mt-2 line-clamp-2">{spot.description}</p>
+
+                <div className="mt-3 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-400">🐟 {spot.commonFish.length} species</span>
+                    {spot.legendaryFish && (
+                      <span className="text-purple-400">👑 Legendary</span>
+                    )}
+                  </div>
+                  {spot.scenicValue && (
+                    <span className="text-cyan-400">🌄 {spot.scenicValue}% scenic</span>
+                  )}
+                </div>
+
+                {spot.requiredLevel && spot.requiredLevel > (currentCharacter?.level || 1) ? (
+                  <div className="mt-3 text-center text-xs text-red-400">
+                    Requires Level {spot.requiredLevel}
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="mt-3 w-full bg-blue-900/50 hover:bg-blue-800/50 border-blue-700"
+                    onClick={() => navigate(`/game/fishing?spot=${spot.spotId}`)}
+                  >
+                    Fish Here
+                  </Button>
+                )}
               </div>
             ))}
           </div>

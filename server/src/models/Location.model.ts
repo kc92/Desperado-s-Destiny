@@ -18,6 +18,7 @@ import type {
   WorldZoneType,
   LocationCraftingFacility,
   LocationGatheringNode,
+  LocationFishingSpot,
 } from '@desperados/shared';
 
 export interface ILocation extends Document {
@@ -54,6 +55,7 @@ export interface ILocation extends Document {
   shops: LocationShop[];
   craftingFacilities?: LocationCraftingFacility[];
   gatheringNodes?: LocationGatheringNode[];
+  fishingSpots?: LocationFishingSpot[];
   npcs: LocationNPC[];
   connections: LocationConnection[];
   dangerLevel: number;
@@ -237,6 +239,29 @@ const GatheringNodeSchema = new Schema(
       minSkillLevel: { type: Number },
       skillId: { type: String },
     },
+  },
+  { _id: false }
+);
+
+// Fishing spot schema
+const FishingSpotSchema = new Schema(
+  {
+    spotId: { type: String, required: true },
+    name: { type: String, required: true },
+    description: { type: String, required: true },
+    waterType: {
+      type: String,
+      required: true,
+      enum: ['river', 'lake', 'pond', 'stream', 'sacred', 'underground'],
+    },
+    difficulty: { type: Number, required: true, min: 1, max: 100 },
+    discoveredByDefault: { type: Boolean, default: true },
+    requiredLevel: { type: Number },
+    commonFish: [{ type: String }],
+    rareFish: [{ type: String }],
+    legendaryFish: { type: String },
+    scenicValue: { type: Number, min: 0, max: 100 },
+    danger: { type: Number, min: 0, max: 100 },
   },
   { _id: false }
 );
@@ -448,6 +473,9 @@ const LocationSchema = new Schema<ILocation>(
 
     // Gathering nodes at this location
     gatheringNodes: [GatheringNodeSchema],
+
+    // Fishing spots at this location
+    fishingSpots: [FishingSpotSchema],
 
     // NPCs
     npcs: [LocationNPCSchema],

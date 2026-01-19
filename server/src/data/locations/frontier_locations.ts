@@ -99,6 +99,20 @@ export const frontierLocations: Partial<ILocation>[] = [
       }
     ],
     shops: [],
+    fishingSpots: [
+      {
+        spotId: 'snake_creek_shallows',
+        name: 'Snake Creek Shallows',
+        description: 'A shallow, winding creek with rattlesnakes sunning on the banks. Watch your step.',
+        waterType: 'stream',
+        difficulty: 25,
+        discoveredByDefault: true,
+        commonFish: ['creek_chub', 'catfish', 'minnow'],
+        rareFish: ['snapping_turtle', 'water_moccasin_bass'],
+        scenicValue: 45,
+        danger: 35
+      }
+    ],
     npcs: [],
     connections: [],
     dangerLevel: 4,

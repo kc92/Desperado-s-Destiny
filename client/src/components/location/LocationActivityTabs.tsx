@@ -12,6 +12,7 @@ export type ActivityTab =
   | 'train'
   | 'craft'
   | 'gather'
+  | 'fish'
   | 'shop'
   | 'travel';
 
@@ -31,6 +32,7 @@ interface LocationActivityTabsProps {
     hasTraining: boolean;
     hasCrafting: boolean;
     hasGathering: boolean;
+    hasFishing: boolean;
     hasShops: boolean;
     hasTravel: boolean;
   };
@@ -50,6 +52,7 @@ export function LocationActivityTabs({
     { id: 'train', label: 'Train', icon: '📚', visible: availableTabs.hasTraining },
     { id: 'craft', label: 'Craft', icon: '⚒️', visible: availableTabs.hasCrafting },
     { id: 'gather', label: 'Gather', icon: '⛏️', visible: availableTabs.hasGathering },
+    { id: 'fish', label: 'Fish', icon: '🎣', visible: availableTabs.hasFishing },
     { id: 'shop', label: 'Shop', icon: '🏪', visible: availableTabs.hasShops },
     { id: 'travel', label: 'Travel', icon: '🗺️', visible: availableTabs.hasTravel },
   ];

@@ -179,6 +179,24 @@ export interface LocationGatheringNode {
 }
 
 /**
+ * Fishing spot available at a location
+ */
+export interface LocationFishingSpot {
+  spotId: string; // References fishing location ID (e.g., 'red_gulch_creek')
+  name: string;
+  description: string;
+  waterType: 'river' | 'lake' | 'pond' | 'stream' | 'sacred' | 'underground';
+  difficulty: number; // 1-100 scale
+  discoveredByDefault?: boolean;
+  requiredLevel?: number;
+  commonFish: string[]; // Fish IDs that spawn here
+  rareFish?: string[];
+  legendaryFish?: string;
+  scenicValue?: number; // Visual appeal 0-100
+  danger?: number; // Danger from wildlife/environment
+}
+
+/**
  * Job category determines which deck game type is used
  */
 export type JobCategory = 'labor' | 'skilled' | 'dangerous' | 'social';
@@ -274,6 +292,9 @@ export interface Location {
 
   // Gathering nodes at this location
   gatheringNodes?: LocationGatheringNode[];
+
+  // Fishing spots at this location
+  fishingSpots?: LocationFishingSpot[];
 
   // NPCs present
   npcs: LocationNPC[];

@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useCharacterStore } from '@/store/useCharacterStore';
 import { Card, Button, EmptyState } from '@/components/ui';
 import { useToast } from '@/store/useToastStore';
@@ -64,10 +65,12 @@ const BAIT_OPTIONS: { type: BaitType; baitId: string; name: string; description:
 export const Fishing: React.FC = () => {
   const { currentCharacter, updateCharacter } = useCharacterStore();
   const { success, error: showError, info } = useToast();
+  const [searchParams] = useSearchParams();
 
   // State
   const [session, setSession] = useState<FishingSession | null>(null);
   const [selectedSpot, setSelectedSpot] = useState<typeof FISHING_SPOTS[0] | null>(null);
+  const [spotFromUrl, setSpotFromUrl] = useState<string | null>(null);
   const [selectedBait, setSelectedBait] = useState<BaitType>('worm');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,6 +91,21 @@ export const Fishing: React.FC = () => {
       if (reactionTimeout.current) clearTimeout(reactionTimeout.current);
     };
   }, []);
+
+  // Handle spot query parameter from URL (when navigating from a location)
+  useEffect(() => {
+    const spotParam = searchParams.get('spot');
+    if (spotParam && !spotFromUrl) {
+      setSpotFromUrl(spotParam);
+      // Find matching spot by locationId (spotId from location maps to locationId here)
+      const matchingSpot = FISHING_SPOTS.find(
+        (s) => s.locationId === spotParam || s.id === spotParam
+      );
+      if (matchingSpot) {
+        setSelectedSpot(matchingSpot);
+      }
+    }
+  }, [searchParams, spotFromUrl]);
 
   const loadSession = async () => {
     setIsLoading(true);

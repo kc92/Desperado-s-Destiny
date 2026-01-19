@@ -214,6 +214,20 @@ const locationSeeds = [
       { type: CraftingFacilityType.POWDER_PRESS, tier: 2, name: "Cole's Powder Press" },
       { type: CraftingFacilityType.STOVE, tier: 2, name: "Saloon Kitchen" }
     ],
+    fishingSpots: [
+      {
+        spotId: 'red_gulch_creek',
+        name: 'Red Gulch Creek',
+        description: 'A winding creek popular with local anglers. Good for beginners.',
+        waterType: 'river',
+        difficulty: 15,
+        discoveredByDefault: true,
+        commonFish: ['catfish', 'bass', 'bluegill'],
+        rareFish: ['rainbow_trout'],
+        scenicValue: 60,
+        danger: 10
+      }
+    ],
     npcs: [
       {
         id: 'marshal-blackwood',
@@ -862,6 +876,32 @@ const locationSeeds = [
       { type: CraftingFacilityType.MEDICINE_LODGE, tier: 3, name: "Spirit Springs Lodge" },
       { type: CraftingFacilityType.STORAGE_RACKS, tier: 2, name: "Herb Drying Racks" },
       { type: CraftingFacilityType.DISTILLERY, tier: 2, name: "Tincture Still" }
+    ],
+    fishingSpots: [
+      {
+        spotId: 'spirit_springs_lake',
+        name: 'Spirit Springs Lake',
+        description: 'Crystal clear water fed by natural springs. Sacred to the Nahi people.',
+        waterType: 'sacred',
+        difficulty: 35,
+        discoveredByDefault: true,
+        commonFish: ['bluegill', 'crappie', 'trout'],
+        rareFish: ['spirit_bass', 'golden_carp'],
+        legendaryFish: 'spirit_guardian',
+        scenicValue: 95,
+        danger: 5
+      },
+      {
+        spotId: 'spring_pools',
+        name: 'Spring Pools',
+        description: 'Natural pools fed by underground springs. Peaceful and secluded.',
+        waterType: 'pond',
+        difficulty: 20,
+        discoveredByDefault: true,
+        commonFish: ['bluegill', 'sunfish', 'catfish'],
+        scenicValue: 85,
+        danger: 0
+      }
     ],
     npcs: [
       {
