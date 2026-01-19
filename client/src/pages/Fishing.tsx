@@ -24,7 +24,7 @@ const FISHING_SPOTS = [
     id: 'river-1',
     name: 'Red Gulch Creek',
     description: 'A winding creek popular with local anglers. Good for beginners.',
-    waterType: 'river' as const,
+    type: 'river' as const,
     spotType: 'SHALLOW', // SpotType enum value
     locationId: 'red_gulch_creek', // Actual backend fishing location ID
     locationName: 'Red Gulch Creek',
@@ -35,7 +35,7 @@ const FISHING_SPOTS = [
     id: 'lake-1',
     name: 'Spirit Springs Lake',
     description: 'Crystal clear water fed by natural springs. Sacred to the Nahi.',
-    waterType: 'lake' as const,
+    type: 'lake' as const,
     spotType: 'DEEP', // SpotType enum value
     locationId: 'spirit_springs_lake', // Actual backend fishing location ID
     locationName: 'Spirit Springs Lake',
@@ -46,7 +46,7 @@ const FISHING_SPOTS = [
     id: 'pond-1',
     name: 'Spring Pools',
     description: 'Natural pools fed by underground springs. Peaceful and secluded.',
-    waterType: 'pond' as const,
+    type: 'pond' as const,
     spotType: 'SHALLOW', // SpotType enum value
     locationId: 'spring_pools', // Actual backend fishing location ID
     locationName: 'Spring Pools',
@@ -476,7 +476,7 @@ export const Fishing: React.FC = () => {
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-2xl">
-                        {spot.waterType === 'river' ? '🏞️' : spot.waterType === 'lake' ? '💧' : '🌿'}
+                        {spot.type === 'river' ? '🏞️' : spot.type === 'lake' ? '💧' : '🌿'}
                       </span>
                       <h3 className="font-western text-wood-dark">{spot.name}</h3>
                     </div>

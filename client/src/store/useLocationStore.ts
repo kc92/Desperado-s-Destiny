@@ -100,6 +100,21 @@ export interface ZoneTravelOptions {
   zoneInfo: ZoneInfo | null;
 }
 
+export interface LocationFishingSpot {
+  spotId: string;
+  name: string;
+  description: string;
+  waterType: string;
+  difficulty: number;
+  discoveredByDefault?: boolean;
+  requiredLevel?: number;
+  commonFish: string[];
+  rareFish?: string[];
+  legendaryFish?: string;
+  scenicValue?: number;
+  danger?: number;
+}
+
 export interface LocationData {
   _id: string;
   name: string;
@@ -115,6 +130,7 @@ export interface LocationData {
   shops: LocationShop[];
   npcs: LocationNPC[];
   connections: LocationConnection[];
+  fishingSpots?: LocationFishingSpot[];
   dangerLevel: number;
   factionInfluence: {
     settlerAlliance: number;
@@ -150,7 +166,7 @@ export interface JobInfo {
   rewards: any;
 }
 
-export type ActivityTab = 'overview' | 'jobs' | 'crimes' | 'train' | 'craft' | 'gather' | 'shop' | 'travel';
+export type ActivityTab = 'overview' | 'jobs' | 'crimes' | 'train' | 'craft' | 'gather' | 'fish' | 'shop' | 'travel';
 
 interface LocationState {
   // Core location data

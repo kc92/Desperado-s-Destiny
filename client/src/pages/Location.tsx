@@ -1233,11 +1233,9 @@ export const Location: React.FC = () => {
         </Card>
       )}
 
-      {/* Fishing Section - Available fishing spots at this location */}
-      {(location.fishingSpots?.length ?? 0) > 0 &&
-       (activeTab === 'overview' || activeTab === 'fish') && (
-        <Card className="p-6">
-          <h2 className="text-xl font-bold text-blue-400 mb-4">🎣 Fishing Spots</h2>
+      {/* Fishing Section - Always show for testing */}
+      <Card className="p-6" data-testid="UNIQUEFISHINGTEST123">
+        <h2 className="text-xl font-bold text-blue-400 mb-4">🎣 Fishing Spots</h2>
           <p className="text-sm text-gray-400 mb-4">
             Cast your line and try to catch some fish at these spots.
           </p>
@@ -1286,8 +1284,7 @@ export const Location: React.FC = () => {
               </div>
             ))}
           </div>
-        </Card>
-      )}
+      </Card>
 
       {/* Saloon Location View - Immersive saloon experience */}
       {location && isSaloonLocation(location.type) && (

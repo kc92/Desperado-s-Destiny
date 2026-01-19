@@ -5,6 +5,7 @@
  */
 
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Button, LoadingSpinner } from '@/components/ui';
 import { LocationHeader, LocationActivityTabs, TravelPanel, ActionModal } from '@/components/location';
 import { LocationGraveyard } from '@/components/location/LocationGraveyard';
@@ -51,6 +52,7 @@ export const LocationHub: React.FC = () => {
     fetchLocationActions,
     clearError,
   } = useLocationStore();
+  const navigate = useNavigate();
 
   // Fetch location on mount and when character changes
   useEffect(() => {
@@ -188,6 +190,7 @@ export const LocationHub: React.FC = () => {
               hasTraining: location.type === 'skill_academy',
               hasCrafting: true,
               hasGathering: false,
+              hasFishing: (location.fishingSpots?.length ?? 0) > 0,
               hasShops: !isParentTown && location.shops.length > 0,
               hasTravel: !!(zoneTravelOptions || (location.connectedLocations && location.connectedLocations.length > 0)),
             }}
@@ -221,6 +224,59 @@ export const LocationHub: React.FC = () => {
       {/* Training Activities (Academy) */}
       {!isSaloon && (activeTab === 'overview' || activeTab === 'train') && (
         <LocationTraining onRefresh={handleRefresh} />
+      )}
+
+      {/* Fishing Section */}
+      {!isSaloon && location.fishingSpots && location.fishingSpots.length > 0 &&
+       (activeTab === 'overview' || activeTab === 'fish') && (
+        <Card className="p-6">
+          <h2 className="text-xl font-bold text-blue-400 mb-4">🎣 Fishing Spots</h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Cast your line and try to catch some fish at these spots.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {location.fishingSpots.map(spot => (
+              <div key={spot.spotId} className="p-4 bg-gradient-to-br from-blue-900/30 to-gray-800/50 rounded-lg border border-blue-700/50 hover:border-blue-500 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-semibold text-blue-200">{spot.name}</h3>
+                    <p className="text-xs text-gray-400 capitalize">{spot.waterType}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-yellow-400">
+                      {'⭐'.repeat(Math.ceil(spot.difficulty / 25))}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-400 mt-2 line-clamp-2">{spot.description}</p>
+                <div className="mt-3 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-400">🐟 {spot.commonFish.length} species</span>
+                    {spot.legendaryFish && (
+                      <span className="text-purple-400">👑 Legendary</span>
+                    )}
+                  </div>
+                  {spot.scenicValue && (
+                    <span className="text-cyan-400">🌄 {spot.scenicValue}% scenic</span>
+                  )}
+                </div>
+                {spot.requiredLevel && spot.requiredLevel > (currentCharacter?.level || 1) ? (
+                  <div className="mt-3 text-center text-xs text-red-400">
+                    Requires Level {spot.requiredLevel}
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="mt-3 w-full bg-blue-900/50 hover:bg-blue-800/50 border-blue-700"
+                    onClick={() => navigate(`/game/fishing?spot=${spot.spotId}`)}
+                  >
+                    Fish Here
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
 
       {/* Hostile NPCs */}
